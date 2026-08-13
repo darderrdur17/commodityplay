@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Inter, Roboto } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
@@ -12,14 +12,14 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
+  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
-const playfair = Playfair_Display({
+const roboto = Roboto({
   subsets: ["latin"],
-  variable: "--font-playfair",
+  variable: "--font-roboto",
   display: "swap",
-  style: ["normal", "italic"],
-  weight: ["400", "600", "700", "800"],
+  weight: ["400", "500", "700"],
 });
 
 export const metadata: Metadata = {
@@ -88,7 +88,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
+    <html lang="en" className={`${inter.variable} ${roboto.variable}`}>
       <body className="font-sans antialiased bg-white text-gray-800 min-h-screen flex flex-col overflow-x-hidden">
         <SessionProvider>
           <Nav />

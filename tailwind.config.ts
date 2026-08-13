@@ -57,8 +57,8 @@ const config: Config = {
         rust: { DEFAULT: "#9A3412", bg: "#FEF0E7" },
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
-        serif: ["var(--font-playfair)", "Georgia", "serif"],
+        sans: ["var(--font-roboto)", "system-ui", "sans-serif"],
+        serif: ["var(--font-inter)", "system-ui", "sans-serif"],
         mono: ["var(--font-jetbrains)", "monospace"],
       },
       borderRadius: {
