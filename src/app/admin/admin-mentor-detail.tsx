@@ -93,12 +93,15 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
             <div className="flex items-center gap-2">
               <h2 className="font-serif font-bold text-lg text-gray-900 font-mono">{mentor.id}</h2>
               {mentor.status === "pending" ? (
-                <Badge variant="warning" size="sm"><Clock className="w-3 h-3" /> Pending Review</Badge>
+                <Badge variant="warning" size="sm"><Clock className="w-3 h-3" /> Pending review</Badge>
               ) : (
-                mentor.isNew && <Badge variant="success" size="sm"><CheckCircle2 className="w-3 h-3" /> Active</Badge>
+                <Badge variant="success" size="sm"><CheckCircle2 className="w-3 h-3" /> Published</Badge>
               )}
             </div>
             <p className="text-sm text-muted-fg">{mentor.segmentTitle}</p>
+            <p className="text-xs text-muted-fg mt-0.5">
+              Anonymous ID shown on Mentor Connect — name and email stay internal.
+            </p>
           </div>
           <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-secondary">
             <X className="w-5 h-5" />
@@ -168,9 +171,11 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
             <input
               type="text"
               className="w-full border border-border rounded-lg px-3 py-2 text-sm"
+              placeholder="e.g. Crude Oil Trader — Ex-Supermajor"
               value={form.headline}
               onChange={(e) => setForm((f) => ({ ...f, headline: e.target.value }))}
             />
+            <p className="text-xs text-muted-fg">Shown publicly on Mentor Connect under anonymous ID {mentor.id}.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -200,11 +205,11 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg">Tags</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg">Subjects (tags)</label>
             <input
               type="text"
               className="w-full border border-border rounded-lg px-3 py-2 text-sm"
-              placeholder="Comma-separated, e.g. Crude, Arbitrage, Physical"
+              placeholder="Comma-separated, e.g. Crude oil, Forward curves, Physical arbitrage"
               value={form.tagsText}
               onChange={(e) => setForm((f) => ({ ...f, tagsText: e.target.value }))}
             />
@@ -213,20 +218,27 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <div className="flex gap-2 pt-2">
-            <Button className="flex-1" onClick={() => save(false)} loading={saving === "save"} disabled={saving === "approve"}>
-              <Save className="w-4 h-4" />
-              Save mentor profile
-            </Button>
-            {mentor.status === "pending" && (
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => save(true)}
-                loading={saving === "approve"}
-                disabled={saving === "save"}
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                Save & Approve
+            {mentor.status === "pending" ? (
+              <>
+                <Button className="flex-1" onClick={() => save(false)} loading={saving === "save"} disabled={saving === "approve"}>
+                  <Save className="w-4 h-4" />
+                  Save draft
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => save(true)}
+                  loading={saving === "approve"}
+                  disabled={saving === "save"}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Publish to Mentor Connect
+                </Button>
+              </>
+            ) : (
+              <Button className="flex-1" onClick={() => save(false)} loading={saving === "save"}>
+                <Save className="w-4 h-4" />
+                Save & update live profile
               </Button>
             )}
             <Button variant="outline" onClick={onClose}>Cancel</Button>

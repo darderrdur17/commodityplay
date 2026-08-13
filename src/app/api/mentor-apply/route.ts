@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getPublishedPayload, updateContentModule } from "@/lib/content/repository";
-import { MENTOR_SEGMENTS, UNASSIGNED_SEGMENT_ID, generateMentorId } from "@/data/mentors";
+import { UNASSIGNED_SEGMENT_ID, generateMentorId } from "@/data/mentors";
 import type { MentorOverride, MentorOverridesPayload } from "@/data/mentors";
 
 /**
@@ -18,18 +18,13 @@ import type { MentorOverride, MentorOverridesPayload } from "@/data/mentors";
  * auto-published), but consider adding rate limiting if abuse becomes a problem.
  */
 
-const validSegmentIds = new Set(MENTOR_SEGMENTS.map((s) => s.id));
-
 const applySchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(200),
   email: z.string().trim().email("Enter a valid email address").max(200),
   company: z.string().trim().max(200).optional(),
   headline: z.string().trim().min(1, "Headline is required").max(200),
   years: z.number().int().min(0).max(80),
-  tags: z.array(z.string().trim().min(1).max(40)).max(12).optional(),
-  track: z.enum(["career", "sales", "both"]),
-  segmentId: z.string().trim().max(60).optional(),
-  bio: z.string().trim().max(600).optional(),
+  tags: z.array(z.string().trim().min(1).max(40)).min(1, "At least one subject is required").max(12),
 });
 
 export async function POST(req: NextRequest) {
@@ -44,23 +39,19 @@ export async function POST(req: NextRequest) {
     }
 
     const data = parsed.data;
-    const segmentId =
-      data.segmentId && validSegmentIds.has(data.segmentId) ? data.segmentId : UNASSIGNED_SEGMENT_ID;
-
     const now = new Date().toISOString();
     const newOverride: MentorOverride = {
       id: generateMentorId(),
       isNew: true,
       status: "pending",
-      segmentId,
+      segmentId: UNASSIGNED_SEGMENT_ID,
       headline: data.headline,
       years: data.years,
-      tags: data.tags?.length ? data.tags : [],
+      tags: data.tags,
       name: data.name,
       email: data.email,
       company: data.company || undefined,
-      track: data.track,
-      bio: data.bio || undefined,
+      track: "both",
       createdAt: now,
       updatedAt: now,
     };

@@ -475,6 +475,12 @@ export function AdminClient({
         {/* ── Mentors tab ── */}
         {activeTab === "mentors" && (
           <div className="space-y-4">
+            <div className="rounded-lg border border-border bg-white px-4 py-3 text-sm text-muted-fg">
+              Each mentor has an <strong className="text-gray-800">anonymous ID</strong> (e.g. PT-01) shown publicly on Mentor Connect.
+              Name, email, and company are internal only. Edit headline, years, and tags below, then{" "}
+              <strong className="text-gray-800">Publish to Mentor Connect</strong> when ready.
+              Invite-only applications arrive via the hidden <code className="text-xs bg-secondary px-1 rounded">/mentor-apply</code> form.
+            </div>
             {pendingMentorApps > 0 && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-center gap-2.5">
                 <Clock className="w-4 h-4 flex-shrink-0" />
@@ -551,10 +557,8 @@ export function AdminClient({
                         <td className="px-4 py-2.5">
                           {m.status === "pending" ? (
                             <Badge variant="warning" size="sm"><Clock className="w-3 h-3" /> Pending</Badge>
-                          ) : m.isNew ? (
-                            <Badge variant="success" size="sm">Active</Badge>
                           ) : (
-                            <span className="text-xs text-muted-fg">—</span>
+                            <Badge variant="success" size="sm">Published</Badge>
                           )}
                         </td>
                         <td className="px-4 py-2.5 text-xs">

@@ -73,6 +73,25 @@ export interface MentorOverridesPayload {
   overrides: MentorOverride[];
 }
 
+/** Public-safe mentor profile — strips admin-only identity/review fields before Mentor Connect. */
+export type PublicMentorProfile = Pick<
+  MentorProfile,
+  "id" | "years" | "headline" | "bio" | "tags" | "sampleReply" | "track"
+>;
+
+/** Strip admin-only fields before rendering on Mentor Connect or any public surface. */
+export function toPublicMentorProfile(m: MentorProfile): PublicMentorProfile {
+  return {
+    id: m.id,
+    years: m.years,
+    headline: m.headline,
+    bio: m.bio,
+    tags: m.tags,
+    sampleReply: m.sampleReply,
+    track: m.track,
+  };
+}
+
 export interface MentorSegment {
   id: string;
   num: string;
@@ -80,6 +99,10 @@ export interface MentorSegment {
   blurb: string;
   mentors: MentorProfile[];
 }
+
+export type PublishedMentorSegment = Omit<MentorSegment, "mentors"> & {
+  mentors: PublicMentorProfile[];
+};
 
 export const MENTOR_SEGMENTS: MentorSegment[] = mentorsJson as MentorSegment[];
 export const MENTOR_COUNT = MENTOR_SEGMENTS.reduce((n, s) => n + s.mentors.length, 0);

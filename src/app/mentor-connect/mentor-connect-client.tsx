@@ -9,7 +9,7 @@ import { TierGate } from "@/components/tier-gate";
 import { Reveal } from "@/components/animations";
 import { MentorAskPanel } from "@/components/mentor-connect/mentor-ask-panel";
 import { formatDate } from "@/lib/utils";
-import { MENTOR_SEGMENTS, MENTOR_COUNT, type MentorProfile } from "@/data/mentors";
+import type { PublicMentorProfile, PublishedMentorSegment } from "@/data/mentors";
 
 const SEGMENT_API_MAP: Record<string, string> = {
   "physical-paper": "physical-trading",
@@ -40,12 +40,14 @@ interface Question {
 interface Props {
   userTier: string;
   mentorCredits: number;
+  mentorSegments: PublishedMentorSegment[];
+  mentorCount: number;
   questions: Question[];
 }
 
-type SelectedMentor = MentorProfile & { segmentId: string; segmentTitle: string };
+type SelectedMentor = PublicMentorProfile & { segmentId: string; segmentTitle: string };
 
-export function MentorConnectClient({ userTier, mentorCredits, questions }: Props) {
+export function MentorConnectClient({ userTier, mentorCredits, mentorSegments, mentorCount, questions }: Props) {
   const router = useRouter();
   const [segment, setSegment] = useState("");
   const [question, setQuestion] = useState("");
@@ -56,7 +58,7 @@ export function MentorConnectClient({ userTier, mentorCredits, questions }: Prop
 
   const isElite = userTier === "ELITE";
 
-  function openMentor(mentor: MentorProfile, segmentId: string, segmentTitle: string) {
+  function openMentor(mentor: PublicMentorProfile, segmentId: string, segmentTitle: string) {
     if (selectedMentor?.id === mentor.id) {
       clearMentorSelection();
       return;
@@ -116,14 +118,14 @@ export function MentorConnectClient({ userTier, mentorCredits, questions }: Prop
             One Question. <span className="text-accent italic">One Honest Answer.</span>
           </h1>
           <p className="text-white/65 text-lg max-w-2xl mb-6">
-            One question. One mentor. One honest answer. Choose from twenty-five anonymous practitioners across the five coverage segments. Your session ends once you&apos;ve finished using all 25 credits and the credits will get reset every month.
+            One question. One mentor. One honest answer. Choose from {mentorCount} anonymous practitioners across {mentorSegments.length} coverage segments. Your session ends once you&apos;ve finished using all 25 credits and the credits will get reset every month.
           </p>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">
               {isElite ? `${mentorCredits} credits remaining` : "Elite only"}
             </div>
-            <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">{MENTOR_COUNT} Practitioners</div>
-            <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">5 Segments</div>
+            <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">{mentorCount} Practitioners</div>
+            <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">{mentorSegments.length} Segments</div>
           </div>
         </Reveal>
       </section>
@@ -133,14 +135,14 @@ export function MentorConnectClient({ userTier, mentorCredits, questions }: Prop
         <section className="mb-14">
           <Reveal className="mb-8">
             <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">Browse mentors</p>
-            <h2 className="font-serif text-2xl font-bold text-gray-900">25 Practitioners. Five Segments.</h2>
+            <h2 className="font-serif text-2xl font-bold text-gray-900">{mentorCount} Practitioners. {mentorSegments.length} Segments.</h2>
             <p className="text-sm text-muted-fg mt-2">
               Tap a mentor to open the question panel right here — no scrolling to the bottom of the page.
             </p>
           </Reveal>
 
           <div className="space-y-10">
-            {MENTOR_SEGMENTS.map((seg) => {
+            {mentorSegments.map((seg) => {
               const panelOpen = selectedMentor?.segmentId === seg.id;
 
               return (

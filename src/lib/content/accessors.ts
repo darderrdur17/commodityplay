@@ -15,7 +15,12 @@ import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-template
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
 import { mergeLandingContent, resolveMentorSegments } from "./merge";
-import { MENTOR_SEGMENTS } from "@/data/mentors";
+import {
+  MENTOR_SEGMENTS,
+  UNASSIGNED_SEGMENT_ID,
+  toPublicMentorProfile,
+  type PublishedMentorSegment,
+} from "@/data/mentors";
 import playbookSections from "@/data/playbook-sections.json";
 
 type PlaybookPayload = {
@@ -45,6 +50,26 @@ export async function getLandingContent(): Promise<LandingContent> {
 export async function getResolvedMentorSegments() {
   const data = await getPublishedPayload<Partial<MentorOverridesPayload>>("mentors");
   return resolveMentorSegments(MENTOR_SEGMENTS, data?.overrides ?? []);
+}
+
+/**
+ * Mentor Connect page — CMS-resolved profiles that are approved (`status: "active"`)
+ * only. Admin-only fields (name/email/company) and pending applications are excluded.
+ */
+export async function getPublishedMentorSegments(): Promise<PublishedMentorSegment[]> {
+  const resolved = await getResolvedMentorSegments();
+  return resolved
+    .filter((seg) => seg.id !== UNASSIGNED_SEGMENT_ID)
+    .map((seg) => ({
+      id: seg.id,
+      num: seg.num,
+      title: seg.title,
+      blurb: seg.blurb,
+      mentors: seg.mentors
+        .filter((m) => (m.status ?? "active") === "active")
+        .map(toPublicMentorProfile),
+    }))
+    .filter((seg) => seg.mentors.length > 0);
 }
 
 export async function getPlaybookChapters() {
