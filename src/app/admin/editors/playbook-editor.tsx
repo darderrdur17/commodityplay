@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EditorField, EditorRow, EditorSection, UploadSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, EditorSection, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
 
 interface PlaybookSectionData {
   id: string;
@@ -15,6 +15,7 @@ interface PlaybookSectionData {
   pullQuote?: string;
   wtmfy?: string;
   handoff?: string;
+  freePreview?: boolean;
 }
 
 interface PlaybookChapter {
@@ -25,6 +26,7 @@ interface PlaybookChapter {
   pages: number;
   readTime: string;
   sections: PlaybookSectionData[];
+  track?: "career" | "sales" | "both";
 }
 
 interface PlaybookPayload {
@@ -115,6 +117,9 @@ export function PlaybookEditor({
               <input type="number" className={inputClass} value={ch.pages} onChange={(e) => patchChapter(ci, { ...ch, pages: Number(e.target.value) })} />
             </EditorField>
           </div>
+          <EditorField label="Track">
+            <TrackToggle value={ch.track ?? "both"} onChange={(v) => patchChapter(ci, { ...ch, track: v })} />
+          </EditorField>
           <EditorField label="Subtitle">
             <input className={inputClass} value={ch.subtitle} onChange={(e) => patchChapter(ci, { ...ch, subtitle: e.target.value })} />
           </EditorField>
@@ -124,7 +129,12 @@ export function PlaybookEditor({
             {ch.sections.map((sec, si) => (
               <EditorRow
                 key={sec.id}
-                summary={<span className="font-medium">{sec.number} {sec.title}</span>}
+                summary={
+                  <span className="flex items-center gap-2">
+                    <span className="font-medium">{sec.number} {sec.title}</span>
+                    {sec.freePreview && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Free Preview</span>}
+                  </span>
+                }
                 onDelete={() => deleteSection(ci, si)}
               >
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -134,6 +144,10 @@ export function PlaybookEditor({
                 <EditorField label="Description"><textarea className={textareaClass} value={sec.desc} onChange={(e) => patchSection(ci, si, { ...sec, desc: e.target.value })} /></EditorField>
                 <EditorField label="Hook"><textarea className={textareaClass} value={sec.hook} onChange={(e) => patchSection(ci, si, { ...sec, hook: e.target.value })} /></EditorField>
                 <EditorField label="Paragraphs" hint="One paragraph per line"><textarea className={textareaClass} rows={6} value={(sec.paragraphs ?? []).join("\n")} onChange={(e) => patchSection(ci, si, { ...sec, paragraphs: e.target.value.split("\n") })} /></EditorField>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input type="checkbox" checked={sec.freePreview ?? false} onChange={(e) => patchSection(ci, si, { ...sec, freePreview: e.target.checked })} />
+                  Free preview (visible to Starter members)
+                </label>
                 <EditorField label="Pull quote"><input className={inputClass} value={sec.pullQuote ?? ""} onChange={(e) => patchSection(ci, si, { ...sec, pullQuote: e.target.value })} /></EditorField>
                 <EditorField label="WTMFY"><textarea className={textareaClass} value={sec.wtmfy ?? ""} onChange={(e) => patchSection(ci, si, { ...sec, wtmfy: e.target.value })} /></EditorField>
                 <EditorField label="Handoff"><textarea className={textareaClass} value={sec.handoff ?? ""} onChange={(e) => patchSection(ci, si, { ...sec, handoff: e.target.value })} /></EditorField>

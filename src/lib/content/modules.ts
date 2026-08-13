@@ -11,7 +11,9 @@ export type ContentSlug =
   | "case-studies"
   | "desk-channel"
   | "job-openings"
-  | "starter-pack";
+  | "starter-pack"
+  | "mentor-connect"
+  | "library";
 
 export interface ContentModuleMeta {
   slug: ContentSlug;
@@ -86,6 +88,18 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
     title: "Starter Pack",
     description: "Free infographics and starter downloads",
     requiredTier: "STARTER",
+  },
+  {
+    slug: "mentor-connect",
+    title: "Mentor Connect",
+    description: "Subject categories for mentor Q&A",
+    requiredTier: "ELITE",
+  },
+  {
+    slug: "library",
+    title: "Library Resources",
+    description: "Downloadable and view-only files",
+    requiredTier: "PRO",
   },
 ];
 

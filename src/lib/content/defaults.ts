@@ -67,6 +67,10 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
         marketNote: STARTER_MARKET_NOTE,
         chapterPreview: STARTER_CHAPTER_PREVIEW,
       };
+    case "mentor-connect":
+      return { categories: [] };
+    case "library":
+      return { files: [] };
     default:
       return {};
   }
@@ -85,5 +89,7 @@ export function getAllDefaultPayloads(): Record<ContentSlug, unknown> {
     "desk-channel": getDefaultPayload("desk-channel"),
     "job-openings": getDefaultPayload("job-openings"),
     "starter-pack": getDefaultPayload("starter-pack"),
+    "mentor-connect": getDefaultPayload("mentor-connect"),
+    "library": getDefaultPayload("library"),
   };
 }

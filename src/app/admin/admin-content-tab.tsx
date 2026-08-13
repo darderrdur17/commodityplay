@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { RefreshCw, LayoutGrid } from "lucide-react";
+import { RefreshCw, LayoutGrid, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatDate } from "@/lib/utils";
@@ -16,6 +16,11 @@ import { JobOpeningsEditor } from "./editors/job-openings-editor";
 import { CaseStudiesEditor } from "./editors/case-studies-editor";
 import { LandingEditorWrapper } from "./editors/landing-editor";
 import { StarterPackEditor } from "./editors/starter-pack-editor";
+import { ResumeEditor } from "./editors/resume-editor";
+import { MentorConnectEditor } from "./editors/mentor-connect-editor";
+import { LibraryEditor } from "./editors/library-editor";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ModuleRow {
   slug: string;
@@ -28,39 +33,124 @@ interface ModuleRow {
   payloadSize: number;
 }
 
-type Track = "Career" | "Sales" | "Both" | "Elite";
+type TrackLabel = "Career" | "Sales" | "Both" | "Elite";
 
-const MODULE_META: Record<string, { track: Track; label: string }> = {
-  landing: { track: "Both", label: "Landing Page" },
-  playbook: { track: "Career", label: "Playbook" },
-  glossary: { track: "Career", label: "Glossary" },
-  "desk-channel": { track: "Elite", label: "Desk Channel" },
-  "interview-questions": { track: "Career", label: "Interview Questions" },
-  "knowledge-test": { track: "Career", label: "Knowledge Test" },
-  "career-roadmap": { track: "Career", label: "Career Roadmap" },
-  "starter-pack": { track: "Career", label: "Starter Pack" },
-  "job-openings": { track: "Both", label: "Job Openings" },
-  "case-studies": { track: "Elite", label: "Case Studies" },
+// ─── Sidebar hierarchy ────────────────────────────────────────────────────────
+
+interface SidebarItem {
+  slug: string;
+  label: string;
+  track?: TrackLabel;
+  tier?: string;
+}
+
+interface SidebarGroup {
+  label: string;
+  tier: string;
+  items: SidebarItem[];
+}
+
+const SIDEBAR_GROUPS: SidebarGroup[] = [
+  {
+    label: "Landing Page",
+    tier: "STARTER",
+    items: [
+      { slug: "landing", label: "Career Track", track: "Career", tier: "STARTER" },
+      { slug: "landing", label: "Sales Track", track: "Sales", tier: "STARTER" },
+    ],
+  },
+  {
+    label: "Starter Pack",
+    tier: "STARTER",
+    items: [
+      { slug: "starter-pack", label: "Free Infographics + Email Digest", track: "Both", tier: "STARTER" },
+      { slug: "glossary", label: "Desk Glossary", track: "Both", tier: "STARTER" },
+    ],
+  },
+  {
+    label: "Pro Pack",
+    tier: "PRO",
+    items: [
+      { slug: "playbook", label: "Full Playbook", track: "Both", tier: "PRO" },
+      { slug: "resume-templates", label: "Resume", track: "Career", tier: "PRO" },
+      { slug: "career-roadmap", label: "Career Roadmap + Nav Guide", track: "Career", tier: "PRO" },
+      { slug: "interview-questions", label: "Interview Questions", track: "Career", tier: "PRO" },
+      { slug: "knowledge-test", label: "Market Knowledge Test", track: "Both", tier: "PRO" },
+      { slug: "library", label: "Library Resources", track: "Both", tier: "PRO" },
+    ],
+  },
+  {
+    label: "Elite Pack",
+    tier: "ELITE",
+    items: [
+      { slug: "case-studies", label: "Case Studies", track: "Both", tier: "ELITE" },
+      { slug: "desk-channel", label: "Desk Channel", track: "Both", tier: "ELITE" },
+      { slug: "mentor-connect", label: "Mentor Connect", track: "Both", tier: "ELITE" },
+      { slug: "job-openings", label: "Market Role Openings", track: "Both", tier: "ELITE" },
+    ],
+  },
+];
+
+// Unique slugs that should be fetched/displayed in sidebar
+function uniqueSlugs(): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const group of SIDEBAR_GROUPS) {
+    for (const item of group.items) {
+      if (!seen.has(item.slug)) {
+        seen.add(item.slug);
+        result.push(item.slug);
+      }
+    }
+  }
+  return result;
+}
+
+// ─── Tier colors ──────────────────────────────────────────────────────────────
+
+const TIER_COLORS: Record<string, string> = {
+  STARTER: "bg-emerald-50 border-emerald-200",
+  PRO: "bg-blue-50 border-blue-200",
+  ELITE: "bg-amber-50 border-amber-200",
 };
 
-const GROUPS: { label: string; slugs: string[] }[] = [
-  { label: "Both Tracks", slugs: ["landing", "job-openings"] },
-  { label: "Career Track", slugs: ["playbook", "glossary", "interview-questions", "knowledge-test", "career-roadmap", "starter-pack"] },
-  { label: "Elite Track", slugs: ["desk-channel", "case-studies"] },
-];
+const TIER_LABEL_COLORS: Record<string, string> = {
+  STARTER: "text-emerald-700",
+  PRO: "text-blue-700",
+  ELITE: "text-amber-700",
+};
+
+// ─── Module editor panel ──────────────────────────────────────────────────────
 
 function ModuleEditor({
   slug,
+  label,
+  track,
   modules,
   onRefresh,
 }: {
   slug: string;
+  label: string;
+  track?: TrackLabel;
   modules: ModuleRow[];
   onRefresh: () => void;
 }) {
-  const { payload, setPayload, requiredTier, setRequiredTier, published, setPublished, version, loading, saving, message, isError, save, reset } = useModuleEditor(slug);
+  const {
+    payload,
+    setPayload,
+    requiredTier,
+    setRequiredTier,
+    published,
+    setPublished,
+    version,
+    loading,
+    saving,
+    message,
+    isError,
+    save,
+    reset,
+  } = useModuleEditor(slug);
 
-  const meta = MODULE_META[slug];
   const mod = modules.find((m) => m.slug === slug);
 
   async function handleSave() {
@@ -77,20 +167,38 @@ function ModuleEditor({
 
   function renderEditor() {
     switch (slug) {
-      case "playbook": return <PlaybookEditor {...editorProps} />;
-      case "glossary": return <GlossaryEditor {...editorProps} />;
-      case "desk-channel": return <DeskChannelEditor {...editorProps} />;
-      case "interview-questions": return <InterviewEditor {...editorProps} />;
-      case "knowledge-test": return <KnowledgeTestEditor {...editorProps} />;
-      case "career-roadmap": return <CareerRoadmapEditor {...editorProps} />;
-      case "job-openings": return <JobOpeningsEditor {...editorProps} />;
-      case "case-studies": return <CaseStudiesEditor {...editorProps} />;
-      case "landing": return <LandingEditorWrapper {...editorProps} />;
-      case "starter-pack": return <StarterPackEditor {...editorProps} />;
+      case "playbook":
+        return <PlaybookEditor {...editorProps} />;
+      case "glossary":
+        return <GlossaryEditor {...editorProps} />;
+      case "desk-channel":
+        return <DeskChannelEditor {...editorProps} />;
+      case "interview-questions":
+        return <InterviewEditor {...editorProps} />;
+      case "knowledge-test":
+        return <KnowledgeTestEditor {...editorProps} />;
+      case "career-roadmap":
+        return <CareerRoadmapEditor {...editorProps} />;
+      case "job-openings":
+        return <JobOpeningsEditor {...editorProps} />;
+      case "case-studies":
+        return <CaseStudiesEditor {...editorProps} />;
+      case "landing":
+        return <LandingEditorWrapper {...editorProps} />;
+      case "starter-pack":
+        return <StarterPackEditor {...editorProps} />;
+      case "resume-templates":
+        return <ResumeEditor {...editorProps} />;
+      case "mentor-connect":
+        return <MentorConnectEditor payload={payload} onChange={setPayload} />;
+      case "library":
+        return <LibraryEditor {...editorProps} />;
       default:
         return (
           <div className="p-6 text-center text-muted-fg text-sm">
-            <p>No structured editor for <strong>{slug}</strong>.</p>
+            <p>
+              No structured editor for <strong>{slug}</strong>.
+            </p>
             <p className="text-xs mt-1">Edit via JSON in the original content tab.</p>
           </div>
         );
@@ -121,24 +229,116 @@ function ModuleEditor({
         onReset={handleReset}
       />
       <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-secondary/30">
-        <p className="text-xs font-semibold text-gray-700">{meta?.label ?? slug}</p>
-        {meta?.track && <TrackBadge track={meta.track} />}
+        <p className="text-xs font-semibold text-gray-700">{label}</p>
+        {track && <TrackBadge track={track} />}
         {mod && (
-          <span className="ml-auto text-xs text-muted-fg">
-            Updated {formatDate(mod.updatedAt)}
-          </span>
+          <span className="ml-auto text-xs text-muted-fg">Updated {formatDate(mod.updatedAt)}</span>
         )}
       </div>
-      <div className="p-4 max-h-[calc(100vh-260px)] overflow-y-auto">
-        {renderEditor()}
-      </div>
+      <div className="p-4 max-h-[calc(100vh-260px)] overflow-y-auto">{renderEditor()}</div>
     </div>
   );
 }
 
+// ─── Collapsible sidebar group ────────────────────────────────────────────────
+
+function SidebarGroupSection({
+  group,
+  modules,
+  selectedKey,
+  onSelect,
+}: {
+  group: SidebarGroup;
+  modules: ModuleRow[];
+  selectedKey: string | null;
+  onSelect: (key: string, slug: string, label: string, track?: TrackLabel) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const tierColor = TIER_COLORS[group.tier] ?? "";
+  const tierLabelColor = TIER_LABEL_COLORS[group.tier] ?? "text-muted-fg";
+
+  return (
+    <div className="border-b border-border last:border-b-0">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={cn("w-full flex items-center gap-2 px-4 py-2.5 text-left border-l-2", tierColor)}
+      >
+        {open ? (
+          <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-fg" />
+        ) : (
+          <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-fg" />
+        )}
+        <p className={cn("text-xs font-bold uppercase tracking-wider", tierLabelColor)}>{group.label}</p>
+        <span className={cn("ml-auto text-[10px] font-bold uppercase", tierLabelColor)}>{group.tier}</span>
+      </button>
+      {open && (
+        <div className="divide-y divide-border">
+          {group.items.map((item) => {
+            const itemKey = `${item.slug}::${item.label}`;
+            const mod = modules.find((m) => m.slug === item.slug);
+            return (
+              <button
+                key={itemKey}
+                type="button"
+                onClick={() => onSelect(itemKey, item.slug, item.label, item.track)}
+                className={cn(
+                  "w-full text-left px-4 py-3 pl-9 hover:bg-secondary/60 transition-colors",
+                  selectedKey === itemKey ? "bg-primary-soft" : ""
+                )}
+              >
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <p className="font-semibold text-sm text-gray-900">{item.label}</p>
+                  {mod && (
+                    <Badge size="sm" variant={mod.published ? "success" : "secondary"}>
+                      {mod.published ? "Live" : "Draft"}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {item.track && (
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold uppercase px-1.5 py-0.5 rounded",
+                        item.track === "Career"
+                          ? "bg-blue-100 text-blue-700"
+                          : item.track === "Sales"
+                          ? "bg-violet-100 text-violet-700"
+                          : item.track === "Both"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-amber-100 text-amber-700"
+                      )}
+                    >
+                      {item.track}
+                    </span>
+                  )}
+                  {mod && (
+                    <span className="text-[11px] text-muted-fg">
+                      {item.slug} · v{mod.version}
+                    </span>
+                  )}
+                  {!mod && <span className="text-[11px] text-muted-fg italic">{item.slug} (not seeded)</span>}
+                </div>
+                {mod && <p className="text-[11px] text-muted-fg mt-0.5">{formatDate(mod.updatedAt)}</p>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main tab ─────────────────────────────────────────────────────────────────
+
 export function AdminContentTab() {
   const [modules, setModules] = useState<ModuleRow[]>([]);
-  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const [selected, setSelected] = useState<{
+    key: string;
+    slug: string;
+    label: string;
+    track?: TrackLabel;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -161,7 +361,9 @@ export function AdminContentTab() {
     }
   }
 
-  useEffect(() => { loadModules(); }, []);
+  useEffect(() => {
+    loadModules();
+  }, []);
 
   if (loading) {
     return <div className="text-center py-12 text-muted-fg">Loading content modules...</div>;
@@ -186,66 +388,55 @@ export function AdminContentTab() {
       {/* Sidebar */}
       <div className="bg-white rounded-xl border border-border overflow-hidden h-fit lg:sticky lg:top-4">
         <div className="px-4 py-3 border-b border-border bg-secondary flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-fg">Content Modules</p>
-          <button type="button" onClick={loadModules} className="text-muted-fg hover:text-primary-400">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-fg">Content CMS</p>
+          <button
+            type="button"
+            onClick={loadModules}
+            className="text-muted-fg hover:text-primary-400"
+          >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
         </div>
         <div className="max-h-[calc(100vh-180px)] overflow-y-auto">
-          {GROUPS.map((group) => {
-            const groupModules = group.slugs
-              .map((slug) => modules.find((m) => m.slug === slug))
-              .filter(Boolean) as ModuleRow[];
-            if (groupModules.length === 0) return null;
-            return (
-              <div key={group.label} className="border-b border-border last:border-b-0">
-                <div className="px-4 py-2 bg-secondary/80">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-fg">{group.label}</p>
-                </div>
-                <div className="divide-y divide-border">
-                  {groupModules.map((m) => {
-                    const meta = MODULE_META[m.slug];
-                    return (
-                      <button
-                        key={m.slug}
-                        type="button"
-                        onClick={() => setSelectedSlug(m.slug)}
-                        className={cn(
-                          "w-full text-left px-4 py-3 hover:bg-secondary/60 transition-colors",
-                          selectedSlug === m.slug ? "bg-primary-soft" : ""
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-0.5">
-                          <p className="font-semibold text-sm text-gray-900">{meta?.label ?? m.title}</p>
-                          <Badge size="sm" variant={m.published ? "success" : "secondary"}>
-                            {m.published ? "Live" : "Draft"}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-fg">{m.slug} · v{m.version}</p>
-                        <p className="text-[11px] text-muted-fg">{formatDate(m.updatedAt)}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+          {SIDEBAR_GROUPS.map((group) => (
+            <SidebarGroupSection
+              key={group.label}
+              group={group}
+              modules={modules}
+              selectedKey={selected?.key ?? null}
+              onSelect={(key, slug, label, track) => setSelected({ key, slug, label, track })}
+            />
+          ))}
           {modules.length === 0 && (
             <p className="p-4 text-xs text-muted-fg">No modules yet. Run npm run db:seed.</p>
           )}
+        </div>
+        <div className="px-4 py-2 border-t border-border bg-secondary/30">
+          <p className="text-[11px] text-muted-fg">
+            {uniqueSlugs().length} slugs · {modules.length} seeded
+          </p>
         </div>
       </div>
 
       {/* Editor panel */}
       <div>
-        {!selectedSlug ? (
+        {!selected ? (
           <div className="bg-white rounded-xl border border-border p-12 text-center text-muted-fg">
             <LayoutGrid className="w-10 h-10 mx-auto mb-3 opacity-40" />
             <p className="mb-2 font-medium">Select a module to edit</p>
-            <p className="text-xs">Each module has a structured form editor. Changes save as JSON via the API.</p>
+            <p className="text-xs">
+              Each module has a structured form editor. Changes save as JSON via the API.
+            </p>
           </div>
         ) : (
-          <ModuleEditor slug={selectedSlug} modules={modules} onRefresh={loadModules} />
+          <ModuleEditor
+            key={selected.key}
+            slug={selected.slug}
+            label={selected.label}
+            track={selected.track}
+            modules={modules}
+            onRefresh={loadModules}
+          />
         )}
       </div>
     </div>

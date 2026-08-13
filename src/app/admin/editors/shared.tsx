@@ -122,6 +122,43 @@ export function TrackBadge({ track }: { track: "Career" | "Sales" | "Both" | "El
   );
 }
 
+export function TrackToggle({
+  value,
+  onChange,
+}: {
+  value: "career" | "sales" | "both";
+  onChange: (v: "career" | "sales" | "both") => void;
+}) {
+  const options: { id: "career" | "sales" | "both"; label: string }[] = [
+    { id: "career", label: "Career" },
+    { id: "sales", label: "Sales" },
+    { id: "both", label: "Both" },
+  ];
+  return (
+    <div className="inline-flex rounded-lg border border-border overflow-hidden text-xs font-semibold">
+      {options.map((opt) => (
+        <button
+          key={opt.id}
+          type="button"
+          onClick={() => onChange(opt.id)}
+          className={cn(
+            "px-3 py-1.5 transition-colors",
+            value === opt.id
+              ? opt.id === "career"
+                ? "bg-blue-100 text-blue-700"
+                : opt.id === "sales"
+                ? "bg-violet-100 text-violet-700"
+                : "bg-emerald-100 text-emerald-700"
+              : "bg-white text-muted-fg hover:bg-secondary/60"
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── Module Editor Hook ───────────────────────────────────────────────────────
 
 export interface ModuleEditorState {

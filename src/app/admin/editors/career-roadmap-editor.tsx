@@ -1,9 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
+import { NavigationGuideEditor } from "./navigation-guide-editor";
 
 type RoleCategory = "front" | "ops" | "middle" | "adjacent";
 
@@ -45,6 +47,12 @@ function newRole(id: number): CareerRole {
   };
 }
 
+type RoadmapPayload = {
+  roles?: CareerRole[];
+  navigationGuides?: { id: string; label: string; fileName: string; assetId: string; track: "career" | "sales" | "both"; updatedAt: string }[];
+  [key: string]: unknown;
+};
+
 export function CareerRoadmapEditor({
   payload,
   onChange,
@@ -56,25 +64,63 @@ export function CareerRoadmapEditor({
   moduleSlug: string;
   requiredTier: string;
 }) {
-  const items: CareerRole[] = Array.isArray(payload) ? (payload as CareerRole[]) : [];
+  const [activeTab, setActiveTab] = useState<"roles" | "navguide">("roles");
+
+  // Support both legacy array payload and object payload
+  const isLegacyArray = Array.isArray(payload);
+  const raw: RoadmapPayload = isLegacyArray
+    ? { roles: payload as CareerRole[] }
+    : ((payload as RoadmapPayload) ?? {});
+
+  const items: CareerRole[] = raw.roles ?? [];
+
+  function updateRaw(updates: Partial<RoadmapPayload>) {
+    onChange({ ...raw, ...updates });
+  }
 
   function patchItem(i: number, item: CareerRole) {
     const next = [...items];
     next[i] = item;
-    onChange(next);
+    updateRaw({ roles: next });
   }
 
   function deleteItem(i: number) {
     if (!confirm("Delete this role?")) return;
-    onChange(items.filter((_, j) => j !== i));
+    updateRaw({ roles: items.filter((_, j) => j !== i) });
   }
 
   function addItem() {
-    onChange([...items, newRole(items.length + 1)]);
+    updateRaw({ roles: [...items, newRole(items.length + 1)] });
   }
 
   return (
     <div className="space-y-4">
+      <div className="flex gap-1 border-b border-border pb-2">
+        {(["roles", "navguide"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+              activeTab === tab ? "bg-primary-soft text-primary-400" : "text-muted-fg hover:bg-secondary/60"
+            )}
+          >
+            {tab === "navguide" ? "Navigation Guide" : "Roles"}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "navguide" && (
+        <NavigationGuideEditor
+          guides={raw.navigationGuides ?? []}
+          onChange={(g) => updateRaw({ navigationGuides: g })}
+          moduleSlug={moduleSlug}
+          requiredTier={requiredTier}
+        />
+      )}
+
+      {activeTab === "roles" && <>
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-fg">{items.length} roles</p>
         <Button variant="outline" size="sm" onClick={addItem}>
@@ -147,6 +193,7 @@ export function CareerRoadmapEditor({
       </div>
 
       <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} />
+      </>}
     </div>
   );
 }

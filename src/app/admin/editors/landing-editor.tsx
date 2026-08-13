@@ -3,9 +3,10 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { AdminLandingEditor } from "../admin-landing-editor";
-import { UploadSection } from "./shared";
+import { EditorSection, UploadSection } from "./shared";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
 import { parseLandingContentPayload } from "@/lib/content/landing-schema";
+import { SalesEdgeNoteEditor, type SalesEdgeNote } from "./sales-edge-note-editor";
 
 type TrackFilter = "career" | "sales" | "both";
 
@@ -24,6 +25,16 @@ export function LandingEditorWrapper({
 
   const parsed = parseLandingContentPayload(payload);
   const content: LandingContent = parsed.success ? parsed.data : DEFAULT_LANDING_CONTENT;
+  const rawPayload = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
+  const salesEdgeNote = rawPayload.salesEdgeNote as SalesEdgeNote | undefined;
+
+  function handleLandingChange(next: LandingContent) {
+    onChange({ ...rawPayload, ...next });
+  }
+
+  function handleSalesEdgeNoteChange(note: SalesEdgeNote) {
+    onChange({ ...rawPayload, salesEdgeNote: note });
+  }
 
   return (
     <div className="space-y-4">
@@ -46,9 +57,13 @@ export function LandingEditorWrapper({
 
       <AdminLandingEditor
         content={content}
-        onChange={(next) => onChange(next)}
+        onChange={handleLandingChange}
         trackFilter={track}
       />
+
+      <EditorSection title="Weekly Sales Edge Note" description="Sales track only — saves to landing payload key salesEdgeNote">
+        <SalesEdgeNoteEditor note={salesEdgeNote} onChange={handleSalesEdgeNoteChange} />
+      </EditorSection>
 
       <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} />
     </div>

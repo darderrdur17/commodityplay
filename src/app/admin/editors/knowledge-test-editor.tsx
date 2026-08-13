@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Plus, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
+import { cn } from "@/lib/utils";
+import { EditorField, EditorRow, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
 
 interface KnowledgeQuestion {
   id: string;
@@ -14,6 +15,7 @@ interface KnowledgeQuestion {
   topic: string;
   recommendChapter?: string;
   recommendLabel?: string;
+  track?: "career" | "sales" | "both";
 }
 
 function newQuestion(): KnowledgeQuestion {
@@ -38,6 +40,7 @@ export function KnowledgeTestEditor({
   moduleSlug: string;
   requiredTier: string;
 }) {
+  const [activeTab, setActiveTab] = useState<"questions" | "results">("questions");
   const items: KnowledgeQuestion[] = Array.isArray(payload) ? (payload as KnowledgeQuestion[]) : [];
 
   function patchItem(i: number, item: KnowledgeQuestion) {
@@ -63,6 +66,31 @@ export function KnowledgeTestEditor({
 
   return (
     <div className="space-y-4">
+      <div className="flex gap-1 border-b border-border pb-2">
+        {(["questions", "results"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors",
+              activeTab === tab ? "bg-primary-soft text-primary-400" : "text-muted-fg hover:bg-secondary/60"
+            )}
+          >
+            {tab === "results" ? "Test Results" : "Questions"}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "results" && (
+        <div className="flex flex-col items-center justify-center py-12 text-center text-muted-fg bg-secondary/30 rounded-xl border border-dashed border-border">
+          <AlertCircle className="w-8 h-8 mb-3 opacity-40" />
+          <p className="font-medium text-sm">Test attempt analytics coming soon</p>
+          <p className="text-xs mt-1">User attempt history will appear here once the analytics endpoint is available.</p>
+        </div>
+      )}
+
+      {activeTab === "questions" && <>
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-fg">{items.length} questions</p>
         <Button variant="outline" size="sm" onClick={addItem}>
@@ -121,6 +149,9 @@ export function KnowledgeTestEditor({
                 <EditorField label="Recommend chapter">
                   <input className={inputClass} value={item.recommendChapter ?? ""} onChange={(e) => patchItem(i, { ...item, recommendChapter: e.target.value })} />
                 </EditorField>
+                <EditorField label="Track">
+                  <TrackToggle value={item.track ?? "both"} onChange={(v) => patchItem(i, { ...item, track: v })} />
+                </EditorField>
               </div>
             </EditorRow>
           );
@@ -131,6 +162,7 @@ export function KnowledgeTestEditor({
       </div>
 
       <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} />
+      </>}
     </div>
   );
 }

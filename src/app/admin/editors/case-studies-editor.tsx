@@ -3,7 +3,7 @@
 import React from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
 
 interface CaseStudyCard {
   slug: string;
@@ -15,6 +15,7 @@ interface CaseStudyCard {
   readMinutes: number;
   status: "published" | "coming-soon";
   hasFullContent: boolean;
+  track?: "career" | "sales" | "both";
 }
 
 function newCase(): CaseStudyCard {
@@ -113,6 +114,9 @@ export function CaseStudiesEditor({
               <input type="checkbox" checked={item.hasFullContent} onChange={(e) => patchItem(i, { ...item, hasFullContent: e.target.checked })} />
               Has full content
             </label>
+            <EditorField label="Track">
+              <TrackToggle value={item.track ?? "both"} onChange={(v) => patchItem(i, { ...item, track: v })} />
+            </EditorField>
           </EditorRow>
         ))}
         {items.length === 0 && (

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
 
 type DeskCategory = "trading" | "ops" | "risk" | "tools" | "career";
 
@@ -22,6 +22,7 @@ interface DeskQA {
   tags: string[];
   helpful: number;
   date: string;
+  track?: "career" | "sales" | "both";
 }
 
 const CATEGORIES: { id: string; label: string }[] = [
@@ -149,6 +150,9 @@ export function DeskChannelEditor({
             </EditorField>
             <EditorField label="Tags" hint="Comma-separated">
               <input className={inputClass} value={(item.tags ?? []).join(", ")} onChange={(e) => patchItem(i, { ...item, tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />
+            </EditorField>
+            <EditorField label="Track">
+              <TrackToggle value={item.track ?? "both"} onChange={(v) => patchItem(i, { ...item, track: v })} />
             </EditorField>
           </EditorRow>
         ))}
