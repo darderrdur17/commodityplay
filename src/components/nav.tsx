@@ -109,7 +109,7 @@ export function Nav() {
         )}
       >
         <div
-          className="max-w-[1200px] mx-auto px-4 sm:px-10 grid grid-cols-[1fr_auto_1fr] items-center min-h-0"
+          className="w-full max-w-none px-4 sm:px-8 lg:px-12 grid grid-cols-[1fr_auto_1fr] items-center min-h-0"
           style={{ height: NAV_HEIGHT }}
         >
           <div className="flex items-center min-w-0 min-h-0 h-full max-h-full justify-self-start overflow-hidden pr-1 sm:pr-2">

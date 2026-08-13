@@ -26,10 +26,10 @@ export const TRACK_TAB_BASE =
 
 /**
  * Shared content grid — matches Nav inner shell and .page-container in globals.css.
- * max-w-[1200px] mx-auto px-4 sm:px-10
+ * Full-width with horizontal padding only (no max-w cap).
  */
 export const PAGE_GRID =
-  "w-full max-w-[1200px] mx-auto px-4 sm:px-10";
+  "w-full max-w-none px-4 sm:px-8 lg:px-12";
 
 /** Standard blue-section hero padding (starter pack pattern) */
 export const PAGE_HERO_TOP = "pt-12 sm:pt-16 lg:pt-20";

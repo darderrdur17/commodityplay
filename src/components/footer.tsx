@@ -35,7 +35,7 @@ export function Footer() {
 
   return (
     <footer className="bg-[#0a0f1a] text-white border-t border-white/10 pt-16">
-      <div className="max-w-[1100px] mx-auto px-6 sm:px-11">
+      <div className="w-full max-w-none px-4 sm:px-8 lg:px-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2.2fr_1fr_1fr_1fr] gap-9 lg:gap-[52px] pb-14 border-b border-white/10">
           <div>
             <Logo variant="footer" href="/" className="mb-6 sm:mb-8" priority />

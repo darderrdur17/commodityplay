@@ -230,6 +230,6 @@
 
   /* Shared content grid — horizontal rhythm matches Nav (px-4 sm:px-10) */
   .page-container {
-    @apply w-full max-w-[1200px] mx-auto px-4 sm:px-10;
+    @apply w-full max-w-none px-4 sm:px-8 lg:px-12;
   }
 }
