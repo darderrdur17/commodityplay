@@ -11,19 +11,6 @@ export const MAIN_MIN_HEIGHT_BELOW_NAV = `calc(100svh - ${NAV_HEIGHT_PX}px - env
 export const FOOTER_BOTTOM_SAFE_PADDING =
   "max(1rem, env(safe-area-inset-bottom, 0px))";
 
-/** Landing track selector + hero spacing (shared across career/sales) */
-export const TRACK_BAR_TOP = NAV_OFFSET;
-
-export const TRACK_BAR_SHELL =
-  "sticky z-40 bg-white border-b border-border shadow-sm";
-
-/** Same horizontal grid as .page-container — do not add extra tab px or content shifts right */
-export const TRACK_BAR_INNER =
-  "page-container flex items-center gap-3 sm:gap-4 min-h-[3.25rem] sm:min-h-[3.5rem]";
-
-export const TRACK_TAB_BASE =
-  "flex items-center py-3 sm:py-3.5 text-xs sm:text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition-all shrink-0";
-
 /**
  * Shared content grid — matches Nav inner shell and .page-container in globals.css.
  * Full-width with horizontal padding only (no max-w cap).

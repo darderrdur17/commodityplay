@@ -66,7 +66,21 @@ interface MentorSegmentRow {
 
 const CHAPTERS = ["a", "b", "c", "d", "e"];
 
-export function AdminClient({ adminName, adminId }: { adminName: string; adminId: string }) {
+type AdminTab = "users" | "content" | "mentor" | "waitlist" | "progress" | "mentors" | "billing";
+
+const VALID_TABS: AdminTab[] = ["users", "content", "mentor", "waitlist", "progress", "mentors", "billing"];
+
+export function AdminClient({
+  adminName,
+  adminId,
+  initialTab,
+  initialTrack,
+}: {
+  adminName: string;
+  adminId: string;
+  initialTab?: string;
+  initialTrack?: string;
+}) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<AdminUserDetail[]>([]);
   const [mentorQs, setMentorQs] = useState<MentorQ[]>([]);
@@ -74,7 +88,9 @@ export function AdminClient({ adminName, adminId }: { adminName: string; adminId
   const [progressData, setProgressData] = useState<ChapterProgressRow[]>([]);
   const [mentorSegments, setMentorSegments] = useState<MentorSegmentRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"users" | "content" | "mentor" | "waitlist" | "progress" | "mentors" | "billing">("users");
+  const [activeTab, setActiveTab] = useState<AdminTab>(
+    initialTab && VALID_TABS.includes(initialTab as AdminTab) ? (initialTab as AdminTab) : "users"
+  );
   const [answerDraft, setAnswerDraft] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [notifying, setNotifying] = useState<string | null>(null);
@@ -324,7 +340,11 @@ export function AdminClient({ adminName, adminId }: { adminName: string; adminId
         )}
 
         {/* ── Content CMS tab ── */}
-        {activeTab === "content" && <AdminContentTab />}
+        {activeTab === "content" && (
+          <AdminContentTab
+            initialTrack={initialTrack === "sales" ? "sales" : initialTrack === "career" ? "career" : undefined}
+          />
+        )}
 
         {/* ── Progress Activity tab ── */}
         {activeTab === "progress" && (

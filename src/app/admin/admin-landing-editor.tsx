@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import type { LandingContent } from "@/data/landing-content";
+import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { FeatureComparisonTable, LandingContent } from "@/data/landing-content";
 
 interface Props {
   content: LandingContent;
@@ -102,6 +103,146 @@ function FeaturesList({
       className={textareaClass}
       placeholder="One feature per line"
     />
+  );
+}
+
+type ComparisonColumn = { key: "starter" | "pro" | "elite"; label: string };
+
+const smallButtonClass =
+  "inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-border hover:bg-secondary/60 transition-colors";
+
+/**
+ * Editable Feature Comparison / pricing comparison table — same table rendered on the live
+ * landing page. Admins can edit group titles, colors, row (feature) names, and which plans
+ * check the feature off, without touching code.
+ */
+function ComparisonTableEditor({
+  table,
+  onChange,
+  columns,
+}: {
+  table: FeatureComparisonTable;
+  onChange: (table: FeatureComparisonTable) => void;
+  columns: ComparisonColumn[];
+}) {
+  function updateGroup(i: number, patch: Partial<FeatureComparisonTable["groups"][number]>) {
+    const groups = [...table.groups];
+    groups[i] = { ...groups[i], ...patch };
+    onChange({ groups });
+  }
+
+  function addGroup() {
+    const groups = [
+      ...table.groups,
+      {
+        category: "New plan",
+        color: "#3280ff",
+        items: [{ name: "New feature", starter: false, pro: true, elite: true }],
+      },
+    ];
+    onChange({ groups });
+  }
+
+  function removeGroup(i: number) {
+    onChange({ groups: table.groups.filter((_, idx) => idx !== i) });
+  }
+
+  function addItem(groupIndex: number) {
+    const groups = [...table.groups];
+    groups[groupIndex] = {
+      ...groups[groupIndex],
+      items: [...groups[groupIndex].items, { name: "New feature", starter: false, pro: true, elite: true }],
+    };
+    onChange({ groups });
+  }
+
+  function updateItem(groupIndex: number, itemIndex: number, patch: Partial<FeatureComparisonTable["groups"][number]["items"][number]>) {
+    const groups = [...table.groups];
+    const items = [...groups[groupIndex].items];
+    items[itemIndex] = { ...items[itemIndex], ...patch };
+    groups[groupIndex] = { ...groups[groupIndex], items };
+    onChange({ groups });
+  }
+
+  function removeItem(groupIndex: number, itemIndex: number) {
+    const groups = [...table.groups];
+    groups[groupIndex] = {
+      ...groups[groupIndex],
+      items: groups[groupIndex].items.filter((_, idx) => idx !== itemIndex),
+    };
+    onChange({ groups });
+  }
+
+  return (
+    <div className="space-y-4">
+      {table.groups.map((group, gi) => (
+        <div key={gi} className="rounded-lg border border-border overflow-hidden">
+          <div className="flex flex-wrap items-center gap-2 p-3 bg-secondary/40">
+            <input
+              type="text"
+              value={group.category}
+              onChange={(e) => updateGroup(gi, { category: e.target.value })}
+              className={cn(inputClass, "flex-1 min-w-[160px]")}
+              placeholder="Group / plan label (e.g. Pro — SGD 59/month)"
+            />
+            <input
+              type="color"
+              value={/^#[0-9a-fA-F]{6}$/.test(group.color) ? group.color : "#3280ff"}
+              onChange={(e) => updateGroup(gi, { color: e.target.value })}
+              className="h-9 w-9 rounded-lg border border-border cursor-pointer"
+              title="Accent color"
+            />
+            <button
+              type="button"
+              onClick={() => removeGroup(gi)}
+              className="text-red-500 hover:text-red-600 p-1.5 shrink-0"
+              title="Delete group"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="divide-y divide-border">
+            {group.items.map((item, ii) => (
+              <div key={ii} className="flex flex-wrap items-center gap-2 p-2.5">
+                <input
+                  type="text"
+                  value={item.name}
+                  onChange={(e) => updateItem(gi, ii, { name: e.target.value })}
+                  className={cn(inputClass, "flex-1 min-w-[180px]")}
+                  placeholder="Feature name"
+                />
+                {columns.map((col) => (
+                  <label key={col.key} className="flex items-center gap-1 text-xs font-medium text-gray-600 shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(item[col.key])}
+                      onChange={(e) => updateItem(gi, ii, { [col.key]: e.target.checked })}
+                    />
+                    {col.label}
+                  </label>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => removeItem(gi, ii)}
+                  className="text-red-400 hover:text-red-600 p-1 shrink-0"
+                  title="Delete row"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="p-2.5 bg-secondary/20">
+            <button type="button" onClick={() => addItem(gi)} className={smallButtonClass}>
+              <Plus className="w-3.5 h-3.5" /> Add feature row
+            </button>
+          </div>
+        </div>
+      ))}
+      <button type="button" onClick={addGroup} className={smallButtonClass}>
+        <Plus className="w-3.5 h-3.5" /> Add plan group
+      </button>
+    </div>
   );
 }
 
@@ -382,6 +523,21 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
           ))}
         </div>
       </Section>
+
+      <Section
+        title="Career Feature Comparison"
+        description="Pricing comparison table shown on the Career Track landing page (Starter / Pro / Elite)"
+      >
+        <ComparisonTableEditor
+          table={content.pricing.comparison}
+          onChange={(comparison) => patch("pricing", { ...content.pricing, comparison })}
+          columns={[
+            { key: "starter", label: "Starter" },
+            { key: "pro", label: "Pro" },
+            { key: "elite", label: "Elite" },
+          ]}
+        />
+      </Section>
       </>
       )}
 
@@ -558,6 +714,20 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
             </div>
           ))}
         </div>
+      </Section>
+
+      <Section
+        title="Sales Feature Comparison"
+        description="Pricing comparison table shown on the Sales Track landing page (Pro / Elite)"
+      >
+        <ComparisonTableEditor
+          table={content.sales.comparison}
+          onChange={(comparison) => patch("sales", { ...content.sales, comparison })}
+          columns={[
+            { key: "pro", label: "Pro" },
+            { key: "elite", label: "Elite" },
+          ]}
+        />
       </Section>
       </>
       )}

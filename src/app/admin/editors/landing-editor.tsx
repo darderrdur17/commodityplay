@@ -15,13 +15,15 @@ export function LandingEditorWrapper({
   onChange,
   moduleSlug,
   requiredTier,
+  initialTrackFilter = "both",
 }: {
   payload: unknown;
   onChange: (p: unknown) => void;
   moduleSlug: string;
   requiredTier: string;
+  initialTrackFilter?: TrackFilter;
 }) {
-  const [track, setTrack] = useState<TrackFilter>("both");
+  const [track, setTrack] = useState<TrackFilter>(initialTrackFilter);
 
   const parsed = parseLandingContentPayload(payload);
   const content: LandingContent = parsed.success ? parsed.data : DEFAULT_LANDING_CONTENT;

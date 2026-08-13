@@ -167,6 +167,13 @@ function ModuleEditor({
 
   function renderEditor() {
     switch (slug) {
+      case "landing":
+        return (
+          <LandingEditorWrapper
+            {...editorProps}
+            initialTrackFilter={track === "Career" ? "career" : track === "Sales" ? "sales" : "both"}
+          />
+        );
       case "playbook":
         return <PlaybookEditor {...editorProps} />;
       case "glossary":
@@ -183,8 +190,6 @@ function ModuleEditor({
         return <JobOpeningsEditor {...editorProps} />;
       case "case-studies":
         return <CaseStudiesEditor {...editorProps} />;
-      case "landing":
-        return <LandingEditorWrapper {...editorProps} />;
       case "starter-pack":
         return <StarterPackEditor {...editorProps} />;
       case "resume-templates":
@@ -331,7 +336,7 @@ function SidebarGroupSection({
 
 // ─── Main tab ─────────────────────────────────────────────────────────────────
 
-export function AdminContentTab() {
+export function AdminContentTab({ initialTrack }: { initialTrack?: "career" | "sales" } = {}) {
   const [modules, setModules] = useState<ModuleRow[]>([]);
   const [selected, setSelected] = useState<{
     key: string;
@@ -364,6 +369,15 @@ export function AdminContentTab() {
   useEffect(() => {
     loadModules();
   }, []);
+
+  // Deep-link support: /admin?tab=content&track=career|sales opens the matching
+  // landing page editor directly (e.g. from the "Edit this page" link on the live site).
+  useEffect(() => {
+    if (!initialTrack) return;
+    const label = initialTrack === "sales" ? "Sales Track" : "Career Track";
+    const track: TrackLabel = initialTrack === "sales" ? "Sales" : "Career";
+    setSelected({ key: `landing::${label}`, slug: "landing", label, track });
+  }, [initialTrack]);
 
   if (loading) {
     return <div className="text-center py-12 text-muted-fg">Loading content modules...</div>;

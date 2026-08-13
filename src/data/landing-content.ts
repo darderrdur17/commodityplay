@@ -57,6 +57,25 @@ export interface LandingTier {
   opensModal?: boolean;
 }
 
+/** One row of the Feature Comparison / pricing comparison table. Admin-editable via CMS. */
+export interface FeatureComparisonItem {
+  name: string;
+  starter?: boolean;
+  pro: boolean;
+  elite: boolean;
+}
+
+/** A named group of comparison rows (e.g. "Pro — SGD 59/month"). */
+export interface FeatureComparisonGroup {
+  category: string;
+  color: string;
+  items: FeatureComparisonItem[];
+}
+
+export interface FeatureComparisonTable {
+  groups: FeatureComparisonGroup[];
+}
+
 export interface LandingContent {
   career: {
     eyebrow: string;
@@ -87,6 +106,8 @@ export interface LandingContent {
       quoteSubtitle?: string;
     };
     pricing: SalesPricingTier[];
+    /** Feature Comparison table shown on the Sales Track landing page (Pro vs Elite). */
+    comparison: FeatureComparisonTable;
   };
   stats: { value: number; suffix: string; label: string }[];
   groundLevelView: {
@@ -121,12 +142,167 @@ export interface LandingContent {
     title: string;
     subtitle: string;
     tiers: LandingTier[];
+    /** Feature Comparison table shown on the Career Track landing page (Starter vs Pro vs Elite). */
+    comparison: FeatureComparisonTable;
   };
   membersStrip: {
     label: string;
     companies: string[];
   };
   footerTagline: string;
+}
+
+/** Career track pricing tiers (Starter / Pro / Elite) — used to seed defaults and the comparison table. */
+const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
+  {
+    name: "Starter",
+    price: "Free",
+    billing: "forever",
+    badge: "starter",
+    highlight: false,
+    tooltip: "Only an email required",
+    description: "The foundation for anyone entering commodity markets.",
+    features: [
+      "5 desk infographics",
+      "Chapter A preview (3 free sections)",
+      "Desk Glossary",
+      "Email Digest",
+      "Job Board waitlist",
+    ],
+    cta: "Join Free",
+    href: "/signup",
+    opensModal: true,
+  },
+  {
+    name: "Pro",
+    price: "SGD 59",
+    billing: "per month · cancel anytime",
+    badge: "pro",
+    highlight: true,
+    tooltip: "For professionals and learners going deeper into how commodity markets work.",
+    description: "For professionals and learners going deeper into how commodity markets work.",
+    features: [
+      "Full Playbook — all 9 chapters",
+      "Persona Analysis Quiz",
+      "Tailored resume templates (5+)",
+      "Career Roadmap (10 role blueprints)",
+      "Interview Questions + Answers (50+)",
+      "Market Knowledge Test (gap analysis)",
+      "Resume Vetting (up to twice a year)",
+      "Career Navigation Guide — move across the industry with confidence",
+    ],
+    cta: "Get Pro",
+    href: "/pricing",
+  },
+  {
+    name: "Elite",
+    price: "SGD 99",
+    billing: "per month · cancel anytime",
+    badge: "elite",
+    highlight: false,
+    tooltip: "For long-term serious learners with long-term downstream careers.",
+    description: "For long-term serious learners with long-term downstream careers.",
+    features: [
+      "Everything in Pro",
+      "Deep-dive Global & Asia Case Studies (10+ ongoing)",
+      "Desk Channel — Intelligent answers vetted by real practitioners (40+ Q&As)",
+      "Anonymous Mentor Connect",
+      "Market Job Openings Tracker (tailored to persona)",
+    ],
+    cta: "Get Elite",
+    href: "/pricing",
+  },
+];
+
+/** Sales track pricing tiers (Pro / Elite) — used to seed defaults and the comparison table. */
+const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
+  {
+    name: "Pro",
+    price: "SGD 99",
+    billing: "per month",
+    description: "The toolkit for selling smarter into commodity trading space.",
+    features: [
+      "Full Playbook — all 9 chapters covering every desk function, with examples and frameworks",
+      "Market Knowledge Test — identify exactly which areas to study before key accounts",
+      "Desk Glossary — explain the way a senior trader would do",
+      "Sales Guide - key industry areas to look out for when selling",
+      "Weekly Sales Edge Note - highlight interesting market happenings to note from sales perspectives",
+    ],
+    cta: "Get Pro",
+    href: "/signup?plan=pro",
+    featured: false,
+  },
+  {
+    name: "Elite",
+    price: "SGD 199",
+    billing: "per month",
+    description: "For sales professionals who need ongoing desk intelligence",
+    features: [
+      "Everything in Pro",
+      "Global & Asian Case Studies - updated market events showing how desks think through commercial decisions",
+      "Desk Channel — Practitioner Q&As that reveal how traders frame every type of problem",
+      "Anonymous Mentor Connect - ask your real sales preparation questions to practitioners directly",
+      "Market Role Openings - track which firms are growing and hiring (your next target accounts)",
+    ],
+    cta: "Get Elite",
+    href: "/signup?plan=elite",
+    featured: true,
+  },
+];
+
+const CAREER_TIER_COLORS: Record<string, string> = {
+  Starter: "#16a34a",
+  Pro: "#3280ff",
+  Elite: "#B45309",
+};
+
+/** Builds the Starter/Pro/Elite Feature Comparison table from the career tiers — each tier's own features check off at itself and every higher tier. */
+function buildCareerComparison(tiers: LandingTier[]): FeatureComparisonTable {
+  const order: Array<"starter" | "pro" | "elite"> = ["starter", "pro", "elite"];
+  return {
+    groups: tiers.map((tier) => {
+      const badgeIndex = order.indexOf(tier.badge);
+      return {
+        category: tier.price === "Free" ? `${tier.name} — Free` : `${tier.name} — ${tier.price}/month`,
+        color: CAREER_TIER_COLORS[tier.name] ?? "#3280ff",
+        items: tier.features.map((name) => ({
+          name,
+          starter: badgeIndex <= 0,
+          pro: badgeIndex <= 1,
+          elite: badgeIndex <= 2,
+        })),
+      };
+    }),
+  };
+}
+
+const SALES_TIER_COLORS: Record<string, string> = {
+  Pro: "#0F766E",
+  Elite: "#065F46",
+};
+
+/** Builds the Pro/Elite Feature Comparison table from the sales tiers. */
+function buildSalesComparison(tiers: SalesPricingTier[]): FeatureComparisonTable {
+  const pro = tiers.find((t) => t.name.toLowerCase() === "pro");
+  const elite = tiers.find((t) => t.name.toLowerCase() === "elite");
+  const groups: FeatureComparisonGroup[] = [];
+  if (pro) {
+    groups.push({
+      category: `${pro.name} — ${pro.price}/month`,
+      color: SALES_TIER_COLORS.Pro,
+      items: pro.features.map((name) => ({ name, pro: true, elite: true })),
+    });
+  }
+  if (elite) {
+    groups.push({
+      category: `${elite.name} — ${elite.price}/month`,
+      color: SALES_TIER_COLORS.Elite,
+      items: elite.features
+        .filter((f) => !/^everything in pro$/i.test(f))
+        .map((name) => ({ name, pro: false, elite: true })),
+    });
+  }
+  return { groups };
 }
 
 export const DEFAULT_LANDING_CONTENT: LandingContent = {
@@ -184,40 +360,8 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
       quoteAuthor: "Head of Enterprise Sales, APAC",
       quoteSubtitle: "Market intelligence platform, Singapore",
     },
-    pricing: [
-      {
-        name: "Pro",
-        price: "SGD 99",
-        billing: "per month",
-        description: "The toolkit for selling smarter into commodity trading space.",
-        features: [
-          "Full Playbook — all 9 chapters covering every desk function, with examples and frameworks",
-          "Market Knowledge Test — identify exactly which areas to study before key accounts",
-          "Desk Glossary — explain the way a senior trader would do",
-          "Sales Guide - key industry areas to look out for when selling",
-          "Weekly Sales Edge Note - highlight interesting market happenings to note from sales perspectives",
-        ],
-        cta: "Get Pro",
-        href: "/signup?plan=pro",
-        featured: false,
-      },
-      {
-        name: "Elite",
-        price: "SGD 199",
-        billing: "per month",
-        description: "For sales professionals who need ongoing desk intelligence",
-        features: [
-          "Everything in Pro",
-          "Global & Asian Case Studies - updated market events showing how desks think through commercial decisions",
-          "Desk Channel — Practitioner Q&As that reveal how traders frame every type of problem",
-          "Anonymous Mentor Connect - ask your real sales preparation questions to practitioners directly",
-          "Market Role Openings - track which firms are growing and hiring (your next target accounts)",
-        ],
-        cta: "Get Elite",
-        href: "/signup?plan=elite",
-        featured: true,
-      },
-    ],
+    pricing: SALES_PRICING_TIERS_DEFAULT,
+    comparison: buildSalesComparison(SALES_PRICING_TIERS_DEFAULT),
   },
   stats: [
     { value: 196, suffix: "", label: "Glossary (trading-related) terms" },
@@ -341,66 +485,8 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
     title: "Invest in Your Downstream Career",
     subtitle:
       "Whether you're breaking in, switching functions, or planning longevity in oil, gas & LNG, metals & mining downstream trading — pick the level of access that fits your stage.",
-    tiers: [
-      {
-        name: "Starter",
-        price: "Free",
-        billing: "forever",
-        badge: "starter",
-        highlight: false,
-        tooltip: "Only an email required",
-        description: "The foundation for anyone entering commodity markets.",
-        features: [
-          "5 desk infographics",
-          "Chapter A preview (3 free sections)",
-          "Desk Glossary",
-          "Email Digest",
-          "Job Board waitlist",
-        ],
-        cta: "Join Free",
-        href: "/signup",
-        opensModal: true,
-      },
-      {
-        name: "Pro",
-        price: "SGD 59",
-        billing: "per month · cancel anytime",
-        badge: "pro",
-        highlight: true,
-        tooltip: "For professionals and learners going deeper into how commodity markets work.",
-        description: "For professionals and learners going deeper into how commodity markets work.",
-        features: [
-          "Full Playbook — all 9 chapters",
-          "Persona Analysis Quiz",
-          "Tailored resume templates (5+)",
-          "Career Roadmap (10 role blueprints)",
-          "Interview Questions + Answers (50+)",
-          "Market Knowledge Test (gap analysis)",
-          "Resume Vetting (up to twice a year)",
-          "Career Navigation Guide — move across the industry with confidence",
-        ],
-        cta: "Get Pro",
-        href: "/pricing",
-      },
-      {
-        name: "Elite",
-        price: "SGD 99",
-        billing: "per month · cancel anytime",
-        badge: "elite",
-        highlight: false,
-        tooltip: "For long-term serious learners with long-term downstream careers.",
-        description: "For long-term serious learners with long-term downstream careers.",
-        features: [
-          "Everything in Pro",
-          "Deep-dive Global & Asia Case Studies (10+ ongoing)",
-          "Desk Channel — Intelligent answers vetted by real practitioners (40+ Q&As)",
-          "Anonymous Mentor Connect",
-          "Market Job Openings Tracker (tailored to persona)",
-        ],
-        cta: "Get Elite",
-        href: "/pricing",
-      },
-    ],
+    tiers: CAREER_PRICING_TIERS_DEFAULT,
+    comparison: buildCareerComparison(CAREER_PRICING_TIERS_DEFAULT),
   },
   membersStrip: {
     label: "Trusted professional moving to",

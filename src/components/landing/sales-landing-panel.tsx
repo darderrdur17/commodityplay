@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -21,7 +21,6 @@ import {
   PAGE_SECTION_PY,
 } from "@/lib/layout-constants";
 import type { LandingContent } from "@/data/landing-content";
-import { buildSalesFeatureTable } from "@/data/pricing-shared";
 import { SALES_MARKET_NOTE } from "@/data/market-notes";
 
 const SALES_COLOR = "#0F766E";
@@ -170,10 +169,7 @@ export function SalesLandingPanel({ content, membersStrip, onOpenContactModal }:
   const [subscribeStatus, setSubscribeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [showFeatureComparison, setShowFeatureComparison] = useState(false);
-  const featureTable = useMemo(
-    () => buildSalesFeatureTable(content.pricing),
-    [content.pricing]
-  );
+  const featureTable = content.comparison.groups;
 
   async function handleStarterPackSubscribe(e: React.FormEvent) {
     e.preventDefault();

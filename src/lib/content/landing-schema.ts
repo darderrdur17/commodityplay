@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_LANDING_CONTENT } from "@/data/landing-content";
 
 const heroStatSchema = z.object({
   value: z.number(),
@@ -56,6 +57,23 @@ const salesPricingTierSchema = z.object({
   featured: z.boolean().optional(),
 });
 
+const featureComparisonItemSchema = z.object({
+  name: z.string().min(1),
+  starter: z.boolean().optional(),
+  pro: z.boolean(),
+  elite: z.boolean(),
+});
+
+const featureComparisonGroupSchema = z.object({
+  category: z.string().min(1),
+  color: z.string().min(1),
+  items: z.array(featureComparisonItemSchema).min(1),
+});
+
+const featureComparisonTableSchema = z.object({
+  groups: z.array(featureComparisonGroupSchema).min(1),
+});
+
 const whoCardSchema = z.object({
   role: z.string().min(1),
   title: z.string().min(1),
@@ -93,6 +111,7 @@ export const landingContentSchema = z.object({
       quoteSubtitle: z.string().optional(),
     }),
     pricing: z.array(salesPricingTierSchema).min(1),
+    comparison: featureComparisonTableSchema.default(() => DEFAULT_LANDING_CONTENT.sales.comparison),
   }),
   stats: z.array(salesStatSchema),
   groundLevelView: z.object({
@@ -136,6 +155,7 @@ export const landingContentSchema = z.object({
     title: z.string().min(1),
     subtitle: z.string().min(1),
     tiers: z.array(landingTierSchema).min(1),
+    comparison: featureComparisonTableSchema.default(() => DEFAULT_LANDING_CONTENT.pricing.comparison),
   }),
   membersStrip: z.object({
     label: z.string().min(1),

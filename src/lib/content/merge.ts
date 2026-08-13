@@ -1,4 +1,4 @@
-import type { LandingContent } from "@/data/landing-content";
+import type { FeatureComparisonGroup, LandingContent } from "@/data/landing-content";
 
 type PlainObject = Record<string, unknown>;
 
@@ -110,20 +110,35 @@ export function resolveWhatsInside(
   };
 }
 
-/** Career track pricing — repo defaults always win over stale CMS (e.g. one-time Pro, old feature lists). */
-export function resolvePricing(
-  defaults: LandingContent,
-  _cms?: Partial<LandingContent["pricing"]>
-): LandingContent["pricing"] {
-  return defaults.pricing;
+/** Admin edits to a Feature Comparison table fully replace defaults once saved (full editorial control over cells). */
+export function resolveComparisonGroups(
+  defaultGroups: FeatureComparisonGroup[],
+  cmsGroups?: FeatureComparisonGroup[]
+): FeatureComparisonGroup[] {
+  return cmsGroups && cmsGroups.length > 0 ? cmsGroups : defaultGroups;
 }
 
-/** Repo-managed sales pricing — code defaults always win over stale CMS (e.g. old Starter/one-time tiers). */
+/** Career track pricing — CMS edits (price, tiers, feature comparison) apply; code fills any missing tiers. */
+export function resolvePricing(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["pricing"]>
+): LandingContent["pricing"] {
+  return {
+    title: cms?.title || defaults.pricing.title,
+    subtitle: cms?.subtitle || defaults.pricing.subtitle,
+    tiers: cms?.tiers?.length ? mergeByKey(defaults.pricing.tiers, cms.tiers, "name") : defaults.pricing.tiers,
+    comparison: {
+      groups: resolveComparisonGroups(defaults.pricing.comparison.groups, cms?.comparison?.groups),
+    },
+  };
+}
+
+/** Sales track pricing — CMS edits (price, tiers) apply; code fills any missing tiers. */
 export function resolveSalesPricing(
   defaults: LandingContent,
-  _cms?: Partial<LandingContent["sales"]>
+  cms?: Partial<LandingContent["sales"]>
 ): LandingContent["sales"]["pricing"] {
-  return defaults.sales.pricing;
+  return cms?.pricing?.length ? mergeByKey(defaults.sales.pricing, cms.pricing, "name") : defaults.sales.pricing;
 }
 
 /** Repo-managed sales ROI copy — headers from code; stat rows merge by label. */
@@ -187,6 +202,9 @@ export function resolveSalesContent(
       "label"
     ),
     pricing: resolveSalesPricing(defaults, cms),
+    comparison: {
+      groups: resolveComparisonGroups(defaults.sales.comparison.groups, cms?.comparison?.groups),
+    },
     roi: resolveSalesRoi(defaults, cms),
   };
 }

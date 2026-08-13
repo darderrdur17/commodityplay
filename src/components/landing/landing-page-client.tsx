@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   ArrowRight, BookOpen, Users,
   Star, Zap, ChevronRight,
   MessageSquare, FileText, Map, Target,
+  Check, X, Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,6 @@ import {
 import { StarterPackModal } from "@/components/landing/starter-pack-modal";
 import { ContactModal } from "@/components/landing/contact-modal";
 import { SalesLandingPanel } from "@/components/landing/sales-landing-panel";
-import { TrackAudienceBar } from "@/components/landing/track-audience-bar";
 import { SectionCategoryLabel } from "@/components/landing/section-category-label";
 import { MembersStrip } from "@/components/landing/members-strip";
 import { ChapterAccordion } from "@/components/landing/chapter-accordion";
@@ -79,9 +80,12 @@ interface Props {
 
 export function LandingPageClient({ content = DEFAULT_LANDING_CONTENT }: Props) {
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
   const [activeTrack, setActiveTrack] = useState<Track>("career");
   const [modalOpen, setModalOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const [showFeatureComparison, setShowFeatureComparison] = useState(false);
 
   useEffect(() => {
     const track = searchParams.get("track");
@@ -101,7 +105,14 @@ export function LandingPageClient({ content = DEFAULT_LANDING_CONTENT }: Props) 
 
   return (
     <>
-      <TrackAudienceBar activeTrack={activeTrack} onTrackChange={setActiveTrack} />
+      {isAdmin && (
+        <Link
+          href={`/admin?tab=content&track=${activeTrack}`}
+          className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-gray-900 text-white text-sm font-semibold px-4 py-2.5 shadow-xl hover:bg-gray-800 transition-colors"
+        >
+          <Pencil className="w-4 h-4" /> Edit this page
+        </Link>
+      )}
 
       {activeTrack === "sales" ? (
         <SalesLandingPanel
@@ -257,10 +268,74 @@ export function LandingPageClient({ content = DEFAULT_LANDING_CONTENT }: Props) 
                 onStarterModal={() => setModalOpen(true)}
               />
               <Reveal className="text-center mt-8">
-                <Link href="/pricing" className="inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors">
-                  View full feature comparison <ChevronRight className="w-4 h-4" />
-                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowFeatureComparison((prev) => !prev)}
+                  className="inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors"
+                  aria-expanded={showFeatureComparison}
+                >
+                  View full feature comparison
+                  <ChevronRight
+                    className={cn(
+                      "w-4 h-4 transition-transform duration-200",
+                      showFeatureComparison && "rotate-90"
+                    )}
+                  />
+                </button>
               </Reveal>
+
+              {showFeatureComparison && (
+                <Reveal className="mt-8 sm:mt-10">
+                  <div className="text-center mb-6 sm:mb-8">
+                    <h3 className="font-serif text-2xl sm:text-3xl font-bold text-white">Feature Comparison</h3>
+                    <p className="text-xs text-white/50 mt-2 sm:hidden">Swipe to compare plans →</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/15 bg-white overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+                    <div className="min-w-[560px]">
+                      <div className="grid grid-cols-4 gap-0 bg-secondary">
+                        <div className="p-4 col-span-1" />
+                        {pricing.tiers.map((tier) => (
+                          <div key={tier.name} className="p-4 text-center border-l border-border">
+                            <p className="font-semibold text-sm text-gray-900">{tier.name}</p>
+                            <p className="text-xs text-muted-fg">{tier.price === "Free" ? "Free" : `${tier.price} · ${tier.billing}`}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {pricing.comparison.groups.map((group) => (
+                        <React.Fragment key={group.category}>
+                          <div className="px-4 py-2.5 border-t border-border" style={{ background: `${group.color}08` }}>
+                            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: group.color }}>
+                              {group.category}
+                            </p>
+                          </div>
+                          {group.items.map((item) => (
+                            <div
+                              key={item.name}
+                              className="grid grid-cols-4 border-t border-border hover:bg-secondary transition-colors"
+                            >
+                              <div className="p-3.5 col-span-1 text-sm text-gray-700">{item.name}</div>
+                              {(["starter", "pro", "elite"] as const).map((tierKey) => (
+                                <div key={tierKey} className="p-3.5 flex items-center justify-center border-l border-border">
+                                  {item[tierKey] ? (
+                                    <Check className="w-4 h-4 text-green-500" />
+                                  ) : (
+                                    <X className="w-4 h-4 text-gray-300" />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-center mt-6">
+                    <Link href="/pricing" className="inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors">
+                      View on the full pricing page <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </Reveal>
+              )}
             </div>
           </section>
 

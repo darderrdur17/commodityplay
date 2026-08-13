@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { Suspense, useCallback, useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ChevronDown, Briefcase, Users } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn, isAdmin } from "@/lib/utils";
@@ -13,40 +13,32 @@ import { Logo } from "@/components/brand/logo";
 
 import { NAV_HEIGHT, NAV_OFFSET, NAV_HEIGHT_PX } from "@/lib/layout-constants";
 
-const SIMPLE_LINKS = [
-  { label: "Playbook", href: "/playbook" },
-  { label: "Glossary", href: "/glossary" },
-];
+const NAV_LINKS = [
+  { key: "career", label: "Career", href: "/?track=career" },
+  { key: "sales", label: "Sales", href: "/?track=sales" },
+  { key: "playbook", label: "Playbook", href: "/playbook" },
+  { key: "mentor-connect", label: "Mentor Connect", href: "/mentor-connect" },
+  { key: "glossary", label: "Glossary", href: "/glossary" },
+] as const;
 
-const TRACK_OPTIONS = [
-  {
-    track: "career" as const,
-    label: "Track 1",
-    title: "Career Professionals",
-    href: "/?track=career",
-    icon: Briefcase,
-    iconClass: "bg-[#eff6ff] text-[#3280ff]",
-    trackClass: "text-[#3280ff]",
-    hoverClass: "hover:bg-[#f7faff] group-hover:[&_.track-name]:text-[#3280ff]",
-  },
-  {
-    track: "sales" as const,
-    label: "Track 2",
-    title: "Sales Professionals",
-    href: "/?track=sales",
-    icon: Users,
-    iconClass: "bg-[#f0fdfb] text-[#0f766e]",
-    trackClass: "text-[#0f766e]",
-    hoverClass: "hover:bg-[#f0fdfb] group-hover:[&_.track-name]:text-[#0f766e]",
-  },
-];
+/** Reads the `?track=` query param — isolated in its own Suspense boundary since
+ * useSearchParams() opts the calling component out of static rendering. */
+function TrackParamWatcher({ onChange }: { onChange: (track: string | null) => void }) {
+  const searchParams = useSearchParams();
+  const track = searchParams.get("track");
+
+  useEffect(() => {
+    onChange(track);
+  }, [track, onChange]);
+
+  return null;
+}
 
 export function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [homeOpen, setHomeOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const homeRef = useRef<HTMLDivElement>(null);
+  const [activeTrackParam, setActiveTrackParam] = useState<string | null>(null);
   const userRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { data: session } = useSession();
@@ -57,7 +49,15 @@ export function Nav() {
     role?: string;
   } | undefined;
 
-  const isHome = pathname === "/";
+  const handleTrackParamChange = useCallback((track: string | null) => {
+    setActiveTrackParam(track);
+  }, []);
+
+  function isLinkActive(key: string, href: string) {
+    if (key === "career") return pathname === "/" && activeTrackParam !== "sales";
+    if (key === "sales") return pathname === "/" && activeTrackParam === "sales";
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -67,15 +67,11 @@ export function Nav() {
 
   useEffect(() => {
     setMobileOpen(false);
-    setHomeOpen(false);
     setUserMenuOpen(false);
   }, [pathname]);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (homeRef.current && !homeRef.current.contains(e.target as Node)) {
-        setHomeOpen(false);
-      }
       if (userRef.current && !userRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
       }
@@ -94,13 +90,16 @@ export function Nav() {
         : "Starter";
 
   function closeMenus() {
-    setHomeOpen(false);
     setUserMenuOpen(false);
     setMobileOpen(false);
   }
 
   return (
     <>
+      <Suspense fallback={null}>
+        <TrackParamWatcher onChange={handleTrackParamChange} />
+      </Suspense>
+
       <header
         className={cn(
           "fixed top-0 left-0 right-0 z-50 transition-all duration-300 overflow-visible",
@@ -117,84 +116,11 @@ export function Nav() {
           </div>
 
           <nav className="hidden md:flex items-center justify-center gap-0.5">
-            <div ref={homeRef} className="relative">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setUserMenuOpen(false);
-                  setHomeOpen((open) => !open);
-                }}
-                className={cn(
-                  "flex items-center gap-1.5 px-4 py-2.5 text-[14.5px] font-medium rounded-lg transition-colors",
-                  isHome || homeOpen
-                    ? "text-[#3280ff] bg-[#f0f6ff] font-semibold"
-                    : "text-[#4a5568] hover:text-[#3280ff] hover:bg-[#f0f6ff]"
-                )}
-              >
-                Home
-                <ChevronDown
-                  className={cn(
-                    "w-3.5 h-3.5 text-[#a0aec0] transition-transform",
-                    homeOpen && "rotate-180 text-[#3280ff]"
-                  )}
-                />
-              </button>
-
-              <AnimatePresence>
-                {homeOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute top-[calc(100%+12px)] left-1/2 -translate-x-1/2 min-w-[260px] bg-white border border-[#e4e7ec] rounded-[14px] shadow-[0_16px_40px_-8px_rgba(0,0,0,0.13),0_4px_12px_-4px_rgba(0,0,0,0.06)] p-2 z-[300]"
-                  >
-                    <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 rotate-45 w-[11px] h-[11px] bg-white border-l border-t border-[#e4e7ec]" />
-                    <p className="text-[9.5px] font-bold tracking-[0.18em] uppercase text-[#b0bec5] px-3.5 py-2">
-                      Your track
-                    </p>
-                    {TRACK_OPTIONS.map((option, index) => (
-                      <React.Fragment key={option.track}>
-                        {index > 0 && <div className="h-px bg-[#f0f2f5] mx-2 my-1" />}
-                        <Link
-                          href={option.href}
-                          onClick={closeMenus}
-                          className={cn(
-                            "group flex items-center gap-3.5 px-3.5 py-3 rounded-[10px] transition-colors",
-                            option.hoverClass
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "w-[38px] h-[38px] rounded-[10px] flex items-center justify-center shrink-0",
-                              option.iconClass
-                            )}
-                          >
-                            <option.icon className="w-[19px] h-[19px]" strokeWidth={1.8} />
-                          </span>
-                          <span className="flex flex-col gap-0.5">
-                            <span className={cn("text-[10px] font-bold tracking-[0.08em] uppercase", option.trackClass)}>
-                              {option.label}
-                            </span>
-                            <span className="track-name text-[14.5px] font-semibold text-[#1a202c] leading-tight transition-colors">
-                              {option.title}
-                            </span>
-                          </span>
-                        </Link>
-                      </React.Fragment>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {SIMPLE_LINKS.map((link) => {
-              const active =
-                pathname === link.href || pathname.startsWith(`${link.href}/`);
+            {NAV_LINKS.map((link) => {
+              const active = isLinkActive(link.key, link.href);
               return (
                 <Link
-                  key={link.href}
+                  key={link.key}
                   href={link.href}
                   className={cn(
                     "px-4 py-2.5 text-[14.5px] font-medium rounded-lg transition-colors whitespace-nowrap",
@@ -216,7 +142,6 @@ export function Nav() {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setHomeOpen(false);
                     setUserMenuOpen((open) => !open);
                   }}
                   className="flex items-center gap-2 px-2.5 py-1.5 rounded-[9px] hover:bg-[#f4f5f7] transition-colors"
@@ -342,29 +267,13 @@ export function Nav() {
             }}
           >
             <nav className="page-container py-4 flex flex-col gap-1">
-              <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-[#b0bec5] mb-1">
-                Your track
-              </p>
-              {TRACK_OPTIONS.map((option) => (
+              {NAV_LINKS.map((link) => (
                 <Link
-                  key={option.track}
-                  href={option.href}
-                  className="px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-[#f0f6ff] min-h-[44px] flex items-center gap-3"
-                >
-                  <span className={cn("text-[10px] font-bold uppercase tracking-wide", option.trackClass)}>
-                    {option.label}
-                  </span>
-                  <span>{option.title}</span>
-                </Link>
-              ))}
-              <div className="h-px bg-[#e4e7ec] my-2" />
-              {SIMPLE_LINKS.map((link) => (
-                <Link
-                  key={link.href}
+                  key={link.key}
                   href={link.href}
                   className={cn(
                     "px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center",
-                    pathname === link.href || pathname.startsWith(`${link.href}/`)
+                    isLinkActive(link.key, link.href)
                       ? "bg-[#f0f6ff] text-[#3280ff]"
                       : "text-gray-700 hover:bg-[#f4f5f7]"
                   )}
