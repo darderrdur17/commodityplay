@@ -126,8 +126,6 @@ function SignupForm() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          <Logo variant="header" className="mb-8 lg:hidden" />
-
           <h1 className="font-serif text-3xl font-bold text-gray-900 mb-1.5">Create your account</h1>
           <p className="text-muted-fg text-sm mb-8">
             Already have one?{" "}

@@ -97,6 +97,8 @@ const DEMO_ACCOUNTS = [
     persona: "INSIDER" as const,
     mentorCredits: 5,
     resumeCredits: 4,
+    isMentor: true,
+    company: "Vitol",
     progress: [
       { chapterId: "a", progress: 100, completed: true },
       { chapterId: "b", progress: 80, completed: false },
@@ -112,7 +114,11 @@ async function main() {
   for (const account of DEMO_ACCOUNTS) {
     const { progress, ...userData } = account as typeof account & {
       progress?: { chapterId: string; progress: number; completed: boolean }[];
+      isMentor?: boolean;
+      company?: string | null;
     };
+    const isMentor = userData.isMentor ?? false;
+    const company = userData.company ?? null;
 
     const user = await prisma.user.upsert({
       where: { email: userData.email },
@@ -127,6 +133,8 @@ async function main() {
         mentorCredits: userData.mentorCredits,
         resumeCredits: userData.resumeCredits,
         stripeStatus: userData.tier === "STARTER" ? "inactive" : "active",
+        isMentor,
+        company,
       },
       create: {
         email: userData.email,
@@ -140,6 +148,8 @@ async function main() {
         mentorCredits: userData.mentorCredits,
         resumeCredits: userData.resumeCredits,
         stripeStatus: userData.tier === "STARTER" ? "inactive" : "active",
+        isMentor,
+        company,
       },
     });
 

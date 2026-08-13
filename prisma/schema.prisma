@@ -54,6 +54,7 @@ model User {
   emailVerified  DateTime?
   image          String?
   passwordHash   String?
+  company        String?
 
   // Business logic fields
   role           Role      @default(USER)
@@ -61,6 +62,8 @@ model User {
   track          Track     @default(CAREER)
   persona        Persona?
   onboardingDone Boolean   @default(false)
+  /// True for mentor-identity demo/seed accounts — excluded from the Customers tab (see Mentors tab instead).
+  isMentor       Boolean   @default(false)
 
   // Stripe billing
   stripeCustomerId       String?   @unique

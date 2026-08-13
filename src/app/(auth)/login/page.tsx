@@ -115,9 +115,6 @@ function LoginForm() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          {/* Mobile logo */}
-          <Logo variant="header" className="mb-8 lg:hidden" />
-
           <h1 className="font-serif text-3xl font-bold text-gray-900 mb-1.5">Sign in</h1>
           <p className="text-muted-fg text-sm mb-8">
             Don't have an account?{" "}

@@ -1,4 +1,6 @@
 import type { FeatureComparisonGroup, LandingContent } from "@/data/landing-content";
+import type { MentorOverride, MentorProfile, MentorSegment } from "@/data/mentors";
+import { UNASSIGNED_SEGMENT_ID } from "@/data/mentors";
 
 type PlainObject = Record<string, unknown>;
 
@@ -224,6 +226,100 @@ export function resolveGroundLevelView(
       "title"
     ),
   };
+}
+
+/** Turn a brand-new mentor override (self-submitted application or admin-added mentor,
+ * `isNew: true`) into a full `MentorProfile`-shaped row for the admin Mentors tab. */
+function synthesizeMentorProfile(override: MentorOverride): MentorProfile {
+  return {
+    id: override.id,
+    headline: override.headline ?? "",
+    years: override.years ?? 0,
+    bio: override.bio ?? "",
+    sampleReply: override.sampleReply ?? "",
+    tags: override.tags ?? [],
+    name: override.name,
+    email: override.email,
+    company: override.company,
+    track: override.track ?? "both",
+    status: override.status ?? "pending",
+    isNew: true,
+  };
+}
+
+/**
+ * Layer admin-saved mentor overrides (from the "mentors" CMS module) over the static
+ * mentors.json defaults, keyed by mentor id. Only fields present on the override are
+ * applied; anything omitted falls back to the static default. `track` defaults to
+ * "both" for profiles that have never been given an explicit track. `name`/`email`/
+ * `company` are admin-only identity fields and must never reach public-facing surfaces.
+ *
+ * Overrides with `isNew: true` don't match any static mentor — they're brand-new
+ * entries (self-submitted applications via /mentor-apply, or admin-added mentors)
+ * and are synthesized into full profile rows, grouped by `segmentId` into the segment
+ * the applicant picked. Entries with no matching real segment (or `segmentId` unset /
+ * `UNASSIGNED_SEGMENT_ID`) land in a synthetic "Unassigned" segment appended at the
+ * end — this pseudo-segment exists only in the resolved output (admin Mentors tab),
+ * never in the static defaults, so it's invisible to any public-facing consumer that
+ * reads `MENTOR_SEGMENTS` directly.
+ */
+export function resolveMentorSegments(
+  defaults: MentorSegment[],
+  overrides: MentorOverride[]
+): MentorSegment[] {
+  const overrideMap = new Map(overrides.map((o) => [o.id, o]));
+  const defaultIds = new Set(defaults.flatMap((s) => s.mentors.map((m) => m.id)));
+
+  const resolved: MentorSegment[] = defaults.map((segment) => ({
+    ...segment,
+    mentors: segment.mentors.map((mentor): MentorProfile => {
+      const override = overrideMap.get(mentor.id);
+      return {
+        ...mentor,
+        headline: override?.headline ?? mentor.headline,
+        years: override?.years ?? mentor.years,
+        tags: override?.tags ?? mentor.tags,
+        name: override?.name ?? mentor.name,
+        email: override?.email ?? mentor.email,
+        company: override?.company ?? mentor.company,
+        track: override?.track ?? mentor.track ?? "both",
+        status: override?.status ?? mentor.status ?? "active",
+      };
+    }),
+  }));
+
+  const newOverrides = overrides.filter((o) => o.isNew && !defaultIds.has(o.id));
+  const segmentIndexById = new Map(resolved.map((s, i) => [s.id, i] as const));
+  const unassigned: MentorProfile[] = [];
+
+  for (const override of newOverrides) {
+    const profile = synthesizeMentorProfile(override);
+    const targetIdx =
+      override.segmentId && override.segmentId !== UNASSIGNED_SEGMENT_ID
+        ? segmentIndexById.get(override.segmentId)
+        : undefined;
+
+    if (targetIdx !== undefined) {
+      resolved[targetIdx] = {
+        ...resolved[targetIdx],
+        mentors: [...resolved[targetIdx].mentors, profile],
+      };
+    } else {
+      unassigned.push(profile);
+    }
+  }
+
+  if (unassigned.length > 0) {
+    resolved.push({
+      id: UNASSIGNED_SEGMENT_ID,
+      num: "—",
+      title: "Unassigned",
+      blurb: "New applications awaiting segment assignment. Assign a real segment from the edit modal once reviewed.",
+      mentors: unassigned,
+    });
+  }
+
+  return resolved;
 }
 
 /** Merge CMS landing copy over code defaults without losing new chapters/tiers from deploys. */

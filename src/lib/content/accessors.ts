@@ -2,6 +2,7 @@ import type { PlaybookSection } from "@/data/playbook";
 import type { CaseStudyCard, CaseStudySection } from "@/data/case-studies";
 import type { DeskQA } from "@/data/desk-channel";
 import type { GlossaryTerm } from "@/data/glossary";
+import type { MentorOverridesPayload } from "@/data/mentors";
 import { getPublishedPayload } from "./repository";
 import { CHAPTERS } from "@/data/playbook";
 import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
@@ -13,7 +14,8 @@ import { CAREER_ROLES } from "@/data/career-roadmap";
 import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-templates";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
-import { mergeLandingContent } from "./merge";
+import { mergeLandingContent, resolveMentorSegments } from "./merge";
+import { MENTOR_SEGMENTS } from "@/data/mentors";
 import playbookSections from "@/data/playbook-sections.json";
 
 type PlaybookPayload = {
@@ -29,6 +31,20 @@ type CaseStudiesPayload = {
 export async function getLandingContent(): Promise<LandingContent> {
   const data = await getPublishedPayload<Partial<LandingContent>>("landing");
   return mergeLandingContent(DEFAULT_LANDING_CONTENT, data ?? {});
+}
+
+/**
+ * Admin-only resolved mentor profile data — static defaults layered with any saved
+ * "mentors" CMS overrides (headline/years/tags/name/email/company/track/status), plus
+ * any brand-new self-submitted applications (via /mentor-apply) synthesized into their
+ * assigned segment (or a synthetic "Unassigned" segment). Intended for the admin
+ * Mentors tab. Do NOT use this on any public-facing page: `name`/`email`/`company`
+ * are for internal reference only, and `status: "pending"` rows are unreviewed
+ * applications — neither must ever be exposed to end users.
+ */
+export async function getResolvedMentorSegments() {
+  const data = await getPublishedPayload<Partial<MentorOverridesPayload>>("mentors");
+  return resolveMentorSegments(MENTOR_SEGMENTS, data?.overrides ?? []);
 }
 
 export async function getPlaybookChapters() {

@@ -13,7 +13,8 @@ import { Reveal } from "@/components/animations";
 import { PERSONA_LABELS, formatDate, cn } from "@/lib/utils";
 import { AdminContentTab } from "./admin-content-tab";
 import { AdminUserDetailPanel, type AdminUserDetail } from "./admin-user-detail";
-import { MENTOR_COUNT, MENTOR_SEGMENTS } from "@/data/mentors";
+import { AdminMentorDetailPanel, type AdminMentorDetail, type MentorSegmentOption } from "./admin-mentor-detail";
+import { MENTOR_COUNT, MENTOR_SEGMENTS, UNASSIGNED_SEGMENT_ID } from "@/data/mentors";
 
 interface Stats {
   totalUsers: number;
@@ -61,7 +62,19 @@ interface MentorSegmentRow {
   title: string;
   blurb: string;
   questionCount: number;
-  mentors: { id: string; years: number; headline: string; tags: string[] }[];
+  mentors: {
+    id: string;
+    years: number;
+    headline: string;
+    tags: string[];
+    name: string | null;
+    email: string | null;
+    company: string | null;
+    track: "career" | "sales" | "both";
+    status: "pending" | "active";
+    isNew: boolean;
+    segmentId: string;
+  }[];
 }
 
 const CHAPTERS = ["a", "b", "c", "d", "e"];
@@ -87,6 +100,7 @@ export function AdminClient({
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [progressData, setProgressData] = useState<ChapterProgressRow[]>([]);
   const [mentorSegments, setMentorSegments] = useState<MentorSegmentRow[]>([]);
+  const [pendingMentorApps, setPendingMentorApps] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<AdminTab>(
     initialTab && VALID_TABS.includes(initialTab as AdminTab) ? (initialTab as AdminTab) : "users"
@@ -96,6 +110,7 @@ export function AdminClient({
   const [notifying, setNotifying] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(null);
+  const [selectedMentor, setSelectedMentor] = useState<AdminMentorDetail | null>(null);
   // Q&A tab filters
   const [qaFilter, setQaFilter] = useState<"all" | "pending" | "answered">("all");
   // Progress tab filters
@@ -119,9 +134,22 @@ export function AdminClient({
       if (mentorRes.ok) setMentorQs(await mentorRes.json());
       if (waitlistRes.ok) setWaitlist(await waitlistRes.json());
       if (progressRes.ok) setProgressData(await progressRes.json());
-      if (mentorSegRes.ok) setMentorSegments(await mentorSegRes.json());
+      if (mentorSegRes.ok) {
+        const data = await mentorSegRes.json();
+        setMentorSegments(data.segments ?? []);
+        setPendingMentorApps(data.pendingCount ?? 0);
+      }
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadMentorSegments() {
+    const res = await fetch("/api/admin/mentors");
+    if (res.ok) {
+      const data = await res.json();
+      setMentorSegments(data.segments ?? []);
+      setPendingMentorApps(data.pendingCount ?? 0);
     }
   }
 
@@ -199,6 +227,17 @@ export function AdminClient({
     ? mentorSegments
     : mentorSegments.filter((s) => s.id === mentorsSegFilter);
 
+  const totalMentorCount = mentorSegments.length > 0
+    ? mentorSegments.reduce((n, s) => n + s.mentors.length, 0)
+    : MENTOR_COUNT;
+
+  // Segment choices for the "reassign segment" dropdown — real segments plus the
+  // synthetic "Unassigned" bucket (only ever present once a new application exists).
+  const mentorSegmentOptions: MentorSegmentOption[] = [
+    ...MENTOR_SEGMENTS.map((s) => ({ id: s.id, label: `${s.num} ${s.title}` })),
+    { id: UNASSIGNED_SEGMENT_ID, label: "Unassigned" },
+  ];
+
   return (
     <div className="min-h-screen bg-secondary">
       <div className="bg-gray-900 text-white">
@@ -228,13 +267,14 @@ export function AdminClient({
 
       <div className="page-container py-6 sm:py-8">
         {stats && (
-          <Reveal className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+          <Reveal className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-4 mb-8">
             {[
               { label: "Total Users", value: stats.totalUsers, icon: Users, color: "#3280ff" },
               { label: "Starter", value: stats.tiers.starter, icon: TrendingUp, color: "#16a34a" },
               { label: "Pro", value: stats.tiers.pro, icon: Crown, color: "#3280ff" },
               { label: "Elite", value: stats.tiers.elite, icon: Crown, color: "#B45309" },
-              { label: "Mentors", value: MENTOR_COUNT, icon: UserCheck, color: "#0891b2" },
+              { label: "Mentors", value: totalMentorCount, icon: UserCheck, color: "#0891b2" },
+              { label: "Pending Applications", value: pendingMentorApps, icon: Clock, color: "#d97706" },
               { label: "Pending Q&A", value: stats.mentor.pending, icon: MessageSquare, color: "#ef4444" },
               { label: "Waitlist", value: stats.waitlistCount, icon: Mail, color: "#5B21B6" },
             ].map((s) => (
@@ -253,7 +293,7 @@ export function AdminClient({
           {([
             ["users", `Customers (${users.length})`, Users],
             ["progress", "Progress Activity", BarChart2],
-            ["mentors", `Mentors (${MENTOR_COUNT})`, UserCheck],
+            ["mentors", `Mentors (${totalMentorCount})`, UserCheck],
             ["mentor", `Q&A (${pendingCount} pending)`, MessageSquare],
             ["billing", "Billing & Invoice", CreditCard],
             ["waitlist", `Waitlist (${waitlist.length})`, Mail],
@@ -435,6 +475,14 @@ export function AdminClient({
         {/* ── Mentors tab ── */}
         {activeTab === "mentors" && (
           <div className="space-y-4">
+            {pendingMentorApps > 0 && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-center gap-2.5">
+                <Clock className="w-4 h-4 flex-shrink-0" />
+                <span>
+                  <strong>{pendingMentorApps}</strong> new mentor application{pendingMentorApps === 1 ? "" : "s"} awaiting review — sorted to the top of their segment below.
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
@@ -479,15 +527,45 @@ export function AdminClient({
                   <thead>
                     <tr className="border-b border-border text-left">
                       <th className="px-4 py-2 font-semibold text-muted-fg">Mentor ID</th>
+                      <th className="px-4 py-2 font-semibold text-muted-fg">Status</th>
+                      <th className="px-4 py-2 font-semibold text-muted-fg">Name</th>
+                      <th className="px-4 py-2 font-semibold text-muted-fg">Email</th>
+                      <th className="px-4 py-2 font-semibold text-muted-fg">Company</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Headline</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Years</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Tags</th>
+                      <th className="px-4 py-2 font-semibold text-muted-fg">Track</th>
+                      <th className="px-4 py-2 font-semibold text-muted-fg" />
                     </tr>
                   </thead>
                   <tbody>
                     {seg.mentors.map((m) => (
-                      <tr key={m.id} className="border-b border-border last:border-0">
+                      <tr
+                        key={m.id}
+                        className={cn(
+                          "border-b border-border last:border-0",
+                          m.status === "pending" && "bg-amber-50/60"
+                        )}
+                      >
                         <td className="px-4 py-2.5 font-mono text-xs text-muted-fg">{m.id}</td>
+                        <td className="px-4 py-2.5">
+                          {m.status === "pending" ? (
+                            <Badge variant="warning" size="sm"><Clock className="w-3 h-3" /> Pending</Badge>
+                          ) : m.isNew ? (
+                            <Badge variant="success" size="sm">Active</Badge>
+                          ) : (
+                            <span className="text-xs text-muted-fg">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs">
+                          {m.name ? (
+                            <span className="text-gray-800 font-medium">{m.name}</span>
+                          ) : (
+                            <span className="text-muted-fg">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-muted-fg">{m.email || "—"}</td>
+                        <td className="px-4 py-2.5 text-xs text-muted-fg">{m.company || "—"}</td>
                         <td className="px-4 py-2.5 font-medium text-gray-800">{m.headline}</td>
                         <td className="px-4 py-2.5 text-xs text-muted-fg">{m.years}y</td>
                         <td className="px-4 py-2.5">
@@ -496,6 +574,38 @@ export function AdminClient({
                               <span key={tag} className="px-1.5 py-0.5 bg-secondary rounded text-xs text-muted-fg border border-border">{tag}</span>
                             ))}
                           </div>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <Badge
+                            size="sm"
+                            variant={m.track === "career" ? "starter" : m.track === "sales" ? "pro" : "secondary"}
+                          >
+                            {m.track === "career" ? "Career" : m.track === "sales" ? "Sales" : "Both"}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedMentor({
+                                id: m.id,
+                                headline: m.headline,
+                                years: m.years,
+                                tags: m.tags,
+                                name: m.name,
+                                email: m.email,
+                                company: m.company,
+                                track: m.track,
+                                segmentTitle: seg.title,
+                                status: m.status,
+                                segmentId: m.segmentId,
+                                isNew: m.isNew,
+                              })
+                            }
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-primary-800 hover:text-primary-400"
+                          >
+                            <Pencil className="w-3.5 h-3.5" /> Edit
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -716,6 +826,15 @@ export function AdminClient({
           isSelf={selectedUser.id === adminId}
           onClose={() => setSelectedUser(null)}
           onSaved={loadAll}
+        />
+      )}
+
+      {selectedMentor && (
+        <AdminMentorDetailPanel
+          mentor={selectedMentor}
+          segmentOptions={mentorSegmentOptions}
+          onClose={() => setSelectedMentor(null)}
+          onSaved={loadMentorSegments}
         />
       )}
     </div>

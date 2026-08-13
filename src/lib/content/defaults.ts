@@ -71,6 +71,8 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
       return { categories: [] };
     case "library":
       return { files: [] };
+    case "mentors":
+      return { overrides: [] };
     default:
       return {};
   }
@@ -91,5 +93,6 @@ export function getAllDefaultPayloads(): Record<ContentSlug, unknown> {
     "starter-pack": getDefaultPayload("starter-pack"),
     "mentor-connect": getDefaultPayload("mentor-connect"),
     "library": getDefaultPayload("library"),
+    "mentors": getDefaultPayload("mentors"),
   };
 }

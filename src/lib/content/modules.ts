@@ -13,6 +13,7 @@ export type ContentSlug =
   | "job-openings"
   | "starter-pack"
   | "mentor-connect"
+  | "mentors"
   | "library";
 
 export interface ContentModuleMeta {
@@ -100,6 +101,12 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
     title: "Library Resources",
     description: "Downloadable and view-only files",
     requiredTier: "PRO",
+  },
+  {
+    slug: "mentors",
+    title: "Mentor Profiles (Admin Overrides)",
+    description: "Internal-only mentor profile overrides — headline, years, tags, track, and admin reference name. Never shown publicly.",
+    requiredTier: "STARTER",
   },
 ];
 

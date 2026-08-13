@@ -10,6 +10,7 @@ export async function GET() {
   }
 
   const users = await prisma.user.findMany({
+    where: { isMentor: false },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

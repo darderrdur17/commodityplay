@@ -227,7 +227,10 @@ export async function updateContentModule(
     title?: string;
     description?: string;
   },
-  updatedById: string
+  /** Admin user id, when the write is admin-attributed. Omit for system/public writes
+   * (e.g. the unauthenticated /api/mentor-apply endpoint) — left `null` rather than
+   * pointing the FK at a made-up id. */
+  updatedById?: string
 ) {
   await ensureContentInfrastructure();
   const meta = getModuleMeta(slug);
@@ -244,7 +247,7 @@ export async function updateContentModule(
         payload: (data.payload ?? getDefaultPayload(slug as ContentSlug)) as object,
         published: data.published ?? true,
         version: 1,
-        updatedById,
+        updatedById: updatedById ?? null,
       },
     });
   }
@@ -258,7 +261,7 @@ export async function updateContentModule(
       ...(data.published !== undefined && { published: data.published }),
       ...(data.payload !== undefined && { payload: data.payload as object }),
       version: existing.version + 1,
-      updatedById,
+      updatedById: updatedById ?? null,
     },
   });
 }
