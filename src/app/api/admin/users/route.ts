@@ -24,6 +24,8 @@ export async function GET() {
       onboardingDone: true,
       stripeStatus: true,
       stripeCurrentPeriodEnd: true,
+      stripeCustomerId: true,
+      stripeSubscriptionId: true,
       jobWaitlist: true,
       createdAt: true,
       updatedAt: true,

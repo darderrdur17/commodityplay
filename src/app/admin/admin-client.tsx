@@ -5,13 +5,15 @@ import Link from "next/link";
 import {
   Users, Shield, MessageSquare, Mail, Crown, TrendingUp,
   CheckCircle, Clock, ArrowLeft, RefreshCw, FileJson, Pencil,
+  BarChart2, UserCheck, CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/animations";
-import { PERSONA_LABELS, formatDate } from "@/lib/utils";
+import { PERSONA_LABELS, formatDate, cn } from "@/lib/utils";
 import { AdminContentTab } from "./admin-content-tab";
 import { AdminUserDetailPanel, type AdminUserDetail } from "./admin-user-detail";
+import { MENTOR_COUNT, MENTOR_SEGMENTS } from "@/data/mentors";
 
 interface Stats {
   totalUsers: number;
@@ -44,35 +46,72 @@ interface WaitlistEntry {
   createdAt: string;
 }
 
+interface ChapterProgressRow {
+  userId: string;
+  userName: string | null;
+  userEmail: string;
+  tier: string;
+  track: string;
+  chapters: Record<string, { completed: boolean; progress: number; completedAt: string | null }>;
+}
+
+interface MentorSegmentRow {
+  id: string;
+  num: string;
+  title: string;
+  blurb: string;
+  questionCount: number;
+  mentors: { id: string; years: number; headline: string; tags: string[] }[];
+}
+
+const CHAPTERS = ["a", "b", "c", "d", "e"];
+
 export function AdminClient({ adminName, adminId }: { adminName: string; adminId: string }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<AdminUserDetail[]>([]);
   const [mentorQs, setMentorQs] = useState<MentorQ[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
+  const [progressData, setProgressData] = useState<ChapterProgressRow[]>([]);
+  const [mentorSegments, setMentorSegments] = useState<MentorSegmentRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"users" | "content" | "mentor" | "waitlist">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "content" | "mentor" | "waitlist" | "progress" | "mentors" | "billing">("users");
   const [answerDraft, setAnswerDraft] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [notifying, setNotifying] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(null);
+  // Q&A tab filters
+  const [qaFilter, setQaFilter] = useState<"all" | "pending" | "answered">("all");
+  // Progress tab filters
+  const [progressTierFilter, setProgressTierFilter] = useState<string>("ALL");
+  // Mentors tab filter
+  const [mentorsSegFilter, setMentorsSegFilter] = useState<string>("all");
 
   async function loadAll() {
     setLoading(true);
     try {
-      const [statsRes, usersRes, mentorRes, waitlistRes] = await Promise.all([
+      const [statsRes, usersRes, mentorRes, waitlistRes, progressRes, mentorSegRes] = await Promise.all([
         fetch("/api/admin/stats"),
         fetch("/api/admin/users"),
         fetch("/api/admin/mentor"),
         fetch("/api/admin/waitlist"),
+        fetch("/api/admin/progress"),
+        fetch("/api/admin/mentors"),
       ]);
       if (statsRes.ok) setStats(await statsRes.json());
       if (usersRes.ok) setUsers(await usersRes.json());
       if (mentorRes.ok) setMentorQs(await mentorRes.json());
       if (waitlistRes.ok) setWaitlist(await waitlistRes.json());
+      if (progressRes.ok) setProgressData(await progressRes.json());
+      if (mentorSegRes.ok) setMentorSegments(await mentorSegRes.json());
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadQAs(filter: "all" | "pending" | "answered") {
+    const res = await fetch(`/api/admin/mentor?status=${filter}`);
+    if (res.ok) setMentorQs(await res.json());
   }
 
   useEffect(() => {
@@ -91,7 +130,7 @@ export function AdminClient({ adminName, adminId }: { adminName: string; adminId
     });
     const data = res.ok ? await res.json() : null;
     setAnswerDraft((d) => ({ ...d, [id]: "" }));
-    await loadAll();
+    await loadQAs(qaFilter);
     setSaving(null);
     if (data?.menteeEmail?.sent) {
       setActionMsg("Answer saved and member notified by email.");
@@ -107,7 +146,7 @@ export function AdminClient({ adminName, adminId }: { adminName: string; adminId
     setActionMsg(null);
     const res = await fetch(`/api/admin/mentor/${id}/notify`, { method: "POST" });
     const data = res.ok ? await res.json() : null;
-    await loadAll();
+    await loadQAs(qaFilter);
     setNotifying(null);
     if (data?.email?.sent) {
       setActionMsg("Reminder email sent to mentor inbox.");
@@ -120,6 +159,29 @@ export function AdminClient({ adminName, adminId }: { adminName: string; adminId
 
   const tierBadge = (tier: string) =>
     tier === "ELITE" ? "elite" : tier === "PRO" ? "pro" : "starter";
+
+  const pendingCount = mentorQs.filter((q) => !q.isAnswered).length;
+
+  // Filtered progress rows
+  const filteredProgress = progressTierFilter === "ALL"
+    ? progressData
+    : progressData.filter((r) => r.tier === progressTierFilter);
+
+  // Active billing summary
+  const activeCount = users.filter((u) => u.stripeStatus === "active").length;
+  const inactiveCount = users.filter((u) => u.stripeStatus && u.stripeStatus !== "active").length;
+
+  const stripeStatusColor = (status: string | null | undefined) => {
+    if (!status) return "text-muted-fg";
+    if (status === "active") return "text-green-600";
+    if (status === "past_due") return "text-red-500";
+    return "text-gray-400";
+  };
+
+  // Mentors filtered by segment
+  const filteredMentorSegs = mentorsSegFilter === "all"
+    ? mentorSegments
+    : mentorSegments.filter((s) => s.id === mentorsSegFilter);
 
   return (
     <div className="min-h-screen bg-secondary">
@@ -150,12 +212,13 @@ export function AdminClient({ adminName, adminId }: { adminName: string; adminId
 
       <div className="page-container py-6 sm:py-8">
         {stats && (
-          <Reveal className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+          <Reveal className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
             {[
               { label: "Total Users", value: stats.totalUsers, icon: Users, color: "#3280ff" },
               { label: "Starter", value: stats.tiers.starter, icon: TrendingUp, color: "#16a34a" },
               { label: "Pro", value: stats.tiers.pro, icon: Crown, color: "#3280ff" },
               { label: "Elite", value: stats.tiers.elite, icon: Crown, color: "#B45309" },
+              { label: "Mentors", value: MENTOR_COUNT, icon: UserCheck, color: "#0891b2" },
               { label: "Pending Q&A", value: stats.mentor.pending, icon: MessageSquare, color: "#ef4444" },
               { label: "Waitlist", value: stats.waitlistCount, icon: Mail, color: "#5B21B6" },
             ].map((s) => (
@@ -173,19 +236,23 @@ export function AdminClient({ adminName, adminId }: { adminName: string; adminId
         <div className="flex gap-2 mb-6 flex-wrap">
           {([
             ["users", `Customers (${users.length})`, Users],
-            ["content", "Content CMS", FileJson],
-            ["mentor", `Mentor (${mentorQs.filter((q) => !q.isAnswered).length} pending)`, MessageSquare],
+            ["progress", "Progress Activity", BarChart2],
+            ["mentors", `Mentors (${MENTOR_COUNT})`, UserCheck],
+            ["mentor", `Q&A (${pendingCount} pending)`, MessageSquare],
+            ["billing", "Billing & Invoice", CreditCard],
             ["waitlist", `Waitlist (${waitlist.length})`, Mail],
+            ["content", "Content CMS", FileJson],
           ] as const).map(([tab, label, Icon]) => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              className={cn(
+                "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all",
                 activeTab === tab
                   ? "bg-primary-400 text-white"
                   : "bg-white text-muted-fg border border-border hover:border-primary-line"
-              }`}
+              )}
             >
               <Icon className="w-3.5 h-3.5" />
               {label}
@@ -196,6 +263,7 @@ export function AdminClient({ adminName, adminId }: { adminName: string; adminId
           </Link>
         </div>
 
+        {/* ── Customers tab ── */}
         {activeTab === "users" && (
           <div className="bg-white rounded-xl border border-border overflow-hidden">
             <div className="px-4 py-3 border-b border-border bg-secondary">
@@ -255,10 +323,193 @@ export function AdminClient({ adminName, adminId }: { adminName: string; adminId
           </div>
         )}
 
+        {/* ── Content CMS tab ── */}
         {activeTab === "content" && <AdminContentTab />}
 
+        {/* ── Progress Activity tab ── */}
+        {activeTab === "progress" && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <p className="text-sm text-muted-fg font-medium">Filter by tier:</p>
+              {["ALL", "STARTER", "PRO", "ELITE"].map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setProgressTierFilter(t)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                    progressTierFilter === t
+                      ? "bg-primary-400 text-white"
+                      : "bg-white text-muted-fg border border-border hover:border-primary-line"
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            <div className="bg-white rounded-xl border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[700px]">
+                  <thead>
+                    <tr className="border-b border-border bg-secondary text-left">
+                      <th className="px-4 py-3 font-semibold text-muted-fg">Customer</th>
+                      <th className="px-4 py-3 font-semibold text-muted-fg">Tier</th>
+                      <th className="px-4 py-3 font-semibold text-muted-fg">Track</th>
+                      {CHAPTERS.map((ch) => (
+                        <th key={ch} className="px-4 py-3 font-semibold text-muted-fg text-center uppercase">
+                          Ch {ch.toUpperCase()}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProgress.length === 0 ? (
+                      <tr>
+                        <td colSpan={3 + CHAPTERS.length} className="px-4 py-8 text-center text-muted-fg">
+                          No progress data yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredProgress.map((row) => (
+                        <tr key={row.userId} className="border-b border-border">
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-gray-900">{row.userName || "-"}</p>
+                            <p className="text-xs text-muted-fg">{row.userEmail}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge variant={tierBadge(row.tier) as "starter" | "pro" | "elite"} size="sm">{row.tier}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-xs">{row.track}</td>
+                          {CHAPTERS.map((ch) => {
+                            const cp = row.chapters[ch];
+                            if (!cp) return (
+                              <td key={ch} className="px-4 py-3 text-center text-muted-fg">–</td>
+                            );
+                            return (
+                              <td key={ch} className="px-4 py-3">
+                                <div className="flex flex-col items-center gap-1 min-w-[56px]">
+                                  <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                    <div
+                                      className="bg-primary-400 h-1.5 rounded-full"
+                                      style={{ width: `${cp.progress}%` }}
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1 text-xs">
+                                    <span className="text-muted-fg">{cp.progress}%</span>
+                                    {cp.completed && <CheckCircle className="w-3 h-3 text-green-500" />}
+                                  </div>
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Mentors tab ── */}
+        {activeTab === "mentors" && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setMentorsSegFilter("all")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                  mentorsSegFilter === "all"
+                    ? "bg-primary-400 text-white"
+                    : "bg-white text-muted-fg border border-border hover:border-primary-line"
+                )}
+              >
+                All Segments
+              </button>
+              {(mentorSegments.length > 0 ? mentorSegments : MENTOR_SEGMENTS).map((seg) => (
+                <button
+                  key={seg.id}
+                  type="button"
+                  onClick={() => setMentorsSegFilter(seg.id)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                    mentorsSegFilter === seg.id
+                      ? "bg-primary-400 text-white"
+                      : "bg-white text-muted-fg border border-border hover:border-primary-line"
+                  )}
+                >
+                  {seg.num} {seg.title}
+                </button>
+              ))}
+            </div>
+            {filteredMentorSegs.map((seg) => (
+              <div key={seg.id} className="bg-white rounded-xl border border-border overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-secondary flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-muted-fg uppercase tracking-wider mr-2">{seg.num}</span>
+                    <span className="font-semibold text-gray-900">{seg.title}</span>
+                  </div>
+                  <Badge variant="secondary" size="sm">
+                    <MessageSquare className="w-3 h-3" /> {seg.questionCount} Q&As
+                  </Badge>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left">
+                      <th className="px-4 py-2 font-semibold text-muted-fg">Mentor ID</th>
+                      <th className="px-4 py-2 font-semibold text-muted-fg">Headline</th>
+                      <th className="px-4 py-2 font-semibold text-muted-fg">Years</th>
+                      <th className="px-4 py-2 font-semibold text-muted-fg">Tags</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seg.mentors.map((m) => (
+                      <tr key={m.id} className="border-b border-border last:border-0">
+                        <td className="px-4 py-2.5 font-mono text-xs text-muted-fg">{m.id}</td>
+                        <td className="px-4 py-2.5 font-medium text-gray-800">{m.headline}</td>
+                        <td className="px-4 py-2.5 text-xs text-muted-fg">{m.years}y</td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex flex-wrap gap-1">
+                            {m.tags.map((tag) => (
+                              <span key={tag} className="px-1.5 py-0.5 bg-secondary rounded text-xs text-muted-fg border border-border">{tag}</span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Q&A tab ── */}
         {activeTab === "mentor" && (
           <div className="space-y-4">
+            {/* Status filter */}
+            <div className="flex items-center gap-2">
+              {(["all", "pending", "answered"] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={async () => {
+                    setQaFilter(f);
+                    await loadQAs(f);
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all",
+                    qaFilter === f
+                      ? "bg-primary-400 text-white"
+                      : "bg-white text-muted-fg border border-border hover:border-primary-line"
+                  )}
+                >
+                  {f === "all" ? `All (${mentorQs.length})` : f === "pending" ? `Pending (${mentorQs.filter(q => !q.isAnswered).length})` : `Answered (${mentorQs.filter(q => q.isAnswered).length})`}
+                </button>
+              ))}
+            </div>
             {actionMsg && (
               <div className="rounded-lg border border-primary-line bg-primary-soft px-4 py-3 text-sm text-primary-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <span>{actionMsg}</span>
@@ -341,6 +592,78 @@ export function AdminClient({ adminName, adminId }: { adminName: string; adminId
           </div>
         )}
 
+        {/* ── Billing & Invoice tab ── */}
+        {activeTab === "billing" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="bg-white rounded-xl border border-border p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-fg mb-1">Active Subscriptions</p>
+                <p className="font-serif text-2xl font-bold text-green-600">{activeCount}</p>
+              </div>
+              <div className="bg-white rounded-xl border border-border p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-fg mb-1">Inactive / Canceled</p>
+                <p className="font-serif text-2xl font-bold text-gray-400">{inactiveCount}</p>
+              </div>
+              <div className="bg-white rounded-xl border border-border p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-fg mb-1">No Billing Data</p>
+                <p className="font-serif text-2xl font-bold text-muted-fg">{users.filter((u) => !u.stripeCustomerId).length}</p>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[900px]">
+                  <thead>
+                    <tr className="border-b border-border bg-secondary text-left">
+                      <th className="px-4 py-3 font-semibold text-muted-fg">Customer</th>
+                      <th className="px-4 py-3 font-semibold text-muted-fg">Tier</th>
+                      <th className="px-4 py-3 font-semibold text-muted-fg">Stripe Status</th>
+                      <th className="px-4 py-3 font-semibold text-muted-fg">Subscription ID</th>
+                      <th className="px-4 py-3 font-semibold text-muted-fg">Period End</th>
+                      <th className="px-4 py-3 font-semibold text-muted-fg">Customer ID</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u) => (
+                      <tr key={u.id} className="border-b border-border">
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-gray-900">{u.name || "-"}</p>
+                          <p className="text-xs text-muted-fg">{u.email}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant={tierBadge(u.tier) as "starter" | "pro" | "elite"} size="sm">{u.tier}</Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          {u.stripeCustomerId ? (
+                            <span className={cn("text-xs font-semibold capitalize", stripeStatusColor(u.stripeStatus))}>
+                              {u.stripeStatus || "—"}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-fg">No billing data</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-fg">
+                          {u.stripeSubscriptionId
+                            ? `${u.stripeSubscriptionId.slice(0, 14)}…`
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-fg">
+                          {u.stripeCurrentPeriodEnd ? formatDate(u.stripeCurrentPeriodEnd) : "—"}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-fg">
+                          {u.stripeCustomerId
+                            ? `${u.stripeCustomerId.slice(0, 14)}…`
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Waitlist tab ── */}
         {activeTab === "waitlist" && (
           <div className="bg-white rounded-xl border border-border overflow-x-auto">
             <table className="w-full text-sm min-w-[500px]">

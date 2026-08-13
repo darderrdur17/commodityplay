@@ -19,6 +19,8 @@ export interface AdminUserDetail {
   onboardingDone?: boolean;
   stripeStatus?: string | null;
   stripeCurrentPeriodEnd?: string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
   createdAt: string;
   updatedAt?: string;
   _count?: { mentorQuestions: number; progress: number };
