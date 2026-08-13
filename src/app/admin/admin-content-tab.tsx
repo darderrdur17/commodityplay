@@ -76,7 +76,6 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { slug: "career-roadmap", label: "Career Roadmap + Nav Guide", track: "Career", tier: "PRO" },
       { slug: "interview-questions", label: "Interview Questions", track: "Career", tier: "PRO" },
       { slug: "knowledge-test", label: "Market Knowledge Test", track: "Both", tier: "PRO" },
-      { slug: "library", label: "Library Resources", track: "Both", tier: "PRO" },
     ],
   },
   {
@@ -87,6 +86,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { slug: "desk-channel", label: "Desk Channel", track: "Both", tier: "ELITE" },
       { slug: "mentor-connect", label: "Mentor Connect", track: "Both", tier: "ELITE" },
       { slug: "job-openings", label: "Market Role Openings", track: "Both", tier: "ELITE" },
+      { slug: "library", label: "Library Resources", track: "Both", tier: "ELITE" },
     ],
   },
 ];

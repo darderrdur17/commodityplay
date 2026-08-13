@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,700&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,7 +8,7 @@
   :root {
     --radius: 8px;
     --font-inter: 'Inter', system-ui, sans-serif;
-    --font-playfair: 'Playfair Display', Georgia, serif;
+    --font-roboto: 'Roboto', system-ui, sans-serif;
     --font-jetbrains: 'JetBrains Mono', monospace;
   }
 
@@ -25,14 +25,14 @@
 
   body {
     @apply bg-white text-gray-800;
-    font-family: var(--font-inter);
+    font-family: var(--font-roboto);
     line-height: 1.6;
     overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-playfair);
+    font-family: var(--font-inter);
     letter-spacing: -0.02em;
   }
 
@@ -193,7 +193,7 @@
   }
 
   .font-serif {
-    font-family: var(--font-playfair);
+    font-family: var(--font-inter);
   }
 
   .font-mono {
