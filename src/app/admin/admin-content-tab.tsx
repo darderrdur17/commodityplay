@@ -1,19 +1,21 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { FileJson, Upload, RotateCcw, Save, Trash2, Download, RefreshCw, Copy } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { RefreshCw, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  CONTENT_ASSET_ACCEPT,
-  CONTENT_ASSET_MAX_BYTES,
-  buildContentAssetKey,
-  formatAssetTypeLabel,
-  validateContentAssetFile,
-} from "@/lib/content/asset-files";
-import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
-import { parseLandingContentPayload, formatLandingValidationErrors } from "@/lib/content/landing-schema";
-import { AdminLandingEditor } from "./admin-landing-editor";
+import { cn, formatDate } from "@/lib/utils";
+import { SaveBar, TrackBadge, useModuleEditor } from "./editors/shared";
+import { PlaybookEditor } from "./editors/playbook-editor";
+import { GlossaryEditor } from "./editors/glossary-editor";
+import { DeskChannelEditor } from "./editors/desk-channel-editor";
+import { InterviewEditor } from "./editors/interview-editor";
+import { KnowledgeTestEditor } from "./editors/knowledge-test-editor";
+import { CareerRoadmapEditor } from "./editors/career-roadmap-editor";
+import { JobOpeningsEditor } from "./editors/job-openings-editor";
+import { CaseStudiesEditor } from "./editors/case-studies-editor";
+import { LandingEditorWrapper } from "./editors/landing-editor";
+import { StarterPackEditor } from "./editors/starter-pack-editor";
 
 interface ModuleRow {
   slug: string;
@@ -26,61 +28,132 @@ interface ModuleRow {
   payloadSize: number;
 }
 
-interface AssetRow {
-  id: string;
-  fileName: string;
-  mimeType: string;
-  size: number;
-  moduleSlug: string | null;
-  assetKey: string | null;
-  requiredTier: string;
-  label: string | null;
-}
+type Track = "Career" | "Sales" | "Both" | "Elite";
 
-const TIER_PACKS = [
-  { tier: "STARTER", label: "Starter Pack", hint: "Free tier content" },
-  { tier: "PRO", label: "Pro Pack", hint: "Playbook, templates, career tools" },
-  { tier: "ELITE", label: "Elite Pack", hint: "Case studies, desk channel, jobs" },
-] as const;
+const MODULE_META: Record<string, { track: Track; label: string }> = {
+  landing: { track: "Both", label: "Landing Page" },
+  playbook: { track: "Career", label: "Playbook" },
+  glossary: { track: "Career", label: "Glossary" },
+  "desk-channel": { track: "Elite", label: "Desk Channel" },
+  "interview-questions": { track: "Career", label: "Interview Questions" },
+  "knowledge-test": { track: "Career", label: "Knowledge Test" },
+  "career-roadmap": { track: "Career", label: "Career Roadmap" },
+  "starter-pack": { track: "Career", label: "Starter Pack" },
+  "job-openings": { track: "Both", label: "Job Openings" },
+  "case-studies": { track: "Elite", label: "Case Studies" },
+};
+
+const GROUPS: { label: string; slugs: string[] }[] = [
+  { label: "Both Tracks", slugs: ["landing", "job-openings"] },
+  { label: "Career Track", slugs: ["playbook", "glossary", "interview-questions", "knowledge-test", "career-roadmap", "starter-pack"] },
+  { label: "Elite Track", slugs: ["desk-channel", "case-studies"] },
+];
+
+function ModuleEditor({
+  slug,
+  modules,
+  onRefresh,
+}: {
+  slug: string;
+  modules: ModuleRow[];
+  onRefresh: () => void;
+}) {
+  const { payload, setPayload, requiredTier, setRequiredTier, published, setPublished, version, loading, saving, message, isError, save, reset } = useModuleEditor(slug);
+
+  const meta = MODULE_META[slug];
+  const mod = modules.find((m) => m.slug === slug);
+
+  async function handleSave() {
+    await save();
+    onRefresh();
+  }
+
+  async function handleReset() {
+    await reset();
+    onRefresh();
+  }
+
+  const editorProps = { payload, onChange: setPayload, moduleSlug: slug, requiredTier };
+
+  function renderEditor() {
+    switch (slug) {
+      case "playbook": return <PlaybookEditor {...editorProps} />;
+      case "glossary": return <GlossaryEditor {...editorProps} />;
+      case "desk-channel": return <DeskChannelEditor {...editorProps} />;
+      case "interview-questions": return <InterviewEditor {...editorProps} />;
+      case "knowledge-test": return <KnowledgeTestEditor {...editorProps} />;
+      case "career-roadmap": return <CareerRoadmapEditor {...editorProps} />;
+      case "job-openings": return <JobOpeningsEditor {...editorProps} />;
+      case "case-studies": return <CaseStudiesEditor {...editorProps} />;
+      case "landing": return <LandingEditorWrapper {...editorProps} />;
+      case "starter-pack": return <StarterPackEditor {...editorProps} />;
+      default:
+        return (
+          <div className="p-6 text-center text-muted-fg text-sm">
+            <p>No structured editor for <strong>{slug}</strong>.</p>
+            <p className="text-xs mt-1">Edit via JSON in the original content tab.</p>
+          </div>
+        );
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-5 h-5 animate-spin text-muted-fg" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-border overflow-hidden">
+      <SaveBar
+        slug={slug}
+        version={version}
+        requiredTier={requiredTier}
+        setRequiredTier={setRequiredTier}
+        published={published}
+        setPublished={setPublished}
+        saving={saving}
+        message={message}
+        isError={isError}
+        onSave={handleSave}
+        onReset={handleReset}
+      />
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-secondary/30">
+        <p className="text-xs font-semibold text-gray-700">{meta?.label ?? slug}</p>
+        {meta?.track && <TrackBadge track={meta.track} />}
+        {mod && (
+          <span className="ml-auto text-xs text-muted-fg">
+            Updated {formatDate(mod.updatedAt)}
+          </span>
+        )}
+      </div>
+      <div className="p-4 max-h-[calc(100vh-260px)] overflow-y-auto">
+        {renderEditor()}
+      </div>
+    </div>
+  );
+}
 
 export function AdminContentTab() {
   const [modules, setModules] = useState<ModuleRow[]>([]);
-  const [assets, setAssets] = useState<AssetRow[]>([]);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
-  const [editor, setEditor] = useState("");
-  const [tier, setTier] = useState("PRO");
-  const [published, setPublished] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
   const [loadError, setLoadError] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [assetKeyOverride, setAssetKeyOverride] = useState("");
-  const uploadInputRef = useRef<HTMLInputElement>(null);
-  const replaceInputRef = useRef<HTMLInputElement>(null);
-  const [replaceAssetId, setReplaceAssetId] = useState<string | null>(null);
-  const [landingContent, setLandingContent] = useState<LandingContent | null>(null);
-  const [landingEditMode, setLandingEditMode] = useState<"form" | "json">("form");
 
   async function loadModules() {
     setLoading(true);
     setLoadError("");
     try {
-      const [modRes, assetRes] = await Promise.all([
-        fetch("/api/admin/content", { cache: "no-store" }),
-        fetch("/api/admin/content/assets", { cache: "no-store" }),
-      ]);
-      if (!modRes.ok) {
-        const err = await modRes.json().catch(() => ({}));
-        setLoadError(err.error || `Could not load modules (HTTP ${modRes.status}). Sign in as admin@demo.com.`);
+      const res = await fetch("/api/admin/content", { cache: "no-store" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setLoadError(err.error || `Could not load modules (HTTP ${res.status}).`);
         return;
       }
-      const modData = await modRes.json();
-      setModules(modData.modules || []);
-      if (assetRes.ok) {
-        const assetData = await assetRes.json();
-        setAssets(assetData.assets || []);
-      }
+      const data = await res.json();
+      setModules(data.modules ?? []);
     } catch {
       setLoadError("Network error loading content. Check database connection and run npm run db:seed.");
     } finally {
@@ -88,190 +161,7 @@ export function AdminContentTab() {
     }
   }
 
-  useEffect(() => {
-    loadModules();
-  }, []);
-
-  async function selectModule(slug: string) {
-    setSelectedSlug(slug);
-    setMessage("");
-    setLandingContent(null);
-    setLandingEditMode("form");
-    const res = await fetch(`/api/admin/content/${slug}`, { cache: "no-store" });
-    if (!res.ok) {
-      setMessage("Could not load module content.");
-      return;
-    }
-    const data = await res.json();
-    setEditor(JSON.stringify(data.payload, null, 2));
-    if (slug === "landing") {
-      const parsed = parseLandingContentPayload(data.payload);
-      setLandingContent(parsed.success ? parsed.data : DEFAULT_LANDING_CONTENT);
-    }
-    setTier(data.requiredTier);
-    setPublished(data.published);
-  }
-
-  async function saveModule() {
-    if (!selectedSlug) return;
-    let payload: unknown;
-
-    if (selectedSlug === "landing" && landingEditMode === "form" && landingContent) {
-      const validation = parseLandingContentPayload(landingContent);
-      if (!validation.success) {
-        setMessage(`Validation failed: ${formatLandingValidationErrors(validation)}`);
-        return;
-      }
-      payload = validation.data;
-      setEditor(JSON.stringify(payload, null, 2));
-    } else {
-      try {
-        payload = JSON.parse(editor);
-      } catch {
-        setMessage("Invalid JSON — fix syntax before saving.");
-        return;
-      }
-      if (selectedSlug === "landing") {
-        const validation = parseLandingContentPayload(payload);
-        if (!validation.success) {
-          setMessage(`Validation failed: ${formatLandingValidationErrors(validation)}`);
-          return;
-        }
-        payload = validation.data;
-      }
-    }
-
-    setSaving(true);
-    setMessage("");
-    try {
-      const res = await fetch(`/api/admin/content/${selectedSlug}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payload, requiredTier: tier, published }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        setMessage(err.error || err.details || "Save failed");
-        return;
-      }
-      const data = await res.json();
-      setMessage(`Saved v${data.version} — live for all members after they refresh.`);
-      await loadModules();
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handleLandingContentChange(next: LandingContent) {
-    setLandingContent(next);
-    setEditor(JSON.stringify(next, null, 2));
-  }
-
-  async function resetModule() {
-    if (!selectedSlug || !confirm("Reset this module to bundled defaults?")) return;
-    setSaving(true);
-    const res = await fetch(`/api/admin/content/${selectedSlug}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reset: true }),
-    });
-    if (res.ok) {
-      await selectModule(selectedSlug);
-      await loadModules();
-      setMessage("Reset to defaults.");
-    } else {
-      setMessage("Reset failed.");
-    }
-    setSaving(false);
-  }
-
-  async function uploadAsset(file: File, replaceId?: string) {
-    if (!selectedSlug && !replaceId) {
-      setMessage("Select a content module first.");
-      return;
-    }
-    const clientError = validateContentAssetFile(file.name, file.size);
-    if (clientError) {
-      setMessage(clientError);
-      return;
-    }
-    setUploading(true);
-    setMessage("");
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      if (selectedSlug) form.append("moduleSlug", selectedSlug);
-      form.append("requiredTier", tier);
-      const key =
-        assetKeyOverride.trim() ||
-        (selectedSlug ? buildContentAssetKey(selectedSlug, file.name) : file.name);
-      form.append("assetKey", key);
-
-      const url = replaceId
-        ? `/api/admin/content/assets/${replaceId}`
-        : "/api/admin/content/assets";
-      const res = await fetch(url, {
-        method: replaceId ? "PATCH" : "POST",
-        body: form,
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        setMessage(err.error || "Upload failed");
-        return;
-      }
-      const data = await res.json();
-      setMessage(
-        replaceId
-          ? `Updated file: ${data.fileName}`
-          : `Uploaded ${data.fileName}${data.replaced ? " (replaced existing)" : ""}`
-      );
-      await loadModules();
-      if (selectedSlug) await selectModule(selectedSlug);
-    } catch {
-      setMessage("Upload failed — check your connection and try again.");
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  function triggerUploadPicker() {
-    if (!selectedSlug) {
-      setMessage("Select a content module on the left before uploading.");
-      return;
-    }
-    uploadInputRef.current?.click();
-  }
-
-  function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) uploadAsset(file);
-    e.target.value = "";
-  }
-
-  function onReplaceUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file && replaceAssetId) uploadAsset(file, replaceAssetId);
-    setReplaceAssetId(null);
-    e.target.value = "";
-  }
-
-  async function deleteAsset(id: string) {
-    if (!confirm("Delete this file?")) return;
-    await fetch(`/api/admin/content/assets/${id}`, { method: "DELETE" });
-    await loadModules();
-    if (selectedSlug) await selectModule(selectedSlug);
-    setMessage("File deleted.");
-  }
-
-  function copyMemberUrl(id: string) {
-    const url = `${window.location.origin}/api/content/assets/${id}`;
-    navigator.clipboard.writeText(url);
-    setMessage("Member download URL copied.");
-  }
-
-  const moduleAssets = selectedSlug
-    ? assets.filter((a) => a.moduleSlug === selectedSlug)
-    : assets;
+  useEffect(() => { loadModules(); }, []);
 
   if (loading) {
     return <div className="text-center py-12 text-muted-fg">Loading content modules...</div>;
@@ -292,246 +182,70 @@ export function AdminContentTab() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <input
-        ref={uploadInputRef}
-        type="file"
-        className="sr-only"
-        accept={CONTENT_ASSET_ACCEPT}
-        onChange={onUpload}
-      />
-      <input
-        ref={replaceInputRef}
-        type="file"
-        className="sr-only"
-        accept={CONTENT_ASSET_ACCEPT}
-        onChange={onReplaceUpload}
-      />
-
-      <div className="lg:col-span-1 space-y-4">
-        <div className="bg-white rounded-xl border border-border overflow-hidden">
-          <div className="px-4 py-3 border-b border-border bg-secondary flex items-center justify-between">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-fg">Content Modules</p>
-            <button type="button" onClick={loadModules} className="text-muted-fg hover:text-primary-400">
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <div className="max-h-[480px] overflow-y-auto">
-            {modules.length === 0 ? (
-              <p className="p-4 text-xs text-muted-fg">No modules yet. Run npm run db:seed or save from admin.</p>
-            ) : (
-              TIER_PACKS.map((pack) => {
-                const packModules = modules.filter((m) => m.requiredTier === pack.tier);
-                if (packModules.length === 0) return null;
-                return (
-                  <div key={pack.tier} className="border-b border-border last:border-b-0">
-                    <div className="px-4 py-2 bg-secondary/80">
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-fg">{pack.label}</p>
-                      <p className="text-[11px] text-muted-fg">{pack.hint}</p>
-                    </div>
-                    <div className="divide-y divide-border">
-                      {packModules.map((m) => (
-                        <button
-                          key={m.slug}
-                          type="button"
-                          onClick={() => selectModule(m.slug)}
-                          className={`w-full text-left px-4 py-3 hover:bg-secondary/60 transition-colors ${
-                            selectedSlug === m.slug ? "bg-primary-soft" : ""
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <p className="font-semibold text-sm text-gray-900">{m.title}</p>
-                            <Badge size="sm" variant={m.published ? "success" : "secondary"}>
-                              {m.published ? "Live" : "Draft"}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-fg mb-1">{m.slug}</p>
-                          <span className="text-xs text-muted-fg">v{m.version}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-border p-4">
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-fg mb-3">Upload New File</p>
-          <p className="text-xs text-muted-fg mb-3">
-            {selectedSlug
-              ? `New uploads attach to "${selectedSlug}". PDF, Word, images, etc. (max ${CONTENT_ASSET_MAX_BYTES / (1024 * 1024)}MB). Use asset key e.g. playbook/a/a1/physical-vs-paper-markets-map.pdf or starter-pack/ecosystem-map.pdf to match download buttons.`
-              : "Select a module on the left, then upload."}
-          </p>
-          {selectedSlug && (selectedSlug === "playbook" || selectedSlug === "starter-pack") && (
-            <input
-              type="text"
-              value={assetKeyOverride}
-              onChange={(e) => setAssetKeyOverride(e.target.value)}
-              placeholder={`Optional asset key (default: ${selectedSlug}/filename.pdf)`}
-              className="w-full mb-3 h-9 px-3 rounded-lg border border-border text-xs focus:outline-none focus:ring-2 focus:ring-primary-400"
-            />
-          )}
-          <button
-            type="button"
-            onClick={triggerUploadPicker}
-            disabled={uploading}
-            className={`w-full flex items-center justify-center gap-2 border border-dashed rounded-lg p-4 transition-colors ${
-              selectedSlug
-                ? "border-border cursor-pointer hover:border-primary-400 hover:bg-secondary/40"
-                : "border-border/50 opacity-60"
-            }`}
-          >
-            <Upload className="w-4 h-4 text-primary-400" />
-            <span className="text-sm font-medium">{uploading ? "Uploading..." : "Upload new file"}</span>
+    <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+      {/* Sidebar */}
+      <div className="bg-white rounded-xl border border-border overflow-hidden h-fit lg:sticky lg:top-4">
+        <div className="px-4 py-3 border-b border-border bg-secondary flex items-center justify-between">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-fg">Content Modules</p>
+          <button type="button" onClick={loadModules} className="text-muted-fg hover:text-primary-400">
+            <RefreshCw className="w-3.5 h-3.5" />
           </button>
-          {message && (
-            <p
-              className={`mt-3 text-xs px-3 py-2 rounded-lg ${
-                message.includes("Invalid") ||
-                message.includes("failed") ||
-                message.includes("Could not") ||
-                message.includes("Unsupported") ||
-                message.includes("too large") ||
-                message.includes("Select a content")
-                  ? "bg-red-50 text-red-700"
-                  : "bg-green-50 text-green-800"
-              }`}
-            >
-              {message}
-            </p>
-          )}
-          <ul className="mt-3 space-y-2 max-h-48 overflow-y-auto">
-            {moduleAssets.length === 0 && (
-              <li className="text-xs text-muted-fg text-center py-2">No files for this module yet.</li>
-            )}
-            {moduleAssets.map((a) => (
-              <li key={a.id} className="flex items-center gap-1 text-xs border border-border rounded-lg p-2">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{a.fileName}</p>
-                  <p className="text-muted-fg">
-                    {formatAssetTypeLabel(a.mimeType, a.fileName)} · {(a.size / 1024).toFixed(0)} KB
-                  </p>
+        </div>
+        <div className="max-h-[calc(100vh-180px)] overflow-y-auto">
+          {GROUPS.map((group) => {
+            const groupModules = group.slugs
+              .map((slug) => modules.find((m) => m.slug === slug))
+              .filter(Boolean) as ModuleRow[];
+            if (groupModules.length === 0) return null;
+            return (
+              <div key={group.label} className="border-b border-border last:border-b-0">
+                <div className="px-4 py-2 bg-secondary/80">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-fg">{group.label}</p>
                 </div>
-                <button type="button" onClick={() => copyMemberUrl(a.id)} className="text-muted-fg p-1" title="Copy URL">
-                  <Copy className="w-3.5 h-3.5" />
-                </button>
-                <a href={`/api/content/assets/${a.id}`} className="text-primary-400 p-1" title="Download">
-                  <Download className="w-3.5 h-3.5" />
-                </a>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setReplaceAssetId(a.id);
-                    replaceInputRef.current?.click();
-                  }}
-                  className="text-primary-400 p-1 text-[10px] font-bold"
-                  title="Replace file"
-                >
-                  Upd
-                </button>
-                <button type="button" onClick={() => deleteAsset(a.id)} className="text-red-500 p-1">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </li>
-            ))}
-          </ul>
+                <div className="divide-y divide-border">
+                  {groupModules.map((m) => {
+                    const meta = MODULE_META[m.slug];
+                    return (
+                      <button
+                        key={m.slug}
+                        type="button"
+                        onClick={() => setSelectedSlug(m.slug)}
+                        className={cn(
+                          "w-full text-left px-4 py-3 hover:bg-secondary/60 transition-colors",
+                          selectedSlug === m.slug ? "bg-primary-soft" : ""
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                          <p className="font-semibold text-sm text-gray-900">{meta?.label ?? m.title}</p>
+                          <Badge size="sm" variant={m.published ? "success" : "secondary"}>
+                            {m.published ? "Live" : "Draft"}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-fg">{m.slug} · v{m.version}</p>
+                        <p className="text-[11px] text-muted-fg">{formatDate(m.updatedAt)}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          {modules.length === 0 && (
+            <p className="p-4 text-xs text-muted-fg">No modules yet. Run npm run db:seed.</p>
+          )}
         </div>
       </div>
 
-      <div className="lg:col-span-2">
+      {/* Editor panel */}
+      <div>
         {!selectedSlug ? (
           <div className="bg-white rounded-xl border border-border p-12 text-center text-muted-fg">
-            <FileJson className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p className="mb-2">Select a module to edit or upload content</p>
-            <p className="text-xs">Edit JSON below, upload files on the left, then Save. Members see changes on refresh.</p>
+            <LayoutGrid className="w-10 h-10 mx-auto mb-3 opacity-40" />
+            <p className="mb-2 font-medium">Select a module to edit</p>
+            <p className="text-xs">Each module has a structured form editor. Changes save as JSON via the API.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-border overflow-hidden">
-            <div className="px-4 py-3 border-b border-border flex flex-wrap items-center gap-3 justify-between">
-              <div>
-                <p className="font-semibold text-gray-900">{selectedSlug}</p>
-                <p className="text-xs text-muted-fg">
-                  {selectedSlug === "landing"
-                    ? "Edit landing page wording in the form below, or switch to JSON for advanced edits"
-                    : "Update JSON content and click Save — or upload files to attach"}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {selectedSlug === "landing" && (
-                  <div className="flex rounded-lg border border-border overflow-hidden text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setLandingEditMode("form")}
-                      className={`px-3 py-1.5 font-medium ${landingEditMode === "form" ? "bg-primary-soft text-primary-400" : "bg-white text-muted-fg"}`}
-                    >
-                      Wording
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLandingEditMode("json");
-                        if (landingContent) setEditor(JSON.stringify(landingContent, null, 2));
-                      }}
-                      className={`px-3 py-1.5 font-medium ${landingEditMode === "json" ? "bg-primary-soft text-primary-400" : "bg-white text-muted-fg"}`}
-                    >
-                      JSON
-                    </button>
-                  </div>
-                )}
-                <select
-                  value={tier}
-                  onChange={(e) => setTier(e.target.value)}
-                  className="text-xs border border-border rounded-lg px-2 py-1.5"
-                >
-                  <option value="STARTER">Starter</option>
-                  <option value="PRO">Pro</option>
-                  <option value="ELITE">Elite</option>
-                </select>
-                <label className="flex items-center gap-1.5 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={published}
-                    onChange={(e) => setPublished(e.target.checked)}
-                  />
-                  Published
-                </label>
-                <Button variant="outline" size="sm" onClick={resetModule} disabled={saving}>
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Reset
-                </Button>
-                <Button size="sm" onClick={saveModule} loading={saving}>
-                  <Save className="w-3.5 h-3.5" />
-                  Save
-                </Button>
-              </div>
-            </div>
-            {message && (
-              <div
-                className={`mx-4 mt-3 text-sm px-3 py-2 rounded-lg ${
-                  message.includes("Invalid") ||
-                  message.includes("failed") ||
-                  message.includes("Could not") ||
-                  message.includes("Validation")
-                    ? "bg-red-50 text-red-700"
-                    : "bg-green-50 text-green-800"
-                }`}
-              >
-                {message}
-              </div>
-            )}
-            {selectedSlug === "landing" && landingEditMode === "form" && landingContent ? (
-              <AdminLandingEditor content={landingContent} onChange={handleLandingContentChange} />
-            ) : (
-              <textarea
-                value={editor}
-                onChange={(e) => setEditor(e.target.value)}
-                className="w-full min-h-[520px] p-4 font-mono text-xs leading-relaxed border-0 focus:outline-none focus:ring-0 resize-y"
-                spellCheck={false}
-              />
-            )}
-          </div>
+          <ModuleEditor slug={selectedSlug} modules={modules} onRefresh={loadModules} />
         )}
       </div>
     </div>

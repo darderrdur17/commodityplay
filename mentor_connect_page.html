@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anonymous Mentor Connect — Commodity Trading Career Playbook</title>
+  <meta name="description" content="One question. One mentor. One honest answer. Twenty-five anonymous practitioners across the five coverage segments of commodity trading." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,700&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================================
+       COMMODITY TRADING CAREER PLAYBOOK — MENTOR CONNECT
+       ZFlow theme: tweakcn.com/themes/cmn5czngq000204l4hydwhlao
+       ============================================================ */
+    :root {
+      --bg:           #ffffff;
+      --fg:           #333333;
+      --primary:      #3280ff;
+      --primary-fg:   #ffffff;
+      --secondary:    #f2f4f7;
+      --sec-fg:       #465468;
+      --accent:       #dff2ff;
+      --acc-fg:       #0830a0;
+      --muted:        #f9fafb;
+      --muted-fg:     #677184;
+      --border:       #e4e7ec;
+      --chart2:       #115cff;
+      --chart3:       #0040f5;
+      --chart5:       #0830a0;
+      --primary-soft: rgba(50,128,255,0.08);
+      --primary-line: rgba(50,128,255,0.25);
+      --container:    1280px;
+      --radius:       8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--fg);
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: var(--container); margin: 0 auto; padding: 0 24px; }
+
+    /* NAV */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700; font-size: 18px;
+      color: var(--fg); letter-spacing: -0.01em;
+    }
+    .logo-mark { width: 22px; height: 22px; background: var(--primary); transform: rotate(45deg); transition: transform 0.4s ease; }
+    .logo:hover .logo-mark { transform: rotate(90deg); }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-links a { font-size: 14px; font-weight: 500; color: var(--muted-fg); transition: color 0.2s; }
+    .nav-links a:hover { color: var(--primary); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: inherit; font-weight: 600; cursor: pointer; border: none;
+      transition: all 0.2s ease; border-radius: var(--radius); white-space: nowrap;
+    }
+    .btn-primary { background: var(--primary); color: var(--primary-fg); padding: 10px 22px; font-size: 14px; }
+    .btn-primary:hover { background: var(--chart2); transform: translateY(-1px); }
+    .btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); padding: 10px 22px; font-size: 14px; }
+    .btn-outline:hover { background: var(--secondary); border-color: var(--primary-line); color: var(--primary); }
+    .btn-ghost { background: transparent; color: var(--muted-fg); padding: 8px 14px; font-size: 13px; }
+    .btn-ghost:hover { color: var(--primary); }
+    .btn-block { width: 100%; }
+    @media (max-width: 720px) { .nav-links a:not(.btn) { display: none; } }
+
+    /* HERO */
+    .hero {
+      border-bottom: 1px solid var(--border);
+      background: var(--chart5);
+      padding: 64px 0 80px;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ""; position: absolute; top: -160px; right: -160px;
+      width: 520px; height: 520px; background: var(--primary); opacity: 0.16;
+      filter: blur(100px); border-radius: 50%; pointer-events: none;
+    }
+    .hero::after {
+      content: ""; position: absolute; bottom: -100px; left: -80px;
+      width: 340px; height: 340px; background: var(--chart3); opacity: 0.1;
+      filter: blur(80px); border-radius: 50%; pointer-events: none;
+    }
+    .hero .container { position: relative; z-index: 2; }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 13px; color: rgba(223,242,255,0.6);
+      margin-bottom: 32px; transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--accent); }
+    .back-link svg { width: 14px; height: 14px; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px;
+      border: 1px solid rgba(223,242,255,0.3); background: rgba(223,242,255,0.1);
+      border-radius: 999px; font-size: 11px; font-weight: 600;
+      color: var(--accent); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 24px;
+    }
+    .hero-eyebrow .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+    .hero-title {
+      font-family: 'Playfair Display', serif; font-weight: 700;
+      font-size: clamp(36px, 5.5vw, 64px); line-height: 1.05;
+      margin-bottom: 24px; max-width: 820px; color: #ffffff;
+    }
+    .hero-title .accent { color: var(--accent); font-style: italic; }
+    .hero-sub { font-size: 18px; line-height: 1.6; color: rgba(223,242,255,0.72); max-width: 640px; margin-bottom: 40px; font-weight: 300; }
+    @media (max-width: 720px) { .hero-sub { font-size: 16px; } }
+
+    /* PROGRESS CARD */
+    .progress-card {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(223,242,255,0.18);
+      border-radius: 12px; padding: 24px 28px; max-width: 600px; backdrop-filter: blur(8px);
+    }
+    .progress-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 16px; }
+    .progress-label { font-size: 11px; font-weight: 600; color: var(--accent); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 6px; }
+    .progress-count { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 28px; color: #ffffff; }
+    .progress-count .of { color: rgba(223,242,255,0.45); }
+    .progress-count .label { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 14px; color: rgba(223,242,255,0.55); margin-left: 8px; }
+    .progress-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--primary); border-radius: 999px; width: 0%; transition: width 0.5s ease; }
+    .complete-badge {
+      display: none; align-items: center; gap: 6px; padding: 4px 10px;
+      background: var(--primary); color: #fff; border-radius: 999px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .complete-badge.show { display: inline-flex; }
+    .complete-msg { display: none; margin-top: 16px; font-size: 14px; color: rgba(223,242,255,0.6); font-style: italic; }
+    .complete-msg.show { display: block; }
+
+    /* SEGMENTS */
+    .segments { padding: 64px 0 96px; background: var(--bg); }
+    .segment + .segment { margin-top: 80px; padding-top: 80px; border-top: 1px solid var(--border); }
+    .segment-head {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 24px; padding-bottom: 18px; margin-bottom: 28px; border-bottom: 1px solid var(--border);
+    }
+    .segment-num { font-size: 11px; font-weight: 600; color: var(--primary); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; }
+    .segment-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: clamp(22px, 3vw, 30px); margin-bottom: 6px; color: var(--fg); }
+    .segment-blurb { font-size: 14px; color: var(--muted-fg); max-width: 560px; }
+    .segment-used { text-align: right; flex-shrink: 0; }
+    .segment-used-label { font-size: 10px; font-weight: 600; color: var(--muted-fg); letter-spacing: 0.2em; text-transform: uppercase; }
+    .segment-used-count { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 22px; color: var(--primary); }
+    .segment-used-count .of { color: var(--muted-fg); }
+    @media (max-width: 540px) { .segment-used { display: none; } }
+
+    /* MENTOR GRID */
+    .mentor-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+    @media (max-width: 1200px) { .mentor-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 820px)  { .mentor-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px)  { .mentor-grid { grid-template-columns: 1fr; } }
+
+    .mentor-card {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; text-align: left; cursor: pointer; font-family: inherit; color: inherit;
+      display: flex; flex-direction: column; width: 100%;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      position: relative; overflow: hidden;
+    }
+    .mentor-card::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--primary); opacity: 0; transition: opacity 0.2s;
+    }
+    .mentor-card:hover { transform: translateY(-4px); border-color: var(--primary-line); box-shadow: 0 10px 28px -8px rgba(50,128,255,0.14); }
+    .mentor-card:hover::before { opacity: 1; }
+    .mentor-card.used { background: var(--accent); border-color: var(--primary-line); }
+    .mentor-card.used::before { opacity: 1; }
+    .mentor-card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .mentor-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); border: 1px solid var(--primary-line); display: flex; align-items: center; justify-content: center; }
+    .mentor-avatar svg { width: 18px; height: 18px; color: var(--acc-fg); }
+    .mentor-yrs { font-size: 10px; font-weight: 600; color: var(--muted-fg); letter-spacing: 0.18em; text-transform: uppercase; }
+    .asked-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; background: var(--primary); border-radius: 999px; font-size: 10px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.1em; }
+    .asked-tag svg { width: 10px; height: 10px; }
+    .mentor-id { font-size: 10px; font-weight: 600; color: var(--primary); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 6px; }
+    .mentor-headline { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 15px; line-height: 1.3; margin-bottom: 10px; color: var(--fg); }
+    .mentor-bio { font-size: 12.5px; color: var(--muted-fg); line-height: 1.55; margin-bottom: 14px; flex: 1; }
+    .mentor-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .mentor-tag { font-size: 10px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--sec-fg); background: var(--secondary); }
+    .mentor-cta { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--primary); }
+    .mentor-card.used .mentor-cta { color: var(--acc-fg); }
+    .mentor-cta svg { width: 14px; height: 14px; }
+
+    /* HOW IT WORKS */
+    .how { padding: 64px 0; border-top: 1px solid var(--border); background: var(--muted); }
+    .how-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: clamp(24px, 3vw, 32px); text-align: center; margin-bottom: 40px; color: var(--fg); }
+    .how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 960px; margin: 0 auto; }
+    @media (max-width: 820px) { .how-grid { grid-template-columns: 1fr; } }
+    .how-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 26px; transition: border-color 0.2s, box-shadow 0.2s; }
+    .how-card:hover { border-color: var(--primary-line); box-shadow: 0 6px 20px -6px rgba(50,128,255,0.1); }
+    .how-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: var(--accent); border: 1px solid var(--primary-line); border-radius: 50%; font-size: 12px; font-weight: 700; color: var(--acc-fg); margin-bottom: 14px; }
+    .how-h { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 18px; margin-bottom: 8px; color: var(--fg); }
+    .how-d { font-size: 13.5px; color: var(--muted-fg); line-height: 1.55; }
+    .anon-note {
+      max-width: 960px; margin: 36px auto 0; padding: 20px 24px;
+      border: 1px solid var(--primary-line); border-left: 3px solid var(--primary);
+      border-radius: 0 8px 8px 0; background: var(--accent);
+      display: flex; gap: 16px; align-items: flex-start;
+    }
+    .anon-note svg { width: 20px; height: 20px; color: var(--primary); flex-shrink: 0; margin-top: 2px; }
+    .anon-note-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 15px; margin-bottom: 4px; color: var(--acc-fg); }
+    .anon-note-d { font-size: 13.5px; color: var(--sec-fg); line-height: 1.55; }
+
+    /* FOOTER */
+    .footer { background: var(--chart5); border-top: 1px solid rgba(255,255,255,0.08); padding: 36px 0; font-size: 13px; color: rgba(223,242,255,0.5); }
+    .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .footer .logo { color: #fff; }
+    .footer .logo-mark { background: var(--accent); }
+
+    /* MODAL */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(8,48,160,0.5);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+      width: 100%; max-width: 580px; max-height: 90vh;
+      display: flex; flex-direction: column; animation: modal-in 0.25s ease;
+      box-shadow: 0 32px 80px -16px rgba(8,48,160,0.28);
+    }
+    @keyframes modal-in {
+      from { transform: translateY(12px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .modal-head { padding: 24px 24px 16px; border-bottom: 1px solid var(--border); }
+    .modal-head-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .modal-meta { font-size: 10px; font-weight: 600; color: var(--primary); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 4px; }
+    .modal-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 18px; line-height: 1.3; color: var(--fg); }
+    .modal-bio { font-size: 13.5px; color: var(--muted-fg); line-height: 1.55; margin-bottom: 12px; }
+    .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; background: var(--muted); }
+    .convo { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+    .bubble { padding: 12px 16px; border-radius: 10px; font-size: 14px; max-width: 85%; line-height: 1.55; white-space: pre-wrap; }
+    .bubble-meta { font-size: 10px; font-weight: 600; color: var(--primary); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 4px; }
+    .bubble.user { align-self: flex-end; background: var(--primary); color: #fff; border-top-right-radius: 2px; }
+    .bubble.user .bubble-meta { color: rgba(223,242,255,0.7); }
+    .bubble.mentor { align-self: flex-start; background: var(--bg); border: 1px solid var(--border); border-top-left-radius: 2px; color: var(--fg); }
+    .typing { display: flex; gap: 4px; padding: 4px 0; }
+    .typing span { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; animation: blink 1.2s infinite ease-in-out; }
+    .typing span:nth-child(2) { animation-delay: 0.15s; }
+    .typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1); }
+    }
+    .compose { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 4px; margin-top: 4px; }
+    .compose textarea { width: 100%; background: transparent; border: none; color: var(--fg); border-radius: 6px; padding: 12px 14px; font-family: inherit; font-size: 14px; resize: none; min-height: 96px; outline: none; }
+    .compose textarea::placeholder { color: var(--muted-fg); }
+    .compose-meta { font-size: 12px; color: var(--muted-fg); padding: 6px 14px 10px; }
+    .modal-foot { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; align-items: center; background: var(--bg); border-radius: 0 0 14px 14px; }
+    .modal-foot.with-note { justify-content: space-between; }
+    .closed-note { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted-fg); }
+    .closed-note svg { width: 14px; height: 14px; color: var(--primary); }
+  </style>
+</head>
+<body>
+
+  <!-- ========== NAV ========== -->
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a href="./commodity-playbook-landing.html" class="logo">
+        <span class="logo-mark"></span>
+        <span>Commodity Playbook</span>
+      </a>
+      
+            <div class="nav-links">
+        <a href="commodity-playbook-landing.html" class="nav-link-text">Overview</a>
+        <a href="commodity-playbook-hub.html" class="nav-link-text">What's Inside</a>
+        <a href="commodity-playbook-landing.html#pricing" class="btn btn-primary" style="padding:10px 18px;">Get the Playbook</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========== HERO ========== -->
+  <section class="hero">
+    <div class="container">
+      <a href="./commodity-playbook-landing.html" class="back-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Back to Overview
+      </a>
+
+      <div class="hero-eyebrow">
+        <span class="dot"></span>
+        Starter Pack Service
+      </div>
+      <h1 class="hero-title">
+        Anonymous <span class="accent">Mentor Connect.</span>
+      </h1>
+      <p class="hero-sub">
+        One question. One mentor. One honest answer. Choose from twenty-five anonymous practitioners across the five coverage segments. Your session ends once you've asked every mentor a single question.
+      </p>
+
+      <div class="progress-card">
+        <div class="progress-head">
+          <div>
+            <div class="progress-label">Session Progress</div>
+            <div class="progress-count">
+              <span id="askedCount">0</span><span class="of"> / 25</span>
+              <span class="label">questions used</span>
+            </div>
+          </div>
+          <div class="complete-badge" id="completeBadge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>
+            Complete
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <p class="complete-msg" id="completeMsg">
+          Your mentor connect session is complete. Replays of every conversation remain saved on this device.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SEGMENTS ========== -->
+  <section class="segments">
+    <div class="container" id="segmentsRoot"></div>
+  </section>
+
+  <!-- ========== HOW IT WORKS ========== -->
+  <section class="how">
+    <div class="container">
+      <h2 class="how-title">How the Session Works</h2>
+      <div class="how-grid">
+        <div class="how-card">
+          <div class="how-num">01</div>
+          <div class="how-h">Pick a Mentor</div>
+          <p class="how-d">Browse five segments and twenty-five anonymous practitioners. Read their background and pick the one closest to your question.</p>
+        </div>
+        <div class="how-card">
+          <div class="how-num">02</div>
+          <div class="how-h">Ask One Question</div>
+          <p class="how-d">Each mentor will only answer one question per session. Make it count — be specific, give context, ask the question only they can answer.</p>
+        </div>
+        <div class="how-card">
+          <div class="how-num">03</div>
+          <div class="how-h">Session Ends at 25</div>
+          <p class="how-d">Once you've asked every mentor, the session is complete. Your full transcript stays saved on this device for future reference.</p>
+        </div>
+      </div>
+
+      <div class="anon-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <div>
+          <div class="anon-note-title">Strictly anonymous.</div>
+          <div class="anon-note-d">Mentor identities are never disclosed. Conversations are stored locally on your device only. Nothing leaves this browser.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div>&copy; <span id="yr"></span> Commodity Playbook. All rights reserved.</div>
+      <div style="font-size: 11px; opacity: 0.6;">Strictly confidential.</div>
+    </div>
+  </footer>
+
+  <!-- ========== MODAL ========== -->
+  <div class="modal-backdrop" id="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <div class="modal-head-row">
+          <div class="mentor-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div>
+            <div class="modal-meta" id="modalMeta"></div>
+            <div class="modal-title" id="modalTitle"></div>
+          </div>
+        </div>
+        <div class="modal-bio" id="modalBio"></div>
+        <div class="mentor-tags" id="modalTags"></div>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-foot" id="modalFoot"></div>
+    </div>
+  </div>
+
+  <script>
+    /* ============================================================
+       MENTOR DATA — 5 segments × 5 mentors
+       ============================================================ */
+    const SEGMENTS = [
+      {
+        id: "physical-paper", num: "01",
+        title: "Physical & Paper Trading Markets",
+        blurb: "Cargoes, futures, swaps, options and the desks that run them.",
+        mentors: [
+          { id: "PT-01", years: 18, headline: "Crude Oil Trader — Ex-Supermajor",
+            bio: "Eighteen years on a global crude desk. Spent half that time on the Med/West African arbitrage book, the rest on US Gulf exports.",
+            tags: ["Crude", "Arbitrage", "Physical"],
+            reply: "Most people overrate the price call and underrate the operational chain — the freight, the lay-can, the inspection. If you can speak fluently about how a cargo actually moves and gets paid for, you're already ahead of 80% of candidates. Build that vocabulary first; the curve view comes naturally after." },
+          { id: "PT-02", years: 12, headline: "Base Metals Desk — Geneva & London",
+            bio: "Twelve years across copper, aluminium and zinc. Worked both LME book and physical premiums into China and Europe.",
+            tags: ["Metals", "LME", "Premiums"],
+            reply: "Metals is a relationship business hidden inside a curve. The LME structure tells you positioning, but the regional premium tells you who actually needs the unit. If you can hold a conversation about both at the same time, you'll get noticed." },
+          { id: "PT-03", years: 15, headline: "Grains Trader — S&D Modelling",
+            bio: "Fifteen years trading wheat, corn and soy complex. Built S&D models used across origination and execution.",
+            tags: ["Ags", "S&D", "Origination"],
+            reply: "In ags, your edge usually comes from getting closer to the farmer or the crusher than the next desk does. Spreadsheets matter, but a good origination relationship beats a good model nine times out of ten." },
+          { id: "PT-04", years: 10, headline: "LNG Paper & Structured Products",
+            bio: "A decade trading JKM, TTF and structured LNG. Built optionality into long-term offtake contracts.",
+            tags: ["LNG", "Structured", "Optionality"],
+            reply: "LNG looks like a liquid market on screen and behaves like a bilateral one in reality. Learn to value the optionality embedded in physical contracts — destination flex, diversion clauses, cargo size — because that's where the real P&L sits." },
+          { id: "PT-05", years: 20, headline: "Softs Origination — Cocoa, Coffee, Sugar",
+            bio: "Twenty years across West Africa, Brazil and Vietnam. Owned origination relationships at scale.",
+            tags: ["Softs", "Origination", "Emerging Mkts"],
+            reply: "Softs reward patience and presence. The desks that win are the ones with people on the ground, not just on the screens. If you're early in your career and willing to spend a few years in origin, you'll learn things no graduate program can teach you." }
+        ]
+      },
+      {
+        id: "shipping-logistics", num: "02",
+        title: "Shipping & Logistics",
+        blurb: "Freight, vessels, ports, demurrage — the moving parts behind every cargo.",
+        mentors: [
+          { id: "SL-01", years: 14, headline: "Dry Bulk Chartering — Capesize & Panamax",
+            bio: "Fourteen years chartering iron ore and coal cargoes globally. Deep network with owners and brokers.",
+            tags: ["Dry Bulk", "Capesize", "Chartering"],
+            reply: "Freight is a derivatives market hiding inside steel and seafarers. Learn to read the BDI alongside the physical fixture list — the gap between them is usually where the trade is. And never underestimate how much one bad weather routing decision can cost." },
+          { id: "SL-02", years: 16, headline: "Tanker Chartering & Demurrage",
+            bio: "Sixteen years on VLCCs, Suezmaxes and clean products. Settled hundreds of demurrage claims.",
+            tags: ["Tankers", "Demurrage", "Worldscale"],
+            reply: "Demurrage is where good ops people quietly make the desk a fortune. Read every charter party clause as if you'll be the one defending it — because in five years you might be. Worldscale is intimidating for two weeks, then second nature." },
+          { id: "SL-03", years: 11, headline: "LNG / LPG Fleet Operations",
+            bio: "Eleven years running gas carrier fleets. Coordinated boil-off, voyage P&L and terminal slotting.",
+            tags: ["LNG", "LPG", "Fleet Ops"],
+            reply: "Gas shipping is unforgiving on small mistakes — boil-off, heel, terminal compatibility. The operators who get promoted are the ones who can model voyage P&L in their head before the fixture is even confirmed." },
+          { id: "SL-04", years: 9, headline: "Containerized Commodity Logistics",
+            bio: "Nine years moving non-bulk cargoes — metals, ags, specialties — through container networks.",
+            tags: ["Container", "Multimodal", "Customs"],
+            reply: "Container logistics for commodities is the unglamorous corner that nobody fights for, which is why it's a great place to build a career. You'll learn customs, finance, freight and risk all at once. Stay there three years and you'll be unusually well-rounded." },
+          { id: "SL-05", years: 22, headline: "Terminal & Port Operations",
+            bio: "Twenty-two years running storage terminals and port operations across three continents.",
+            tags: ["Terminals", "Storage", "Operations"],
+            reply: "Storage is the option the rest of the desk forgets they own. If you can value a tank lease the way a trader values a calendar spread, you'll be in demand everywhere — physical, paper, structured, all of it." }
+        ]
+      },
+      {
+        id: "risk-management", num: "03",
+        title: "Risk Management",
+        blurb: "VaR, exposure, credit, governance — what keeps the desk alive.",
+        mentors: [
+          { id: "RM-01", years: 18, headline: "Market Risk — VaR & Stress Testing",
+            bio: "Eighteen years building market risk frameworks for energy and metals trading houses.",
+            tags: ["Market Risk", "VaR", "Stress"],
+            reply: "VaR is a starting point, not an answer. The risk that hurts you is almost always the one your model didn't see — gap risk, basis blow-out, correlation break. Spend more time on stress scenarios than on tweaking the variance-covariance matrix." },
+          { id: "RM-02", years: 13, headline: "Credit Risk — Trading Counterparties",
+            bio: "Thirteen years assessing counterparty credit at a major trading house. Set limits across 400+ counterparties.",
+            tags: ["Credit", "Counterparty", "Limits"],
+            reply: "Credit in commodities is half quantitative, half about who picks up the phone when a margin call goes wrong. Learn the financials, but spend equal time learning the people and the structures — letters of credit, parent guarantees, prepayment." },
+          { id: "RM-03", years: 10, headline: "Operational Risk & Controls",
+            bio: "Ten years owning the op risk function — trade lifecycle, controls, reconciliation breaks.",
+            tags: ["Op Risk", "Controls", "Lifecycle"],
+            reply: "Operational risk is where careers quietly end. The trades that blow up rarely do so because of price — they blow up because someone booked the wrong leg, missed a confirmation, or didn't reconcile a position. Master the lifecycle and you become indispensable." },
+          { id: "RM-04", years: 15, headline: "CRO / Risk Governance",
+            bio: "Fifteen years in senior risk leadership. Built risk committees and limit frameworks from scratch.",
+            tags: ["Governance", "CRO", "Frameworks"],
+            reply: "Governance is the part of risk no one studies for and everyone needs. Learn how a risk committee actually decides — what gets escalated, what gets vetoed, who carries the political weight — because that's the layer above the numbers where decisions really happen." },
+          { id: "RM-05", years: 12, headline: "Derivatives & Exotic Risk",
+            bio: "Twelve years modelling vanillas, exotics and structured commodity derivatives.",
+            tags: ["Derivatives", "Exotics", "Quant"],
+            reply: "Exotic pricing is fun until you have to explain a P&L move to a non-quant trader. Build the intuition, not just the math — Greeks, smile dynamics, payoff diagrams drawn freehand. If you can teach it on a whiteboard, you understand it." }
+        ]
+      },
+      {
+        id: "market-intelligence", num: "04",
+        title: "Market Intelligence",
+        blurb: "Reading flows, fundamentals and the geopolitics that move the curve.",
+        mentors: [
+          { id: "MI-01", years: 17, headline: "Oil Markets Analyst — OPEC & SPR",
+            bio: "Seventeen years covering oil fundamentals. Briefed senior management ahead of every OPEC meeting.",
+            tags: ["Oil", "OPEC", "Fundamentals"],
+            reply: "Most analysts get caught reacting to headlines. The ones who add value have a framework — supply, demand, inventory, freight — that they can update in real time when news hits. Build the framework before you build the spreadsheet." },
+          { id: "MI-02", years: 14, headline: "Ag Fundamentals — USDA & Weather",
+            bio: "Fourteen years calling crop balance sheets across corn, soy and wheat. Lived inside the WASDE.",
+            tags: ["Ags", "USDA", "Weather"],
+            reply: "Ag is where weather, politics and biology collide. Learn to read a WASDE the way a trader reads it — for the surprise versus consensus, not just the headline number. And get comfortable being wrong; in ags the weather wins half the time." },
+          { id: "MI-03", years: 11, headline: "Metals S&D — China Focus",
+            bio: "Eleven years tracking Chinese metals demand, smelter activity and SHFE flows.",
+            tags: ["Metals", "China", "Smelters"],
+            reply: "China is the entire story in base metals and most of it in steel. Learn the language enough to read primary sources, build a network of on-the-ground contacts, and don't trust any number that isn't triangulated from at least two sources." },
+          { id: "MI-04", years: 9, headline: "Power & Gas Curve Analysis",
+            bio: "Nine years modelling European and US power curves, with gas and carbon as inputs.",
+            tags: ["Power", "Gas", "Curves"],
+            reply: "Power and gas curves look terrifying on day one and become readable on day thirty. The trick is to break the curve into its drivers — fuel, weather, capacity, policy — and then watch which driver is in control today. That discipline beats any single model." },
+          { id: "MI-05", years: 13, headline: "Geopolitics & Sanctions Specialist",
+            bio: "Thirteen years advising trading houses on sanctions, compliance and political risk.",
+            tags: ["Geopolitics", "Sanctions", "Compliance"],
+            reply: "Sanctions risk is now a daily input, not an annual review. The desks that handle it well have legal and trading talking constantly, not in formal escalations. If you can sit in both rooms and translate between them, you have a unique career path." }
+        ]
+      },
+      {
+        id: "tools", num: "05",
+        title: "Tools",
+        blurb: "Platforms, models and data — the stack that actually runs the desk.",
+        mentors: [
+          { id: "TL-01", years: 16, headline: "Trading Systems Architecture",
+            bio: "Sixteen years architecting front-to-back trading systems for commodity firms.",
+            tags: ["Architecture", "Front-to-Back", "Systems"],
+            reply: "Architecture decisions made in year one haunt the firm for a decade. Always design for the next product the desk will trade, not just the current one. And document everything — your future self and every successor will thank you." },
+          { id: "TL-02", years: 12, headline: "Python & Quant Tooling",
+            bio: "Twelve years building pricing libraries, P&L tools and curve infrastructure in Python.",
+            tags: ["Python", "Quant", "Pricing"],
+            reply: "The most valuable Python skill on a trading floor isn't fancy ML — it's writing a clean function a trader can call from Excel without breaking. Bridge the gap between research code and production tools and you become irreplaceable." },
+          { id: "TL-03", years: 10, headline: "Bloomberg & Refinitiv Power User",
+            bio: "Ten years building dashboards, screens and data pipelines on Bloomberg and Refinitiv.",
+            tags: ["Bloomberg", "Refinitiv", "Data"],
+            reply: "Most people use 5% of Bloomberg. Spend a week each on BLAW, CFTC, EXEC, COT and SHIP — you'll uncover entire workflows you didn't know existed. The terminal rewards depth, not breadth." },
+          { id: "TL-04", years: 14, headline: "ETRM / CTRM Implementation",
+            bio: "Fourteen years implementing and configuring ETRM/CTRM platforms across multiple commodity classes.",
+            tags: ["ETRM", "CTRM", "Implementation"],
+            reply: "ETRM projects fail because of process, not software. Learn the trade lifecycle inside out before you learn any specific platform — Allegro, OpenLink, Endur — because the platform is just the wrapper around the process." },
+          { id: "TL-05", years: 9, headline: "Data Engineering for Trading",
+            bio: "Nine years building data pipelines for fundamentals, prices, positions and risk.",
+            tags: ["Data", "Pipelines", "Infra"],
+            reply: "Data quality is the silent edge. The desks that make good decisions are the ones with clean, timely, reconciled data — not the ones with the fanciest models. If you can own a pipeline end-to-end, you'll always have a seat at the table." }
+        ]
+      }
+    ];
+
+    const ALL_MENTORS = SEGMENTS.flatMap(s => s.mentors);
+    const TOTAL = ALL_MENTORS.length;
+    const STORAGE_KEY = "playbook.mentor.session.v1";
+
+    /* ----------- STATE ----------- */
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { asked: {} };
+        return JSON.parse(raw);
+      } catch (e) { return { asked: {} }; }
+    }
+    function saveState(s) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (e) {}
+    }
+    let state = loadState();
+    let activeMentor = null;
+    let phase = "compose"; // compose | sending | answered
+
+    /* ----------- HELPERS ----------- */
+    const ICON_USER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    const ICON_MSG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+    const ICON_CHECK= '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    const ICON_SEND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    /* ----------- RENDER SEGMENTS ----------- */
+    function renderSegments() {
+      const root = document.getElementById("segmentsRoot");
+      root.innerHTML = SEGMENTS.map(seg => {
+        const used = seg.mentors.filter(m => state.asked[m.id]).length;
+        return `
+          <div class="segment" id="segment-${seg.id}">
+            <div class="segment-head">
+              <div>
+                <div class="segment-num">Segment ${seg.num}</div>
+                <h2 class="segment-title">${escapeHtml(seg.title)}</h2>
+                <p class="segment-blurb">${escapeHtml(seg.blurb)}</p>
+              </div>
+              <div class="segment-used">
+                <div class="segment-used-label">Used</div>
+                <div class="segment-used-count">${used}<span class="of">/${seg.mentors.length}</span></div>
+              </div>
+            </div>
+            <div class="mentor-grid">
+              ${seg.mentors.map(m => {
+                const isUsed = !!state.asked[m.id];
+                return `
+                  <button class="mentor-card${isUsed ? ' used' : ''}" data-mentor="${m.id}" type="button">
+                    <div class="mentor-card-head">
+                      <div class="mentor-avatar">${ICON_USER}</div>
+                      ${isUsed
+                        ? `<span class="asked-tag">${ICON_CHECK} Asked</span>`
+                        : `<span class="mentor-yrs">${m.years} yrs</span>`}
+                    </div>
+                    <div class="mentor-id">${m.id}</div>
+                    <div class="mentor-headline">${escapeHtml(m.headline)}</div>
+                    <div class="mentor-bio">${escapeHtml(m.bio)}</div>
+                    <div class="mentor-tags">
+                      ${m.tags.map(t => `<span class="mentor-tag">${escapeHtml(t)}</span>`).join("")}
+                    </div>
+                    <div class="mentor-cta">
+                      ${ICON_MSG}
+                      ${isUsed ? "View conversation" : "Ask one question"}
+                    </div>
+                  </button>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Bind clicks
+      root.querySelectorAll("[data-mentor]").forEach(btn => {
+        btn.addEventListener("click", () => openMentor(btn.dataset.mentor));
+      });
+    }
+
+    /* ----------- PROGRESS ----------- */
+    function renderProgress() {
+      const askedCount = Object.keys(state.asked).length;
+      const pct = Math.round((askedCount / TOTAL) * 100);
+      document.getElementById("askedCount").textContent = askedCount;
+      document.getElementById("progressFill").style.width = pct + "%";
+      const complete = askedCount >= TOTAL;
+      document.getElementById("completeBadge").classList.toggle("show", complete);
+      document.getElementById("completeMsg").classList.toggle("show", complete);
+    }
+
+    /* ----------- MODAL ----------- */
+    const modal = document.getElementById("modal");
+
+    function openMentor(id) {
+      activeMentor = ALL_MENTORS.find(m => m.id === id);
+      if (!activeMentor) return;
+      phase = state.asked[id] ? "answered" : "compose";
+      renderModal();
+      modal.classList.add("open");
+      document.body.style.overflow = "hidden";
+    }
+    function closeMentor() {
+      modal.classList.remove("open");
+      document.body.style.overflow = "";
+      activeMentor = null;
+    }
+    modal.addEventListener("click", e => {
+      if (e.target === modal) closeMentor();
+    });
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && modal.classList.contains("open")) closeMentor();
+    });
+
+    function renderModal() {
+      if (!activeMentor) return;
+      const m = activeMentor;
+      const record = state.asked[m.id];
+
+      document.getElementById("modalMeta").textContent = `${m.id} · ${m.years} yrs`;
+      document.getElementById("modalTitle").textContent = m.headline;
+      document.getElementById("modalBio").textContent = m.bio;
+      document.getElementById("modalTags").innerHTML =
+        m.tags.map(t => `<span class="mentor-tag">${escapeHtml(t)}</span>`).join("");
+
+      // BODY
+      const body = document.getElementById("modalBody");
+      let bodyHtml = '<div class="convo">';
+      if (record) {
+        bodyHtml += `
+          <div class="bubble user">
+            <div class="bubble-meta">You</div>
+            ${escapeHtml(record.question)}
+          </div>
+          <div class="bubble mentor">
+            <div class="bubble-meta">${m.id}</div>
+            ${escapeHtml(record.reply)}
+          </div>
+        `;
+      } else if (phase === "sending") {
+        const draft = pendingDraft;
+        bodyHtml += `
+          <div class="bubble user">
+            <div class="bubble-meta">You</div>
+            ${escapeHtml(draft)}
+          </div>
+          <div class="bubble mentor">
+            <div class="bubble-meta">${m.id}</div>
+            <div class="typing"><span></span><span></span><span></span></div>
+          </div>
+        `;
+      }
+      bodyHtml += "</div>";
+
+      if (!record && phase === "compose") {
+        bodyHtml += `
+          <div class="compose">
+            <textarea id="draftInput" placeholder="Ask one specific question. You only get one per mentor." rows="4"></textarea>
+            <div class="compose-meta"><span id="charCount">0</span> characters · This question cannot be edited once sent.</div>
+          </div>
+        `;
+      }
+      body.innerHTML = bodyHtml;
+
+      if (!record && phase === "compose") {
+        const ta = document.getElementById("draftInput");
+        const cc = document.getElementById("charCount");
+        ta.focus();
+        ta.addEventListener("input", () => {
+          cc.textContent = ta.value.length;
+          document.getElementById("sendBtn").disabled = !ta.value.trim();
+        });
+      }
+
+      // FOOT
+      const foot = document.getElementById("modalFoot");
+      if (record || phase === "answered") {
+        foot.className = "modal-foot with-note";
+        foot.innerHTML = `
+          <div class="closed-note">${ICON_CHECK} Question used. This mentor is now closed for the session.</div>
+          <button class="btn btn-outline" id="closeBtn">Close</button>
+        `;
+        document.getElementById("closeBtn").addEventListener("click", closeMentor);
+      } else if (phase === "sending") {
+        foot.className = "modal-foot";
+        foot.innerHTML = `<button class="btn btn-outline" disabled>Sending…</button>`;
+      } else {
+        foot.className = "modal-foot";
+        foot.innerHTML = `
+          <button class="btn btn-outline" id="cancelBtn">Cancel</button>
+          <button class="btn btn-primary" id="sendBtn" disabled>${ICON_SEND}<span style="margin-left:6px">Send Question</span></button>
+        `;
+        document.getElementById("cancelBtn").addEventListener("click", closeMentor);
+        document.getElementById("sendBtn").addEventListener("click", submitQuestion);
+      }
+    }
+
+    let pendingDraft = "";
+    function submitQuestion() {
+      const ta = document.getElementById("draftInput");
+      if (!ta || !activeMentor) return;
+      const q = ta.value.trim();
+      if (!q) return;
+      const mentor = activeMentor;
+      pendingDraft = q;
+      phase = "sending";
+      renderModal();
+      setTimeout(() => {
+        state = {
+          ...state,
+          asked: {
+            ...state.asked,
+            [mentor.id]: { question: q, reply: mentor.reply, at: Date.now() }
+          }
+        };
+        saveState(state);
+        phase = "answered";
+        pendingDraft = "";
+        renderModal();
+        renderSegments();
+        renderProgress();
+      }, 900);
+    }
+
+    /* ----------- INIT ----------- */
+    document.getElementById("yr").textContent = new Date().getFullYear();
+    renderSegments();
+    renderProgress();
+  </script>
+</body>
+</html>

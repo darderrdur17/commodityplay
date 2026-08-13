@@ -7,6 +7,7 @@ import type { LandingContent } from "@/data/landing-content";
 interface Props {
   content: LandingContent;
   onChange: (content: LandingContent) => void;
+  trackFilter?: "career" | "sales" | "both";
 }
 
 function Section({
@@ -104,10 +105,13 @@ function FeaturesList({
   );
 }
 
-export function AdminLandingEditor({ content, onChange }: Props) {
+export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: Props) {
   function patch<K extends keyof LandingContent>(key: K, value: LandingContent[K]) {
     onChange({ ...content, [key]: value });
   }
+
+  const showCareer = trackFilter === "both" || trackFilter === "career";
+  const showSales = trackFilter === "both" || trackFilter === "sales";
 
   return (
     <div className="p-4 space-y-4 max-h-[calc(100vh-220px)] overflow-y-auto">
@@ -115,6 +119,8 @@ export function AdminLandingEditor({ content, onChange }: Props) {
         Edit landing page wording only. Layout and structure stay in code. Changes go live after Save.
       </p>
 
+      {showCareer && (
+      <>
       <Section title="Career Track — Hero" description="Track 1 hero section" defaultOpen>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Eyebrow">
@@ -376,7 +382,11 @@ export function AdminLandingEditor({ content, onChange }: Props) {
           ))}
         </div>
       </Section>
+      </>
+      )}
 
+      {showSales && (
+      <>
       <Section title="Sales Track — Hero" description="Track 2 hero section">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Eyebrow">
@@ -549,6 +559,8 @@ export function AdminLandingEditor({ content, onChange }: Props) {
           ))}
         </div>
       </Section>
+      </>
+      )}
 
       <Section title="Members Strip" description="Trusted-by company names in hero">
         <Field label="Label">
