@@ -87,6 +87,7 @@ model User {
   quizResults        QuizResult[]
   jobWaitlistEntry   JobWaitlistEntry?
   contentUpdates     ContentModule[]  @relation("ContentUpdates")
+  contentRevisions   ContentModuleRevision[] @relation("ContentRevisionUpdates")
   assetUploads       ContentAsset[]   @relation("AssetUploads")
 
   @@index([email])
@@ -202,6 +203,21 @@ model ContentModule {
 
   @@index([slug])
   @@index([requiredTier])
+}
+
+model ContentModuleRevision {
+  id           String   @id @default(cuid())
+  moduleSlug   String
+  version      Int
+  payload      Json
+  requiredTier Tier
+  published    Boolean
+  updatedById  String?
+  updatedBy    User?    @relation("ContentRevisionUpdates", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  @@unique([moduleSlug, version])
+  @@index([moduleSlug, version])
 }
 
 model ContentAsset {

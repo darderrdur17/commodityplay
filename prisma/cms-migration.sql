@@ -71,3 +71,27 @@ CREATE TABLE IF NOT EXISTS "DemoEmailLog" (
 );
 
 CREATE INDEX IF NOT EXISTS "DemoEmailLog_createdAt_idx" ON "DemoEmailLog"("createdAt");
+
+-- CMS version history (revert to previous saved version)
+CREATE TABLE IF NOT EXISTS "ContentModuleRevision" (
+    "id" TEXT NOT NULL,
+    "moduleSlug" TEXT NOT NULL,
+    "version" INTEGER NOT NULL,
+    "payload" JSONB NOT NULL,
+    "requiredTier" "Tier" NOT NULL,
+    "published" BOOLEAN NOT NULL,
+    "updatedById" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ContentModuleRevision_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "ContentModuleRevision_moduleSlug_version_key"
+  ON "ContentModuleRevision"("moduleSlug", "version");
+CREATE INDEX IF NOT EXISTS "ContentModuleRevision_moduleSlug_version_idx"
+  ON "ContentModuleRevision"("moduleSlug", "version");
+
+DO $$ BEGIN
+  ALTER TABLE "ContentModuleRevision" ADD CONSTRAINT "ContentModuleRevision_updatedById_fkey"
+    FOREIGN KEY ("updatedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

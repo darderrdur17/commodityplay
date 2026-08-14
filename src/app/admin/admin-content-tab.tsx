@@ -153,11 +153,13 @@ function ModuleEditor({
     published,
     setPublished,
     version,
+    canRevert,
     loading,
     saving,
     message,
     isError,
     save,
+    revert,
     reset,
   } = useModuleEditor(slug);
 
@@ -170,6 +172,11 @@ function ModuleEditor({
 
   async function handleReset() {
     await reset();
+    onRefresh();
+  }
+
+  async function handleRevert() {
+    await revert();
     onRefresh();
   }
 
@@ -245,6 +252,7 @@ function ModuleEditor({
       <SaveBar
         slug={slug}
         version={version}
+        canRevert={canRevert}
         requiredTier={requiredTier}
         setRequiredTier={setRequiredTier}
         published={published}
@@ -253,6 +261,7 @@ function ModuleEditor({
         message={message}
         isError={isError}
         onSave={handleSave}
+        onRevert={handleRevert}
         onReset={handleReset}
       />
       <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-secondary/30">

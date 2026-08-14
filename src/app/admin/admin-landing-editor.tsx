@@ -281,7 +281,7 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
   return (
     <div className="p-4 space-y-4 max-h-[calc(100vh-220px)] overflow-y-auto">
       <p className="text-xs text-muted-fg bg-secondary/50 rounded-lg px-3 py-2">
-        Edit landing page wording only. Layout and structure stay in code. Changes go live after Save.
+        Edit landing page wording only. Layout and structure stay in code. With Published checked, Save updates the live site immediately (refresh to see changes).
       </p>
 
       {showCareer && (

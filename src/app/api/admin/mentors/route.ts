@@ -128,7 +128,7 @@ export async function PATCH(req: NextRequest) {
 
   await updateContentModule(
     "mentors",
-    { payload: { overrides: nextOverrides } },
+    { payload: { overrides: nextOverrides }, published: true },
     session.user.id
   );
 

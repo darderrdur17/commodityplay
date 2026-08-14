@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import {
   getContentModuleRecord,
+  hasContentModuleRevision,
   resetContentModule,
+  revertContentModuleToPrevious,
   updateContentModule,
 } from "@/lib/content/repository";
 import { getModuleMeta } from "@/lib/content/modules";
@@ -18,6 +20,7 @@ const updateSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
   reset: z.boolean().optional(),
+  revertToPrevious: z.boolean().optional(),
 });
 
 export async function GET(
@@ -33,7 +36,8 @@ export async function GET(
   }
 
   const record = await getContentModuleRecord(slug);
-  return NextResponse.json(record);
+  const canRevert = await hasContentModuleRevision(slug);
+  return NextResponse.json({ ...record, canRevert });
 }
 
 export async function PUT(
@@ -56,7 +60,23 @@ export async function PUT(
 
   if (parsed.data.reset) {
     const row = await resetContentModule(slug, session.user.id);
-    return NextResponse.json({ ok: true, version: row.version });
+    return NextResponse.json({ ok: true, version: row.version, canRevert: await hasContentModuleRevision(slug) });
+  }
+
+  if (parsed.data.revertToPrevious) {
+    try {
+      const previousVersion = (await getContentModuleRecord(slug))?.version ?? 0;
+      const row = await revertContentModuleToPrevious(slug, session.user.id);
+      return NextResponse.json({
+        ok: true,
+        version: row.version,
+        revertedTo: previousVersion - 1,
+        canRevert: await hasContentModuleRevision(slug),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Revert failed";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
   }
 
   if (parsed.data.payload !== undefined) {
@@ -112,5 +132,6 @@ export async function PUT(
     slug: row.slug,
     version: row.version,
     updatedAt: row.updatedAt.toISOString(),
+    canRevert: await hasContentModuleRevision(slug),
   });
 }

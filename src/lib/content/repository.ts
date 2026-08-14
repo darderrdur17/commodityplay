@@ -7,6 +7,8 @@ import { deepMerge, mergeLandingContent } from "./merge";
 import type { LandingContent } from "@/data/landing-content";
 import { applyCmsSchemaSql } from "@/lib/setup-database";
 
+const MAX_REVISIONS = 20;
+
 let cmsTablesReady: boolean | null = null;
 
 export async function ensureContentInfrastructure() {
@@ -218,6 +220,105 @@ export async function getPublishedPayload<T>(slug: ContentSlug): Promise<T> {
   return getDefaultPayload(slug) as T;
 }
 
+async function archiveContentModuleRevision(
+  slug: string,
+  row: {
+    version: number;
+    payload: unknown;
+    requiredTier: Tier;
+    published: boolean;
+  },
+  updatedById?: string
+) {
+  try {
+    await prisma.contentModuleRevision.upsert({
+      where: {
+        moduleSlug_version: { moduleSlug: slug, version: row.version },
+      },
+      create: {
+        moduleSlug: slug,
+        version: row.version,
+        payload: row.payload as object,
+        requiredTier: row.requiredTier,
+        published: row.published,
+        updatedById: updatedById ?? null,
+      },
+      update: {
+        payload: row.payload as object,
+        requiredTier: row.requiredTier,
+        published: row.published,
+        updatedById: updatedById ?? null,
+      },
+    });
+
+    const stale = await prisma.contentModuleRevision.findMany({
+      where: { moduleSlug: slug },
+      orderBy: { version: "desc" },
+      skip: MAX_REVISIONS,
+      select: { id: true },
+    });
+    if (stale.length > 0) {
+      await prisma.contentModuleRevision.deleteMany({
+        where: { id: { in: stale.map((r) => r.id) } },
+      });
+    }
+  } catch {
+    // Revision table missing on older DBs until cms-migration runs — save still succeeds.
+  }
+}
+
+/** Restore the immediately previous saved version (creates a new version number). */
+export async function revertContentModuleToPrevious(slug: string, updatedById: string) {
+  await ensureContentInfrastructure();
+  const meta = getModuleMeta(slug);
+  if (!meta) throw new Error("Unknown content module");
+
+  const existing = await prisma.contentModule.findUnique({ where: { slug } });
+  if (!existing) throw new Error("Module not found");
+  if (existing.version <= 1) throw new Error("No previous version to revert to");
+
+  const targetVersion = existing.version - 1;
+  const revision = await prisma.contentModuleRevision.findUnique({
+    where: { moduleSlug_version: { moduleSlug: slug, version: targetVersion } },
+  });
+  if (!revision) {
+    throw new Error(`Previous version v${targetVersion} is not available`);
+  }
+
+  await archiveContentModuleRevision(slug, existing, updatedById);
+
+  return prisma.contentModule.update({
+    where: { slug },
+    data: {
+      payload: revision.payload as object,
+      requiredTier: revision.requiredTier,
+      published: revision.published,
+      version: existing.version + 1,
+      updatedById,
+    },
+  });
+}
+
+export async function hasContentModuleRevision(slug: string): Promise<boolean> {
+  try {
+    const existing = await prisma.contentModule.findUnique({
+      where: { slug },
+      select: { version: true },
+    });
+    if (!existing || existing.version <= 1) return false;
+
+    const revision = await prisma.contentModuleRevision.findUnique({
+      where: {
+        moduleSlug_version: { moduleSlug: slug, version: existing.version - 1 },
+      },
+      select: { id: true },
+    });
+    return Boolean(revision);
+  } catch {
+    return false;
+  }
+}
+
 export async function updateContentModule(
   slug: string,
   data: {
@@ -251,6 +352,8 @@ export async function updateContentModule(
       },
     });
   }
+
+  await archiveContentModuleRevision(slug, existing, updatedById);
 
   return prisma.contentModule.update({
     where: { slug },

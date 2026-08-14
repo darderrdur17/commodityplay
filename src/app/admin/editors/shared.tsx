@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Save, RotateCcw, Upload, Download, Trash2, Copy, ChevronDown, ChevronRight } from "lucide-react";
+import { Save, RotateCcw, Undo2, Upload, Download, Trash2, Copy, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -169,11 +169,13 @@ export interface ModuleEditorState {
   published: boolean;
   setPublished: (v: boolean) => void;
   version: number;
+  canRevert: boolean;
   loading: boolean;
   saving: boolean;
   message: string;
   isError: boolean;
   save: () => Promise<void>;
+  revert: () => Promise<void>;
   reset: () => Promise<void>;
   reload: () => Promise<void>;
 }
@@ -183,6 +185,7 @@ export function useModuleEditor(slug: string): ModuleEditorState {
   const [requiredTier, setRequiredTier] = useState("PRO");
   const [published, setPublished] = useState(true);
   const [version, setVersion] = useState(0);
+  const [canRevert, setCanRevert] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -201,6 +204,7 @@ export function useModuleEditor(slug: string): ModuleEditorState {
       setRequiredTier(data.requiredTier ?? "PRO");
       setPublished(data.published ?? true);
       setVersion(data.version ?? 0);
+      setCanRevert(Boolean(data.canRevert));
       setIsError(false);
     } finally {
       setLoading(false);
@@ -224,6 +228,7 @@ export function useModuleEditor(slug: string): ModuleEditorState {
         setIsError(true);
       } else {
         setVersion(data.version);
+        setCanRevert(Boolean(data.canRevert));
         setMessage(`Saved v${data.version} — live after refresh.`);
         setIsError(false);
       }
@@ -232,20 +237,64 @@ export function useModuleEditor(slug: string): ModuleEditorState {
     }
   }, [payload, requiredTier, published]);
 
+  const revert = useCallback(async () => {
+    if (version <= 1) return;
+    if (!confirm(`Revert to the previous saved version (v${version - 1})? Your current version will be archived.`)) {
+      return;
+    }
+    setSaving(true);
+    setMessage("");
+    try {
+      const res = await fetch(`/api/admin/content/${slugRef.current}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ revertToPrevious: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.error || "Revert failed.");
+        setIsError(true);
+      } else {
+        await load();
+        setMessage(`Reverted to v${data.revertedTo} — now saved as v${data.version}. Refresh the live site to confirm.`);
+        setIsError(false);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [load, version]);
+
   const reset = useCallback(async () => {
-    if (!confirm("Reset to bundled defaults?")) return;
+    if (!confirm("Reset all content to bundled code defaults? This replaces everything — use Revert for the previous saved version instead.")) return;
     setSaving(true);
     const res = await fetch(`/api/admin/content/${slugRef.current}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reset: true }),
     });
-    if (res.ok) { await load(); setMessage("Reset to defaults."); setIsError(false); }
+    if (res.ok) { await load(); setMessage("Reset to bundled defaults."); setIsError(false); }
     else { setMessage("Reset failed."); setIsError(true); }
     setSaving(false);
   }, [load]);
 
-  return { payload, setPayload, requiredTier, setRequiredTier, published, setPublished, version, loading, saving, message, isError, save, reset, reload: load };
+  return {
+    payload,
+    setPayload,
+    requiredTier,
+    setRequiredTier,
+    published,
+    setPublished,
+    version,
+    canRevert,
+    loading,
+    saving,
+    message,
+    isError,
+    save,
+    revert,
+    reset,
+    reload: load,
+  };
 }
 
 // ─── SaveBar ─────────────────────────────────────────────────────────────────
@@ -253,6 +302,7 @@ export function useModuleEditor(slug: string): ModuleEditorState {
 export function SaveBar({
   slug,
   version,
+  canRevert,
   requiredTier,
   setRequiredTier,
   published,
@@ -261,10 +311,12 @@ export function SaveBar({
   message,
   isError,
   onSave,
+  onRevert,
   onReset,
 }: {
   slug: string;
   version: number;
+  canRevert: boolean;
   requiredTier: string;
   setRequiredTier: (t: string) => void;
   published: boolean;
@@ -273,6 +325,7 @@ export function SaveBar({
   message: string;
   isError: boolean;
   onSave: () => void;
+  onRevert: () => void;
   onReset: () => void;
 }) {
   return (
@@ -295,8 +348,17 @@ export function SaveBar({
           <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
           Published
         </label>
-        <Button variant="outline" size="sm" onClick={onReset} disabled={saving}>
-          <RotateCcw className="w-3.5 h-3.5" /> Reset
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRevert}
+          disabled={saving || !canRevert}
+          title={canRevert ? `Restore version ${version - 1}` : "Save at least once to enable revert"}
+        >
+          <Undo2 className="w-3.5 h-3.5" /> Revert
+        </Button>
+        <Button variant="outline" size="sm" onClick={onReset} disabled={saving} title="Restore bundled code defaults">
+          <RotateCcw className="w-3.5 h-3.5" /> Reset defaults
         </Button>
         <Button size="sm" onClick={onSave} loading={saving}>
           <Save className="w-3.5 h-3.5" /> Save
