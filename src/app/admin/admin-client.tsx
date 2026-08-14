@@ -529,10 +529,11 @@ export function AdminClient({
                     <MessageSquare className="w-3 h-3" /> {seg.questionCount} Q&As
                   </Badge>
                 </div>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left">
-                      <th className="px-4 py-2 font-semibold text-muted-fg">Mentor ID</th>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[1100px]">
+                    <thead>
+                      <tr className="border-b border-border text-left">
+                        <th className="px-4 py-2 font-semibold text-muted-fg">Mentor ID</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Status</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Name</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Email</th>
@@ -615,6 +616,7 @@ export function AdminClient({
                     ))}
                   </tbody>
                 </table>
+              </div>
               </div>
             ))}
           </div>
