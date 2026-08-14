@@ -3,6 +3,17 @@ export interface FaqItem {
   a: string;
 }
 
+export interface FaqHero {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+}
+
+export interface FaqContent {
+  hero: FaqHero;
+  items: FaqItem[];
+}
+
 export const FAQ_ITEMS: FaqItem[] = [
   {
     q: "Can I upgrade from Starter or Pro later?",
@@ -30,8 +41,13 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
 ];
 
-export const FAQ_HERO = {
+export const FAQ_HERO: FaqHero = {
   eyebrow: "Support",
   title: "Frequently asked questions",
   subtitle: "Everything you need to know about plans, billing, and access.",
+};
+
+export const DEFAULT_FAQ_CONTENT: FaqContent = {
+  hero: FAQ_HERO,
+  items: FAQ_ITEMS,
 };

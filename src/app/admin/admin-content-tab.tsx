@@ -15,6 +15,7 @@ import { CareerRoadmapEditor } from "./editors/career-roadmap-editor";
 import { JobOpeningsEditor } from "./editors/job-openings-editor";
 import { CaseStudiesEditor } from "./editors/case-studies-editor";
 import { LandingEditorWrapper } from "./editors/landing-editor";
+import { FaqEditor } from "./editors/faq-editor";
 import { StarterPackEditor } from "./editors/starter-pack-editor";
 import { ResumeEditor } from "./editors/resume-editor";
 import { MentorConnectEditor } from "./editors/mentor-connect-editor";
@@ -57,6 +58,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { slug: "landing", label: "Career Track", track: "Career", tier: "STARTER" },
       { slug: "landing", label: "Sales Track", track: "Sales", tier: "STARTER" },
+      { slug: "faq", label: "FAQ", track: "Both", tier: "STARTER" },
     ],
   },
   {
@@ -174,6 +176,8 @@ function ModuleEditor({
             initialTrackFilter={track === "Career" ? "career" : track === "Sales" ? "sales" : "both"}
           />
         );
+      case "faq":
+        return <FaqEditor {...editorProps} />;
       case "playbook":
         return <PlaybookEditor {...editorProps} />;
       case "glossary":

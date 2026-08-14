@@ -20,6 +20,7 @@ import {
 } from "@/data/resume-templates";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT } from "@/data/landing-content";
+import { DEFAULT_FAQ_CONTENT } from "@/data/faq";
 import { STARTER_INFOGRAPHICS, STARTER_MARKET_NOTE, STARTER_CHAPTER_PREVIEW } from "@/data/starter-pack";
 import type { ContentSlug } from "./modules";
 
@@ -27,6 +28,8 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
   switch (slug) {
     case "landing":
       return DEFAULT_LANDING_CONTENT;
+    case "faq":
+      return DEFAULT_FAQ_CONTENT;
     case "glossary":
       return { terms: GLOSSARY_TERMS };
     case "playbook":
@@ -81,6 +84,7 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
 export function getAllDefaultPayloads(): Record<ContentSlug, unknown> {
   return {
     landing: getDefaultPayload("landing"),
+    faq: getDefaultPayload("faq"),
     glossary: getDefaultPayload("glossary"),
     playbook: getDefaultPayload("playbook"),
     "resume-templates": getDefaultPayload("resume-templates"),

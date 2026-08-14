@@ -14,6 +14,7 @@ import { CAREER_ROLES } from "@/data/career-roadmap";
 import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-templates";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
+import { DEFAULT_FAQ_CONTENT, type FaqContent } from "@/data/faq";
 import { mergeLandingContent, resolveMentorSegments } from "./merge";
 import {
   MENTOR_SEGMENTS,
@@ -36,6 +37,14 @@ type CaseStudiesPayload = {
 export async function getLandingContent(): Promise<LandingContent> {
   const data = await getPublishedPayload<Partial<LandingContent>>("landing");
   return mergeLandingContent(DEFAULT_LANDING_CONTENT, data ?? {});
+}
+
+export async function getFaqContent(): Promise<FaqContent> {
+  const data = await getPublishedPayload<Partial<FaqContent>>("faq");
+  return {
+    hero: { ...DEFAULT_FAQ_CONTENT.hero, ...data?.hero },
+    items: data?.items?.length ? data.items : DEFAULT_FAQ_CONTENT.items,
+  };
 }
 
 /**

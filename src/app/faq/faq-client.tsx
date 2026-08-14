@@ -7,10 +7,15 @@ import { HelpCircle, ArrowRight, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, GradientOrbs } from "@/components/animations";
 import { PAGE_HERO_TOP } from "@/lib/layout-constants";
-import { FAQ_HERO, FAQ_ITEMS } from "@/data/faq";
+import type { FaqHero, FaqItem } from "@/data/faq";
 import { CAREER_PRICING_HREF } from "@/lib/pricing-routes";
 
-export function FaqClient() {
+interface FaqClientProps {
+  hero: FaqHero;
+  items: FaqItem[];
+}
+
+export function FaqClient({ hero, items }: FaqClientProps) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
@@ -20,20 +25,20 @@ export function FaqClient() {
         <div className="relative z-10 page-container text-center">
           <Reveal>
             <div className="pill pill-dark mb-5 mx-auto">
-              <HelpCircle className="w-3 h-3" /> {FAQ_HERO.eyebrow}
+              <HelpCircle className="w-3 h-3" /> {hero.eyebrow}
             </div>
             <h1 className="font-serif text-[clamp(36px,6vw,60px)] font-bold text-white mb-4 tracking-tight">
-              {FAQ_HERO.title}
+              {hero.title}
             </h1>
-            <p className="text-white/65 text-lg max-w-xl mx-auto">{FAQ_HERO.subtitle}</p>
+            <p className="text-white/65 text-lg max-w-xl mx-auto">{hero.subtitle}</p>
           </Reveal>
         </div>
       </section>
 
       <section className="max-w-[700px] mx-auto px-4 sm:px-6 py-12 sm:py-16">
         <div className="space-y-3">
-          {FAQ_ITEMS.map((faq, i) => (
-            <Reveal key={faq.q} delay={i * 0.05}>
+          {items.map((faq, i) => (
+            <Reveal key={`${faq.q}-${i}`} delay={i * 0.05}>
               <div className="rounded-xl border border-border overflow-hidden">
                 <button
                   type="button"

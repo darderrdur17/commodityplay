@@ -2,6 +2,7 @@ import type { Tier } from "@prisma/client";
 
 export type ContentSlug =
   | "landing"
+  | "faq"
   | "glossary"
   | "playbook"
   | "resume-templates"
@@ -28,6 +29,12 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
     slug: "landing",
     title: "Landing Pages",
     description: "Career and sales landing page copy, stats, pricing, and feature cards",
+    requiredTier: "STARTER",
+  },
+  {
+    slug: "faq",
+    title: "FAQ Page",
+    description: "Frequently asked questions — hero copy and Q&A accordion",
     requiredTier: "STARTER",
   },
   {
