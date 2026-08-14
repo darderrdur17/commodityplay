@@ -186,6 +186,11 @@ export function resolveSalesRoi(
   };
 }
 
+/** Prefer an explicit CMS string when the admin saved one (including empty overrides). */
+function cmsString(cms: string | undefined, fallback: string): string {
+  return cms !== undefined ? cms : fallback;
+}
+
 /** Career hero — CMS copy wins; repo defaults fill missing structure. */
 export function resolveCareerContent(
   defaults: LandingContent,
@@ -194,15 +199,15 @@ export function resolveCareerContent(
   const base = cms ? { ...defaults.career, ...cms } : defaults.career;
   return {
     ...base,
-    eyebrow: cms?.eyebrow ?? defaults.career.eyebrow,
-    headline: cms?.headline ?? defaults.career.headline,
-    headlineAccent: cms?.headlineAccent ?? defaults.career.headlineAccent,
-    description: cms?.description ?? defaults.career.description,
+    eyebrow: cmsString(cms?.eyebrow, defaults.career.eyebrow),
+    headline: cmsString(cms?.headline, defaults.career.headline),
+    headlineAccent: cmsString(cms?.headlineAccent, defaults.career.headlineAccent),
+    description: cmsString(cms?.description, defaults.career.description),
     heroStats: cms?.heroStats?.length
       ? mergeByKey(defaults.career.heroStats, cms.heroStats, "label")
       : defaults.career.heroStats,
-    ctaPrimary: cms?.ctaPrimary ?? defaults.career.ctaPrimary,
-    ctaSecondary: cms?.ctaSecondary ?? defaults.career.ctaSecondary,
+    ctaPrimary: cmsString(cms?.ctaPrimary, defaults.career.ctaPrimary),
+    ctaSecondary: cmsString(cms?.ctaSecondary, defaults.career.ctaSecondary),
   };
 }
 
@@ -214,12 +219,12 @@ export function resolveSalesContent(
   const base = cms ? { ...defaults.sales, ...cms } : defaults.sales;
   return {
     ...base,
-    eyebrow: cms?.eyebrow ?? defaults.sales.eyebrow,
-    headline: cms?.headline ?? defaults.sales.headline,
-    headlineAccent: cms?.headlineAccent ?? defaults.sales.headlineAccent,
-    description: cms?.description ?? defaults.sales.description,
-    ctaPrimary: cms?.ctaPrimary ?? defaults.sales.ctaPrimary,
-    ctaSecondary: cms?.ctaSecondary ?? defaults.sales.ctaSecondary,
+    eyebrow: cmsString(cms?.eyebrow, defaults.sales.eyebrow),
+    headline: cmsString(cms?.headline, defaults.sales.headline),
+    headlineAccent: cmsString(cms?.headlineAccent, defaults.sales.headlineAccent),
+    description: cmsString(cms?.description, defaults.sales.description),
+    ctaPrimary: cmsString(cms?.ctaPrimary, defaults.sales.ctaPrimary),
+    ctaSecondary: cmsString(cms?.ctaSecondary, defaults.sales.ctaSecondary),
     stats: cms?.stats?.length
       ? mergeByKey(defaults.sales.stats, cms.stats, "label")
       : defaults.sales.stats,

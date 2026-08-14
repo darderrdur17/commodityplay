@@ -6,6 +6,7 @@ import { AdminLandingEditor } from "../admin-landing-editor";
 import { EditorSection, UploadSection } from "./shared";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
 import { parseLandingContentPayload } from "@/lib/content/landing-schema";
+import { mergeLandingContent } from "@/lib/content/merge";
 import { SalesEdgeNoteEditor, type SalesEdgeNote } from "./sales-edge-note-editor";
 
 type TrackFilter = "career" | "sales" | "both";
@@ -26,7 +27,9 @@ export function LandingEditorWrapper({
   const [track, setTrack] = useState<TrackFilter>(initialTrackFilter);
 
   const parsed = parseLandingContentPayload(payload);
-  const content: LandingContent = parsed.success ? parsed.data : DEFAULT_LANDING_CONTENT;
+  const content: LandingContent = parsed.success
+    ? parsed.data
+    : mergeLandingContent(DEFAULT_LANDING_CONTENT, (payload ?? {}) as Partial<LandingContent>);
   const rawPayload = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
   const salesEdgeNote = rawPayload.salesEdgeNote as SalesEdgeNote | undefined;
 

@@ -106,7 +106,11 @@ export async function PUT(
           { status: 400 }
         );
       }
-      parsed.data.payload = landingValidation.data;
+      const raw = parsed.data.payload as Record<string, unknown>;
+      parsed.data.payload = {
+        ...raw,
+        ...landingValidation.data,
+      };
     }
 
     if (slug === "faq") {
@@ -137,8 +141,8 @@ export async function PUT(
   );
 
   if (slug === "landing") {
-    revalidatePath("/");
-    revalidatePath("/mentor-connect");
+    revalidatePath("/", "page");
+    revalidatePath("/mentor-connect", "page");
   }
 
   return NextResponse.json({

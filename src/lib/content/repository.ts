@@ -3,7 +3,7 @@ import type { Tier } from "@prisma/client";
 import { CONTENT_MODULE_META, getModuleMeta, type ContentSlug } from "./modules";
 import { GLOSSARY_TERMS } from "@/data/glossary";
 import { getDefaultPayload, getAllDefaultPayloads } from "./defaults";
-import { deepMerge, mergeLandingContent } from "./merge";
+import { deepMerge } from "./merge";
 import type { LandingContent } from "@/data/landing-content";
 import { applyCmsSchemaSql } from "@/lib/setup-database";
 
@@ -97,11 +97,11 @@ function mergeModulePayloadOnDeploy(
   defaults: object,
   existing: object
 ): object {
+  // Landing copy is merged only at read time (getLandingContent). On deploy, layer in
+  // new repo fields without running resolve* helpers — those must not rewrite CMS hero copy
+  // back into the database on every build.
   if (slug === "landing") {
-    return mergeLandingContent(
-      defaults as LandingContent,
-      existing as Partial<LandingContent>
-    ) as object;
+    return deepMerge(defaults as Record<string, unknown>, existing as Record<string, unknown>);
   }
 
   // CMS values win on conflicts; repo defaults fill missing keys/sections.
