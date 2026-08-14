@@ -1,4 +1,4 @@
-# Commodity Playbook — Full-Stack Web App + Mobile
+# CommodityPlay. — Full-Stack Web App + Mobile
 
 The definitive career and sales guide for commodity trading. Full-stack Next.js 15 web app + Expo React Native mobile app.
 
@@ -190,11 +190,11 @@ eas submit                 # Submit to App Store + Google Play
 
 1. Go to [dashboard.stripe.com/products](https://dashboard.stripe.com/products)
 2. Create **Pro** product:
-   - Name: "Commodity Playbook Pro"
+   - Name: "CommodityPlay. Pro"
    - Pricing: One-time, SGD 99.00
    - Copy Price ID → `STRIPE_PRO_PRICE_ID`
 3. Create **Elite** product:
-   - Name: "Commodity Playbook Elite"
+   - Name: "CommodityPlay. Elite"
    - Pricing: Recurring, SGD 299.00/month
    - Copy Price ID → `STRIPE_ELITE_PRICE_ID`
 

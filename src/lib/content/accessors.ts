@@ -15,6 +15,7 @@ import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-template
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
 import { DEFAULT_FAQ_CONTENT, type FaqContent } from "@/data/faq";
+import { normalizeBrandReferences } from "@/lib/brand";
 import { STARTER_INFOGRAPHICS, type StarterInfographic } from "@/data/starter-pack";
 import { getSectionAssets } from "@/data/playbook-assets";
 import type { ContentAttachment } from "./attachments";
@@ -44,9 +45,19 @@ export async function getLandingContent(): Promise<LandingContent> {
 
 export async function getFaqContent(): Promise<FaqContent> {
   const data = await getPublishedPayload<Partial<FaqContent>>("faq");
+  const items = data?.items?.length ? data.items : DEFAULT_FAQ_CONTENT.items;
   return {
-    hero: { ...DEFAULT_FAQ_CONTENT.hero, ...data?.hero },
-    items: data?.items?.length ? data.items : DEFAULT_FAQ_CONTENT.items,
+    hero: {
+      ...DEFAULT_FAQ_CONTENT.hero,
+      ...data?.hero,
+      eyebrow: normalizeBrandReferences(data?.hero?.eyebrow ?? DEFAULT_FAQ_CONTENT.hero.eyebrow),
+      title: normalizeBrandReferences(data?.hero?.title ?? DEFAULT_FAQ_CONTENT.hero.title),
+      subtitle: normalizeBrandReferences(data?.hero?.subtitle ?? DEFAULT_FAQ_CONTENT.hero.subtitle),
+    },
+    items: items.map((item) => ({
+      q: normalizeBrandReferences(item.q),
+      a: normalizeBrandReferences(item.a),
+    })),
   };
 }
 

@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { logDemoEmail, type DemoEmailKind } from "@/lib/demo-email-log";
-import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
+import { BRAND_NAME, BRAND_SITE_URL, BRAND_TAGLINE } from "@/lib/brand";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -13,7 +13,7 @@ function fromAddress() {
 }
 
 function appUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+  return process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || BRAND_SITE_URL;
 }
 
 export type SendEmailResult =

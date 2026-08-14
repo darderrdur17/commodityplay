@@ -97,7 +97,7 @@ export default function DemoPage() {
               <Shield className="w-5 h-5 text-red-500" /> Admin Account
             </h2>
             <p className="text-sm text-muted-fg mb-4">
-              Opens the Admin Dashboard — use the <strong>Content CMS</strong> tab to edit JSON and upload files for every tier pack.
+              Opens the Admin Panel — use the <strong>Content CMS</strong> tab to edit JSON and upload files for every tier pack.
             </p>
             <DemoCard
               account={adminAccount}

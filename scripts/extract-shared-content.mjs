@@ -1,5 +1,5 @@
 /**
- * Extracts structured content from CommodityPlaybook shared HTML into src/data JSON.
+ * Extracts structured content from CommodityPlay. shared HTML into src/data JSON.
  * Run: node scripts/extract-shared-content.mjs
  */
 import fs from "fs";
