@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
@@ -41,6 +42,7 @@ export async function GET() {
         id: m.id,
         years: m.years,
         headline: m.headline,
+        bio: m.bio,
         tags: m.tags,
         name: m.name ?? null,
         email: m.email ?? null,
@@ -63,6 +65,7 @@ export async function GET() {
 const patchSchema = z.object({
   id: z.string().min(1),
   headline: z.string().min(1).max(200).optional(),
+  bio: z.string().min(1).max(2000).optional(),
   years: z.number().int().min(0).max(80).optional(),
   tags: z.array(z.string().min(1).max(40)).max(12).optional(),
   name: z.string().max(200).nullable().optional(),
@@ -106,6 +109,7 @@ export async function PATCH(req: NextRequest) {
   };
 
   if (patch.headline !== undefined) nextOverride.headline = patch.headline;
+  if (patch.bio !== undefined) nextOverride.bio = patch.bio;
   if (patch.years !== undefined) nextOverride.years = patch.years;
   if (patch.tags !== undefined) nextOverride.tags = patch.tags;
   if (patch.name !== undefined) {
@@ -131,6 +135,8 @@ export async function PATCH(req: NextRequest) {
     { payload: { overrides: nextOverrides }, published: true },
     session.user.id
   );
+
+  revalidatePath("/mentor-connect");
 
   return NextResponse.json({ ok: true, override: nextOverride });
 }

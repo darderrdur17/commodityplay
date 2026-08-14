@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import {
@@ -60,6 +61,10 @@ export async function PUT(
 
   if (parsed.data.reset) {
     const row = await resetContentModule(slug, session.user.id);
+    if (slug === "landing") {
+      revalidatePath("/");
+      revalidatePath("/mentor-connect");
+    }
     return NextResponse.json({ ok: true, version: row.version, canRevert: await hasContentModuleRevision(slug) });
   }
 
@@ -67,6 +72,10 @@ export async function PUT(
     try {
       const previousVersion = (await getContentModuleRecord(slug))?.version ?? 0;
       const row = await revertContentModuleToPrevious(slug, session.user.id);
+      if (slug === "landing") {
+        revalidatePath("/");
+        revalidatePath("/mentor-connect");
+      }
       return NextResponse.json({
         ok: true,
         version: row.version,
@@ -126,6 +135,11 @@ export async function PUT(
     },
     session.user.id
   );
+
+  if (slug === "landing") {
+    revalidatePath("/");
+    revalidatePath("/mentor-connect");
+  }
 
   return NextResponse.json({
     ok: true,

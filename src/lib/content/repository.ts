@@ -25,7 +25,7 @@ export async function ensureContentInfrastructure() {
   cmsTablesReady = true;
 }
 
-async function tryReadPublishedPayload<T>(slug: ContentSlug): Promise<T | null> {
+export async function tryReadPublishedPayload<T>(slug: ContentSlug): Promise<T | null> {
   try {
     const row = await prisma.contentModule.findUnique({ where: { slug } });
     if (row?.published) return row.payload as T;

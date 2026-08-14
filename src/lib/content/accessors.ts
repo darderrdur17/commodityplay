@@ -3,7 +3,7 @@ import type { CaseStudyCard, CaseStudySection } from "@/data/case-studies";
 import type { DeskQA } from "@/data/desk-channel";
 import type { GlossaryTerm } from "@/data/glossary";
 import type { MentorOverridesPayload } from "@/data/mentors";
-import { getPublishedPayload } from "./repository";
+import { getPublishedPayload, tryReadPublishedPayload } from "./repository";
 import { CHAPTERS } from "@/data/playbook";
 import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
 import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
@@ -39,8 +39,11 @@ type CaseStudiesPayload = {
 };
 
 export async function getLandingContent(): Promise<LandingContent> {
-  const data = await getPublishedPayload<Partial<LandingContent>>("landing");
-  return mergeLandingContent(DEFAULT_LANDING_CONTENT, data ?? {});
+  const cms = await tryReadPublishedPayload<Partial<LandingContent>>("landing");
+  if (cms === null) {
+    return DEFAULT_LANDING_CONTENT;
+  }
+  return mergeLandingContent(DEFAULT_LANDING_CONTENT, cms);
 }
 
 export async function getFaqContent(): Promise<FaqContent> {

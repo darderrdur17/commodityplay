@@ -37,15 +37,6 @@ import {
   type LandingContent,
   type LandingFeature,
 } from "@/data/landing-content";
-import {
-  resolveCaseStudySample,
-  resolveChapterCoverage,
-  resolveCareerContent,
-  resolvePricing,
-  resolveSalesContent,
-  resolveTestimonials,
-  resolveWhatsInside,
-} from "@/lib/content/merge";
 import { CAREER_MARKET_NOTE } from "@/data/market-notes";
 
 type Track = "career" | "sales";
@@ -85,15 +76,15 @@ export function LandingPageClient({ content = DEFAULT_LANDING_CONTENT }: Props) 
     return () => window.clearTimeout(timer);
   }, [activeTrack]);
 
-  const career = resolveCareerContent(DEFAULT_LANDING_CONTENT, content.career);
+  // getLandingContent() already merges CMS edits with repo defaults on the server.
+  const career = content.career;
   const tierColors: Record<string, string> = { Pro: "#3280ff", Elite: "#B45309" };
-  // Repo-managed section copy always comes from code defaults (stale CMS cannot win).
-  const whatsInside = resolveWhatsInside(DEFAULT_LANDING_CONTENT, content.whatsInside);
-  const chapterCoverage = resolveChapterCoverage(DEFAULT_LANDING_CONTENT, content.chapterCoverage);
-  const caseStudySample = resolveCaseStudySample(DEFAULT_LANDING_CONTENT, content.caseStudySample);
-  const pricing = resolvePricing(DEFAULT_LANDING_CONTENT, content.pricing);
-  const testimonials = resolveTestimonials(DEFAULT_LANDING_CONTENT, content.testimonials);
-  const sales = resolveSalesContent(DEFAULT_LANDING_CONTENT, content.sales);
+  const whatsInside = content.whatsInside;
+  const chapterCoverage = content.chapterCoverage;
+  const caseStudySample = content.caseStudySample;
+  const pricing = content.pricing;
+  const testimonials = content.testimonials;
+  const sales = content.sales;
 
   return (
     <>

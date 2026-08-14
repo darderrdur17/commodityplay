@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 export interface AdminMentorDetail {
   id: string;
   headline: string;
+  bio: string;
   years: number;
   tags: string[];
   name: string | null;
@@ -38,6 +39,7 @@ interface Props {
 export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSaved }: Props) {
   const [form, setForm] = useState({
     headline: mentor.headline,
+    bio: mentor.bio,
     years: mentor.years,
     tagsText: mentor.tags.join(", "),
     name: mentor.name || "",
@@ -63,6 +65,7 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
       body: JSON.stringify({
         id: mentor.id,
         headline: form.headline,
+        bio: form.bio.trim(),
         years: Number(form.years) || 0,
         tags,
         name: form.name.trim() || null,
@@ -176,6 +179,19 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
               onChange={(e) => setForm((f) => ({ ...f, headline: e.target.value }))}
             />
             <p className="text-xs text-muted-fg">Shown publicly on Mentor Connect under anonymous ID {mentor.id}.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg">Bio</label>
+            <textarea
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm min-h-[96px] leading-relaxed resize-y"
+              placeholder="e.g. Eighteen years on a global crude desk..."
+              value={form.bio}
+              onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+            />
+            <p className="text-xs text-muted-fg">
+              Public profile caption on Mentor Connect — the short paragraph under the headline (see {mentor.id}).
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

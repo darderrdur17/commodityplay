@@ -66,6 +66,7 @@ interface MentorSegmentRow {
     id: string;
     years: number;
     headline: string;
+    bio: string;
     tags: string[];
     name: string | null;
     email: string | null;
@@ -595,6 +596,7 @@ export function AdminClient({
                               setSelectedMentor({
                                 id: m.id,
                                 headline: m.headline,
+                                bio: m.bio,
                                 years: m.years,
                                 tags: m.tags,
                                 name: m.name,
