@@ -54,6 +54,10 @@ ALTER TABLE "MentorQuestion" ADD COLUMN IF NOT EXISTS "answeredByEmail" TEXT;
 ALTER TABLE "MentorQuestion" ADD COLUMN IF NOT EXISTS "mentorReminderSentAt" TIMESTAMP(3);
 ALTER TABLE "MentorQuestion" ADD COLUMN IF NOT EXISTS "menteeNotifiedAt" TIMESTAMP(3);
 
+-- User mentor/customer separation (admin Mentors vs Customers tabs)
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "company" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "isMentor" BOOLEAN NOT NULL DEFAULT false;
+
 CREATE TABLE IF NOT EXISTS "DemoEmailLog" (
     "id" TEXT NOT NULL,
     "kind" TEXT NOT NULL,
