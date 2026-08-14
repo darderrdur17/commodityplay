@@ -14,6 +14,7 @@ interface LibraryFile {
   mimeType: string;
   delivery: "view-only" | "download";
   track: "career" | "sales" | "both";
+  accessTier: "free" | "elite";
 }
 
 function newFile(): LibraryFile {
@@ -25,6 +26,7 @@ function newFile(): LibraryFile {
     mimeType: "application/pdf",
     delivery: "view-only",
     track: "both",
+    accessTier: "elite",
   };
 }
 
@@ -40,7 +42,10 @@ export function LibraryEditor({
   requiredTier: string;
 }) {
   const raw = payload as { files?: LibraryFile[] } | null;
-  const files: LibraryFile[] = raw?.files ?? [];
+  const files: LibraryFile[] = (raw?.files ?? []).map((f) => ({
+    ...f,
+    accessTier: f.accessTier ?? "elite",
+  }));
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadMsg, setUploadMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -64,10 +69,11 @@ export function LibraryEditor({
   async function uploadFile(file: File, fileId: string, idx: number) {
     setUploading(fileId);
     setUploadMsg("");
+    const accessTier = files[idx].accessTier ?? "elite";
     const form = new FormData();
     form.append("file", file);
     form.append("moduleSlug", moduleSlug);
-    form.append("requiredTier", requiredTier);
+    form.append("requiredTier", accessTier === "free" ? "STARTER" : requiredTier);
     form.append("assetKey", `library/${fileId}`);
     const res = await fetch("/api/admin/content/assets", { method: "POST", body: form });
     if (res.ok) {
@@ -89,7 +95,7 @@ export function LibraryEditor({
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-fg">
-        Standalone Elite resources published at <strong>/library</strong>. For playbook chapter files, use Full Playbook → section attachments. For free starter downloads, use Starter Pack → Free Infographics.
+        Resources published at <strong>/library</strong>. Mark files as <strong>Free</strong> (any logged-in member) or <strong>Elite</strong> (Elite tier required). For playbook chapter files, use Full Playbook → section attachments.
       </p>
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-fg">{files.length} library files</p>
@@ -141,6 +147,25 @@ export function LibraryEditor({
                         )}
                       >
                         {opt === "view-only" ? "View Only" : "Download"}
+                      </button>
+                    ))}
+                  </div>
+                </EditorField>
+                <EditorField label="Access">
+                  <div className="inline-flex rounded-lg border border-border overflow-hidden text-xs font-semibold">
+                    {(["free", "elite"] as const).map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => patchFile(i, { ...f, accessTier: opt })}
+                        className={cn(
+                          "px-3 py-1.5 transition-colors",
+                          f.accessTier === opt
+                            ? "bg-primary-soft text-primary-400"
+                            : "bg-white text-muted-fg hover:bg-secondary/60"
+                        )}
+                      >
+                        {opt === "free" ? "Free" : "Elite"}
                       </button>
                     ))}
                   </div>

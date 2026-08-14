@@ -20,6 +20,8 @@ import { StarterPackEditor } from "./editors/starter-pack-editor";
 import { ResumeEditor } from "./editors/resume-editor";
 import { MentorConnectEditor } from "./editors/mentor-connect-editor";
 import { LibraryEditor } from "./editors/library-editor";
+import { FooterGuidesEditor } from "./editors/footer-guides-editor";
+import { SalesNavigationGuideEditor } from "./editors/sales-navigation-guide-editor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +45,7 @@ interface SidebarItem {
   label: string;
   track?: TrackLabel;
   tier?: string;
+  editorVariant?: "default" | "career-nav" | "sales-nav";
 }
 
 interface SidebarGroup {
@@ -66,6 +69,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     tier: "STARTER",
     items: [
       { slug: "starter-pack", label: "Free Infographics + Email Digest", track: "Both", tier: "STARTER" },
+      { slug: "footer-guides", label: "Footer Career & Sales Guides", track: "Both", tier: "STARTER" },
       { slug: "glossary", label: "Desk Glossary", track: "Both", tier: "STARTER" },
     ],
   },
@@ -75,7 +79,9 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { slug: "playbook", label: "Full Playbook", track: "Both", tier: "PRO" },
       { slug: "resume-templates", label: "Resume", track: "Career", tier: "PRO" },
-      { slug: "career-roadmap", label: "Career Roadmap + Nav Guide", track: "Career", tier: "PRO" },
+      { slug: "career-roadmap", label: "Career Roadmap", track: "Career", tier: "PRO" },
+      { slug: "career-roadmap", label: "Career Navigation Guide", track: "Career", tier: "PRO", editorVariant: "career-nav" },
+      { slug: "career-roadmap", label: "Sales Navigation Guide", track: "Sales", tier: "PRO", editorVariant: "sales-nav" },
       { slug: "interview-questions", label: "Interview Questions", track: "Career", tier: "PRO" },
       { slug: "knowledge-test", label: "Market Knowledge Test", track: "Both", tier: "PRO" },
     ],
@@ -128,12 +134,14 @@ function ModuleEditor({
   slug,
   label,
   track,
+  editorVariant = "default",
   modules,
   onRefresh,
 }: {
   slug: string;
   label: string;
   track?: TrackLabel;
+  editorVariant?: SidebarItem["editorVariant"];
   modules: ModuleRow[];
   onRefresh: () => void;
 }) {
@@ -189,7 +197,15 @@ function ModuleEditor({
       case "knowledge-test":
         return <KnowledgeTestEditor {...editorProps} />;
       case "career-roadmap":
-        return <CareerRoadmapEditor {...editorProps} />;
+        if (editorVariant === "sales-nav") {
+          return <SalesNavigationGuideEditor {...editorProps} />;
+        }
+        return (
+          <CareerRoadmapEditor
+            {...editorProps}
+            initialTab={editorVariant === "career-nav" ? "navguide" : "roles"}
+          />
+        );
       case "job-openings":
         return <JobOpeningsEditor {...editorProps} />;
       case "case-studies":
@@ -202,6 +218,8 @@ function ModuleEditor({
         return <MentorConnectEditor payload={payload} onChange={setPayload} />;
       case "library":
         return <LibraryEditor {...editorProps} />;
+      case "footer-guides":
+        return <FooterGuidesEditor payload={payload} onChange={setPayload} moduleSlug={slug} />;
       default:
         return (
           <div className="p-6 text-center text-muted-fg text-sm">
@@ -260,7 +278,7 @@ function SidebarGroupSection({
   group: SidebarGroup;
   modules: ModuleRow[];
   selectedKey: string | null;
-  onSelect: (key: string, slug: string, label: string, track?: TrackLabel) => void;
+  onSelect: (key: string, slug: string, label: string, track?: TrackLabel, editorVariant?: SidebarItem["editorVariant"]) => void;
 }) {
   const [open, setOpen] = useState(true);
   const tierColor = TIER_COLORS[group.tier] ?? "";
@@ -290,7 +308,7 @@ function SidebarGroupSection({
               <button
                 key={itemKey}
                 type="button"
-                onClick={() => onSelect(itemKey, item.slug, item.label, item.track)}
+                onClick={() => onSelect(itemKey, item.slug, item.label, item.track, item.editorVariant)}
                 className={cn(
                   "w-full text-left px-4 py-3 pl-9 hover:bg-secondary/60 transition-colors",
                   selectedKey === itemKey ? "bg-primary-soft" : ""
@@ -347,6 +365,7 @@ export function AdminContentTab({ initialTrack }: { initialTrack?: "career" | "s
     slug: string;
     label: string;
     track?: TrackLabel;
+    editorVariant?: SidebarItem["editorVariant"];
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -422,7 +441,7 @@ export function AdminContentTab({ initialTrack }: { initialTrack?: "career" | "s
               group={group}
               modules={modules}
               selectedKey={selected?.key ?? null}
-              onSelect={(key, slug, label, track) => setSelected({ key, slug, label, track })}
+              onSelect={(key, slug, label, track, editorVariant) => setSelected({ key, slug, label, track, editorVariant })}
             />
           ))}
           {modules.length === 0 && (
@@ -452,6 +471,7 @@ export function AdminContentTab({ initialTrack }: { initialTrack?: "career" | "s
             slug={selected.slug}
             label={selected.label}
             track={selected.track}
+            editorVariant={selected.editorVariant}
             modules={modules}
             onRefresh={loadModules}
           />

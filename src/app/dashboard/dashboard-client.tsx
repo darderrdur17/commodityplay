@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   BookOpen, Map, FileText, MessageSquare, BarChart3, Briefcase,
   Users, Lock, ArrowRight, TrendingUp, Award, ChevronRight, Star,
-  CheckCircle, Shield, ExternalLink,
+  CheckCircle, Shield, ExternalLink, Eye, Compass,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +14,15 @@ import { AnimatedProgress, Reveal, StaggerChildren, StaggerItem } from "@/compon
 import { PERSONA_LABELS, TIER_LABELS, hasAccess, formatCurrency } from "@/lib/utils";
 import { PRO_SUBSCRIPTION, ELITE_SUBSCRIPTION } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
+import { attachmentHref } from "@/lib/content/attachments";
+import type { NavigationGuideAttachment } from "@/lib/content/accessors";
 
 interface Props {
   contentTiers?: Record<string, string>;
+  navigationGuides?: {
+    career: NavigationGuideAttachment | null;
+    sales: NavigationGuideAttachment | null;
+  };
   user: {
     id: string;
     name: string | null;
@@ -135,10 +141,25 @@ const QUICK_LINKS = [
   { label: "Job Board Waitlist", href: "/waitlist", free: true },
 ];
 
-export function DashboardClient({ contentTiers = {}, user, stats, isAdmin: isAdminUser = false }: Props) {
+export function DashboardClient({
+  contentTiers = {},
+  navigationGuides = { career: null, sales: null },
+  user,
+  stats,
+  isAdmin: isAdminUser = false,
+}: Props) {
   const tierInfo = TIER_LABELS[user.tier] || TIER_LABELS.STARTER;
   const personaInfo = user.persona ? PERSONA_LABELS[user.persona] : null;
   const greeting = user.name?.split(" ")[0] || "there";
+  const isCareerTrack = user.track === "CAREER";
+  const showCareerNavGuide =
+    hasAccess(user.tier, "PRO") &&
+    navigationGuides.career?.assetId &&
+    (isAdminUser || isCareerTrack);
+  const showSalesNavGuide =
+    hasAccess(user.tier, "PRO") &&
+    navigationGuides.sales?.assetId &&
+    (isAdminUser || !isCareerTrack);
 
   return (
     <div className="page-container py-8 sm:py-10">
@@ -315,6 +336,66 @@ export function DashboardClient({ contentTiers = {}, user, stats, isAdmin: isAdm
                 </Link>
               ))}
             </div>
+          </div>
+        </Reveal>
+      )}
+
+      {/* ── PRO PACK NAVIGATION GUIDES ── */}
+      {(showCareerNavGuide || showSalesNavGuide) && (
+        <Reveal className="mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {showCareerNavGuide && navigationGuides.career && (
+              <div className="rounded-xl border border-primary-line bg-primary-soft p-5 sm:p-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary-400/10 flex items-center justify-center flex-shrink-0">
+                    <Compass className="w-5 h-5 text-primary-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <Badge variant="pro" size="sm" className="mb-2">Pro Pack</Badge>
+                    <h2 className="font-serif text-lg font-bold text-gray-900 mb-1">
+                      {navigationGuides.career.label}
+                    </h2>
+                    <p className="text-xs text-muted-fg mb-3 truncate">
+                      {navigationGuides.career.fileName}
+                    </p>
+                    <a
+                      href={attachmentHref(`/api/content/assets/${navigationGuides.career.assetId}`, "view-only")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-primary-400 hover:text-primary-800"
+                    >
+                      <Eye className="w-4 h-4" /> View guide
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+            {showSalesNavGuide && navigationGuides.sales && (
+              <div className="rounded-xl border border-primary-line bg-primary-soft p-5 sm:p-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary-400/10 flex items-center justify-center flex-shrink-0">
+                    <Compass className="w-5 h-5 text-primary-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <Badge variant="pro" size="sm" className="mb-2">Pro Pack</Badge>
+                    <h2 className="font-serif text-lg font-bold text-gray-900 mb-1">
+                      {navigationGuides.sales.label}
+                    </h2>
+                    <p className="text-xs text-muted-fg mb-3 truncate">
+                      {navigationGuides.sales.fileName}
+                    </p>
+                    <a
+                      href={attachmentHref(`/api/content/assets/${navigationGuides.sales.assetId}`, "view-only")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-primary-400 hover:text-primary-800"
+                    >
+                      <Eye className="w-4 h-4" /> View guide
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </Reveal>
       )}

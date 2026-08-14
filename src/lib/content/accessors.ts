@@ -124,12 +124,95 @@ export interface LibraryFilePublic {
   mimeType: string;
   delivery: "view-only" | "download";
   track: "career" | "sales" | "both";
+  /** "free" = any logged-in member; "elite" = Elite tier required (default for legacy rows) */
+  accessTier: "free" | "elite";
+}
+
+export interface FooterGuidePublic {
+  label: string;
+  fileName: string;
+  assetId: string;
+  mimeType: string;
+}
+
+export interface NavigationGuideAttachment {
+  label: string;
+  fileName: string;
+  assetId: string;
+  mimeType: string;
+}
+
+export async function getFooterGuides(): Promise<{
+  career: FooterGuidePublic | null;
+  sales: FooterGuidePublic | null;
+}> {
+  const data = await getPublishedPayload<{
+    careerGuide?: FooterGuidePublic | null;
+    salesGuide?: FooterGuidePublic | null;
+  }>("footer-guides");
+
+  function resolve(guide?: FooterGuidePublic | null): FooterGuidePublic | null {
+    if (!guide?.assetId || !guide.label) return null;
+    return guide;
+  }
+
+  return {
+    career: resolve(data.careerGuide),
+    sales: resolve(data.salesGuide),
+  };
+}
+
+export async function getNavigationGuides(): Promise<{
+  career: NavigationGuideAttachment | null;
+  sales: NavigationGuideAttachment | null;
+}> {
+  const data = await getPublishedPayload<{
+    careerNavigationGuide?: NavigationGuideAttachment | null;
+    salesNavigationGuide?: NavigationGuideAttachment | null;
+    navigationGuides?: {
+      id: string;
+      label: string;
+      fileName: string;
+      assetId: string;
+      track: "career" | "sales" | "both";
+    }[];
+  }>("career-roadmap");
+
+  function resolve(guide?: NavigationGuideAttachment | null): NavigationGuideAttachment | null {
+    if (!guide?.assetId || !guide.label) return null;
+    return guide;
+  }
+
+  // Prefer fixed fields; fall back to legacy navigationGuides array
+  let career = resolve(data.careerNavigationGuide);
+  let sales = resolve(data.salesNavigationGuide);
+
+  if (!career || !sales) {
+    for (const g of data.navigationGuides ?? []) {
+      if (!g.assetId || !g.label) continue;
+      const attachment: NavigationGuideAttachment = {
+        label: g.label,
+        fileName: g.fileName,
+        assetId: g.assetId,
+        mimeType: "application/pdf",
+      };
+      if (!career && (g.track === "career" || g.track === "both")) career = attachment;
+      if (!sales && (g.track === "sales" || g.track === "both")) sales = attachment;
+    }
+  }
+
+  return { career, sales };
 }
 
 export async function getLibraryContent(): Promise<{ files: LibraryFilePublic[] }> {
-  const data = await getPublishedPayload<{ files?: LibraryFilePublic[] }>("library");
+  const data = await getPublishedPayload<{ files?: (LibraryFilePublic & { accessTier?: "free" | "elite" })[] }>("library");
   return {
-    files: (data.files ?? []).filter((f) => f.assetId && f.label),
+    files: (data.files ?? [])
+      .filter((f) => f.assetId && f.label)
+      .map((f) => ({
+        ...f,
+        accessTier: f.accessTier ?? "elite",
+      })),
   };
 }
 

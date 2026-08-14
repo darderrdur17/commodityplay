@@ -18,18 +18,25 @@ export async function GET(
   const tier = mobileUser?.tier ?? session?.user?.tier;
   const role = mobileUser ? "USER" : session?.user?.role;
 
-  if (!tier) {
+  const mode = req.nextUrl.searchParams.get("mode");
+  const forceView = mode === "view";
+  const isPublicFooterGuide =
+    asset.moduleSlug === "footer-guides" && forceView;
+
+  if (!tier && !isPublicFooterGuide) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (role !== "ADMIN" && !hasAccess(tier, asset.requiredTier)) {
+  if (
+    tier &&
+    role !== "ADMIN" &&
+    !hasAccess(tier, asset.requiredTier)
+  ) {
     return NextResponse.json({ error: "Insufficient tier" }, { status: 403 });
   }
 
   const mimeType = resolveContentAssetMimeType(asset.fileName, asset.mimeType);
-  const mode = req.nextUrl.searchParams.get("mode");
   const forceDownload = mode === "download";
-  const forceView = mode === "view";
   const inline =
     forceView ||
     (!forceDownload && (mimeType.startsWith("image/") || mimeType === "application/pdf"));

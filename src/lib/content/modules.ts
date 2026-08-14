@@ -15,7 +15,8 @@ export type ContentSlug =
   | "starter-pack"
   | "mentor-connect"
   | "mentors"
-  | "library";
+  | "library"
+  | "footer-guides";
 
 export interface ContentModuleMeta {
   slug: ContentSlug;
@@ -106,8 +107,14 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
   {
     slug: "library",
     title: "Library Resources",
-    description: "Standalone Elite bonus downloads and view-only reference files",
+    description: "Elite bonus files and miscellaneous free resources in one library",
     requiredTier: "ELITE",
+  },
+  {
+    slug: "footer-guides",
+    title: "Footer Guides",
+    description: "Free view-only Career Guide and Sales Guide PDFs linked from the site footer",
+    requiredTier: "STARTER",
   },
   {
     slug: "mentors",

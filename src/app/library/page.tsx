@@ -10,7 +10,7 @@ export const revalidate = 0;
 
 export const metadata = {
   title: `Resource Library — ${BRAND_NAME}`,
-  description: "Elite bonus guides and reference materials.",
+  description: "Free and Elite library resources — guides, reference PDFs, and desk materials.",
 };
 
 export default async function LibraryPage() {
@@ -18,7 +18,7 @@ export default async function LibraryPage() {
   if (!session?.user) redirect("/login?callbackUrl=/library");
 
   const { files } = await getLibraryContent();
-  const hasLibraryAccess = hasAccess(session.user.tier ?? "STARTER", "ELITE");
+  const hasEliteAccess = hasAccess(session.user.tier ?? "STARTER", "ELITE");
 
-  return <LibraryClient files={files} hasAccess={hasLibraryAccess} />;
+  return <LibraryClient files={files} hasEliteAccess={hasEliteAccess} />;
 }

@@ -7,32 +7,71 @@ import { FooterNewsletter } from "@/components/footer-newsletter";
 import { ContactModal } from "@/components/landing/contact-modal";
 import { FOOTER_BOTTOM_SAFE_PADDING } from "@/lib/layout-constants";
 import { BRAND_NAME } from "@/lib/brand";
+import { attachmentHref } from "@/lib/content/attachments";
+import type { FooterGuidePublic } from "@/lib/content/accessors";
 
-const FOOTER_LINKS = {
-  Contents: [
+type FooterLink = {
+  label: string;
+  href: string;
+  external?: boolean;
+};
+
+function buildContentsLinks(guides: {
+  career: FooterGuidePublic | null;
+  sales: FooterGuidePublic | null;
+}): FooterLink[] {
+  const links: FooterLink[] = [
     { label: "Overview", href: "/" },
     { label: "Full Playbook", href: "/playbook" },
-    { label: "Career Guide", href: "/career-roadmap" },
-    { label: "Sales Guide", href: "/?track=sales" },
-  ],
-  Community: [
+  ];
+
+  if (guides.career?.assetId) {
+    links.push({
+      label: "Career Guide",
+      href: attachmentHref(`/api/content/assets/${guides.career.assetId}`, "view-only"),
+      external: true,
+    });
+  }
+
+  if (guides.sales?.assetId) {
+    links.push({
+      label: "Sales Guide",
+      href: attachmentHref(`/api/content/assets/${guides.sales.assetId}`, "view-only"),
+      external: true,
+    });
+  }
+
+  return links;
+}
+
+const COMMUNITY_LINKS: FooterLink[] = [
     { label: "Mentor Connect", href: "/mentor-connect" },
     { label: "Desk Channel", href: "/desk-channel" },
     { label: "Weekly Note", href: "/starter-pack" },
-    { label: "Job Board Waitlist", href: "/waitlist" },
-    { label: "FAQ", href: "/faq" },
-  ],
-  Access: [
-    { label: "Resource Library", href: "/library" },
-    { label: "Team Licenses", href: "mailto:hello@commodityplaybook.com" },
-    { label: "Sign Up", href: "/signup" },
-    { label: "Login", href: "/login" },
-    { label: "Contact Us", href: "#contact" },
-  ],
-} as const;
+  { label: "Job Board Waitlist", href: "/waitlist" },
+  { label: "FAQ", href: "/faq" },
+];
 
-export function Footer() {
+const ACCESS_LINKS: FooterLink[] = [
+  { label: "Resource Library", href: "/library" },
+  { label: "Team Licenses", href: "mailto:hello@commodityplaybook.com" },
+  { label: "Sign Up", href: "/signup" },
+  { label: "Login", href: "/login" },
+  { label: "Contact Us", href: "#contact" },
+];
+
+export function Footer({
+  footerGuides = { career: null, sales: null },
+}: {
+  footerGuides?: { career: FooterGuidePublic | null; sales: FooterGuidePublic | null };
+}) {
   const [contactOpen, setContactOpen] = useState(false);
+
+  const footerLinks = {
+    Contents: buildContentsLinks(footerGuides),
+    Community: COMMUNITY_LINKS,
+    Access: ACCESS_LINKS,
+  };
 
   return (
     <footer className="bg-[#0a0f1a] text-white border-t border-white/10 pt-16">
@@ -46,7 +85,7 @@ export function Footer() {
             </p>
           </div>
 
-          {Object.entries(FOOTER_LINKS).map(([section, links]) => (
+          {Object.entries(footerLinks).map(([section, links]) => (
             <div key={section}>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-400 mb-5 mt-1.5">
                 {section}
@@ -65,6 +104,15 @@ export function Footer() {
                     ) : link.href.startsWith("mailto:") ? (
                       <a
                         href={link.href}
+                        className="block py-2.5 text-sm font-medium text-white/70 hover:text-white transition-colors"
+                      >
+                        {link.label}
+                      </a>
+                    ) : link.external ? (
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="block py-2.5 text-sm font-medium text-white/70 hover:text-white transition-colors"
                       >
                         {link.label}

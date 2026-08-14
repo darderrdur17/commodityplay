@@ -74,6 +74,8 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
       return { categories: [] };
     case "library":
       return { files: [] };
+    case "footer-guides":
+      return { careerGuide: null, salesGuide: null };
     case "mentors":
       return { overrides: [] };
     default:
@@ -97,6 +99,7 @@ export function getAllDefaultPayloads(): Record<ContentSlug, unknown> {
     "starter-pack": getDefaultPayload("starter-pack"),
     "mentor-connect": getDefaultPayload("mentor-connect"),
     "library": getDefaultPayload("library"),
+    "footer-guides": getDefaultPayload("footer-guides"),
     "mentors": getDefaultPayload("mentors"),
   };
 }

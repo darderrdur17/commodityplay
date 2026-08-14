@@ -5,7 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
-import { NavigationGuideEditor } from "./navigation-guide-editor";
+import { SingleGuideUpload, type GuideAttachment } from "./single-guide-upload";
 
 type RoleCategory = "front" | "ops" | "middle" | "adjacent";
 
@@ -49,6 +49,7 @@ function newRole(id: number): CareerRole {
 
 type RoadmapPayload = {
   roles?: CareerRole[];
+  careerNavigationGuide?: GuideAttachment | null;
   navigationGuides?: { id: string; label: string; fileName: string; assetId: string; track: "career" | "sales" | "both"; updatedAt: string }[];
   [key: string]: unknown;
 };
@@ -58,13 +59,15 @@ export function CareerRoadmapEditor({
   onChange,
   moduleSlug,
   requiredTier,
+  initialTab = "roles",
 }: {
   payload: unknown;
   onChange: (p: unknown) => void;
   moduleSlug: string;
   requiredTier: string;
+  initialTab?: "roles" | "navguide";
 }) {
-  const [activeTab, setActiveTab] = useState<"roles" | "navguide">("roles");
+  const [activeTab, setActiveTab] = useState<"roles" | "navguide">(initialTab);
 
   // Support both legacy array payload and object payload
   const isLegacyArray = Array.isArray(payload);
@@ -106,18 +109,26 @@ export function CareerRoadmapEditor({
               activeTab === tab ? "bg-primary-soft text-primary-400" : "text-muted-fg hover:bg-secondary/60"
             )}
           >
-            {tab === "navguide" ? "Navigation Guide" : "Roles"}
+            {tab === "navguide" ? "Career Navigation Guide" : "Roles"}
           </button>
         ))}
       </div>
 
       {activeTab === "navguide" && (
-        <NavigationGuideEditor
-          guides={raw.navigationGuides ?? []}
-          onChange={(g) => updateRaw({ navigationGuides: g })}
-          moduleSlug={moduleSlug}
-          requiredTier={requiredTier}
-        />
+        <div className="space-y-4">
+          <p className="text-xs text-muted-fg">
+            Pro Pack deliverable shown on the member dashboard for <strong>Career track</strong> Pro
+            and Elite members. View-only PDF — not the same as the free footer Career Guide.
+          </p>
+          <SingleGuideUpload
+            guide={raw.careerNavigationGuide ?? null}
+            onChange={(g) => updateRaw({ careerNavigationGuide: g })}
+            moduleSlug={moduleSlug}
+            requiredTier={requiredTier}
+            assetKey="career-roadmap/career-navigation-guide"
+            defaultLabel="Career Navigation Guide"
+          />
+        </div>
       )}
 
       {activeTab === "roles" && <>
