@@ -192,7 +192,7 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
       "Career Navigation Guide — move across the industry with confidence",
     ],
     cta: "Get Pro",
-    href: "/pricing",
+    href: "/?track=career#plan-pro",
   },
   {
     name: "Elite",
@@ -210,7 +210,7 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
       "Market Job Openings Tracker (tailored to persona)",
     ],
     cta: "Get Elite",
-    href: "/pricing",
+    href: "/?track=career#plan-elite",
   },
 ];
 

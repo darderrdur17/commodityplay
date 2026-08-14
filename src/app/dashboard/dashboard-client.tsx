@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { AnimatedProgress, Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
 import { PERSONA_LABELS, TIER_LABELS, hasAccess, formatCurrency } from "@/lib/utils";
 import { PRO_SUBSCRIPTION, ELITE_SUBSCRIPTION } from "@/data/pricing-shared";
+import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 
 interface Props {
   contentTiers?: Record<string, string>;
@@ -151,7 +152,7 @@ export function DashboardClient({ contentTiers = {}, user, stats }: Props) {
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
             {user.tier !== "ELITE" && (
-              <Link href="/pricing" className="w-full sm:w-auto">
+              <Link href={user.tier === "STARTER" ? CAREER_PLAN_HREF("pro") : CAREER_PLAN_HREF("elite")} className="w-full sm:w-auto">
                 <Button size="sm" variant="outline" className="w-full sm:w-auto">
                   <Star className="w-3.5 h-3.5" />
                   Upgrade to {user.tier === "STARTER" ? "Pro" : "Elite"}
@@ -287,7 +288,7 @@ export function DashboardClient({ contentTiers = {}, user, stats }: Props) {
         <Reveal className="flex items-center justify-between mb-5">
           <h2 className="font-serif text-xl font-bold text-gray-900">Your Content</h2>
           {!hasAccess(user.tier, "PRO") && (
-            <Link href="/pricing">
+            <Link href={CAREER_PLAN_HREF("pro")}>
               <Button size="sm" variant="default">{PRO_SUBSCRIPTION.unlockCta}</Button>
             </Link>
           )}
@@ -349,7 +350,7 @@ export function DashboardClient({ contentTiers = {}, user, stats }: Props) {
                         Open <ChevronRight className="w-3.5 h-3.5" />
                       </Link>
                     ) : (
-                      <Link href="/pricing" className="text-xs text-muted-fg hover:text-primary-400 flex items-center gap-0.5">
+                      <Link href={CAREER_PLAN_HREF("pro")} className="text-xs text-muted-fg hover:text-primary-400 flex items-center gap-0.5">
                         Unlock <Lock className="w-3 h-3" />
                       </Link>
                     )}
@@ -382,7 +383,7 @@ export function DashboardClient({ contentTiers = {}, user, stats }: Props) {
                     : ELITE_SUBSCRIPTION.fullNote}
                 </p>
               </div>
-              <Link href="/pricing" className="flex-shrink-0 w-full sm:w-auto">
+              <Link href={user.tier === "STARTER" ? CAREER_PLAN_HREF("pro") : CAREER_PLAN_HREF("elite")} className="flex-shrink-0 w-full sm:w-auto">
                 <Button size="lg" variant="primary-dark" className="whitespace-nowrap w-full sm:w-auto">
                   {user.tier === "STARTER" ? "Get Pro" : "Get Elite"}
                   <ArrowRight className="w-4 h-4" />

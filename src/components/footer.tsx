@@ -20,9 +20,9 @@ const FOOTER_LINKS = {
     { label: "Desk Channel", href: "/desk-channel" },
     { label: "Weekly Note", href: "/starter-pack" },
     { label: "Job Board Waitlist", href: "/waitlist" },
+    { label: "FAQ", href: "/faq" },
   ],
   Access: [
-    { label: "Pricing", href: "/pricing" },
     { label: "Team Licenses", href: "mailto:hello@commodityplaybook.com" },
     { label: "Sign Up", href: "/signup" },
     { label: "Login", href: "/login" },

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/animations";
 import { TIER_LABELS, PERSONA_LABELS, formatDate } from "@/lib/utils";
+import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 import { User, Mail, CreditCard, Sparkles, ArrowRight } from "lucide-react";
 
 export const metadata = { title: "Account" };
@@ -79,7 +80,7 @@ export default async function AccountPage() {
                 ? "Unlock the full playbook, resume templates, and career roadmap."
                 : "Get Desk Channel, Mentor Connect, and job openings."}
             </p>
-            <Link href="/pricing">
+            <Link href={user.tier === "STARTER" ? CAREER_PLAN_HREF("pro") : CAREER_PLAN_HREF("elite")}>
               <Button variant="primary-dark" size="sm">
                 View Plans <ArrowRight className="w-4 h-4" />
               </Button>

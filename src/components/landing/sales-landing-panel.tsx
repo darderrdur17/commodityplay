@@ -22,6 +22,7 @@ import {
 } from "@/lib/layout-constants";
 import type { LandingContent } from "@/data/landing-content";
 import { SALES_MARKET_NOTE } from "@/data/market-notes";
+import { SALES_PRICING_HREF } from "@/lib/pricing-routes";
 
 const SALES_COLOR = "#0F766E";
 
@@ -197,9 +198,9 @@ export function SalesLandingPanel({ content, membersStrip, onOpenContactModal }:
     try {
       const url = await startCheckout(plan);
       if (url) window.location.href = url;
-      else router.push("/pricing");
+      else router.push(SALES_PRICING_HREF);
     } catch {
-      router.push("/pricing");
+      router.push(SALES_PRICING_HREF);
     } finally {
       setLoadingPlan(null);
     }
@@ -372,7 +373,7 @@ export function SalesLandingPanel({ content, membersStrip, onOpenContactModal }:
       </section>
 
       {/* Sales pricing — Pro & Elite only */}
-      <section className="py-16 sm:py-24 page-container">
+      <section id="pricing" className="py-16 sm:py-24 page-container scroll-mt-24">
         <Reveal className="text-center mb-12">
           <SectionCategoryLabel colorClass="text-teal-700">Pricing</SectionCategoryLabel>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">Built for Sales Professionals.</h2>
@@ -381,7 +382,8 @@ export function SalesLandingPanel({ content, membersStrip, onOpenContactModal }:
           {content.pricing.map((tier, i) => (
             <Reveal key={tier.name} delay={i * 0.1}>
               <div
-                className={`rounded-2xl h-full flex flex-col ${
+                id={`plan-${tier.name.toLowerCase()}`}
+                className={`rounded-2xl h-full flex flex-col scroll-mt-24 ${
                   tier.featured
                     ? "bg-teal-900 text-white border-2 border-teal-500 shadow-xl"
                     : "bg-white border border-border"

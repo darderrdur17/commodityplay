@@ -7,18 +7,20 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
+
 const TIER_UPGRADE = {
   STARTER: {
     label: "Pro",
     price: "SGD 59/mo",
-    href: "/pricing",
+    href: CAREER_PLAN_HREF("pro"),
     color: "#3280ff",
     description: "Unlock the full playbook, resume templates, career roadmap, and more.",
   },
   PRO: {
     label: "Elite",
     price: "SGD 99/mo",
-    href: "/pricing",
+    href: CAREER_PLAN_HREF("elite"),
     color: "#B45309",
     description: "Unlock case studies, the Desk Channel, Mentor Connect, and job openings.",
   },

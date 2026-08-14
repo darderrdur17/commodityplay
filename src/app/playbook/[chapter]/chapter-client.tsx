@@ -13,6 +13,7 @@ import { AnimatedProgress } from "@/components/animations";
 import { CHAPTERS, type PlaybookSection } from "@/data/playbook";
 import { getSectionAssets, type SectionAsset } from "@/data/playbook-assets";
 import { PRO_SUBSCRIPTION } from "@/data/pricing-shared";
+import { CAREER_PRICING_HREF } from "@/lib/pricing-routes";
 
 interface Props {
   chapter: (typeof CHAPTERS)[number];
@@ -319,7 +320,7 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
                 <Link href="/signup?plan=pro">
                   <Button size="lg">{PRO_SUBSCRIPTION.cta} →</Button>
                 </Link>
-                <Link href="/pricing">
+                <Link href={CAREER_PRICING_HREF}>
                   <Button size="lg" variant="outline">Compare tiers</Button>
                 </Link>
               </div>

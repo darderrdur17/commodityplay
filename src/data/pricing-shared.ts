@@ -36,7 +36,7 @@ export const SALES_ELITE_SUBSCRIPTION = {
   cta: "Get Elite",
 } as const;
 
-/** Shared pricing copy — landing page and /pricing stay in sync */
+/** Shared pricing copy — career and sales landing pages stay in sync */
 export const PRICING_HERO = {
   eyebrow: "Simple Pricing",
   title: "Simple pricing",

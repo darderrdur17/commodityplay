@@ -17,7 +17,7 @@ const PERSONA_INFO: Record<string, { label: string; color: string; emoji: string
 };
 
 const MENU_ITEMS = [
-  { label: "Pricing & Plans", icon: "💳", href: "/pricing" },
+  { label: "Pricing & Plans", icon: "💳", href: "/?track=career#pricing" },
   { label: "Desk Glossary", icon: "📖", href: "/glossary" },
   { label: "Full Playbook", icon: "📚", href: "/playbook" },
   { label: "Career Roadmap", icon: "🗺️", href: "/career-roadmap" },

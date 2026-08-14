@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { BookOpen, Clock, ChevronRight, Lock, CheckCircle } from "lucide-react";
 import { CHAPTERS } from "@/data/playbook";
 import { PRO_SUBSCRIPTION } from "@/data/pricing-shared";
+import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 
 type Chapter = (typeof CHAPTERS)[number];
 import { Badge } from "@/components/ui/badge";
@@ -159,7 +160,7 @@ export function PlaybookHubClient({
                         </Button>
                       </Link>
                     ) : (
-                      <Link href="/pricing">
+                      <Link href={CAREER_PLAN_HREF("pro")}>
                         <Button size="sm">
                           Unlock Pro
                         </Button>

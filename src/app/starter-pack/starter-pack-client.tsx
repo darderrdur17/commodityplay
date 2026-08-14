@@ -16,6 +16,7 @@ import {
 import { StarterPackModal } from "@/components/landing/starter-pack-modal";
 import { startCheckout } from "@/lib/start-checkout";
 import { PAGE_HERO_TOP, PAGE_HERO_BOTTOM, PAGE_CTA_PY } from "@/lib/layout-constants";
+import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 
 export function StarterPackClient({
   assetUrls = {},
@@ -31,16 +32,16 @@ export function StarterPackClient({
 
   async function handleUpgradePro() {
     if (!session?.user) {
-      router.push("/signup?plan=pro&callbackUrl=/pricing");
+      router.push(`/signup?plan=pro&callbackUrl=${encodeURIComponent(CAREER_PLAN_HREF("pro"))}`);
       return;
     }
     setLoadingPro(true);
     try {
       const url = await startCheckout("pro");
       if (url) window.location.href = url;
-      else router.push("/pricing");
+      else router.push(CAREER_PLAN_HREF("pro"));
     } catch {
-      router.push("/pricing");
+      router.push(CAREER_PLAN_HREF("pro"));
     } finally {
       setLoadingPro(false);
     }

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/animations";
 import { PRICING_CONTENT_FOOTNOTE } from "@/data/pricing-shared";
+import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 import type { LandingTier } from "@/data/landing-content";
 
 interface Props {
@@ -168,7 +169,7 @@ function TierCard({
             <ArrowRight className="w-4 h-4" />
           </Button>
         ) : isPaid ? (
-          <Link href={`/pricing?plan=${tier.name.toLowerCase()}`} className="block">
+          <Link href={CAREER_PLAN_HREF(tier.name.toLowerCase() as "pro" | "elite")} className="block">
             <Button
               className="w-full"
               variant={tier.highlight ? "default" : "primary-dark"}
@@ -197,7 +198,8 @@ function TierCard({
   if (isLanding) {
     return (
       <div
-        className={`relative rounded-2xl h-full flex flex-col group/tier ${
+        id={planId}
+        className={`relative rounded-2xl h-full flex flex-col group/tier scroll-mt-24 ${
           tier.highlight
             ? "bg-white text-gray-900 border-2 border-primary-400 shadow-2xl"
             : "bg-white/10 backdrop-blur-sm border border-white/20 text-white"

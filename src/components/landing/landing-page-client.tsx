@@ -94,6 +94,17 @@ export function LandingPageClient({ content = DEFAULT_LANDING_CONTENT }: Props) 
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(hash);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (hash === "pricing") setShowFeatureComparison(true);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [activeTrack]);
+
   const career = resolveCareerContent(DEFAULT_LANDING_CONTENT, content.career);
   const tierColors: Record<string, string> = { Pro: "#3280ff", Elite: "#B45309" };
   // Repo-managed section copy always comes from code defaults (stale CMS cannot win).
@@ -250,7 +261,7 @@ export function LandingPageClient({ content = DEFAULT_LANDING_CONTENT }: Props) 
           <CaseStudiesSection content={caseStudySample} />
 
           {/* Pricing */}
-          <section className={`bg-primary-800 section-dark ${PAGE_SECTION_PY} relative overflow-hidden`}>
+          <section id="pricing" className={`bg-primary-800 section-dark ${PAGE_SECTION_PY} relative overflow-hidden scroll-mt-24`}>
             <GradientOrbs />
             <div className="relative z-10 page-container">
               <Reveal className="text-center mb-12 sm:mb-14">
@@ -328,11 +339,6 @@ export function LandingPageClient({ content = DEFAULT_LANDING_CONTENT }: Props) 
                         </React.Fragment>
                       ))}
                     </div>
-                  </div>
-                  <div className="text-center mt-6">
-                    <Link href="/pricing" className="inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors">
-                      View on the full pricing page <ChevronRight className="w-4 h-4" />
-                    </Link>
                   </div>
                 </Reveal>
               )}

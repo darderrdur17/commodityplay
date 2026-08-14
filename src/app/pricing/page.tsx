@@ -1,15 +1,10 @@
-import { getLandingContent } from "@/lib/content/accessors";
-import { PricingPageClient } from "./pricing-page-client";
+import { PricingRedirect } from "./pricing-redirect";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const metadata = {
+  title: "Pricing",
+  robots: { index: false, follow: true },
+};
 
-export default async function PricingPage() {
-  const content = await getLandingContent();
-  return (
-    <PricingPageClient
-      tiers={content.pricing.tiers}
-      comparisonGroups={content.pricing.comparison.groups}
-    />
-  );
+export default function PricingPage() {
+  return <PricingRedirect />;
 }
