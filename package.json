@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "npm run build:content && prisma generate && npm run sync:cms && next build",
+    "build": "npm run build:content && prisma generate && npm run sync:cms && next build --webpack",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "tsc --noEmit",
