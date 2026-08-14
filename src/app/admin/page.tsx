@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { AdminClient } from "./admin-client";
 
-export const metadata = { title: "Admin Dashboard" };
+export const metadata = { title: "Admin Panel" };
 export const dynamic = "force-dynamic";
 
 interface AdminPageProps {

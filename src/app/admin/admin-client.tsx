@@ -240,20 +240,20 @@ export function AdminClient({
 
   return (
     <div className="min-h-screen bg-secondary">
-      <div className="bg-gray-900 text-white">
+      <div className="bg-primary-800 text-white">
         <div className="page-container py-6 sm:py-8">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-4 transition-colors">
+              <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white mb-4 transition-colors">
                 <ArrowLeft className="w-4 h-4" /> Member Dashboard
               </Link>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-red-400" />
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="font-serif text-2xl font-bold">Admin Dashboard</h1>
-                  <p className="text-gray-400 text-sm">Signed in as {adminName}</p>
+                  <h1 className="font-serif text-2xl font-bold">Admin Panel</h1>
+                  <p className="text-white/70 text-sm">Signed in as {adminName}</p>
                 </div>
               </div>
             </div>
