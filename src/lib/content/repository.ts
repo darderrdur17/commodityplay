@@ -4,7 +4,6 @@ import { CONTENT_MODULE_META, getModuleMeta, type ContentSlug } from "./modules"
 import { GLOSSARY_TERMS } from "@/data/glossary";
 import { getDefaultPayload, getAllDefaultPayloads } from "./defaults";
 import { deepMerge } from "./merge";
-import type { LandingContent } from "@/data/landing-content";
 import { applyCmsSchemaSql } from "@/lib/setup-database";
 
 const MAX_REVISIONS = 20;
