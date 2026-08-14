@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FeatureComparisonTable, LandingContent } from "@/data/landing-content";
@@ -55,7 +55,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 const inputClass =
   "w-full h-9 px-3 rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary-400";
 const textareaClass =
-  "w-full min-h-[72px] px-3 py-2 rounded-lg border border-border text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-400 resize-y";
+  "w-full min-h-[72px] px-3 py-2 rounded-lg border border-border text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-400 resize-y whitespace-pre-wrap break-words";
 
 function TextInput({
   value,
@@ -95,11 +95,34 @@ function FeaturesList({
   value: string[];
   onChange: (value: string[]) => void;
 }) {
+  const [text, setText] = useState(() => value.join("\n"));
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!focusedRef.current) {
+      setText(value.join("\n"));
+    }
+  }, [value]);
+
   return (
     <textarea
-      value={value.join("\n")}
-      onChange={(e) => onChange(e.target.value.split("\n"))}
-      onBlur={(e) => onChange(normalizeFeatureLines(e.target.value))}
+      value={text}
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
+      onChange={(e) => {
+        const next = e.target.value;
+        setText(next);
+        // Keep parent in sync for Save without blur; raw lines only (no trim while typing).
+        onChange(next.split("\n"));
+      }}
+      onBlur={(e) => {
+        focusedRef.current = false;
+        const normalized = normalizeFeatureLines(e.target.value);
+        const joined = normalized.join("\n");
+        setText(joined);
+        onChange(normalized);
+      }}
       rows={6}
       className={textareaClass}
       placeholder="One feature per line"
