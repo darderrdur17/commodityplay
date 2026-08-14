@@ -296,6 +296,14 @@ export function Nav() {
                   >
                     My Progress
                   </Link>
+                  {isAdmin(user?.role) && (
+                    <Link
+                      href="/admin"
+                      className="px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 min-h-[44px] flex items-center"
+                    >
+                      Admin Panel
+                    </Link>
+                  )}
                   <button
                     type="button"
                     onClick={() => signOut({ callbackUrl: "/" })}

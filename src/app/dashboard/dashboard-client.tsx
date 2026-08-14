@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   BookOpen, Map, FileText, MessageSquare, BarChart3, Briefcase,
   Users, Lock, ArrowRight, TrendingUp, Award, ChevronRight, Star,
-  CheckCircle
+  CheckCircle, Shield, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ interface Props {
     progressPct: number;
     mentorQuestions: number;
   };
+  isAdmin?: boolean;
 }
 
 const CONTENT_CARDS = [
@@ -134,7 +135,7 @@ const QUICK_LINKS = [
   { label: "Job Board Waitlist", href: "/waitlist", free: true },
 ];
 
-export function DashboardClient({ contentTiers = {}, user, stats }: Props) {
+export function DashboardClient({ contentTiers = {}, user, stats, isAdmin: isAdminUser = false }: Props) {
   const tierInfo = TIER_LABELS[user.tier] || TIER_LABELS.STARTER;
   const personaInfo = user.persona ? PERSONA_LABELS[user.persona] : null;
   const greeting = user.name?.split(" ")[0] || "there";
@@ -166,12 +167,47 @@ export function DashboardClient({ contentTiers = {}, user, stats }: Props) {
         </div>
       </Reveal>
 
+      {isAdminUser && (
+        <Reveal className="mb-8">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
+            <div className="flex items-start gap-3 mb-3">
+              <Shield className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-amber-800 mb-1">
+                  Admin · member preview
+                </p>
+                <p className="text-sm text-amber-950/80 leading-relaxed">
+                  This is what members see on their dashboard. Jump back to Admin Panel anytime, or preview each track&apos;s landing page below.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 pl-8">
+              <Link href="/admin">
+                <Button size="sm" variant="outline" className="bg-white border-amber-200 hover:bg-amber-100/50">
+                  Admin Panel
+                </Button>
+              </Link>
+              <Link href="/?track=career">
+                <Button size="sm" variant="outline" className="bg-white border-amber-200 hover:bg-amber-100/50">
+                  Preview Career track <ExternalLink className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
+              <Link href="/?track=sales">
+                <Button size="sm" variant="outline" className="bg-white border-amber-200 hover:bg-amber-100/50">
+                  Preview Sales track <ExternalLink className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </Reveal>
+      )}
+
       {/* ── STAT CARDS ── */}
       <StaggerChildren className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         {[
           {
-            label: "Track",
-            value: user.track === "CAREER" ? "Career" : "Sales",
+            label: isAdminUser ? "Track preview" : "Track",
+            value: isAdminUser ? "Career & Sales" : user.track === "CAREER" ? "Career" : "Sales",
             icon: TrendingUp,
             color: "#3280ff",
           },

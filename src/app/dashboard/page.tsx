@@ -52,6 +52,7 @@ export default async function DashboardPage() {
         progressPct,
         mentorQuestions: user.mentorQuestions.length,
       }}
+      isAdmin={session.user.role === "ADMIN"}
     />
   );
 }
