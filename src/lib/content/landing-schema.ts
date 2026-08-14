@@ -161,6 +161,26 @@ export const landingContentSchema = z.object({
     label: z.string().min(1),
     companies: z.array(z.string().min(1)).min(1),
   }),
+  testimonials: z.object({
+    eyebrow: z.string().min(1).optional(),
+    title: z.string().min(1),
+    items: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          quote: z.string().min(1),
+          name: z.string().min(1),
+          role: z.string().min(1),
+          avatarLetter: z.string().min(1).optional(),
+          avatarColor: z.string().min(1).optional(),
+        })
+      )
+      .min(1),
+  }),
+  mentorConnect: z.object({
+    eyebrow: z.string().min(1),
+    title: z.string().min(1),
+  }),
   footerTagline: z.string().min(1),
 });
 

@@ -120,6 +120,29 @@ export function resolveComparisonGroups(
   return cmsGroups && cmsGroups.length > 0 ? cmsGroups : defaultGroups;
 }
 
+/** Career landing testimonials — fully CMS-editable (not code-locked). */
+export function resolveTestimonials(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["testimonials"]>
+): LandingContent["testimonials"] {
+  return {
+    eyebrow: cms?.eyebrow ?? defaults.testimonials.eyebrow,
+    title: cms?.title || defaults.testimonials.title,
+    items: cms?.items?.length ? cms.items : defaults.testimonials.items,
+  };
+}
+
+/** Mentor Connect hero copy — fully CMS-editable (not code-locked). */
+export function resolveMentorConnect(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["mentorConnect"]>
+): LandingContent["mentorConnect"] {
+  return {
+    eyebrow: cms?.eyebrow || defaults.mentorConnect.eyebrow,
+    title: cms?.title || defaults.mentorConnect.title,
+  };
+}
+
 /** Career track pricing — CMS edits (price, tiers, feature comparison) apply; code fills any missing tiers. */
 export function resolvePricing(
   defaults: LandingContent,
@@ -339,6 +362,8 @@ export function mergeLandingContent(
   merged.groundLevelView = resolveGroundLevelView(defaults, cms.groundLevelView);
 
   merged.pricing = resolvePricing(defaults, cms.pricing);
+  merged.testimonials = resolveTestimonials(defaults, cms.testimonials);
+  merged.mentorConnect = resolveMentorConnect(defaults, cms.mentorConnect);
 
   if (cms.sales?.whoCards?.length) {
     merged.sales = {

@@ -43,6 +43,7 @@ import {
   resolveCareerContent,
   resolvePricing,
   resolveSalesContent,
+  resolveTestimonials,
   resolveWhatsInside,
 } from "@/lib/content/merge";
 import { CAREER_MARKET_NOTE } from "@/data/market-notes";
@@ -52,27 +53,6 @@ type Track = "career" | "sales";
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   BookOpen, Target, Map, FileText, MessageSquare, Users,
 };
-
-const TESTIMONIALS = [
-  {
-    quote: "I landed my first commodity analyst role 6 weeks after going through the Pro pack. The interview question bank was exactly what I needed.",
-    name: "Priya M.",
-    role: "Commodity Analyst, Singapore",
-    personaColor: "#0F766E",
-  },
-  {
-    quote: "The Playbook gave me the commodity context I was missing — I finally understood the trade, not just the financing.",
-    name: "James K.",
-    role: "Commodity Trade Finance, London",
-    personaColor: "#9A3412",
-  },
-  {
-    quote: "The Career Roadmap was the clearest articulation of progression paths I've ever seen. Immediately shared it with my team.",
-    name: "Sarah T.",
-    role: "Senior Trader, Geneva",
-    personaColor: "#5B21B6",
-  },
-];
 
 interface Props {
   content?: LandingContent;
@@ -112,6 +92,7 @@ export function LandingPageClient({ content = DEFAULT_LANDING_CONTENT }: Props) 
   const chapterCoverage = resolveChapterCoverage(DEFAULT_LANDING_CONTENT, content.chapterCoverage);
   const caseStudySample = resolveCaseStudySample(DEFAULT_LANDING_CONTENT, content.caseStudySample);
   const pricing = resolvePricing(DEFAULT_LANDING_CONTENT, content.pricing);
+  const testimonials = resolveTestimonials(DEFAULT_LANDING_CONTENT, content.testimonials);
   const sales = resolveSalesContent(DEFAULT_LANDING_CONTENT, content.sales);
 
   return (
@@ -348,23 +329,30 @@ export function LandingPageClient({ content = DEFAULT_LANDING_CONTENT }: Props) 
           {/* Testimonials */}
           <section className="py-16 sm:py-24 page-container">
             <Reveal className="text-center mb-14">
-              <div className="flex items-center justify-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />
-                ))}
-              </div>
+              {testimonials.eyebrow ? (
+                <SectionCategoryLabel>{testimonials.eyebrow}</SectionCategoryLabel>
+              ) : (
+                <div className="flex items-center justify-center gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />
+                  ))}
+                </div>
+              )}
               <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-bold tracking-tight text-gray-900">
-                Used by practitioners who mean it.
+                {testimonials.title}
               </h2>
             </Reveal>
             <StaggerChildren className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-              {TESTIMONIALS.map((t) => (
-                <StaggerItem key={t.name} className="h-full">
+              {testimonials.items.map((t) => (
+                <StaggerItem key={t.id} className="h-full">
                   <div className="card-hover rounded-xl border border-border bg-white p-6 h-full flex flex-col gap-4">
                     <p className="text-gray-700 text-sm leading-relaxed flex-1 italic">&ldquo;{t.quote}&rdquo;</p>
                     <div className="flex items-center gap-3 pt-2 border-t border-border">
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: t.personaColor }}>
-                        {t.name[0]}
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                        style={{ background: t.avatarColor ?? "#3280ff" }}
+                      >
+                        {t.avatarLetter ?? t.name[0]}
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-gray-800">{t.name}</p>

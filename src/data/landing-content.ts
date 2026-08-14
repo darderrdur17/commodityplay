@@ -76,6 +76,26 @@ export interface FeatureComparisonTable {
   groups: FeatureComparisonGroup[];
 }
 
+export interface LandingTestimonial {
+  id: string;
+  quote: string;
+  name: string;
+  role: string;
+  avatarLetter?: string;
+  avatarColor?: string;
+}
+
+export interface LandingTestimonials {
+  eyebrow?: string;
+  title: string;
+  items: LandingTestimonial[];
+}
+
+export interface LandingMentorConnect {
+  eyebrow: string;
+  title: string;
+}
+
 export interface LandingContent {
   career: {
     eyebrow: string;
@@ -149,6 +169,8 @@ export interface LandingContent {
     label: string;
     companies: string[];
   };
+  testimonials: LandingTestimonials;
+  mentorConnect: LandingMentorConnect;
   footerTagline: string;
 }
 
@@ -491,6 +513,39 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
   membersStrip: {
     label: "Trusted professional moving to",
     companies: ["Vitol", "Glencore", "S&P Global", "Bloomberg", "Shell"],
+  },
+  testimonials: {
+    title: "Used by practitioners who mean it.",
+    items: [
+      {
+        id: "priya-m",
+        quote:
+          "I landed my first commodity analyst role 6 weeks after going through the Pro pack. The interview question bank was exactly what I needed.",
+        name: "Priya M.",
+        role: "Commodity Analyst, Singapore",
+        avatarColor: "#0F766E",
+      },
+      {
+        id: "james-k",
+        quote:
+          "The Playbook gave me the commodity context I was missing — I finally understood the trade, not just the financing.",
+        name: "James K.",
+        role: "Commodity Trade Finance, London",
+        avatarColor: "#9A3412",
+      },
+      {
+        id: "sarah-t",
+        quote:
+          "The Career Roadmap was the clearest articulation of progression paths I've ever seen. Immediately shared it with my team.",
+        name: "Sarah T.",
+        role: "Senior Trader, Geneva",
+        avatarColor: "#5B21B6",
+      },
+    ],
+  },
+  mentorConnect: {
+    eyebrow: "Elite Access",
+    title: "Mentor Connect",
   },
   footerTagline:
     "The definitive Playbook guide to understanding commodity trading — how markets work, how revenue is made, and how to build a career or close a sale inside them. From first desk to senior coverage.",

@@ -43,11 +43,22 @@ interface Props {
   mentorSegments: PublishedMentorSegment[];
   mentorCount: number;
   questions: Question[];
+  mentorConnectHero: {
+    eyebrow: string;
+    title: string;
+  };
 }
 
 type SelectedMentor = PublicMentorProfile & { segmentId: string; segmentTitle: string };
 
-export function MentorConnectClient({ userTier, mentorCredits, mentorSegments, mentorCount, questions }: Props) {
+export function MentorConnectClient({
+  userTier,
+  mentorCredits,
+  mentorSegments,
+  mentorCount,
+  questions,
+  mentorConnectHero,
+}: Props) {
   const router = useRouter();
   const [segment, setSegment] = useState("");
   const [question, setQuestion] = useState("");
@@ -112,10 +123,10 @@ export function MentorConnectClient({ userTier, mentorCredits, mentorSegments, m
         <Reveal className="relative z-10">
           <div className="pill pill-dark mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            Elite · Mentor Connect
+            {mentorConnectHero.eyebrow}
           </div>
           <h1 className="font-serif text-4xl font-bold text-white mb-3">
-            One Question. <span className="text-accent italic">One Honest Answer.</span>
+            {mentorConnectHero.title}
           </h1>
           <p className="text-white/65 text-lg max-w-2xl mb-6">
             One question. One mentor. One honest answer. Choose from {mentorCount} anonymous practitioners across {mentorSegments.length} coverage segments. Your session ends once you&apos;ve finished using all 25 credits and the credits will get reset every month.

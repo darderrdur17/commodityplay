@@ -562,6 +562,144 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
           ]}
         />
       </Section>
+
+      <Section title="Testimonials" description="Social proof cards below pricing on the Career Track landing page">
+        <Field label="Section eyebrow" hint="Optional — leave blank to show stars only">
+          <TextInput
+            value={content.testimonials.eyebrow ?? ""}
+            onChange={(v) =>
+              patch("testimonials", {
+                ...content.testimonials,
+                eyebrow: v.trim() ? v : undefined,
+              })
+            }
+          />
+        </Field>
+        <Field label="Section title">
+          <TextInput
+            value={content.testimonials.title}
+            onChange={(v) => patch("testimonials", { ...content.testimonials, title: v })}
+          />
+        </Field>
+        <div className="space-y-4">
+          {content.testimonials.items.map((item, i) => (
+            <div key={item.id} className="p-3 rounded-lg border border-border space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-muted-fg uppercase">Testimonial {i + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (content.testimonials.items.length <= 1) return;
+                    patch("testimonials", {
+                      ...content.testimonials,
+                      items: content.testimonials.items.filter((_, idx) => idx !== i),
+                    });
+                  }}
+                  className="text-red-400 hover:text-red-600 p-1 shrink-0"
+                  title="Remove testimonial"
+                  disabled={content.testimonials.items.length <= 1}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <Field label="Quote">
+                <TextInput
+                  value={item.quote}
+                  onChange={(v) => {
+                    const items = [...content.testimonials.items];
+                    items[i] = { ...item, quote: v };
+                    patch("testimonials", { ...content.testimonials, items });
+                  }}
+                  multiline
+                  rows={3}
+                />
+              </Field>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Field label="Name">
+                  <TextInput
+                    value={item.name}
+                    onChange={(v) => {
+                      const items = [...content.testimonials.items];
+                      items[i] = { ...item, name: v };
+                      patch("testimonials", { ...content.testimonials, items });
+                    }}
+                  />
+                </Field>
+                <Field label="Role / location">
+                  <TextInput
+                    value={item.role}
+                    onChange={(v) => {
+                      const items = [...content.testimonials.items];
+                      items[i] = { ...item, role: v };
+                      patch("testimonials", { ...content.testimonials, items });
+                    }}
+                  />
+                </Field>
+                <Field label="Avatar letter" hint="Defaults to first letter of name">
+                  <TextInput
+                    value={item.avatarLetter ?? ""}
+                    onChange={(v) => {
+                      const items = [...content.testimonials.items];
+                      items[i] = { ...item, avatarLetter: v.trim() ? v : undefined };
+                      patch("testimonials", { ...content.testimonials, items });
+                    }}
+                  />
+                </Field>
+                <Field label="Avatar color">
+                  <input
+                    type="color"
+                    value={/^#[0-9a-fA-F]{6}$/.test(item.avatarColor ?? "") ? item.avatarColor! : "#3280ff"}
+                    onChange={(e) => {
+                      const items = [...content.testimonials.items];
+                      items[i] = { ...item, avatarColor: e.target.value };
+                      patch("testimonials", { ...content.testimonials, items });
+                    }}
+                    className="h-9 w-9 rounded-lg border border-border cursor-pointer"
+                    title="Avatar color"
+                  />
+                </Field>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            patch("testimonials", {
+              ...content.testimonials,
+              items: [
+                ...content.testimonials.items,
+                {
+                  id: `testimonial-${Date.now()}`,
+                  quote: "",
+                  name: "",
+                  role: "",
+                },
+              ],
+            })
+          }
+          className={smallButtonClass}
+        >
+          <Plus className="w-3.5 h-3.5" /> Add testimonial
+        </button>
+      </Section>
+
+      <Section title="Mentor Connect" description="Hero copy on the Mentor Connect page (Elite feature)">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Eyebrow">
+            <TextInput
+              value={content.mentorConnect.eyebrow}
+              onChange={(v) => patch("mentorConnect", { ...content.mentorConnect, eyebrow: v })}
+            />
+          </Field>
+          <Field label="Title">
+            <TextInput
+              value={content.mentorConnect.title}
+              onChange={(v) => patch("mentorConnect", { ...content.mentorConnect, title: v })}
+            />
+          </Field>
+        </div>
+      </Section>
       </>
       )}
 
