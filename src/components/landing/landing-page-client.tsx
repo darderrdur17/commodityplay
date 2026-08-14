@@ -33,7 +33,6 @@ import {
   PAGE_SECTION_PY,
 } from "@/lib/layout-constants";
 import {
-  DEFAULT_LANDING_CONTENT,
   type LandingContent,
   type LandingFeature,
 } from "@/data/landing-content";
@@ -46,10 +45,11 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string; style?:
 };
 
 interface Props {
-  content?: LandingContent;
+  /** Server-merged landing content from getLandingContent() — never re-merge on the client. */
+  content: LandingContent;
 }
 
-export function LandingPageClient({ content = DEFAULT_LANDING_CONTENT }: Props) {
+export function LandingPageClient({ content }: Props) {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";

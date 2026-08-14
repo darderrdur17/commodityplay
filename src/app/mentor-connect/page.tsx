@@ -2,9 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isMentorDemoUser } from "@/lib/mentor-demo";
-import { getLandingContent, getPublishedMentorSegments } from "@/lib/content/accessors";
-import { DEFAULT_LANDING_CONTENT } from "@/data/landing-content";
-import { resolveMentorConnect } from "@/lib/content/merge";
+import { getMentorConnectHero, getPublishedMentorSegments } from "@/lib/content/accessors";
 import { MentorConnectClient } from "./mentor-connect-client";
 
 export const metadata = { title: "Mentor Connect" };
@@ -30,8 +28,7 @@ export default async function MentorConnectPage() {
 
   const mentorSegments = await getPublishedMentorSegments();
   const mentorCount = mentorSegments.reduce((n, s) => n + s.mentors.length, 0);
-  const landingContent = await getLandingContent();
-  const mentorConnectHero = resolveMentorConnect(DEFAULT_LANDING_CONTENT, landingContent.mentorConnect);
+  const mentorConnectHero = await getMentorConnectHero();
 
   return (
     <MentorConnectClient

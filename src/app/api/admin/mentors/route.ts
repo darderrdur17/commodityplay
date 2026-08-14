@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getResolvedMentorSegments } from "@/lib/content/accessors";
-import { getPublishedPayload, updateContentModule } from "@/lib/content/repository";
+import { getContentModulePayload, updateContentModule } from "@/lib/content/repository";
 import type { MentorOverride, MentorOverridesPayload } from "@/data/mentors";
 
 export async function GET() {
@@ -98,7 +98,7 @@ export async function PATCH(req: NextRequest) {
 
   const { id, ...patch } = parsed.data;
 
-  const existingPayload = await getPublishedPayload<Partial<MentorOverridesPayload>>("mentors");
+  const existingPayload = await getContentModulePayload<Partial<MentorOverridesPayload>>("mentors");
   const overrides = existingPayload?.overrides ?? [];
 
   const idx = overrides.findIndex((o) => o.id === id);

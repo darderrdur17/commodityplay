@@ -3,7 +3,7 @@ import type { CaseStudyCard, CaseStudySection } from "@/data/case-studies";
 import type { DeskQA } from "@/data/desk-channel";
 import type { GlossaryTerm } from "@/data/glossary";
 import type { MentorOverridesPayload } from "@/data/mentors";
-import { getPublishedPayload, tryReadPublishedPayload } from "./repository";
+import { getPublishedPayload, tryReadPublishedPayload, getContentModulePayload } from "./repository";
 import { CHAPTERS } from "@/data/playbook";
 import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
 import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
@@ -44,6 +44,12 @@ export async function getLandingContent(): Promise<LandingContent> {
     return DEFAULT_LANDING_CONTENT;
   }
   return mergeLandingContent(DEFAULT_LANDING_CONTENT, cms);
+}
+
+/** Mentor Connect hero — already merged in getLandingContent(); do not re-merge on pages. */
+export async function getMentorConnectHero() {
+  const landing = await getLandingContent();
+  return landing.mentorConnect;
 }
 
 export async function getFaqContent(): Promise<FaqContent> {
@@ -232,7 +238,7 @@ export async function getLibraryContent(): Promise<{ files: LibraryFilePublic[] 
 
 /**
  * Admin-only resolved mentor profile data — static defaults layered with any saved
- * "mentors" CMS overrides (headline/years/tags/name/email/company/track/status), plus
+ * "mentors" CMS overrides (headline/bio/years/tags/name/email/company/track/status), plus
  * any brand-new self-submitted applications (via /mentor-apply) synthesized into their
  * assigned segment (or a synthetic "Unassigned" segment). Intended for the admin
  * Mentors tab. Do NOT use this on any public-facing page: `name`/`email`/`company`
@@ -240,16 +246,18 @@ export async function getLibraryContent(): Promise<{ files: LibraryFilePublic[] 
  * applications — neither must ever be exposed to end users.
  */
 export async function getResolvedMentorSegments() {
-  const data = await getPublishedPayload<Partial<MentorOverridesPayload>>("mentors");
+  const data = await getContentModulePayload<Partial<MentorOverridesPayload>>("mentors");
   return resolveMentorSegments(MENTOR_SEGMENTS, data?.overrides ?? []);
 }
 
 /**
  * Mentor Connect page — CMS-resolved profiles that are approved (`status: "active"`)
  * only. Admin-only fields (name/email/company) and pending applications are excluded.
+ * Respects the mentors module published flag — overrides are ignored when draft.
  */
 export async function getPublishedMentorSegments(): Promise<PublishedMentorSegment[]> {
-  const resolved = await getResolvedMentorSegments();
+  const cms = await tryReadPublishedPayload<Partial<MentorOverridesPayload>>("mentors");
+  const resolved = resolveMentorSegments(MENTOR_SEGMENTS, cms?.overrides ?? []);
   return resolved
     .filter((seg) => seg.id !== UNASSIGNED_SEGMENT_ID)
     .map((seg) => ({

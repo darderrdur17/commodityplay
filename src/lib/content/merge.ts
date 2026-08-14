@@ -2,6 +2,12 @@ import type { FeatureComparisonGroup, LandingContent } from "@/data/landing-cont
 import type { MentorOverride, MentorProfile, MentorSegment } from "@/data/mentors";
 import { UNASSIGNED_SEGMENT_ID } from "@/data/mentors";
 
+/**
+ * SERVER-ONLY merge helpers — used by getLandingContent(), mergeLandingContent(), and
+ * deploy sync. Do not import these in client components; CMS copy is merged once on the
+ * server so live pages reflect admin saves without a second pass over repo defaults.
+ */
+
 type PlainObject = Record<string, unknown>;
 
 function isPlainObject(value: unknown): value is PlainObject {

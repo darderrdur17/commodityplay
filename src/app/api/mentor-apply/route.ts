@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getPublishedPayload, updateContentModule } from "@/lib/content/repository";
+import { getContentModulePayload, updateContentModule } from "@/lib/content/repository";
 import { UNASSIGNED_SEGMENT_ID, generateMentorId } from "@/data/mentors";
 import type { MentorOverride, MentorOverridesPayload } from "@/data/mentors";
 
@@ -56,10 +56,13 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
     };
 
-    const existingPayload = await getPublishedPayload<Partial<MentorOverridesPayload>>("mentors");
+    const existingPayload = await getContentModulePayload<Partial<MentorOverridesPayload>>("mentors");
     const overrides = existingPayload?.overrides ?? [];
 
-    await updateContentModule("mentors", { payload: { overrides: [...overrides, newOverride] } });
+    await updateContentModule("mentors", {
+      payload: { overrides: [...overrides, newOverride] },
+      published: true,
+    });
 
     return NextResponse.json({ ok: true });
   } catch {

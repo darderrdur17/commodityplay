@@ -220,6 +220,18 @@ export async function getPublishedPayload<T>(slug: ContentSlug): Promise<T> {
   return getDefaultPayload(slug) as T;
 }
 
+/** Raw CMS payload from DB — ignores the published flag (admin writes / reads). */
+export async function getContentModulePayload<T>(slug: ContentSlug): Promise<T | null> {
+  await ensureContentInfrastructure();
+  try {
+    const row = await prisma.contentModule.findUnique({ where: { slug } });
+    if (row) return row.payload as T;
+  } catch {
+    // CMS tables missing or DB unavailable
+  }
+  return null;
+}
+
 async function archiveContentModuleRevision(
   slug: string,
   row: {

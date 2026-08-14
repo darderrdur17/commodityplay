@@ -478,7 +478,7 @@ export function AdminClient({
           <div className="space-y-4">
             <div className="rounded-lg border border-border bg-white px-4 py-3 text-sm text-muted-fg">
               Each mentor has an <strong className="text-gray-800">anonymous ID</strong> (e.g. PT-01) shown publicly on Mentor Connect.
-              Name, email, and company are internal only. Edit headline, years, and tags below, then{" "}
+              Name, email, and company are internal only. Edit headline, <strong className="text-gray-800">bio</strong>, years, and tags below, then{" "}
               <strong className="text-gray-800">Publish to Mentor Connect</strong> when ready.
               Invite-only applications arrive via the hidden <code className="text-xs bg-secondary px-1 rounded">/mentor-apply</code> form.
             </div>
