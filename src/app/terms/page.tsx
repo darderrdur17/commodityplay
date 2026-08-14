@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Reveal } from "@/components/animations";
-import { BRAND_LEGAL_NAME, BRAND_NAME } from "@/lib/brand";
+import { BRAND_EMAIL_LEGAL, BRAND_LEGAL_NAME, BRAND_NAME } from "@/lib/brand";
 
 export const metadata = {
   title: "Terms of Service",
@@ -109,8 +109,8 @@ export default function TermsPage() {
             <h2 className="font-serif text-xl font-bold text-gray-900 mb-3">12. Contact</h2>
             <p className="leading-relaxed">
               Questions about these Terms:{" "}
-              <a href="mailto:legal@commodityplaybook.com" className="text-primary-400 hover:underline">
-                legal@commodityplaybook.com
+              <a href={`mailto:${BRAND_EMAIL_LEGAL}`} className="text-primary-400 hover:underline">
+                {BRAND_EMAIL_LEGAL}
               </a>
             </p>
           </section>

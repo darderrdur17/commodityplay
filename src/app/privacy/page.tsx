@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Reveal } from "@/components/animations";
-import { BRAND_LEGAL_NAME, BRAND_NAME } from "@/lib/brand";
+import { BRAND_EMAIL_PRIVACY, BRAND_LEGAL_NAME, BRAND_NAME } from "@/lib/brand";
 
 export const metadata = {
   title: "Privacy Policy",
@@ -22,8 +22,8 @@ export default function PrivacyPage() {
             <h2 className="font-serif text-xl font-bold text-gray-900 mb-3">1. Who We Are</h2>
             <p className="leading-relaxed">
               {BRAND_LEGAL_NAME} (&quot;{BRAND_NAME}&quot;, &quot;we&quot;, &quot;us&quot;) operates the {BRAND_NAME} website and mobile application. We are the data controller for personal data collected through the Service. Contact:{" "}
-              <a href="mailto:privacy@commodityplaybook.com" className="text-primary-400 hover:underline">
-                privacy@commodityplaybook.com
+              <a href={`mailto:${BRAND_EMAIL_PRIVACY}`} className="text-primary-400 hover:underline">
+                {BRAND_EMAIL_PRIVACY}
               </a>
             </p>
           </section>
@@ -96,8 +96,8 @@ export default function PrivacyPage() {
             </ul>
             <p className="leading-relaxed mt-3">
               To exercise these rights, email{" "}
-              <a href="mailto:privacy@commodityplaybook.com" className="text-primary-400 hover:underline">
-                privacy@commodityplaybook.com
+              <a href={`mailto:${BRAND_EMAIL_PRIVACY}`} className="text-primary-400 hover:underline">
+                {BRAND_EMAIL_PRIVACY}
               </a>
               . We respond within 30 days.
             </p>

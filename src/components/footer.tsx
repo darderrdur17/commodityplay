@@ -6,7 +6,7 @@ import { Logo } from "@/components/brand/logo";
 import { FooterNewsletter } from "@/components/footer-newsletter";
 import { ContactModal } from "@/components/landing/contact-modal";
 import { FOOTER_BOTTOM_SAFE_PADDING } from "@/lib/layout-constants";
-import { BRAND_NAME } from "@/lib/brand";
+import { BRAND_NAME, BRAND_EMAIL_HELLO } from "@/lib/brand";
 import { attachmentHref } from "@/lib/content/attachments";
 import type { FooterGuidePublic } from "@/lib/content/accessors";
 
@@ -54,7 +54,7 @@ const COMMUNITY_LINKS: FooterLink[] = [
 
 const ACCESS_LINKS: FooterLink[] = [
   { label: "Resource Library", href: "/library" },
-  { label: "Team Licenses", href: "mailto:hello@commodityplaybook.com" },
+  { label: "Team Licenses", href: `mailto:${BRAND_EMAIL_HELLO}` },
   { label: "Sign Up", href: "/signup" },
   { label: "Login", href: "/login" },
   { label: "Contact Us", href: "#contact" },

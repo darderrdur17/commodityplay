@@ -7,6 +7,7 @@ import { HelpCircle, ArrowRight, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, GradientOrbs } from "@/components/animations";
 import { PAGE_HERO_TOP } from "@/lib/layout-constants";
+import { BRAND_EMAIL_HELLO } from "@/lib/brand";
 import type { FaqHero, FaqItem } from "@/data/faq";
 import { CAREER_PRICING_HREF } from "@/lib/pricing-routes";
 
@@ -75,7 +76,11 @@ export function FaqClient({ hero, items }: FaqClientProps) {
             <Shield className="w-8 h-8 text-primary-400 mx-auto mb-4" />
             <h2 className="font-serif text-2xl font-bold text-gray-900 mb-3">Still have questions?</h2>
             <p className="text-muted-fg text-sm mb-6">
-              Compare plans on the career landing page or reach out at hello@commodityplaybook.com.
+              Compare plans on the career landing page or reach out at{" "}
+              <a href={`mailto:${BRAND_EMAIL_HELLO}`} className="text-primary-400 hover:underline">
+                {BRAND_EMAIL_HELLO}
+              </a>
+              .
             </p>
             <Link href={CAREER_PRICING_HREF}>
               <Button size="lg">

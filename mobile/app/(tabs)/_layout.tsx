@@ -31,7 +31,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <LayoutDashboard size={size} color={color} />
           ),
-          headerTitle: "CommodityPlaybook",
+          headerTitle: "CommodityPlay.",
         }}
       />
       <Tabs.Screen

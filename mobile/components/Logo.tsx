@@ -30,7 +30,7 @@ export function Logo({
       source={SOURCES[variant]}
       style={[styles.image, { height: HEIGHTS[variant] }]}
       resizeMode="contain"
-      accessibilityLabel="CommodityPlaybook"
+      accessibilityLabel="CommodityPlay."
     />
   );
 

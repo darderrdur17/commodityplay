@@ -7,7 +7,7 @@ import { Footer } from "@/components/footer";
 import { SessionProvider } from "@/components/session-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { NAV_OFFSET } from "@/lib/layout-constants";
-import { BRAND_NAME } from "@/lib/brand";
+import { BRAND_NAME, BRAND_SITE_URL } from "@/lib/brand";
 import { getFooterGuides } from "@/lib/content/accessors";
 
 const inter = Inter({
@@ -26,7 +26,7 @@ const roboto = Roboto({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://commodityplaybook.com"
+    process.env.NEXT_PUBLIC_SITE_URL ?? BRAND_SITE_URL
   ),
   title: {
     default: `${BRAND_NAME} — Build Your Career in Commodity Trading`,
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_SG",
-    url: "https://commodityplaybook.com",
+    url: BRAND_SITE_URL,
     siteName: BRAND_NAME,
     title: `${BRAND_NAME} — Build Your Career in Commodity Trading`,
     description:

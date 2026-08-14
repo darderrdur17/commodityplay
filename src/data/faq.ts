@@ -1,3 +1,5 @@
+import { BRAND_EMAIL_HELLO } from "@/lib/brand";
+
 export interface FaqItem {
   q: string;
   a: string;
@@ -33,7 +35,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Is there a student or team discount?",
-    a: "Yes — reach out to hello@commodityplaybook.com for student pricing or team licences for 5+ seats.",
+    a: `Yes — reach out to ${BRAND_EMAIL_HELLO} for student pricing or team licences for 5+ seats.`,
   },
   {
     q: "How does the Mentor Connect credit work?",
