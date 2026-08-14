@@ -81,6 +81,13 @@ function TextInput({
   return <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className={inputClass} />;
 }
 
+function normalizeFeatureLines(raw: string): string[] {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 function FeaturesList({
   value,
   onChange,
@@ -91,14 +98,8 @@ function FeaturesList({
   return (
     <textarea
       value={value.join("\n")}
-      onChange={(e) =>
-        onChange(
-          e.target.value
-            .split("\n")
-            .map((line) => line.trim())
-            .filter(Boolean)
-        )
-      }
+      onChange={(e) => onChange(e.target.value.split("\n"))}
+      onBlur={(e) => onChange(normalizeFeatureLines(e.target.value))}
       rows={6}
       className={textareaClass}
       placeholder="One feature per line"
