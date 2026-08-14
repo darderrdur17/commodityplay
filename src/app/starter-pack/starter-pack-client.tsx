@@ -4,24 +4,27 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ArrowRight, Download, Lock, BookOpen } from "lucide-react";
+import { ArrowRight, Download, Lock, BookOpen, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
 import { MarketNoteStrip } from "@/components/landing/market-note-strip";
-import {
-  STARTER_INFOGRAPHICS,
-  STARTER_MARKET_NOTE,
-  STARTER_CHAPTER_PREVIEW,
-} from "@/data/starter-pack";
+import type { StarterInfographic } from "@/data/starter-pack";
+import { attachmentHref, resolveAttachmentUrl } from "@/lib/content/attachments";
 import { StarterPackModal } from "@/components/landing/starter-pack-modal";
 import { startCheckout } from "@/lib/start-checkout";
 import { PAGE_HERO_TOP, PAGE_HERO_BOTTOM, PAGE_CTA_PY } from "@/lib/layout-constants";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 
 export function StarterPackClient({
+  infographics,
+  marketNote,
+  chapterPreview,
   assetUrls = {},
   isLoggedIn = false,
 }: {
+  infographics: StarterInfographic[];
+  marketNote: typeof import("@/data/starter-pack").STARTER_MARKET_NOTE;
+  chapterPreview: typeof import("@/data/starter-pack").STARTER_CHAPTER_PREVIEW;
   assetUrls?: Record<string, string>;
   isLoggedIn?: boolean;
 }) {
@@ -81,7 +84,13 @@ export function StarterPackClient({
           <h2 className="font-serif text-3xl font-bold text-gray-900">Download and keep.</h2>
         </Reveal>
         <StaggerChildren className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {STARTER_INFOGRAPHICS.map((info) => (
+          {infographics.map((info) => {
+            const url = resolveAttachmentUrl(
+              { title: info.title, fileKey: info.fileKey, assetId: info.assetId },
+              assetUrls
+            );
+            const delivery = info.delivery ?? "download";
+            return (
             <StaggerItem key={info.id}>
               <div className="rounded-xl border border-border bg-white overflow-hidden card-hover h-full flex flex-col">
                 <div className={`h-32 bg-gradient-to-br ${info.thumbClass} flex items-center justify-center`}>
@@ -91,13 +100,23 @@ export function StarterPackClient({
                   <p className="text-[10px] font-bold uppercase tracking-widest text-primary-800 mb-1">{info.num}</p>
                   <h3 className="font-serif font-semibold text-gray-900 mb-2">{info.title}</h3>
                   <p className="text-sm text-muted-fg flex-1">{info.description}</p>
-                  {isLoggedIn && assetUrls[info.fileKey] ? (
+                  {isLoggedIn && url ? (
                     <a
-                      href={assetUrls[info.fileKey]}
-                      download
+                      href={attachmentHref(url, delivery)}
+                      {...(delivery === "view-only"
+                        ? { target: "_blank", rel: "noopener noreferrer" }
+                        : { download: true })}
                       className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-400 hover:text-primary-800 transition-colors"
                     >
-                      <Download className="w-4 h-4" /> Download
+                      {delivery === "view-only" ? (
+                        <>
+                          <Eye className="w-4 h-4" /> View
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" /> Download
+                        </>
+                      )}
                     </a>
                   ) : (
                     <button
@@ -111,17 +130,18 @@ export function StarterPackClient({
                 </div>
               </div>
             </StaggerItem>
-          ))}
+            );
+          })}
         </StaggerChildren>
       </section>
 
       <MarketNoteStrip
-        eyebrow={STARTER_MARKET_NOTE.eyebrow}
-        title={STARTER_MARKET_NOTE.title}
-        description={STARTER_MARKET_NOTE.description}
-        topics={STARTER_MARKET_NOTE.topics}
+        eyebrow={marketNote.eyebrow}
+        title={marketNote.title}
+        description={marketNote.description}
+        topics={marketNote.topics}
         variant="tags"
-        subscribedNote={STARTER_MARKET_NOTE.subscribed}
+        subscribedNote={marketNote.subscribed}
         cta={{
           label: "Upgrade to Pro",
           onClick: handleUpgradePro,
@@ -132,14 +152,14 @@ export function StarterPackClient({
       {/* Chapter A preview */}
       <section className="py-16 sm:py-24 page-container">
         <Reveal className="mb-10">
-          <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">{STARTER_CHAPTER_PREVIEW.label}</p>
-          <h2 className="font-serif text-3xl font-bold text-gray-900 mb-2">{STARTER_CHAPTER_PREVIEW.title}</h2>
+          <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">{chapterPreview.label}</p>
+          <h2 className="font-serif text-3xl font-bold text-gray-900 mb-2">{chapterPreview.title}</h2>
           <p className="text-muted-fg">
-            {STARTER_CHAPTER_PREVIEW.freeSections} of {STARTER_CHAPTER_PREVIEW.totalSections} sections free with Starter.
+            {chapterPreview.freeSections} of {chapterPreview.totalSections} sections free with Starter.
           </p>
         </Reveal>
         <div className="rounded-xl border border-border bg-white overflow-hidden">
-          {STARTER_CHAPTER_PREVIEW.sections.map((section, i) => (
+          {chapterPreview.sections.map((section, i) => (
             <div
               key={section.id}
               className={`flex items-center gap-4 px-5 py-4 ${i > 0 ? "border-t border-border" : ""} ${!section.free ? "bg-secondary/50" : ""}`}

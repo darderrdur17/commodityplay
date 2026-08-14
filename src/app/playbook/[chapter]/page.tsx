@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getContentTierForSlug, getPlaybookChapters, getPlaybookSections, getPlaybookAssetUrls } from "@/lib/content/accessors";
+import { getContentTierForSlug, getPlaybookChapters, getPlaybookSections, getPlaybookAssetUrls, getPlaybookChapterAssets } from "@/lib/content/accessors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { hasAccess } from "@/lib/utils";
@@ -38,7 +38,10 @@ export default async function ChapterPage({ params }: { params: Promise<{ chapte
   }
 
   const sections = await getPlaybookSections(chapter);
-  const assetUrls = await getPlaybookAssetUrls();
+  const [assetUrls, sectionAssetsMap] = await Promise.all([
+    getPlaybookAssetUrls(),
+    getPlaybookChapterAssets(chapter),
+  ]);
 
   return (
     <ChapterClient
@@ -48,6 +51,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ chapte
       userTier={user.tier}
       hasPlaybookAccess={hasPlaybookAccess}
       assetUrls={assetUrls}
+      sectionAssetsMap={sectionAssetsMap}
     />
   );
 }

@@ -4,18 +4,16 @@ import React, { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface StarterInfographic {
-  id: string;
-  num: string;
-  title: string;
-  description: string;
-  thumbClass: string;
-  fileKey: string;
-}
+import type { StarterInfographic } from "@/data/starter-pack";
+import {
+  EditorField,
+  EditorRow,
+  InlineFileUpload,
+  UploadSection,
+  inputClass,
+  textareaClass,
+  uploadContentAssetFile,
+} from "./shared";
 
 interface EmailDigest {
   eyebrow: string;
@@ -35,13 +33,15 @@ interface StarterPayload {
 // ─── Free Infographics ────────────────────────────────────────────────────────
 
 function newInfographic(idx: number): StarterInfographic {
+  const id = `sp-${Date.now()}`;
   return {
-    id: `sp-${Date.now()}`,
+    id,
     num: String(idx + 1).padStart(2, "0"),
     title: "",
     description: "",
     thumbClass: "from-gray-100 to-gray-300",
-    fileKey: "",
+    fileKey: `starter-pack/${id}.pdf`,
+    delivery: "download",
   };
 }
 
@@ -57,6 +57,7 @@ function FreeInfographicsTab({
   requiredTier: string;
 }) {
   const items = data.infographics ?? [];
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   function patch(i: number, item: StarterInfographic) {
     const next = [...items];
@@ -73,8 +74,28 @@ function FreeInfographicsTab({
     onChange({ ...data, infographics: [...items, newInfographic(items.length)] });
   }
 
+  async function handleUpload(i: number, file: File, item: StarterInfographic) {
+    const key = item.fileKey?.trim() || `starter-pack/${item.id}.pdf`;
+    setUploadingId(item.id);
+    const result = await uploadContentAssetFile({ file, moduleSlug, requiredTier, assetKey: key });
+    setUploadingId(null);
+    if ("error" in result) {
+      alert(result.error);
+      return;
+    }
+    patch(i, {
+      ...item,
+      fileKey: key,
+      assetId: result.id,
+      fileName: result.fileName,
+    });
+  }
+
   return (
     <div className="space-y-4">
+      <p className="text-xs text-muted-fg">
+        Upload each free infographic here. Files appear on the Starter Pack page after Save.
+      </p>
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-fg">{items.length} infographics</p>
         <Button variant="outline" size="sm" onClick={add}>
@@ -99,6 +120,16 @@ function FreeInfographicsTab({
               <EditorField label="File key" hint="e.g. starter-pack/ecosystem-map.pdf">
                 <input className={inputClass} value={item.fileKey} onChange={(e) => patch(i, { ...item, fileKey: e.target.value })} />
               </EditorField>
+              <EditorField label="Delivery">
+                <select
+                  className={inputClass}
+                  value={item.delivery ?? "download"}
+                  onChange={(e) => patch(i, { ...item, delivery: e.target.value as "view-only" | "download" })}
+                >
+                  <option value="download">Download</option>
+                  <option value="view-only">View only</option>
+                </select>
+              </EditorField>
               <EditorField label="Thumb class" hint="Tailwind gradient classes">
                 <input className={inputClass} value={item.thumbClass} onChange={(e) => patch(i, { ...item, thumbClass: e.target.value })} />
               </EditorField>
@@ -106,6 +137,14 @@ function FreeInfographicsTab({
             <EditorField label="Description">
               <textarea className={textareaClass} value={item.description} onChange={(e) => patch(i, { ...item, description: e.target.value })} />
             </EditorField>
+            <InlineFileUpload
+              moduleSlug={moduleSlug}
+              requiredTier={requiredTier}
+              assetKey={item.fileKey || `starter-pack/${item.id}.pdf`}
+              fileName={item.fileName}
+              uploading={uploadingId === item.id}
+              onPickFile={(file) => handleUpload(i, file, item)}
+            />
           </EditorRow>
         ))}
         {items.length === 0 && (

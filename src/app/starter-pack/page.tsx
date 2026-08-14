@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { getStarterPackAssetUrls } from "@/lib/content/accessors";
+import { getStarterPackAssetUrls, getStarterPackContent } from "@/lib/content/accessors";
 import { StarterPackClient } from "./starter-pack-client";
 import { BRAND_NAME } from "@/lib/brand";
 
@@ -12,6 +12,15 @@ export const metadata = {
 
 export default async function StarterPackPage() {
   const session = await auth();
+  const content = await getStarterPackContent();
   const assetUrls = session?.user ? await getStarterPackAssetUrls() : {};
-  return <StarterPackClient assetUrls={assetUrls} isLoggedIn={!!session?.user} />;
+  return (
+    <StarterPackClient
+      infographics={content.infographics}
+      marketNote={content.marketNote}
+      chapterPreview={content.chapterPreview}
+      assetUrls={assetUrls}
+      isLoggedIn={!!session?.user}
+    />
+  );
 }

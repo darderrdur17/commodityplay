@@ -15,6 +15,9 @@ import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-template
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
 import { DEFAULT_FAQ_CONTENT, type FaqContent } from "@/data/faq";
+import { STARTER_INFOGRAPHICS, type StarterInfographic } from "@/data/starter-pack";
+import { getSectionAssets } from "@/data/playbook-assets";
+import type { ContentAttachment } from "./attachments";
 import { mergeLandingContent, resolveMentorSegments } from "./merge";
 import {
   MENTOR_SEGMENTS,
@@ -44,6 +47,89 @@ export async function getFaqContent(): Promise<FaqContent> {
   return {
     hero: { ...DEFAULT_FAQ_CONTENT.hero, ...data?.hero },
     items: data?.items?.length ? data.items : DEFAULT_FAQ_CONTENT.items,
+  };
+}
+
+type PlaybookCmsPayload = {
+  chapters?: {
+    id: string;
+    sections?: { id: string; assets?: ContentAttachment[] }[];
+  }[];
+};
+
+export async function getPlaybookChapterAssets(chapterId: string): Promise<Record<string, ContentAttachment[]>> {
+  const data = await getPublishedPayload<PlaybookCmsPayload>("playbook");
+  const chapter = data.chapters?.find((c) => c.id === chapterId);
+  const map: Record<string, ContentAttachment[]> = {};
+
+  const { PLAYBOOK_ASSETS } = await import("@/data/playbook-assets");
+  const defaultSectionIds = Object.keys(PLAYBOOK_ASSETS[chapterId] ?? {});
+  const cmsSectionIds = chapter?.sections?.map((s) => s.id) ?? [];
+  const allSectionIds = [...new Set([...defaultSectionIds, ...cmsSectionIds])];
+
+  for (const sectionId of allSectionIds) {
+    const cmsSection = chapter?.sections?.find((s) => s.id === sectionId);
+    if (cmsSection?.assets?.length) {
+      map[sectionId] = cmsSection.assets;
+      continue;
+    }
+    const defaults = getSectionAssets(chapterId, sectionId);
+    if (defaults.length) {
+      map[sectionId] = defaults.map((a) => ({ ...a, delivery: "download" as const }));
+    }
+  }
+
+  return map;
+}
+
+function mergeStarterInfographics(
+  defaults: StarterInfographic[],
+  cms?: StarterInfographic[]
+): StarterInfographic[] {
+  if (!cms?.length) return defaults;
+  const byId = new Map(cms.map((item) => [item.id, item]));
+  return defaults.map((def) => {
+    const edited = byId.get(def.id);
+    if (!edited) return def;
+    return {
+      ...def,
+      ...edited,
+      fileKey: edited.fileKey || def.fileKey,
+      thumbClass: edited.thumbClass || def.thumbClass,
+    };
+  });
+}
+
+export async function getStarterPackContent() {
+  const data = await getPublishedPayload<{
+    infographics?: StarterInfographic[];
+    marketNote?: typeof import("@/data/starter-pack").STARTER_MARKET_NOTE;
+    chapterPreview?: typeof import("@/data/starter-pack").STARTER_CHAPTER_PREVIEW;
+  }>("starter-pack");
+
+  const { STARTER_MARKET_NOTE, STARTER_CHAPTER_PREVIEW } = await import("@/data/starter-pack");
+
+  return {
+    infographics: mergeStarterInfographics(STARTER_INFOGRAPHICS, data.infographics),
+    marketNote: data.marketNote ?? STARTER_MARKET_NOTE,
+    chapterPreview: data.chapterPreview ?? STARTER_CHAPTER_PREVIEW,
+  };
+}
+
+export interface LibraryFilePublic {
+  id: string;
+  label: string;
+  fileName: string;
+  assetId: string;
+  mimeType: string;
+  delivery: "view-only" | "download";
+  track: "career" | "sales" | "both";
+}
+
+export async function getLibraryContent(): Promise<{ files: LibraryFilePublic[] }> {
+  const data = await getPublishedPayload<{ files?: LibraryFilePublic[] }>("library");
+  return {
+    files: (data.files ?? []).filter((f) => f.assetId && f.label),
   };
 }
 
@@ -249,5 +335,10 @@ export async function getPlaybookAssetUrls() {
 
 export async function getStarterPackAssetUrls() {
   const { getContentAssetUrlMap } = await import("./repository");
-  return getContentAssetUrlMap("starter-pack");
+  const map = await getContentAssetUrlMap("starter-pack");
+  const content = await getStarterPackContent();
+  for (const info of content.infographics) {
+    if (info.assetId) map[info.fileKey] = `/api/content/assets/${info.assetId}`;
+  }
+  return map;
 }

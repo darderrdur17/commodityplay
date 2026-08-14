@@ -438,3 +438,75 @@ export function UploadSection({
     </EditorSection>
   );
 }
+
+// ─── Inline file upload (per-row in Playbook / Starter / Library editors) ───
+
+export function InlineFileUpload({
+  moduleSlug,
+  requiredTier,
+  assetKey,
+  fileName,
+  uploading,
+  onPickFile,
+}: {
+  moduleSlug: string;
+  requiredTier: string;
+  assetKey: string;
+  fileName?: string;
+  uploading?: boolean;
+  onPickFile: (file: File) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <input
+        ref={fileRef}
+        type="file"
+        className="sr-only"
+        accept={CONTENT_ASSET_ACCEPT}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onPickFile(f);
+          e.target.value = "";
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading || !assetKey.trim()}
+        className="inline-flex items-center gap-2 text-xs px-3 py-1.5 border border-dashed border-border rounded-lg hover:border-primary-400 hover:bg-secondary/40 transition-colors disabled:opacity-50"
+      >
+        <Upload className="w-3.5 h-3.5 text-primary-400" />
+        {uploading ? "Uploading..." : fileName ? "Replace file" : "Upload file"}
+      </button>
+      {fileName && <span className="text-xs text-muted-fg truncate max-w-[200px]">{fileName}</span>}
+      {assetKey && (
+        <span className="text-[10px] text-muted-fg font-mono truncate max-w-full" title={assetKey}>
+          {assetKey}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export async function uploadContentAssetFile(input: {
+  file: File;
+  moduleSlug: string;
+  requiredTier: string;
+  assetKey: string;
+}): Promise<{ id: string; fileName: string } | { error: string }> {
+  const err = validateContentAssetFile(input.file.name, input.file.size);
+  if (err) return { error: err };
+
+  const form = new FormData();
+  form.append("file", input.file);
+  form.append("moduleSlug", input.moduleSlug);
+  form.append("requiredTier", input.requiredTier);
+  form.append("assetKey", input.assetKey.trim());
+
+  const res = await fetch("/api/admin/content/assets", { method: "POST", body: form });
+  const data = await res.json();
+  if (!res.ok) return { error: data.error || "Upload failed" };
+  return { id: data.id, fileName: data.fileName };
+}

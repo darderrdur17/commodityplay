@@ -106,8 +106,8 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
   {
     slug: "library",
     title: "Library Resources",
-    description: "Downloadable and view-only files",
-    requiredTier: "PRO",
+    description: "Standalone Elite bonus downloads and view-only reference files",
+    requiredTier: "ELITE",
   },
   {
     slug: "mentors",

@@ -27,7 +27,12 @@ export async function GET(
   }
 
   const mimeType = resolveContentAssetMimeType(asset.fileName, asset.mimeType);
-  const inline = mimeType.startsWith("image/") || mimeType === "application/pdf";
+  const mode = req.nextUrl.searchParams.get("mode");
+  const forceDownload = mode === "download";
+  const forceView = mode === "view";
+  const inline =
+    forceView ||
+    (!forceDownload && (mimeType.startsWith("image/") || mimeType === "application/pdf"));
 
   return new NextResponse(new Uint8Array(asset.data), {
     headers: {

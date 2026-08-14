@@ -88,6 +88,9 @@ export function LibraryEditor({
 
   return (
     <div className="space-y-4">
+      <p className="text-xs text-muted-fg">
+        Standalone Elite resources published at <strong>/library</strong>. For playbook chapter files, use Full Playbook → section attachments. For free starter downloads, use Starter Pack → Free Infographics.
+      </p>
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-fg">{files.length} library files</p>
         <Button variant="outline" size="sm" onClick={addFile}>

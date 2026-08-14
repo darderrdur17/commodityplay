@@ -23,6 +23,7 @@ const FOOTER_LINKS = {
     { label: "FAQ", href: "/faq" },
   ],
   Access: [
+    { label: "Resource Library", href: "/library" },
     { label: "Team Licenses", href: "mailto:hello@commodityplaybook.com" },
     { label: "Sign Up", href: "/signup" },
     { label: "Login", href: "/login" },

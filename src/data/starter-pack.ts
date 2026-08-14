@@ -7,6 +7,9 @@ export interface StarterInfographic {
   description: string;
   thumbClass: string;
   fileKey: string;
+  assetId?: string;
+  fileName?: string;
+  delivery?: "view-only" | "download";
 }
 
 export const STARTER_INFOGRAPHICS: StarterInfographic[] = [

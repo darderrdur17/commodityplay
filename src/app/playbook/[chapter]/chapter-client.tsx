@@ -5,13 +5,14 @@ import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, BookOpen, Clock, CheckCircle, ChevronDown,
-  Lock, Download, FileText, Image, Lightbulb,
+  Lock, Download, FileText, Image, Lightbulb, Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AnimatedProgress } from "@/components/animations";
 import { CHAPTERS, type PlaybookSection } from "@/data/playbook";
-import { getSectionAssets, type SectionAsset } from "@/data/playbook-assets";
+import type { ContentAttachment } from "@/lib/content/attachments";
+import { attachmentHref, resolveAttachmentUrl } from "@/lib/content/attachments";
 import { PRO_SUBSCRIPTION } from "@/data/pricing-shared";
 import { CAREER_PRICING_HREF } from "@/lib/pricing-routes";
 
@@ -22,6 +23,7 @@ interface Props {
   userTier?: string;
   hasPlaybookAccess?: boolean;
   assetUrls?: Record<string, string>;
+  sectionAssetsMap?: Record<string, ContentAttachment[]>;
 }
 
 const FREE_CHAPTER_A_SECTIONS = 3;
@@ -32,7 +34,7 @@ const ASSET_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
   "Worked Example": Lightbulb,
 };
 
-export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER", hasPlaybookAccess = false, assetUrls = {} }: Props) {
+export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER", hasPlaybookAccess = false, assetUrls = {}, sectionAssetsMap = {} }: Props) {
   const [readProgress, setReadProgress] = useState(0);
   const [saved, setSaved] = useState(false);
   const [activeSection, setActiveSection] = useState<string>(sections[0]?.id ?? "");
@@ -90,7 +92,7 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
   }, [sections]);
 
   const isChapterAPreview = chapter.id === "a" && !hasPlaybookAccess;
-  const totalAssets = sections.reduce((n, s) => n + getSectionAssets(chapter.id, s.id).length, 0);
+  const totalAssets = sections.reduce((n, s) => n + (sectionAssetsMap[s.id]?.length ?? 0), 0);
 
   function isSectionUnlocked(sectionIndex: number) {
     if (hasPlaybookAccess) return true;
@@ -226,7 +228,7 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
             {sections.map((section, sectionIndex) => {
               const isOpen = openSection === section.id;
               const unlocked = isSectionUnlocked(sectionIndex);
-              const assets = getSectionAssets(chapter.id, section.id);
+              const assets = sectionAssetsMap[section.id] ?? [];
 
               return (
                 <article
@@ -351,7 +353,7 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
   );
 }
 
-function AssetPanel({ assets, locked, assetUrls }: { assets: SectionAsset[]; locked: boolean; assetUrls: Record<string, string> }) {
+function AssetPanel({ assets, locked, assetUrls }: { assets: ContentAttachment[]; locked: boolean; assetUrls: Record<string, string> }) {
   return (
     <div className="px-5 sm:px-8 py-5 border-t border-border bg-secondary/80">
       <p className="text-[10px] font-bold uppercase tracking-widest text-primary-800 mb-4">
@@ -359,9 +361,11 @@ function AssetPanel({ assets, locked, assetUrls }: { assets: SectionAsset[]; loc
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {assets.map((asset) => {
-          const Icon = ASSET_ICONS[asset.type] || FileText;
+          const Icon = ASSET_ICONS[asset.type ?? ""] || FileText;
+          const url = resolveAttachmentUrl(asset, assetUrls);
+          const delivery = asset.delivery ?? "download";
           return (
-            <div key={asset.title} className="rounded-lg border border-border bg-white p-4 flex flex-col">
+            <div key={`${asset.title}-${asset.fileKey}`} className="rounded-lg border border-border bg-white p-4 flex flex-col">
               <div className="flex items-center gap-2 mb-2">
                 <Icon className="w-4 h-4 text-primary-400" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">{asset.type}</span>
@@ -372,13 +376,23 @@ function AssetPanel({ assets, locked, assetUrls }: { assets: SectionAsset[]; loc
                 <span className="mt-3 inline-flex items-center gap-1 text-xs text-muted-fg">
                   <Lock className="w-3 h-3" /> Pro
                 </span>
-              ) : asset.fileKey && assetUrls[asset.fileKey] ? (
+              ) : url ? (
                 <a
-                  href={assetUrls[asset.fileKey]}
-                  download
+                  href={attachmentHref(url, delivery)}
+                  {...(delivery === "view-only"
+                    ? { target: "_blank", rel: "noopener noreferrer" }
+                    : { download: true })}
                   className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary-400 hover:text-primary-800"
                 >
-                  <Download className="w-3 h-3" /> Download
+                  {delivery === "view-only" ? (
+                    <>
+                      <Eye className="w-3 h-3" /> View
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-3 h-3" /> Download
+                    </>
+                  )}
                 </a>
               ) : (
                 <span className="mt-3 inline-flex items-center gap-1 text-xs text-muted-fg">
