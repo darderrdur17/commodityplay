@@ -17,45 +17,35 @@ type LogoVariant =
   | "wordmark-tagline"
   | "lockup-dark";
 
-/** Green–cyan gradient lockup (footer / dark backgrounds) */
-const GRADIENT_LOCKUP = { src: "/brand/header_logo1.png", width: 798, height: 184 } as const;
 const MARK = { src: "/brand/logo-mark.png", width: 184, height: 184 } as const;
-/** Blue script lockup (auth panels / light backgrounds) */
-const BLUE_LOCKUP = { src: "/brand/footer_logo1.png", width: 1197, height: 300 } as const;
-/** Blue pill lockup (primary nav header) */
-const HEADER_LOCKUP = { src: "/brand/header-logo.svg", width: 2000, height: 344 } as const;
+/** Primary blue pill lockup — used site-wide (header, footer, auth, onboarding) */
+const PRIMARY_LOCKUP = { src: "/brand/header-logo.svg", width: 2000, height: 344 } as const;
 
 const SOURCES: Record<Exclude<LogoVariant, "lockup-dark">, { src: string; width: number; height: number }> = {
-  horizontal: BLUE_LOCKUP,
-  header: HEADER_LOCKUP,
-  footer: GRADIENT_LOCKUP,
-  login: { src: "/brand/login_page_logo1.png", width: GRADIENT_LOCKUP.width, height: GRADIENT_LOCKUP.height },
+  horizontal: PRIMARY_LOCKUP,
+  header: PRIMARY_LOCKUP,
+  footer: PRIMARY_LOCKUP,
+  login: PRIMARY_LOCKUP,
   mark: MARK,
-  white: BLUE_LOCKUP,
-  "wordmark-tagline": GRADIENT_LOCKUP,
+  white: PRIMARY_LOCKUP,
+  "wordmark-tagline": PRIMARY_LOCKUP,
 };
 
 /** Primary nav wordmark — uses layout-constants for site-wide sizing */
 const HEADER_WRAPPER_CLASS = PROMINENT_WORDMARK_WRAPPER;
 
-const GRADIENT_LOGO_CLASS =
-  "h-10 w-auto sm:h-11 md:h-12 max-w-[min(100%,320px)] sm:max-w-[380px] md:max-w-[440px] object-contain object-left";
-
-const BLUE_LOGO_CLASS =
-  "h-11 w-auto sm:h-12 md:h-14 max-w-[min(100%,300px)] sm:max-w-[360px] md:max-w-[420px] object-contain object-left";
-
 /** Wide pill badge — ~5.8:1 aspect ratio */
-const HEADER_LOGO_CLASS =
-  "h-9 w-auto sm:h-10 md:h-11 max-w-[min(100%,260px)] sm:max-w-[320px] md:max-w-[380px] object-contain object-left";
+const LOCKUP_LOGO_CLASS =
+  "h-9 w-auto sm:h-10 md:h-11 max-w-[min(100%,220px)] sm:max-w-[320px] md:max-w-[380px] object-contain object-left";
 
 const VARIANT_IMAGE_CLASS: Record<Exclude<LogoVariant, "lockup-dark">, string> = {
-  header: HEADER_LOGO_CLASS,
-  footer: cn(GRADIENT_LOGO_CLASS, "sm:max-w-[420px] md:max-w-[480px]"),
-  login: GRADIENT_LOGO_CLASS,
-  horizontal: BLUE_LOGO_CLASS,
+  header: LOCKUP_LOGO_CLASS,
+  footer: cn(LOCKUP_LOGO_CLASS, "sm:max-w-[360px] md:max-w-[420px]"),
+  login: LOCKUP_LOGO_CLASS,
+  horizontal: LOCKUP_LOGO_CLASS,
   mark: "h-9 w-9 sm:h-10 sm:w-10 object-contain",
-  white: BLUE_LOGO_CLASS,
-  "wordmark-tagline": cn(GRADIENT_LOGO_CLASS, "md:max-w-[520px]"),
+  white: LOCKUP_LOGO_CLASS,
+  "wordmark-tagline": cn(LOCKUP_LOGO_CLASS, "md:max-w-[420px]"),
 };
 
 interface LogoProps {
@@ -81,12 +71,13 @@ function LogoLockupDark({
   return (
     <span className={cn("inline-flex flex-col gap-2.5", className)}>
       <Image
-        src={BLUE_LOCKUP.src}
+        src={PRIMARY_LOCKUP.src}
         alt={BRAND_NAME}
-        width={BLUE_LOCKUP.width}
-        height={BLUE_LOCKUP.height}
+        width={PRIMARY_LOCKUP.width}
+        height={PRIMARY_LOCKUP.height}
         priority={priority}
-        className={BLUE_LOGO_CLASS}
+        unoptimized
+        className={LOCKUP_LOGO_CLASS}
       />
       {showTagline && (
         <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.22em] text-white/80">
@@ -132,7 +123,7 @@ export function Logo({
             ? "(max-width: 640px) 240px, 360px"
             : "(max-width: 768px) 320px, 520px"
       }
-      unoptimized={variant === "header"}
+      unoptimized={src.endsWith(".svg")}
       className={cn(VARIANT_IMAGE_CLASS[variant], imageClassName)}
     />
   );

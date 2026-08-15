@@ -108,14 +108,14 @@ export function Nav() {
         )}
       >
         <div
-          className="w-full max-w-none px-4 sm:px-8 lg:px-12 grid grid-cols-[1fr_auto_1fr] items-center min-h-0"
+          className="w-full max-w-none px-4 sm:px-8 lg:px-12 grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[1fr_auto_1fr] items-center min-h-0 gap-2"
           style={{ height: NAV_HEIGHT }}
         >
-          <div className="flex items-center min-w-0 min-h-0 h-full max-h-full justify-self-start overflow-hidden pr-1 sm:pr-2">
+          <div className="flex items-center min-w-0 min-h-0 h-full max-h-full justify-self-start overflow-hidden col-start-1 row-start-1">
             <Logo variant="header" priority />
           </div>
 
-          <nav className="hidden md:flex items-center justify-center gap-0.5">
+          <nav className="hidden md:flex items-center justify-center gap-0.5 md:col-start-2 md:row-start-1">
             {NAV_LINKS.map((link) => {
               const active = isLinkActive(link.key, link.href);
               return (
@@ -135,7 +135,8 @@ export function Nav() {
             })}
           </nav>
 
-          <div className="hidden md:flex items-center justify-end">
+          <div className="flex items-center justify-end col-start-2 md:col-start-3 row-start-1 shrink-0">
+            <div className="hidden md:flex items-center">
             {session ? (
               <div ref={userRef} className="relative">
                 <button
@@ -240,16 +241,17 @@ export function Nav() {
                 </Link>
               </div>
             )}
-          </div>
+            </div>
 
-          <button
-            type="button"
-            className="md:hidden justify-self-end p-2 rounded-lg hover:bg-[#f4f5f7] transition-colors"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+            <button
+              type="button"
+              className="md:hidden p-2 rounded-lg hover:bg-[#f4f5f7] transition-colors"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
       </header>
 
