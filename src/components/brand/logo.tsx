@@ -20,12 +20,14 @@ type LogoVariant =
 /** Green–cyan gradient lockup (footer / dark backgrounds) */
 const GRADIENT_LOCKUP = { src: "/brand/header_logo1.png", width: 798, height: 184 } as const;
 const MARK = { src: "/brand/logo-mark.png", width: 184, height: 184 } as const;
-/** Blue script lockup (header / light backgrounds) */
+/** Blue script lockup (auth panels / light backgrounds) */
 const BLUE_LOCKUP = { src: "/brand/footer_logo1.png", width: 1197, height: 300 } as const;
+/** Blue pill lockup (primary nav header) */
+const HEADER_LOCKUP = { src: "/brand/header-logo.svg", width: 2000, height: 344 } as const;
 
 const SOURCES: Record<Exclude<LogoVariant, "lockup-dark">, { src: string; width: number; height: number }> = {
   horizontal: BLUE_LOCKUP,
-  header: BLUE_LOCKUP,
+  header: HEADER_LOCKUP,
   footer: GRADIENT_LOCKUP,
   login: { src: "/brand/login_page_logo1.png", width: GRADIENT_LOCKUP.width, height: GRADIENT_LOCKUP.height },
   mark: MARK,
@@ -42,8 +44,12 @@ const GRADIENT_LOGO_CLASS =
 const BLUE_LOGO_CLASS =
   "h-11 w-auto sm:h-12 md:h-14 max-w-[min(100%,300px)] sm:max-w-[360px] md:max-w-[420px] object-contain object-left";
 
+/** Wide pill badge — ~5.8:1 aspect ratio */
+const HEADER_LOGO_CLASS =
+  "h-9 w-auto sm:h-10 md:h-11 max-w-[min(100%,260px)] sm:max-w-[320px] md:max-w-[380px] object-contain object-left";
+
 const VARIANT_IMAGE_CLASS: Record<Exclude<LogoVariant, "lockup-dark">, string> = {
-  header: BLUE_LOGO_CLASS,
+  header: HEADER_LOGO_CLASS,
   footer: cn(GRADIENT_LOGO_CLASS, "sm:max-w-[420px] md:max-w-[480px]"),
   login: GRADIENT_LOGO_CLASS,
   horizontal: BLUE_LOGO_CLASS,
@@ -123,9 +129,10 @@ export function Logo({
         variant === "footer" || variant === "wordmark-tagline"
           ? "(max-width: 640px) 280px, 360px"
           : variant === "header"
-            ? "(max-width: 640px) 280px, 480px"
+            ? "(max-width: 640px) 240px, 360px"
             : "(max-width: 768px) 320px, 520px"
       }
+      unoptimized={variant === "header"}
       className={cn(VARIANT_IMAGE_CLASS[variant], imageClassName)}
     />
   );
