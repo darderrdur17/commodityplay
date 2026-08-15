@@ -10,47 +10,6 @@ interface ChapterAccordionProps {
   chapters: ChapterCoverage[];
 }
 
-function isPinnedChapter(chapter: ChapterCoverage, index: number) {
-  return index === 0 || chapter.letter.trim().toUpperCase() === "A";
-}
-
-function ChapterDescription({ desc }: { desc: string }) {
-  return (
-    <p className="text-sm text-muted-fg leading-relaxed pt-3">{desc}</p>
-  );
-}
-
-/** Chapter A — always expanded, no toggle (free preview highlight). */
-function PinnedChapterCard({ chapter, panelId }: { chapter: ChapterCoverage; panelId: string }) {
-  const headerId = `chapter-${chapter.letter}-header`;
-
-  return (
-    <div className="rounded-xl border border-primary-300 bg-white overflow-hidden self-start w-full min-w-0 shadow-sm">
-      <div
-        id={headerId}
-        className="w-full flex items-start gap-3.5 px-4 sm:px-5 py-4 text-left"
-      >
-        <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-primary-800 text-white font-serif font-bold text-base sm:text-lg flex items-center justify-center shrink-0">
-          {chapter.letter}
-        </span>
-        <span className="flex-1 min-w-0 pt-1.5">
-          <span className="block font-serif font-semibold text-gray-900 text-sm sm:text-base">
-            {chapter.title}
-          </span>
-        </span>
-      </div>
-      <div
-        id={panelId}
-        role="region"
-        aria-labelledby={headerId}
-        className="px-4 sm:px-5 pb-4 sm:pb-5 pl-[3.75rem] sm:pl-[4.25rem] border-t border-border/60"
-      >
-        <ChapterDescription desc={chapter.desc} />
-      </div>
-    </div>
-  );
-}
-
 function ChapterAccordionItem({
   chapter,
   isOpen,
@@ -103,7 +62,7 @@ function ChapterAccordionItem({
             className="overflow-hidden"
           >
             <div className="px-4 sm:px-5 pb-4 sm:pb-5 pl-[3.75rem] sm:pl-[4.25rem] border-t border-border/60">
-              <ChapterDescription desc={chapter.desc} />
+              <p className="text-sm text-muted-fg leading-relaxed pt-3">{chapter.desc}</p>
             </div>
           </motion.div>
         )}
@@ -113,31 +72,20 @@ function ChapterAccordionItem({
 }
 
 export function ChapterAccordion({ chapters }: ChapterAccordionProps) {
+  /** All chapters start collapsed — user expands on tap/click. */
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
     <div className="grid w-full min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-      {chapters.map((chapter, index) => {
-        if (isPinnedChapter(chapter, index)) {
-          return (
-            <PinnedChapterCard
-              key={chapter.letter}
-              chapter={chapter}
-              panelId={`chapter-${chapter.letter}-panel`}
-            />
-          );
-        }
-
-        return (
-          <ChapterAccordionItem
-            key={chapter.letter}
-            chapter={chapter}
-            panelId={`chapter-${chapter.letter}-panel`}
-            isOpen={openIndex === index}
-            onToggle={() => setOpenIndex((prev) => (prev === index ? null : index))}
-          />
-        );
-      })}
+      {chapters.map((chapter, index) => (
+        <ChapterAccordionItem
+          key={chapter.letter}
+          chapter={chapter}
+          panelId={`chapter-${chapter.letter}-panel`}
+          isOpen={openIndex === index}
+          onToggle={() => setOpenIndex((prev) => (prev === index ? null : index))}
+        />
+      ))}
     </div>
   );
 }
