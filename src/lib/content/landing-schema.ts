@@ -89,6 +89,7 @@ export const landingContentSchema = z.object({
     description: z.string().min(1),
     ctaPrimary: z.string().min(1),
     ctaSecondary: z.string().min(1),
+    finalCtaTitle: z.string().min(1),
     heroStats: z.array(heroStatSchema).min(1),
   }),
   sales: z.object({

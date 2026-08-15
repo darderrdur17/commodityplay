@@ -208,6 +208,7 @@ export function resolveCareerContent(
       : defaults.career.heroStats,
     ctaPrimary: cmsString(cms?.ctaPrimary, defaults.career.ctaPrimary),
     ctaSecondary: cmsString(cms?.ctaSecondary, defaults.career.ctaSecondary),
+    finalCtaTitle: cmsString(cms?.finalCtaTitle, defaults.career.finalCtaTitle),
   };
 }
 

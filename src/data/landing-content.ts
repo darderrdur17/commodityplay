@@ -104,6 +104,7 @@ export interface LandingContent {
     description: string;
     ctaPrimary: string;
     ctaSecondary: string;
+    finalCtaTitle: string;
     heroStats: { value: number; suffix: string; label: string }[];
   };
   sales: {
@@ -336,6 +337,7 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
       "The playbook most people never see. From fresh grad to senior coverage — whether you're entering the industry, switching roles, or moving from operations to the front office.",
     ctaPrimary: "Join Free",
     ctaSecondary: "Preview Content",
+    finalCtaTitle: "Your career, driven right. Join the desk community today.",
     heroStats: [
       { value: 20, suffix: "+", label: "Years desk experience" },
       { value: 9, suffix: "", label: "Full playbook chapters" },

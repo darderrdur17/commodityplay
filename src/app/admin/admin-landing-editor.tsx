@@ -312,6 +312,14 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
               onChange={(v) => patch("career", { ...content.career, ctaSecondary: v })}
             />
           </Field>
+          <Field label="Bottom CTA title">
+            <TextInput
+              value={content.career.finalCtaTitle}
+              onChange={(v) => patch("career", { ...content.career, finalCtaTitle: v })}
+              multiline
+              rows={2}
+            />
+          </Field>
         </div>
         <Field label="Description">
           <TextInput

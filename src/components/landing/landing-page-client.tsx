@@ -362,7 +362,7 @@ export function LandingPageClient({ content }: Props) {
             <div className="relative z-10 page-container text-center">
               <Reveal>
                 <h2 className="font-serif text-[clamp(28px,5vw,52px)] font-bold tracking-tight text-white mb-5">
-                  Start your playbook today.
+                  {career.finalCtaTitle}
                   <br />
                   <span className="text-accent italic">It&apos;s free to begin.</span>
                 </h2>
