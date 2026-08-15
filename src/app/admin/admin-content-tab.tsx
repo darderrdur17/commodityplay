@@ -21,6 +21,7 @@ import { ResumeEditor } from "./editors/resume-editor";
 import { MentorConnectEditor } from "./editors/mentor-connect-editor";
 import { LibraryEditor } from "./editors/library-editor";
 import { FooterGuidesEditor } from "./editors/footer-guides-editor";
+import { MemberDashboardEditor } from "./editors/member-dashboard-editor";
 import { SalesNavigationGuideEditor } from "./editors/sales-navigation-guide-editor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -70,6 +71,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { slug: "starter-pack", label: "Free Infographics + Email Digest", track: "Both", tier: "STARTER" },
       { slug: "footer-guides", label: "Footer Career & Sales Guides", track: "Both", tier: "STARTER" },
+      { slug: "member-dashboard", label: "Member Dashboard Banners", track: "Both", tier: "STARTER" },
       { slug: "glossary", label: "Desk Glossary", track: "Both", tier: "STARTER" },
     ],
   },
@@ -227,6 +229,8 @@ function ModuleEditor({
         return <LibraryEditor {...editorProps} />;
       case "footer-guides":
         return <FooterGuidesEditor payload={payload} onChange={setPayload} moduleSlug={slug} />;
+      case "member-dashboard":
+        return <MemberDashboardEditor {...editorProps} />;
       default:
         return (
           <div className="p-6 text-center text-muted-fg text-sm">
@@ -367,7 +371,10 @@ function SidebarGroupSection({
 
 // ─── Main tab ─────────────────────────────────────────────────────────────────
 
-export function AdminContentTab({ initialTrack }: { initialTrack?: "career" | "sales" } = {}) {
+export function AdminContentTab({
+  initialTrack,
+  initialSlug,
+}: { initialTrack?: "career" | "sales"; initialSlug?: string } = {}) {
   const [modules, setModules] = useState<ModuleRow[]>([]);
   const [selected, setSelected] = useState<{
     key: string;
@@ -405,11 +412,27 @@ export function AdminContentTab({ initialTrack }: { initialTrack?: "career" | "s
   // Deep-link support: /admin?tab=content&track=career|sales opens the matching
   // landing page editor directly (e.g. from the "Edit this page" link on the live site).
   useEffect(() => {
-    if (!initialTrack) return;
-    const label = initialTrack === "sales" ? "Sales Track" : "Career Track";
-    const track: TrackLabel = initialTrack === "sales" ? "Sales" : "Career";
-    setSelected({ key: `landing::${label}`, slug: "landing", label, track });
-  }, [initialTrack]);
+    if (initialTrack) {
+      const label = initialTrack === "sales" ? "Sales Track" : "Career Track";
+      const track: TrackLabel = initialTrack === "sales" ? "Sales" : "Career";
+      setSelected({ key: `landing::${label}`, slug: "landing", label, track });
+      return;
+    }
+    if (!initialSlug) return;
+    for (const group of SIDEBAR_GROUPS) {
+      const item = group.items.find((entry) => entry.slug === initialSlug);
+      if (item) {
+        setSelected({
+          key: `${item.slug}::${item.label}`,
+          slug: item.slug,
+          label: item.label,
+          track: item.track,
+          editorVariant: item.editorVariant,
+        });
+        break;
+      }
+    }
+  }, [initialTrack, initialSlug]);
 
   if (loading) {
     return <div className="text-center py-12 text-muted-fg">Loading content modules...</div>;

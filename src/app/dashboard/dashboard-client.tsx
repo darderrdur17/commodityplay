@@ -12,10 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AnimatedProgress, Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
 import { PERSONA_LABELS, TIER_LABELS, hasAccess, formatCurrency } from "@/lib/utils";
-import { PRO_SUBSCRIPTION, ELITE_SUBSCRIPTION } from "@/data/pricing-shared";
+import { PRO_SUBSCRIPTION } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 import { attachmentHref } from "@/lib/content/attachments";
 import type { NavigationGuideAttachment } from "@/lib/content/accessors";
+import {
+  DEFAULT_MEMBER_DASHBOARD_CONTENT,
+  type MemberDashboardContent,
+} from "@/data/member-dashboard";
 
 interface Props {
   contentTiers?: Record<string, string>;
@@ -23,6 +27,7 @@ interface Props {
     career: NavigationGuideAttachment | null;
     sales: NavigationGuideAttachment | null;
   };
+  dashboardContent?: MemberDashboardContent;
   user: {
     id: string;
     name: string | null;
@@ -144,6 +149,7 @@ const QUICK_LINKS = [
 export function DashboardClient({
   contentTiers = {},
   navigationGuides = { career: null, sales: null },
+  dashboardContent = DEFAULT_MEMBER_DASHBOARD_CONTENT,
   user,
   stats,
   isAdmin: isAdminUser = false,
@@ -187,6 +193,15 @@ export function DashboardClient({
           </div>
         </div>
       </Reveal>
+
+      {isAdminUser && (
+        <Link
+          href="/admin?tab=content&slug=member-dashboard"
+          className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-gray-900 text-white text-sm font-semibold px-4 py-2.5 shadow-xl hover:bg-gray-800 transition-colors"
+        >
+          Edit dashboard banners
+        </Link>
+      )}
 
       {isAdminUser && (
         <Reveal className="mb-8">
@@ -276,21 +291,23 @@ export function DashboardClient({
           <div className="rounded-2xl border border-primary-line bg-primary-soft p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <Badge variant="starter" className="mb-3">Starter Pack</Badge>
-                <h2 className="font-serif text-xl font-bold text-gray-900 mb-2">5 Free Downloads</h2>
+                <Badge variant="starter" className="mb-3">{dashboardContent.starterPack.badge}</Badge>
+                <h2 className="font-serif text-xl font-bold text-gray-900 mb-2">{dashboardContent.starterPack.headline}</h2>
                 <p className="text-sm text-muted-fg max-w-lg">
-                  Ecosystem map, crack spread guide, trade finance flow, LNG cargo flow, and price benchmarks — plus weekly market digest.
+                  {dashboardContent.starterPack.description}
                 </p>
               </div>
               <Link href="/signup" className="flex-shrink-0">
                 <Button>
-                  Download Free Pack <ArrowRight className="w-4 h-4" />
+                  {dashboardContent.starterPack.cta} <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
             </div>
-            <p className="text-xs text-muted-fg mt-4 pt-4 border-t border-primary-line">
-              Rest of downloadable assets unlock with Pro Pack.
-            </p>
+            {dashboardContent.starterPack.footerNote && (
+              <p className="text-xs text-muted-fg mt-4 pt-4 border-t border-primary-line">
+                {dashboardContent.starterPack.footerNote}
+              </p>
+            )}
           </div>
         </Reveal>
       )}
@@ -485,27 +502,34 @@ export function DashboardClient({
           <div className="rounded-2xl bg-primary-800 p-6 sm:p-8 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3280ff 0%, transparent 70%)", filter: "blur(40px)" }} />
             <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-              <div>
-                <Badge variant="dark" className="mb-3">
-                  {user.tier === "STARTER" ? "Upgrade to Pro" : "Upgrade to Elite"}
-                </Badge>
-                <h3 className="font-serif text-xl sm:text-2xl font-bold text-white mb-2">
-                  {user.tier === "STARTER"
-                    ? "Unlock the full playbook, resume templates, career roadmap and more."
-                    : "Unlock case studies, Mentor Connect, Desk Channel and job openings."}
-                </h3>
-                <p className="text-white/60 text-sm">
-                  {user.tier === "STARTER"
-                    ? PRO_SUBSCRIPTION.fullNote
-                    : ELITE_SUBSCRIPTION.fullNote}
-                </p>
-              </div>
-              <Link href={user.tier === "STARTER" ? CAREER_PLAN_HREF("pro") : CAREER_PLAN_HREF("elite")} className="flex-shrink-0 w-full sm:w-auto">
-                <Button size="lg" variant="primary-dark" className="whitespace-nowrap w-full sm:w-auto">
-                  {user.tier === "STARTER" ? "Get Pro" : "Get Elite"}
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
+              {(() => {
+                const promo =
+                  user.tier === "STARTER"
+                    ? dashboardContent.upgradeToPro
+                    : dashboardContent.upgradeToElite;
+                return (
+                  <>
+                    <div>
+                      <Badge variant="dark" className="mb-3">
+                        {promo.badge}
+                      </Badge>
+                      <h3 className="font-serif text-xl sm:text-2xl font-bold text-white mb-2">
+                        {promo.headline}
+                      </h3>
+                      <p className="text-white/60 text-sm">{promo.description}</p>
+                    </div>
+                    <Link
+                      href={user.tier === "STARTER" ? CAREER_PLAN_HREF("pro") : CAREER_PLAN_HREF("elite")}
+                      className="flex-shrink-0 w-full sm:w-auto"
+                    >
+                      <Button size="lg" variant="primary-dark" className="whitespace-nowrap w-full sm:w-auto">
+                        {promo.cta}
+                        <ArrowRight className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </Reveal>

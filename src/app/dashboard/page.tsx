@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getContentTiersMap, getNavigationGuides } from "@/lib/content/accessors";
+import { getContentTiersMap, getMemberDashboardContent, getNavigationGuides } from "@/lib/content/accessors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { DashboardClient } from "./dashboard-client";
@@ -33,11 +33,13 @@ export default async function DashboardPage() {
 
   const contentTiers = await getContentTiersMap();
   const navigationGuides = await getNavigationGuides();
+  const dashboardContent = await getMemberDashboardContent();
 
   return (
     <DashboardClient
       contentTiers={contentTiers}
       navigationGuides={navigationGuides}
+      dashboardContent={dashboardContent}
       user={{
         id: user.id,
         name: user.name,

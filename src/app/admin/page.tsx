@@ -6,7 +6,7 @@ export const metadata = { title: "Admin Panel" };
 export const dynamic = "force-dynamic";
 
 interface AdminPageProps {
-  searchParams: Promise<{ tab?: string; track?: string }>;
+  searchParams: Promise<{ tab?: string; track?: string; slug?: string }>;
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
@@ -22,6 +22,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       adminId={session.user.id}
       initialTab={params.tab}
       initialTrack={params.track}
+      initialSlug={params.slug}
     />
   );
 }

@@ -14,6 +14,7 @@ import { CAREER_ROLES } from "@/data/career-roadmap";
 import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-templates";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
+import { DEFAULT_MEMBER_DASHBOARD_CONTENT, type MemberDashboardContent } from "@/data/member-dashboard";
 import { DEFAULT_FAQ_CONTENT, type FaqContent } from "@/data/faq";
 import { normalizeBrandReferences } from "@/lib/brand";
 import { STARTER_INFOGRAPHICS, type StarterInfographic } from "@/data/starter-pack";
@@ -50,6 +51,18 @@ export async function getLandingContent(): Promise<LandingContent> {
 export async function getMentorConnectHero() {
   const landing = await getLandingContent();
   return landing.mentorConnect;
+}
+
+export async function getMemberDashboardContent(): Promise<MemberDashboardContent> {
+  const cms = await tryReadPublishedPayload<Partial<MemberDashboardContent>>("member-dashboard");
+  if (cms === null) {
+    return DEFAULT_MEMBER_DASHBOARD_CONTENT;
+  }
+  return {
+    starterPack: { ...DEFAULT_MEMBER_DASHBOARD_CONTENT.starterPack, ...cms.starterPack },
+    upgradeToPro: { ...DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToPro, ...cms.upgradeToPro },
+    upgradeToElite: { ...DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToElite, ...cms.upgradeToElite },
+  };
 }
 
 export async function getFaqContent(): Promise<FaqContent> {

@@ -1,0 +1,113 @@
+"use client";
+
+import React from "react";
+import {
+  DEFAULT_MEMBER_DASHBOARD_CONTENT,
+  type DashboardPromoBox,
+  type MemberDashboardContent,
+} from "@/data/member-dashboard";
+import { normalizeMemberDashboardPayload } from "@/lib/content/member-dashboard-schema";
+import { EditorField, EditorSection, inputClass, textareaClass } from "./shared";
+
+function PromoBoxFields({
+  label,
+  box,
+  onChange,
+  showFooterNote = false,
+}: {
+  label: string;
+  box: DashboardPromoBox;
+  onChange: (next: DashboardPromoBox) => void;
+  showFooterNote?: boolean;
+}) {
+  return (
+    <EditorSection title={label} defaultOpen>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <EditorField label="Badge (pill label)">
+          <input
+            className={inputClass}
+            value={box.badge}
+            onChange={(e) => onChange({ ...box, badge: e.target.value })}
+          />
+        </EditorField>
+        <EditorField label="Button text">
+          <input
+            className={inputClass}
+            value={box.cta}
+            onChange={(e) => onChange({ ...box, cta: e.target.value })}
+          />
+        </EditorField>
+      </div>
+      <EditorField label="Headline">
+        <input
+          className={inputClass}
+          value={box.headline}
+          onChange={(e) => onChange({ ...box, headline: e.target.value })}
+        />
+      </EditorField>
+      <EditorField label="Description / subtext">
+        <textarea
+          className={textareaClass}
+          value={box.description}
+          onChange={(e) => onChange({ ...box, description: e.target.value })}
+        />
+      </EditorField>
+      {showFooterNote && (
+        <EditorField label="Footer note (optional)">
+          <input
+            className={inputClass}
+            value={box.footerNote ?? ""}
+            onChange={(e) => onChange({ ...box, footerNote: e.target.value || undefined })}
+          />
+        </EditorField>
+      )}
+    </EditorSection>
+  );
+}
+
+export function MemberDashboardEditor({
+  payload,
+  onChange,
+}: {
+  payload: unknown;
+  onChange: (p: unknown) => void;
+  moduleSlug: string;
+  requiredTier: string;
+}) {
+  const content: MemberDashboardContent = normalizeMemberDashboardPayload(
+    payload ?? DEFAULT_MEMBER_DASHBOARD_CONTENT
+  );
+
+  function patch(next: MemberDashboardContent) {
+    onChange(next);
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-fg bg-secondary/50 rounded-lg px-3 py-2">
+        Edit the blue marketing banners on the member dashboard (<code className="text-[11px]">/dashboard</code>).
+        With <strong>Published</strong> checked, Save updates the live site. Starter members see the Starter Pack +
+        Upgrade-to-Pro boxes; Pro members see Upgrade-to-Elite; Elite members see neither upgrade banner.
+      </p>
+
+      <PromoBoxFields
+        label="Starter Pack banner (Starter members)"
+        box={content.starterPack}
+        onChange={(starterPack) => patch({ ...content, starterPack })}
+        showFooterNote
+      />
+
+      <PromoBoxFields
+        label="Upgrade to Pro banner (Starter members)"
+        box={content.upgradeToPro}
+        onChange={(upgradeToPro) => patch({ ...content, upgradeToPro })}
+      />
+
+      <PromoBoxFields
+        label="Upgrade to Elite banner (Pro members)"
+        box={content.upgradeToElite}
+        onChange={(upgradeToElite) => patch({ ...content, upgradeToElite })}
+      />
+    </div>
+  );
+}

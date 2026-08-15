@@ -11,6 +11,10 @@ import {
 import { getModuleMeta } from "@/lib/content/modules";
 import { parseLandingContentPayload, formatLandingValidationErrors } from "@/lib/content/landing-schema";
 import { parseFaqContentPayload, formatFaqValidationErrors } from "@/lib/content/faq-schema";
+import {
+  parseMemberDashboardPayload,
+  formatMemberDashboardValidationErrors,
+} from "@/lib/content/member-dashboard-schema";
 import { z } from "zod";
 import type { Tier } from "@prisma/client";
 
@@ -126,6 +130,20 @@ export async function PUT(
       }
       parsed.data.payload = faqValidation.data;
     }
+
+    if (slug === "member-dashboard") {
+      const dashboardValidation = parseMemberDashboardPayload(parsed.data.payload);
+      if (!dashboardValidation.success) {
+        return NextResponse.json(
+          {
+            error: "Invalid member dashboard content",
+            details: formatMemberDashboardValidationErrors(dashboardValidation),
+          },
+          { status: 400 }
+        );
+      }
+      parsed.data.payload = dashboardValidation.data;
+    }
   }
 
   const row = await updateContentModule(
@@ -143,6 +161,9 @@ export async function PUT(
   if (slug === "landing") {
     revalidatePath("/", "page");
     revalidatePath("/mentor-connect", "page");
+  }
+  if (slug === "member-dashboard") {
+    revalidatePath("/dashboard", "page");
   }
 
   return NextResponse.json({

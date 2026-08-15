@@ -16,7 +16,8 @@ export type ContentSlug =
   | "mentor-connect"
   | "mentors"
   | "library"
-  | "footer-guides";
+  | "footer-guides"
+  | "member-dashboard";
 
 export interface ContentModuleMeta {
   slug: ContentSlug;
@@ -114,6 +115,12 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
     slug: "footer-guides",
     title: "Footer Guides",
     description: "Free view-only Career Guide and Sales Guide PDFs linked from the site footer",
+    requiredTier: "STARTER",
+  },
+  {
+    slug: "member-dashboard",
+    title: "Member Dashboard",
+    description: "Blue marketing banners on the member dashboard — Starter Pack and upgrade prompts for all tiers",
     requiredTier: "STARTER",
   },
   {

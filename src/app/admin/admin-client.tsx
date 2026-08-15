@@ -89,11 +89,13 @@ export function AdminClient({
   adminId,
   initialTab,
   initialTrack,
+  initialSlug,
 }: {
   adminName: string;
   adminId: string;
   initialTab?: string;
   initialTrack?: string;
+  initialSlug?: string;
 }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<AdminUserDetail[]>([]);
@@ -384,6 +386,7 @@ export function AdminClient({
         {activeTab === "content" && (
           <AdminContentTab
             initialTrack={initialTrack === "sales" ? "sales" : initialTrack === "career" ? "career" : undefined}
+            initialSlug={initialSlug}
           />
         )}
 

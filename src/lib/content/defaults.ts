@@ -21,6 +21,7 @@ import {
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT } from "@/data/landing-content";
 import { DEFAULT_FAQ_CONTENT } from "@/data/faq";
+import { DEFAULT_MEMBER_DASHBOARD_CONTENT } from "@/data/member-dashboard";
 import { STARTER_INFOGRAPHICS, STARTER_MARKET_NOTE, STARTER_CHAPTER_PREVIEW } from "@/data/starter-pack";
 import type { ContentSlug } from "./modules";
 
@@ -76,6 +77,8 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
       return { files: [] };
     case "footer-guides":
       return { careerGuide: null, salesGuide: null };
+    case "member-dashboard":
+      return DEFAULT_MEMBER_DASHBOARD_CONTENT;
     case "mentors":
       return { overrides: [] };
     default:
@@ -100,6 +103,7 @@ export function getAllDefaultPayloads(): Record<ContentSlug, unknown> {
     "mentor-connect": getDefaultPayload("mentor-connect"),
     "library": getDefaultPayload("library"),
     "footer-guides": getDefaultPayload("footer-guides"),
-    "mentors": getDefaultPayload("mentors"),
+    "member-dashboard": getDefaultPayload("member-dashboard"),
+    mentors: getDefaultPayload("mentors"),
   };
 }
