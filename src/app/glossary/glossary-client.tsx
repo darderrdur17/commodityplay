@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { BookOpen, ArrowRight } from "lucide-react";
 import { BrandedSearchInput } from "@/components/brand/logo";
 import {
@@ -46,8 +47,15 @@ export function GlossaryClient({
   terms?: GlossaryTerm[];
   persona?: string | null;
 }) {
-  const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("q") ?? "";
+  const [search, setSearch] = useState(initialQuery);
   const [activeCategory, setActiveCategory] = useState<string>("All");
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) setSearch(q);
+  }, [searchParams]);
   const personaGuide = getPersonaGlossaryGuide(persona);
   const personaLabel = persona ? PERSONA_LABELS[persona]?.label : null;
 

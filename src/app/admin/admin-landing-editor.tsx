@@ -746,6 +746,40 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
             rows={4}
           />
         </Field>
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-gray-700">Hero stats</p>
+          {content.sales.stats.map((stat, i) => (
+            <div key={i} className="grid gap-2 sm:grid-cols-3 p-3 rounded-lg bg-secondary/40">
+              <input
+                type="number"
+                value={stat.value}
+                onChange={(e) => {
+                  const stats = [...content.sales.stats];
+                  stats[i] = { ...stat, value: Number(e.target.value) };
+                  patch("sales", { ...content.sales, stats });
+                }}
+                className={inputClass}
+                placeholder="Value"
+              />
+              <TextInput
+                value={stat.suffix}
+                onChange={(v) => {
+                  const stats = [...content.sales.stats];
+                  stats[i] = { ...stat, suffix: v };
+                  patch("sales", { ...content.sales, stats });
+                }}
+              />
+              <TextInput
+                value={stat.label}
+                onChange={(v) => {
+                  const stats = [...content.sales.stats];
+                  stats[i] = { ...stat, label: v };
+                  patch("sales", { ...content.sales, stats });
+                }}
+              />
+            </div>
+          ))}
+        </div>
       </Section>
 
       <Section title="Sales — Commercial Case (ROI)" description="Dark ROI section on sales track">

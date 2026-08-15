@@ -10,7 +10,7 @@ import {
 } from "@/lib/content/repository";
 import { getModuleMeta } from "@/lib/content/modules";
 import { parseLandingContentPayload, formatLandingValidationErrors } from "@/lib/content/landing-schema";
-import { parseFaqContentPayload, formatFaqValidationErrors } from "@/lib/content/faq-schema";
+import { prepareFaqContentForSave, formatFaqValidationErrors } from "@/lib/content/faq-schema";
 import {
   parseMemberDashboardPayload,
   formatMemberDashboardValidationErrors,
@@ -118,7 +118,7 @@ export async function PUT(
     }
 
     if (slug === "faq") {
-      const faqValidation = parseFaqContentPayload(parsed.data.payload);
+      const faqValidation = prepareFaqContentForSave(parsed.data.payload);
       if (!faqValidation.success) {
         return NextResponse.json(
           {

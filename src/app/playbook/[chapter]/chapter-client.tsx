@@ -15,6 +15,7 @@ import type { ContentAttachment } from "@/lib/content/attachments";
 import { attachmentHref, resolveAttachmentUrl } from "@/lib/content/attachments";
 import { PRO_SUBSCRIPTION } from "@/data/pricing-shared";
 import { CAREER_PRICING_HREF } from "@/lib/pricing-routes";
+import { PlaybookText } from "@/components/playbook/playbook-text";
 
 interface Props {
   chapter: (typeof CHAPTERS)[number];
@@ -269,25 +270,31 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
                     <>
                       <div className="px-5 pb-6 border-t border-border pt-5">
                         <p className="text-gray-900 font-medium italic border-l-4 border-primary-400 pl-4 mb-5">
-                          {section.hook}
+                          <PlaybookText text={section.hook} />
                         </p>
                         {section.paragraphs.map((p, i) => (
-                          <p key={i} className="text-gray-700 leading-relaxed mb-4">{p}</p>
+                          <p key={i} className="text-gray-700 leading-relaxed mb-4">
+                            <PlaybookText text={p} />
+                          </p>
                         ))}
                         {section.pullQuote && (
                           <blockquote className="bg-secondary rounded-xl p-5 my-5 border-l-4 border-primary-400">
-                            <p className="font-serif text-gray-800 italic">{section.pullQuote}</p>
+                            <p className="font-serif text-gray-800 italic">
+                              <PlaybookText text={section.pullQuote} />
+                            </p>
                           </blockquote>
                         )}
                         {section.wtmfy && (
                           <div className="bg-primary-soft rounded-xl p-5 mt-5">
                             <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">What this means for you</p>
-                            <p className="text-sm text-primary-900">{section.wtmfy}</p>
+                            <p className="text-sm text-primary-900">
+                              <PlaybookText text={section.wtmfy} />
+                            </p>
                           </div>
                         )}
                         {section.handoff && (
                           <p className="text-sm text-muted-fg mt-5 flex items-center gap-1">
-                            <ArrowRight className="w-4 h-4" /> {section.handoff}
+                            <ArrowRight className="w-4 h-4" /> <PlaybookText text={section.handoff} />
                           </p>
                         )}
                       </div>
