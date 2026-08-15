@@ -109,12 +109,12 @@ export function GlossaryClient({
           </div>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-3">The Desk Glossary</h1>
           <p className="text-white/65 text-base sm:text-lg max-w-xl">
-            {terms.length} commodity trading terms, explained the way a senior trader would actually explain them to a
-            new hire on day one — not Wikipedia definitions.
+            Commodity trading terms, explained the way a senior trader would actually explain them to a new hire on day
+            one — not Wikipedia definitions.
           </p>
           <div className="flex items-center gap-3 mt-6 flex-wrap">
             {[
-              `${terms.length} Terms`,
+              "Terms",
               `${GLOSSARY_CATEGORIES.length} Categories`,
               "Trader explanations throughout",
               "Always updated",
@@ -157,7 +157,7 @@ export function GlossaryClient({
               onClick={() => setActiveCategory("All")}
               className="px-3 py-1 rounded-full text-xs font-semibold border border-border text-muted-fg hover:text-gray-900"
             >
-              Browse all {terms.length} terms
+              Browse all terms
             </button>
           </div>
         </Reveal>
