@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { BookOpen, Clock, ChevronRight, Lock, CheckCircle } from "lucide-react";
-import { CHAPTERS } from "@/data/playbook";
+import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS, PLAYBOOK_TOTAL_SECTIONS } from "@/data/playbook";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 
 type Chapter = (typeof CHAPTERS)[number];
@@ -28,7 +28,8 @@ export function PlaybookHubClient({
 }: Props) {
   const getChapterProgress = (id: string) => progress.find((p) => p.chapterId === id);
   const completedCount = progress.filter((p) => p.completed).length;
-  const totalProgress = progress.reduce((s, p) => s + p.progress, 0) / (5 * 100) * 100;
+  const totalProgress =
+    progress.reduce((s, p) => s + p.progress, 0) / (PLAYBOOK_TOTAL_CHAPTERS * 100) * 100;
   const isPro = hasAccess(userTier, requiredTier);
 
   return (
@@ -46,7 +47,7 @@ export function PlaybookHubClient({
           </h1>
           <p className="text-white/65 text-lg max-w-xl mb-6">
             {isPro
-              ? "5 chapters · 40 sections · Industry foundations through commercial decision-making — sourced from the Pro Pack playbook."
+              ? `${PLAYBOOK_TOTAL_CHAPTERS} Chapters. ${PLAYBOOK_TOTAL_SECTIONS} sections. Industry foundations through commercial decision-making — sourced from the Pro Pack playbook.`
               : "The ground-level understanding every serious learner of commodity trading needs before anything else."}
           </p>
           {isPro && (
@@ -57,7 +58,9 @@ export function PlaybookHubClient({
               </div>
               <div className="glass-card px-5 py-3">
                 <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Chapters Done</p>
-                <p className="text-white font-serif text-2xl font-bold">{completedCount}/5</p>
+                <p className="text-white font-serif text-2xl font-bold">
+                  {completedCount}/{PLAYBOOK_TOTAL_CHAPTERS} Chapters
+                </p>
               </div>
               <div className="flex-1 min-w-[200px]">
                 <AnimatedProgress value={totalProgress} className="h-2" color="rgba(223,242,255,0.7)" />

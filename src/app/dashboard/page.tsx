@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { PLAYBOOK_TOTAL_CHAPTERS } from "@/data/playbook";
 import { getContentTiersMap, getMemberDashboardContent, getNavigationGuides } from "@/lib/content/accessors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -28,7 +29,7 @@ export default async function DashboardPage() {
 
   const completedChapters = user.progress.filter((p) => p.completed).length;
   const progressPct = user.progress.length > 0
-    ? Math.round(user.progress.reduce((s, p) => s + p.progress, 0) / (5 * 100) * 100)
+    ? Math.round(user.progress.reduce((s, p) => s + p.progress, 0) / (PLAYBOOK_TOTAL_CHAPTERS * 100) * 100)
     : 0;
 
   const contentTiers = await getContentTiersMap();

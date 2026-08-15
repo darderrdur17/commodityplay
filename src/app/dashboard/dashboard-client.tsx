@@ -20,6 +20,7 @@ import {
   DEFAULT_MEMBER_DASHBOARD_CONTENT,
   type MemberDashboardContent,
 } from "@/data/member-dashboard";
+import { PLAYBOOK_TOTAL_CHAPTERS } from "@/data/playbook";
 
 interface Props {
   contentTiers?: Record<string, string>;
@@ -253,7 +254,7 @@ export function DashboardClient({
           },
           {
             label: "Chapters Done",
-            value: `${stats.completedChapters}/5`,
+            value: `${stats.completedChapters}/${PLAYBOOK_TOTAL_CHAPTERS}`,
             icon: BookOpen,
             color: "#16a34a",
           },

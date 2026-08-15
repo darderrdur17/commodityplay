@@ -100,6 +100,10 @@ export const CHAPTERS = [
   },
 ] as const;
 
+/** Full playbook scope shown in Pro hub and member progress (landing lists A–I). */
+export const PLAYBOOK_TOTAL_CHAPTERS = 9;
+export const PLAYBOOK_TOTAL_SECTIONS = 72;
+
 export function getChapterSections(chapterId: string): PlaybookSection[] {
   const key = chapterId as keyof typeof playbookSections;
   return (playbookSections[key] as PlaybookSection[]) || [];
