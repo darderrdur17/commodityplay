@@ -216,26 +216,22 @@ function resolveCareerFinalCta(
   defaults: LandingContent,
   cms?: Partial<LandingContent["career"]>
 ): Pick<LandingContent["career"], "finalCtaTitle" | "finalCtaAccent"> {
-  const cmsAccent = cms?.finalCtaAccent?.trim();
-  if (cmsAccent) {
-    return {
-      finalCtaTitle: cmsString(cms?.finalCtaTitle, defaults.career.finalCtaTitle),
-      finalCtaAccent: cmsAccent,
-    };
-  }
+  const defaultTitle = defaults.career.finalCtaTitle;
+  const defaultAccent = defaults.career.finalCtaAccent;
 
-  const cmsTitle = cms?.finalCtaTitle?.trim() ?? "";
-  if (cmsTitle.toLowerCase().includes("join the desk community")) {
-    return {
-      finalCtaTitle: defaults.career.finalCtaTitle,
-      finalCtaAccent: defaults.career.finalCtaAccent,
-    };
-  }
+  let title = cmsString(cms?.finalCtaTitle, defaultTitle).trim();
+  let accent = cms?.finalCtaAccent?.trim() || defaultAccent;
 
-  return {
-    finalCtaTitle: cmsString(cms?.finalCtaTitle, defaults.career.finalCtaTitle),
-    finalCtaAccent: defaults.career.finalCtaAccent,
-  };
+  // Strip legacy combined copy so accent isn't duplicated on the page.
+  title = title
+    .split("\n")[0]
+    ?.replace(/\s*join the desk community\.?\s*(today\.?)?\s*/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim() || defaultTitle;
+
+  if (!title) title = defaultTitle;
+
+  return { finalCtaTitle: title, finalCtaAccent: accent };
 }
 
 /** Sales track — CMS copy wins; repo defaults fill missing structure. */
