@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   BookOpen, Map, FileText, MessageSquare, BarChart3, Briefcase,
-  Users, Lock, ArrowRight, TrendingUp, Award, ChevronRight, Star,
+  Users, Lock, ArrowRight, TrendingUp, Award, ChevronRight,
   CheckCircle, Shield, ExternalLink, Eye, Compass,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -179,14 +179,6 @@ export function DashboardClient({
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            {user.tier !== "ELITE" && (
-              <Link href={user.tier === "STARTER" ? CAREER_PLAN_HREF("pro") : CAREER_PLAN_HREF("elite")} className="w-full sm:w-auto">
-                <Button size="sm" variant="outline" className="w-full sm:w-auto">
-                  <Star className="w-3.5 h-3.5" />
-                  Upgrade to {user.tier === "STARTER" ? "Pro" : "Elite"}
-                </Button>
-              </Link>
-            )}
             <Badge variant={user.tier.toLowerCase() as any} size="lg">
               {tierInfo.label} Member
             </Badge>
