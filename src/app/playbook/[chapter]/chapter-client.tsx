@@ -13,8 +13,6 @@ import { AnimatedProgress } from "@/components/animations";
 import { CHAPTERS, type PlaybookSection } from "@/data/playbook";
 import type { ContentAttachment } from "@/lib/content/attachments";
 import { attachmentHref, resolveAttachmentUrl } from "@/lib/content/attachments";
-import { PRO_SUBSCRIPTION } from "@/data/pricing-shared";
-import { CAREER_PRICING_HREF } from "@/lib/pricing-routes";
 import { PlaybookText } from "@/components/playbook/playbook-text";
 
 interface Props {
@@ -155,7 +153,6 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
               {isChapterAPreview && (
                 <p className="text-white/80 text-sm bg-white/10 rounded-lg px-4 py-3 border border-white/20 max-w-xl">
                   The ground-level understanding every serious learner of commodity trading needs before anything else.
-                  Three sections free. Five unlocked with Pro.
                 </p>
               )}
             </div>
@@ -313,29 +310,6 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
             })}
           </div>
         </div>
-
-        {isChapterAPreview && (
-          <section className="mt-12 rounded-2xl bg-primary-soft border border-primary-line p-8">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              <div>
-                <h2 className="font-serif text-xl font-bold text-primary-800 mb-2">
-                  Unlock all {sections.length} sections
-                </h2>
-                <p className="text-sm text-primary-900/80 leading-relaxed max-w-xl">
-                  Unlock all {sections.length - FREE_CHAPTER_A_SECTIONS} remaining sections in Chapter A. Plus 4 more chapters, 20+ infographics, 5 resume templates, and the career roadmap. {PRO_SUBSCRIPTION.fullNote}.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
-                <Link href="/signup?plan=pro">
-                  <Button size="lg">{PRO_SUBSCRIPTION.cta} →</Button>
-                </Link>
-                <Link href={CAREER_PRICING_HREF}>
-                  <Button size="lg" variant="outline">Compare tiers</Button>
-                </Link>
-              </div>
-            </div>
-          </section>
-        )}
 
         <div className="flex items-center justify-between mt-16 pt-8 border-t border-border gap-4 flex-wrap">
           {prevChapter ? (

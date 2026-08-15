@@ -5,7 +5,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { BookOpen, Clock, ChevronRight, Lock, CheckCircle } from "lucide-react";
 import { CHAPTERS } from "@/data/playbook";
-import { PRO_SUBSCRIPTION } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 
 type Chapter = (typeof CHAPTERS)[number];
@@ -48,14 +47,8 @@ export function PlaybookHubClient({
           <p className="text-white/65 text-lg max-w-xl mb-6">
             {isPro
               ? "5 chapters · 40 sections · Industry foundations through commercial decision-making — sourced from the Pro Pack playbook."
-              : "The ground-level understanding every serious learner of commodity trading needs before anything else. Three sections free. Five unlocked with Pro."}
+              : "The ground-level understanding every serious learner of commodity trading needs before anything else."}
           </p>
-          {!isPro && (
-            <div className="glass-card inline-flex px-5 py-3 text-sm text-white/80">
-              <span className="font-semibold text-white">3 of 8 sections free.</span>
-              <span className="ml-2">Sections A.4 – A.8 unlock with a Pro subscription ({PRO_SUBSCRIPTION.fullNote}).</span>
-            </div>
-          )}
           {isPro && (
             <div className="flex items-center gap-4 flex-wrap">
               <div className="glass-card px-5 py-3">
