@@ -320,6 +320,12 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
               rows={2}
             />
           </Field>
+          <Field label="Bottom CTA accent (italic, light blue)">
+            <TextInput
+              value={content.career.finalCtaAccent}
+              onChange={(v) => patch("career", { ...content.career, finalCtaAccent: v })}
+            />
+          </Field>
         </div>
         <Field label="Description">
           <TextInput

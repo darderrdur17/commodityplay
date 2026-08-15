@@ -364,7 +364,7 @@ export function LandingPageClient({ content }: Props) {
                 <h2 className="font-serif text-[clamp(28px,5vw,52px)] font-bold tracking-tight text-white mb-5">
                   {career.finalCtaTitle}
                   <br />
-                  <span className="text-accent italic">It&apos;s free to begin.</span>
+                  <span className="text-accent italic font-normal">{career.finalCtaAccent}</span>
                 </h2>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-8">
                   <Button size="xl" variant="primary-dark" className="shadow-xl w-full sm:w-auto" onClick={() => setModalOpen(true)}>

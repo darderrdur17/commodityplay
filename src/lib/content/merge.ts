@@ -208,7 +208,33 @@ export function resolveCareerContent(
       : defaults.career.heroStats,
     ctaPrimary: cmsString(cms?.ctaPrimary, defaults.career.ctaPrimary),
     ctaSecondary: cmsString(cms?.ctaSecondary, defaults.career.ctaSecondary),
+    ...resolveCareerFinalCta(defaults, cms),
+  };
+}
+
+function resolveCareerFinalCta(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["career"]>
+): Pick<LandingContent["career"], "finalCtaTitle" | "finalCtaAccent"> {
+  const cmsAccent = cms?.finalCtaAccent?.trim();
+  if (cmsAccent) {
+    return {
+      finalCtaTitle: cmsString(cms?.finalCtaTitle, defaults.career.finalCtaTitle),
+      finalCtaAccent: cmsAccent,
+    };
+  }
+
+  const cmsTitle = cms?.finalCtaTitle?.trim() ?? "";
+  if (cmsTitle.toLowerCase().includes("join the desk community")) {
+    return {
+      finalCtaTitle: defaults.career.finalCtaTitle,
+      finalCtaAccent: defaults.career.finalCtaAccent,
+    };
+  }
+
+  return {
     finalCtaTitle: cmsString(cms?.finalCtaTitle, defaults.career.finalCtaTitle),
+    finalCtaAccent: defaults.career.finalCtaAccent,
   };
 }
 
