@@ -15,6 +15,10 @@ import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-template
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
 import { DEFAULT_MEMBER_DASHBOARD_CONTENT, type MemberDashboardContent } from "@/data/member-dashboard";
+import {
+  DEFAULT_MENTOR_CONNECT_CONTENT,
+  type MentorConnectHero,
+} from "@/data/mentor-connect-content";
 import { DEFAULT_FAQ_CONTENT, type FaqContent } from "@/data/faq";
 import { normalizeBrandReferences } from "@/lib/brand";
 import { STARTER_INFOGRAPHICS, type StarterInfographic } from "@/data/starter-pack";
@@ -47,10 +51,21 @@ export async function getLandingContent(): Promise<LandingContent> {
   return mergeLandingContent(DEFAULT_LANDING_CONTENT, cms);
 }
 
-/** Mentor Connect hero — already merged in getLandingContent(); do not re-merge on pages. */
-export async function getMentorConnectHero() {
+/** Mentor Connect hero — CMS module `mentor-connect`, with landing fallback for eyebrow/title. */
+export async function getMentorConnectHero(): Promise<MentorConnectHero> {
+  const cms = await tryReadPublishedPayload<Partial<{ hero?: Partial<MentorConnectHero> }>>(
+    "mentor-connect"
+  );
   const landing = await getLandingContent();
-  return landing.mentorConnect;
+  const hero = {
+    ...DEFAULT_MENTOR_CONNECT_CONTENT.hero,
+    ...cms?.hero,
+  };
+  return {
+    eyebrow: hero.eyebrow || landing.mentorConnect.eyebrow,
+    title: hero.title || landing.mentorConnect.title,
+    subtitle: hero.subtitle || DEFAULT_MENTOR_CONNECT_CONTENT.hero.subtitle,
+  };
 }
 
 export async function getMemberDashboardContent(): Promise<MemberDashboardContent> {

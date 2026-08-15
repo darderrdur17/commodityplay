@@ -22,6 +22,7 @@ import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-
 import { DEFAULT_LANDING_CONTENT } from "@/data/landing-content";
 import { DEFAULT_FAQ_CONTENT } from "@/data/faq";
 import { DEFAULT_MEMBER_DASHBOARD_CONTENT } from "@/data/member-dashboard";
+import { DEFAULT_MENTOR_CONNECT_CONTENT } from "@/data/mentor-connect-content";
 import { STARTER_INFOGRAPHICS, STARTER_MARKET_NOTE, STARTER_CHAPTER_PREVIEW } from "@/data/starter-pack";
 import type { ContentSlug } from "./modules";
 
@@ -72,7 +73,7 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
         chapterPreview: STARTER_CHAPTER_PREVIEW,
       };
     case "mentor-connect":
-      return { categories: [] };
+      return DEFAULT_MENTOR_CONNECT_CONTENT;
     case "library":
       return { files: [] };
     case "footer-guides":

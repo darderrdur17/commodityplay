@@ -9,6 +9,7 @@ import { TierGate } from "@/components/tier-gate";
 import { Reveal } from "@/components/animations";
 import { MentorAskPanel } from "@/components/mentor-connect/mentor-ask-panel";
 import { formatDate } from "@/lib/utils";
+import { formatMentorConnectSubtitle } from "@/data/mentor-connect-content";
 import type { PublicMentorProfile, PublishedMentorSegment } from "@/data/mentors";
 
 const SEGMENT_API_MAP: Record<string, string> = {
@@ -46,6 +47,7 @@ interface Props {
   mentorConnectHero: {
     eyebrow: string;
     title: string;
+    subtitle: string;
   };
 }
 
@@ -129,7 +131,11 @@ export function MentorConnectClient({
             {mentorConnectHero.title}
           </h1>
           <p className="text-white/65 text-lg max-w-2xl mb-6">
-            One question. One mentor. One honest answer. Choose from {mentorCount} anonymous practitioners across {mentorSegments.length} coverage segments. Your session ends once you&apos;ve finished using all 25 credits and the credits will get reset every month.
+            {formatMentorConnectSubtitle(
+              mentorConnectHero.subtitle,
+              mentorCount,
+              mentorSegments.length
+            )}
           </p>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">

@@ -15,6 +15,10 @@ import {
   parseMemberDashboardPayload,
   formatMemberDashboardValidationErrors,
 } from "@/lib/content/member-dashboard-schema";
+import {
+  parseMentorConnectPayload,
+  formatMentorConnectValidationErrors,
+} from "@/lib/content/mentor-connect-schema";
 import { z } from "zod";
 import type { Tier } from "@prisma/client";
 
@@ -69,6 +73,9 @@ export async function PUT(
       revalidatePath("/");
       revalidatePath("/mentor-connect");
     }
+    if (slug === "mentor-connect") {
+      revalidatePath("/mentor-connect");
+    }
     return NextResponse.json({ ok: true, version: row.version, canRevert: await hasContentModuleRevision(slug) });
   }
 
@@ -78,6 +85,9 @@ export async function PUT(
       const row = await revertContentModuleToPrevious(slug, session.user.id);
       if (slug === "landing") {
         revalidatePath("/");
+        revalidatePath("/mentor-connect");
+      }
+      if (slug === "mentor-connect") {
         revalidatePath("/mentor-connect");
       }
       return NextResponse.json({
@@ -144,6 +154,20 @@ export async function PUT(
       }
       parsed.data.payload = dashboardValidation.data;
     }
+
+    if (slug === "mentor-connect") {
+      const mentorValidation = parseMentorConnectPayload(parsed.data.payload);
+      if (!mentorValidation.success) {
+        return NextResponse.json(
+          {
+            error: "Invalid mentor connect content",
+            details: formatMentorConnectValidationErrors(mentorValidation),
+          },
+          { status: 400 }
+        );
+      }
+      parsed.data.payload = mentorValidation.data;
+    }
   }
 
   const row = await updateContentModule(
@@ -164,6 +188,9 @@ export async function PUT(
   }
   if (slug === "member-dashboard") {
     revalidatePath("/dashboard", "page");
+  }
+  if (slug === "mentor-connect") {
+    revalidatePath("/mentor-connect", "page");
   }
 
   return NextResponse.json({

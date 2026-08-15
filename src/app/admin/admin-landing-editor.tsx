@@ -692,7 +692,7 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
         </button>
       </Section>
 
-      <Section title="Mentor Connect" description="Hero copy on the Mentor Connect page (Elite feature)">
+      <Section title="Mentor Connect" description="Hero eyebrow/title also editable under Content → Mentor Connect (includes subtitle)">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Eyebrow">
             <TextInput
