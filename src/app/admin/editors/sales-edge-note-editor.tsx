@@ -2,44 +2,32 @@
 
 import React from "react";
 import { EditorField, inputClass, textareaClass } from "./shared";
+import type { WeeklyEdgeNote } from "@/lib/content/edge-notes";
 
-export interface SalesEdgeNote {
-  eyebrow: string;
-  title: string;
-  description: string;
-  frequencyNote: string;
-  ctaLabel: string;
-  ctaLink: string;
-}
+/** @deprecated Use WeeklyEdgeNote from @/lib/content/edge-notes */
+export type SalesEdgeNote = WeeklyEdgeNote;
 
-function defaultNote(): SalesEdgeNote {
-  return {
-    eyebrow: "Sales Track Only",
-    title: "Weekly Sales Edge Note",
-    description: "",
-    frequencyNote: "Delivered every Monday",
-    ctaLabel: "Subscribe",
-    ctaLink: "",
-  };
-}
-
-export function SalesEdgeNoteEditor({
+export function WeeklyEdgeNoteEditor({
   note,
   onChange,
+  trackLabel,
+  defaultNote,
 }: {
-  note: SalesEdgeNote | null | undefined;
-  onChange: (n: SalesEdgeNote) => void;
+  note: WeeklyEdgeNote | null | undefined;
+  onChange: (n: WeeklyEdgeNote) => void;
+  trackLabel: string;
+  defaultNote: () => WeeklyEdgeNote;
 }) {
   const data = note ?? defaultNote();
 
-  function patch(updates: Partial<SalesEdgeNote>) {
+  function patch(updates: Partial<WeeklyEdgeNote>) {
     onChange({ ...data, ...updates });
   }
 
   return (
     <div className="space-y-4">
       <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-violet-100 text-violet-700 text-xs font-semibold">
-        Sales Track Only
+        {trackLabel}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <EditorField label="Eyebrow">
@@ -64,5 +52,30 @@ export function SalesEdgeNoteEditor({
         </EditorField>
       </div>
     </div>
+  );
+}
+
+/** @deprecated Use WeeklyEdgeNoteEditor */
+export function SalesEdgeNoteEditor({
+  note,
+  onChange,
+}: {
+  note: WeeklyEdgeNote | null | undefined;
+  onChange: (n: WeeklyEdgeNote) => void;
+}) {
+  return (
+    <WeeklyEdgeNoteEditor
+      note={note}
+      onChange={onChange}
+      trackLabel="Sales Track Only"
+      defaultNote={() => ({
+        eyebrow: "Sales Track Only",
+        title: "Weekly Sales Edge Note",
+        description: "",
+        frequencyNote: "Delivered every Tuesday",
+        ctaLabel: "Subscribe",
+        ctaLink: "",
+      })}
+    />
   );
 }

@@ -20,6 +20,7 @@ import {
 } from "@/data/resume-templates";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT } from "@/data/landing-content";
+import { defaultCareerEdgeNote, defaultSalesEdgeNote } from "@/lib/content/edge-notes";
 import { DEFAULT_FAQ_CONTENT } from "@/data/faq";
 import { DEFAULT_MEMBER_DASHBOARD_CONTENT } from "@/data/member-dashboard";
 import { DEFAULT_MENTOR_CONNECT_CONTENT } from "@/data/mentor-connect-content";
@@ -29,7 +30,11 @@ import type { ContentSlug } from "./modules";
 export function getDefaultPayload(slug: ContentSlug): unknown {
   switch (slug) {
     case "landing":
-      return DEFAULT_LANDING_CONTENT;
+      return {
+        ...DEFAULT_LANDING_CONTENT,
+        careerEdgeNote: defaultCareerEdgeNote(),
+        salesEdgeNote: defaultSalesEdgeNote(),
+      };
     case "faq":
       return DEFAULT_FAQ_CONTENT;
     case "glossary":

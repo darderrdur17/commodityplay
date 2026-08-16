@@ -7,7 +7,12 @@ import { EditorSection, UploadSection } from "./shared";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
 import { parseLandingContentPayload } from "@/lib/content/landing-schema";
 import { mergeLandingContent } from "@/lib/content/merge";
-import { SalesEdgeNoteEditor, type SalesEdgeNote } from "./sales-edge-note-editor";
+import {
+  defaultCareerEdgeNote,
+  defaultSalesEdgeNote,
+  type WeeklyEdgeNote,
+} from "@/lib/content/edge-notes";
+import { WeeklyEdgeNoteEditor } from "./sales-edge-note-editor";
 
 type TrackFilter = "career" | "sales" | "both";
 
@@ -31,13 +36,21 @@ export function LandingEditorWrapper({
     ? parsed.data
     : mergeLandingContent(DEFAULT_LANDING_CONTENT, (payload ?? {}) as Partial<LandingContent>);
   const rawPayload = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
-  const salesEdgeNote = rawPayload.salesEdgeNote as SalesEdgeNote | undefined;
+  const careerEdgeNote = rawPayload.careerEdgeNote as WeeklyEdgeNote | undefined;
+  const salesEdgeNote = rawPayload.salesEdgeNote as WeeklyEdgeNote | undefined;
+
+  const showCareerNote = track === "both" || track === "career";
+  const showSalesNote = track === "both" || track === "sales";
 
   function handleLandingChange(next: LandingContent) {
     onChange({ ...rawPayload, ...next });
   }
 
-  function handleSalesEdgeNoteChange(note: SalesEdgeNote) {
+  function handleCareerEdgeNoteChange(note: WeeklyEdgeNote) {
+    onChange({ ...rawPayload, careerEdgeNote: note });
+  }
+
+  function handleSalesEdgeNoteChange(note: WeeklyEdgeNote) {
     onChange({ ...rawPayload, salesEdgeNote: note });
   }
 
@@ -66,9 +79,33 @@ export function LandingEditorWrapper({
         trackFilter={track}
       />
 
-      <EditorSection title="Weekly Sales Edge Note" description="Sales track only — saves to landing payload key salesEdgeNote">
-        <SalesEdgeNoteEditor note={salesEdgeNote} onChange={handleSalesEdgeNoteChange} />
-      </EditorSection>
+      {showCareerNote && (
+        <EditorSection
+          title="Weekly Career Edge Note"
+          description="Career track only — saves to landing payload key careerEdgeNote"
+        >
+          <WeeklyEdgeNoteEditor
+            note={careerEdgeNote}
+            onChange={handleCareerEdgeNoteChange}
+            trackLabel="Career Track Only"
+            defaultNote={defaultCareerEdgeNote}
+          />
+        </EditorSection>
+      )}
+
+      {showSalesNote && (
+        <EditorSection
+          title="Weekly Sales Edge Note"
+          description="Sales track only — saves to landing payload key salesEdgeNote"
+        >
+          <WeeklyEdgeNoteEditor
+            note={salesEdgeNote}
+            onChange={handleSalesEdgeNoteChange}
+            trackLabel="Sales Track Only"
+            defaultNote={defaultSalesEdgeNote}
+          />
+        </EditorSection>
+      )}
 
       <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} />
     </div>

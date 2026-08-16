@@ -7,8 +7,7 @@ import { FooterNewsletter } from "@/components/footer-newsletter";
 import { ContactModal } from "@/components/landing/contact-modal";
 import { FOOTER_BOTTOM_SAFE_PADDING } from "@/lib/layout-constants";
 import { BRAND_NAME, BRAND_EMAIL_HELLO } from "@/lib/brand";
-import { attachmentHref } from "@/lib/content/attachments";
-import type { FooterGuidePublic } from "@/lib/content/accessors";
+import { CAREER_PRICING_HREF, SALES_PRICING_HREF } from "@/lib/pricing-routes";
 
 type FooterLink = {
   label: string;
@@ -16,59 +15,33 @@ type FooterLink = {
   external?: boolean;
 };
 
-function buildContentsLinks(guides: {
-  career: FooterGuidePublic | null;
-  sales: FooterGuidePublic | null;
-}): FooterLink[] {
-  const links: FooterLink[] = [
-    { label: "Overview", href: "/" },
-    { label: "Full Playbook", href: "/playbook" },
-  ];
-
-  if (guides.career?.assetId) {
-    links.push({
-      label: "Career Guide",
-      href: attachmentHref(`/api/content/assets/${guides.career.assetId}`, "view-only"),
-      external: true,
-    });
-  }
-
-  if (guides.sales?.assetId) {
-    links.push({
-      label: "Sales Guide",
-      href: attachmentHref(`/api/content/assets/${guides.sales.assetId}`, "view-only"),
-      external: true,
-    });
-  }
-
-  return links;
-}
+const CONTENTS_LINKS: FooterLink[] = [
+  { label: "Career Track", href: "/?track=career" },
+  { label: "Sales Track", href: "/?track=sales" },
+];
 
 const COMMUNITY_LINKS: FooterLink[] = [
-    { label: "Mentor Connect", href: "/mentor-connect" },
-    { label: "Desk Channel", href: "/desk-channel" },
-    { label: "Weekly Note", href: "/starter-pack" },
-  { label: "Job Board Waitlist", href: "/waitlist" },
+  { label: "Mentor Connect", href: "/mentor-connect" },
+  { label: "Desk Channel", href: "/desk-channel" },
+  { label: "Job Board", href: "/job-openings" },
+  { label: "Glossary", href: "/glossary" },
   { label: "FAQ", href: "/faq" },
 ];
 
 const ACCESS_LINKS: FooterLink[] = [
-  { label: "Resource Library", href: "/library" },
+  { label: "Be a Member", href: CAREER_PRICING_HREF },
+  { label: "Be a Partner", href: "/mentor-apply" },
   { label: "Team Licenses", href: `mailto:${BRAND_EMAIL_HELLO}` },
   { label: "Sign Up", href: "/signup" },
   { label: "Login", href: "/login" },
-  { label: "Contact Us", href: "#contact" },
+  { label: "Support", href: "#contact" },
 ];
 
-export function Footer({
-  footerGuides = { career: null, sales: null },
-}: {
-  footerGuides?: { career: FooterGuidePublic | null; sales: FooterGuidePublic | null };
-}) {
+export function Footer() {
   const [contactOpen, setContactOpen] = useState(false);
 
   const footerLinks = {
-    Contents: buildContentsLinks(footerGuides),
+    Contents: CONTENTS_LINKS,
     Community: COMMUNITY_LINKS,
     Access: ACCESS_LINKS,
   };

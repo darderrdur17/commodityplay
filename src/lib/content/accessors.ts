@@ -26,6 +26,13 @@ import { getSectionAssets } from "@/data/playbook-assets";
 import type { ContentAttachment } from "./attachments";
 import { mergeLandingContent, resolveMentorSegments } from "./merge";
 import {
+  defaultCareerEdgeNote,
+  defaultSalesEdgeNote,
+  resolveWeeklyEdgeNote,
+  type LandingEdgeNotes,
+  type WeeklyEdgeNote,
+} from "./edge-notes";
+import {
   MENTOR_SEGMENTS,
   UNASSIGNED_SEGMENT_ID,
   toPublicMentorProfile,
@@ -49,6 +56,19 @@ export async function getLandingContent(): Promise<LandingContent> {
     return DEFAULT_LANDING_CONTENT;
   }
   return mergeLandingContent(DEFAULT_LANDING_CONTENT, cms);
+}
+
+type LandingPayload = Partial<LandingContent> & LandingEdgeNotes;
+
+export async function getLandingEdgeNotes(): Promise<{
+  career: WeeklyEdgeNote;
+  sales: WeeklyEdgeNote;
+}> {
+  const cms = await tryReadPublishedPayload<LandingPayload>("landing");
+  return {
+    career: resolveWeeklyEdgeNote(cms?.careerEdgeNote, defaultCareerEdgeNote()),
+    sales: resolveWeeklyEdgeNote(cms?.salesEdgeNote, defaultSalesEdgeNote()),
+  };
 }
 
 /** Mentor Connect hero — CMS module `mentor-connect`, with landing fallback for eyebrow/title. */

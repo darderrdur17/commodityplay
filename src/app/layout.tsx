@@ -8,7 +8,6 @@ import { SessionProvider } from "@/components/session-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { NAV_OFFSET } from "@/lib/layout-constants";
 import { BRAND_NAME, BRAND_SITE_URL } from "@/lib/brand";
-import { getFooterGuides } from "@/lib/content/accessors";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -89,15 +88,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const footerGuides = await getFooterGuides();
-
   return (
     <html lang="en" className={`${inter.variable} ${roboto.variable}`}>
       <body className="font-sans antialiased bg-white text-gray-800 min-h-screen flex flex-col overflow-x-hidden">
         <SessionProvider>
           <Nav />
           <main className="flex-1" style={{ paddingTop: NAV_OFFSET }}>{children}</main>
-          <Footer footerGuides={footerGuides} />
+          <Footer />
           <Toaster />
         </SessionProvider>
       </body>

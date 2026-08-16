@@ -23,6 +23,7 @@ import {
 import type { LandingContent } from "@/data/landing-content";
 import { SALES_MARKET_NOTE } from "@/data/market-notes";
 import { SALES_PRICING_HREF } from "@/lib/pricing-routes";
+import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-notes";
 
 const SALES_COLOR = "#0F766E";
 
@@ -159,11 +160,12 @@ function LearnAccordion() {
 interface Props {
   content: LandingContent["sales"];
   membersStrip: LandingContent["membersStrip"];
+  edgeNote: WeeklyEdgeNote;
   onOpenModal: () => void;
   onOpenContactModal: () => void;
 }
 
-export function SalesLandingPanel({ content, membersStrip, onOpenContactModal }: Props) {
+export function SalesLandingPanel({ content, membersStrip, edgeNote, onOpenContactModal }: Props) {
   const learnRef = useRef<HTMLElement>(null);
   const router = useRouter();
   const { data: session } = useSession();
@@ -299,9 +301,10 @@ export function SalesLandingPanel({ content, membersStrip, onOpenContactModal }:
       </section>
 
       <MarketNoteStrip
-        {...SALES_MARKET_NOTE}
-        accentColor={SALES_COLOR}
-        variant="tags"
+        {...toMarketNoteStripProps(edgeNote, SALES_MARKET_NOTE.topics, {
+          accentColor: SALES_COLOR,
+          variant: "tags",
+        })}
       />
 
       {/* Who this is for */}

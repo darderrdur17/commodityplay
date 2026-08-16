@@ -37,6 +37,7 @@ import {
   type LandingFeature,
 } from "@/data/landing-content";
 import { CAREER_MARKET_NOTE } from "@/data/market-notes";
+import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-notes";
 
 type Track = "career" | "sales";
 
@@ -47,9 +48,13 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string; style?:
 interface Props {
   /** Server-merged landing content from getLandingContent() — never re-merge on the client. */
   content: LandingContent;
+  edgeNotes: {
+    career: WeeklyEdgeNote;
+    sales: WeeklyEdgeNote;
+  };
 }
 
-export function LandingPageClient({ content }: Props) {
+export function LandingPageClient({ content, edgeNotes }: Props) {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
@@ -101,6 +106,7 @@ export function LandingPageClient({ content }: Props) {
         <SalesLandingPanel
           content={sales}
           membersStrip={content.membersStrip}
+          edgeNote={edgeNotes.sales}
           onOpenModal={() => setModalOpen(true)}
           onOpenContactModal={() => setContactOpen(true)}
         />
@@ -228,7 +234,9 @@ export function LandingPageClient({ content }: Props) {
             </div>
           </section>
 
-          <MarketNoteStrip {...CAREER_MARKET_NOTE} variant="tags" />
+          <MarketNoteStrip
+            {...toMarketNoteStripProps(edgeNotes.career, CAREER_MARKET_NOTE.topics, { variant: "tags" })}
+          />
 
           <CaseStudiesSection content={caseStudySample} />
 
