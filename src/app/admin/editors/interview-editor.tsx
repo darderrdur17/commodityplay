@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/data/interview-questions";
-import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, inputClass, textareaClass } from "./shared";
 import { JsonImportSection } from "./json-import-section";
 
 type InterviewTab = "technical" | "commercial" | "behavioural" | "elimination";
@@ -203,7 +203,13 @@ export function InterviewEditor({
         )}
       </div>
 
-      <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} filesOnlyHint />
+      <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3 text-xs text-muted-fg space-y-1">
+        <p className="font-semibold text-gray-800">How content reaches the site</p>
+        <p>
+          Edit questions here, or use <strong>Import JSON</strong> (download the template first). Click{" "}
+          <strong>Save</strong> to publish. Upload File is not used for interview questions.
+        </p>
+      </div>
     </div>
   );
 }

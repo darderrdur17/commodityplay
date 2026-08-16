@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DESK_CATEGORIES } from "@/data/desk-channel";
-import { EditorField, EditorRow, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, TrackToggle, inputClass, textareaClass } from "./shared";
 import { JsonImportSection } from "./json-import-section";
 
 type DeskCategory = "trading" | "ops" | "risk" | "tools" | "career";
@@ -224,7 +224,14 @@ export function DeskChannelEditor({
         )}
       </div>
 
-      <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} filesOnlyHint />
+      <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3 text-xs text-muted-fg space-y-1">
+        <p className="font-semibold text-gray-800">How content reaches the site</p>
+        <p>
+          Edit questions here, or use <strong>Import JSON</strong> (download the template first). Click{" "}
+          <strong>Save</strong> to publish. Upload File is not used for Desk Channel — it does not parse PDFs or Word
+          docs into Q&amp;As.
+        </p>
+      </div>
     </div>
   );
 }

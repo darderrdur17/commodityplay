@@ -10,7 +10,7 @@ import {
   type KnowledgeTestPayload,
   type KnowledgeTestSet,
 } from "@/lib/content/knowledge-test-payload";
-import { EditorField, EditorRow, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, TrackToggle, inputClass, textareaClass } from "./shared";
 import { JsonImportSection } from "./json-import-section";
 
 interface KnowledgeQuestion {
@@ -347,7 +347,15 @@ export function KnowledgeTestEditor({
             )}
           </div>
 
-          <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} filesOnlyHint />
+          <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3 text-xs text-muted-fg space-y-1">
+            <p className="font-semibold text-gray-800">How content reaches the site</p>
+            <p>
+              Use <strong>Rolling test sets</strong> to swap live tests. Edit questions or <strong>Import JSON</strong>{" "}
+              (template includes <code className="text-[11px] bg-white px-1 rounded">testSets</code> +{" "}
+              <code className="text-[11px] bg-white px-1 rounded">activeTestSetId</code>), mark one set{" "}
+              <strong>Live</strong>, then <strong>Save</strong>. Upload File does not load test questions.
+            </p>
+          </div>
         </>
       )}
     </div>

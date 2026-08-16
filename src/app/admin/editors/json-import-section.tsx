@@ -54,8 +54,8 @@ export function JsonImportSection({
   return (
     <EditorSection title={`📥 ${title}`} description={description}>
       <p className="text-xs text-muted-fg">
-        Upload a <code className="text-[11px] bg-secondary px-1 rounded">.json</code> file to bulk-load content into
-        the editor. Nothing goes live until you click <strong>Save</strong>.
+        Upload a <code className="text-[11px] bg-secondary px-1 rounded">.json</code> file using the template below.
+        Imported content loads into the editor only — click <strong>Save</strong> to publish to the site.
       </p>
       <button
         type="button"
