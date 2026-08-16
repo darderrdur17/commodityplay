@@ -40,6 +40,9 @@ export function normalizeKnowledgeTestPayload(payload: unknown): KnowledgeTestPa
   const data = (payload ?? {}) as KnowledgeTestPayload;
 
   if (data.testSets?.length) {
+    const allEmpty = data.testSets.every((s) => !s.questions?.length);
+    if (allEmpty) return createDefaultKnowledgeTestPayload();
+
     const activeTestSetId =
       data.activeTestSetId && data.testSets.some((s) => s.id === data.activeTestSetId)
         ? data.activeTestSetId

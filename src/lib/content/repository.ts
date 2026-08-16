@@ -4,6 +4,7 @@ import { CONTENT_MODULE_META, getModuleMeta, type ContentSlug } from "./modules"
 import { GLOSSARY_TERMS } from "@/data/glossary";
 import { getDefaultPayload, getAllDefaultPayloads } from "./defaults";
 import { deepMerge } from "./merge";
+import { resolveAdminModulePayload } from "./admin-payload";
 import { applyCmsSchemaSql } from "@/lib/setup-database";
 
 const MAX_REVISIONS = 20;
@@ -196,7 +197,7 @@ export async function getContentModuleRecord(slug: string) {
       requiredTier: meta.requiredTier,
       published: true,
       version: 0,
-      payload: getDefaultPayload(meta.slug as ContentSlug),
+      payload: resolveAdminModulePayload(meta.slug as ContentSlug, getDefaultPayload(meta.slug as ContentSlug)),
       source: "default" as const,
     };
   }
@@ -207,7 +208,7 @@ export async function getContentModuleRecord(slug: string) {
     requiredTier: row.requiredTier,
     published: row.published,
     version: row.version,
-    payload: row.payload,
+    payload: resolveAdminModulePayload(slug as ContentSlug, row.payload),
     source: "database" as const,
     updatedAt: row.updatedAt.toISOString(),
   };
