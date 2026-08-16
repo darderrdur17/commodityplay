@@ -11,12 +11,14 @@ import { KNOWLEDGE_TEST, scoreKnowledgeTest, type KnowledgeQuestion } from "@/da
 interface Props {
   userTier: string;
   questions?: KnowledgeQuestion[];
+  activeSetLabel?: string;
   requiredTier?: "PRO" | "ELITE";
 }
 
 export function KnowledgeTestClient({
   userTier,
   questions = KNOWLEDGE_TEST,
+  activeSetLabel,
   requiredTier = "PRO",
 }: Props) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -36,7 +38,8 @@ export function KnowledgeTestClient({
       <section className="rounded-2xl bg-primary-800 px-6 sm:px-8 py-10 mb-8 relative overflow-hidden">
         <Reveal className="relative z-10">
           <div className="pill pill-dark mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" /> Pro · 20 Questions
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" /> Pro · {questions.length} Questions
+            {activeSetLabel ? ` · ${activeSetLabel}` : ""}
           </div>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-3">Knowledge Test</h1>
           <p className="text-white/65 text-base sm:text-lg">

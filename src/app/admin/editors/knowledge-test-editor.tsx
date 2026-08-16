@@ -1,10 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
-import { Plus, AlertCircle } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Plus, AlertCircle, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import {
+  normalizeKnowledgeTestPayload,
+  type KnowledgeTestPayload,
+  type KnowledgeTestSet,
+} from "@/lib/content/knowledge-test-payload";
 import { EditorField, EditorRow, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
+import { JsonImportSection } from "./json-import-section";
 
 interface KnowledgeQuestion {
   id: string;
@@ -18,6 +25,32 @@ interface KnowledgeQuestion {
   track?: "career" | "sales" | "both";
 }
 
+const KNOWLEDGE_IMPORT_EXAMPLE = JSON.stringify(
+  {
+    activeTestSetId: "march-2026",
+    testSets: [
+      {
+        id: "march-2026",
+        label: "March 2026 rolling test",
+        questions: [
+          {
+            id: "k-example",
+            question: "What is contango?",
+            options: ["Forward > spot", "Spot > forward", "Flat curve", "No curve"],
+            correctIndex: 0,
+            explanation: "Contango means forward prices trade above spot.",
+            topic: "Markets",
+            recommendChapter: "a",
+            recommendLabel: "Chapter A",
+          },
+        ],
+      },
+    ],
+  },
+  null,
+  2
+);
+
 function newQuestion(): KnowledgeQuestion {
   return {
     id: `kq-${Date.now()}`,
@@ -27,6 +60,11 @@ function newQuestion(): KnowledgeQuestion {
     explanation: "",
     topic: "",
   };
+}
+
+function newTestSet(index: number): KnowledgeTestSet {
+  const id = `set-${Date.now()}`;
+  return { id, label: `Test set ${index}`, questions: [] };
 }
 
 export function KnowledgeTestEditor({
@@ -41,20 +79,42 @@ export function KnowledgeTestEditor({
   requiredTier: string;
 }) {
   const [activeTab, setActiveTab] = useState<"questions" | "results">("questions");
-  const items: KnowledgeQuestion[] = Array.isArray(payload) ? (payload as KnowledgeQuestion[]) : [];
+  const normalized = normalizeKnowledgeTestPayload(payload);
+  const testSets = normalized.testSets ?? [];
+  const liveSetId = normalized.activeTestSetId ?? testSets[0]?.id ?? "";
+  const [editingSetId, setEditingSetId] = useState(liveSetId);
+
+  useEffect(() => {
+    if (testSets.some((s) => s.id === liveSetId)) {
+      setEditingSetId(liveSetId);
+    }
+  }, [liveSetId, testSets]);
+
+  const editingSet = testSets.find((s) => s.id === editingSetId) ?? testSets[0];
+  const items = editingSet?.questions ?? [];
+
+  function patchPayload(next: KnowledgeTestPayload) {
+    onChange(next);
+  }
+
+  function patchQuestions(questions: KnowledgeQuestion[]) {
+    if (!editingSet) return;
+    const nextSets = testSets.map((s) => (s.id === editingSet.id ? { ...s, questions } : s));
+    patchPayload({ testSets: nextSets, activeTestSetId: liveSetId });
+  }
 
   function patchItem(i: number, item: KnowledgeQuestion) {
     const next = [...items];
     next[i] = item;
-    onChange(next);
+    patchQuestions(next);
   }
 
   function deleteItem(i: number) {
-    onChange(items.filter((_, j) => j !== i));
+    patchQuestions(items.filter((_, j) => j !== i));
   }
 
   function addItem() {
-    onChange([...items, newQuestion()]);
+    patchQuestions([...items, newQuestion()]);
   }
 
   function patchOption(i: number, oi: number, val: string) {
@@ -64,8 +124,130 @@ export function KnowledgeTestEditor({
     patchItem(i, { ...item, options });
   }
 
+  function addTestSet() {
+    const set = newTestSet(testSets.length + 1);
+    patchPayload({
+      testSets: [...testSets, set],
+      activeTestSetId: liveSetId || set.id,
+    });
+    setEditingSetId(set.id);
+  }
+
+  function renameSet(id: string, label: string) {
+    patchPayload({
+      testSets: testSets.map((s) => (s.id === id ? { ...s, label } : s)),
+      activeTestSetId: liveSetId,
+    });
+  }
+
+  function deleteTestSet(id: string) {
+    if (testSets.length <= 1) return;
+    const nextSets = testSets.filter((s) => s.id !== id);
+    const nextLive = liveSetId === id ? nextSets[0].id : liveSetId;
+    patchPayload({ testSets: nextSets, activeTestSetId: nextLive });
+    if (editingSetId === id) setEditingSetId(nextSets[0].id);
+  }
+
+  function setLiveSet(id: string) {
+    patchPayload({ testSets, activeTestSetId: id });
+  }
+
+  function importJson(parsed: unknown): { ok: true } | { ok: false; error: string } {
+    if (Array.isArray(parsed)) {
+      patchQuestions(parsed as KnowledgeQuestion[]);
+      return { ok: true };
+    }
+
+    if (typeof parsed !== "object" || parsed === null) {
+      return { ok: false, error: "Expected a JSON object or questions array." };
+    }
+
+    const obj = parsed as Record<string, unknown>;
+
+    if (Array.isArray(obj.testSets)) {
+      const imported = normalizeKnowledgeTestPayload(parsed);
+      if (!imported.testSets?.length) {
+        return { ok: false, error: "testSets array is empty." };
+      }
+      patchPayload(imported);
+      setEditingSetId(imported.activeTestSetId ?? imported.testSets[0].id);
+      return { ok: true };
+    }
+
+    if (Array.isArray(obj.questions)) {
+      patchQuestions(obj.questions as KnowledgeQuestion[]);
+      return { ok: true };
+    }
+
+    return { ok: false, error: "Include testSets or questions in your JSON file." };
+  }
+
   return (
     <div className="space-y-4">
+      <JsonImportSection
+        description="Import a full rolling test (testSets + activeTestSetId) or questions for the set you're editing."
+        exampleJson={KNOWLEDGE_IMPORT_EXAMPLE}
+        exampleFileName="knowledge-test-example.json"
+        onImport={importJson}
+      />
+
+      <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Rolling test sets</p>
+            <p className="text-xs text-muted-fg">
+              Build multiple banks, then mark one as <strong>Live on site</strong>. Members only see the live set.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={addTestSet}>
+            <Plus className="w-3.5 h-3.5" /> New test set
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {testSets.map((set) => (
+            <div
+              key={set.id}
+              className={cn(
+                "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs",
+                editingSetId === set.id ? "border-primary-400 bg-primary-soft/40" : "border-border bg-white"
+              )}
+            >
+              <button type="button" className="font-medium" onClick={() => setEditingSetId(set.id)}>
+                {set.label} ({set.questions.length})
+              </button>
+              {liveSetId === set.id && (
+                <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                  Live
+                </Badge>
+              )}
+              {liveSetId !== set.id && (
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 text-primary-400 hover:underline"
+                  onClick={() => setLiveSet(set.id)}
+                >
+                  <Star className="w-3 h-3" /> Set live
+                </button>
+              )}
+              {testSets.length > 1 && (
+                <button type="button" className="text-red-500 hover:underline" onClick={() => deleteTestSet(set.id)}>
+                  Delete
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        {editingSet && (
+          <EditorField label="Set label">
+            <input
+              className={inputClass}
+              value={editingSet.label}
+              onChange={(e) => renameSet(editingSet.id, e.target.value)}
+            />
+          </EditorField>
+        )}
+      </div>
+
       <div className="flex gap-1 border-b border-border pb-2">
         {(["questions", "results"] as const).map((tab) => (
           <button
@@ -90,79 +272,84 @@ export function KnowledgeTestEditor({
         </div>
       )}
 
-      {activeTab === "questions" && <>
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-fg">{items.length} questions</p>
-        <Button variant="outline" size="sm" onClick={addItem}>
-          <Plus className="w-3.5 h-3.5" /> Add question
-        </Button>
-      </div>
+      {activeTab === "questions" && (
+        <>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-fg">
+              Editing <strong>{editingSet?.label ?? "set"}</strong> · {items.length} questions
+              {liveSetId === editingSetId ? " · this set is live on site" : ""}
+            </p>
+            <Button variant="outline" size="sm" onClick={addItem}>
+              <Plus className="w-3.5 h-3.5" /> Add question
+            </Button>
+          </div>
 
-      <div className="space-y-2">
-        {items.map((item, i) => {
-          const hasValidOptions = item.options?.length === 4 && item.options.every((o) => o.trim());
-          return (
-            <EditorRow
-              key={item.id}
-              summary={
-                <span className="flex items-center gap-2">
-                  <span className="font-medium line-clamp-1">{item.question || "(no question)"}</span>
-                  <span className="text-xs text-muted-fg">{item.topic}</span>
-                  {!hasValidOptions && <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
-                </span>
-              }
-              onDelete={() => deleteItem(i)}
-            >
-              <EditorField label="Question">
-                <textarea className={textareaClass} value={item.question} onChange={(e) => patchItem(i, { ...item, question: e.target.value })} />
-              </EditorField>
+          <div className="space-y-2">
+            {items.map((item, i) => {
+              const hasValidOptions = item.options?.length === 4 && item.options.every((o) => o.trim());
+              return (
+                <EditorRow
+                  key={item.id}
+                  summary={
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium line-clamp-1">{item.question || "(no question)"}</span>
+                      <span className="text-xs text-muted-fg">{item.topic}</span>
+                      {!hasValidOptions && <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                    </span>
+                  }
+                  onDelete={() => deleteItem(i)}
+                >
+                  <EditorField label="Question">
+                    <textarea className={textareaClass} value={item.question} onChange={(e) => patchItem(i, { ...item, question: e.target.value })} />
+                  </EditorField>
 
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-gray-700">Options (exactly 4)</p>
-                {[0, 1, 2, 3].map((oi) => (
-                  <div key={oi} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name={`correct-${i}`}
-                      checked={item.correctIndex === oi}
-                      onChange={() => patchItem(i, { ...item, correctIndex: oi })}
-                      title="Mark as correct"
-                    />
-                    <input
-                      className={inputClass}
-                      value={item.options?.[oi] ?? ""}
-                      onChange={(e) => patchOption(i, oi, e.target.value)}
-                      placeholder={`Option ${oi + 1}${item.correctIndex === oi ? " (correct)" : ""}`}
-                    />
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-gray-700">Options (exactly 4)</p>
+                    {[0, 1, 2, 3].map((oi) => (
+                      <div key={oi} className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name={`correct-${i}`}
+                          checked={item.correctIndex === oi}
+                          onChange={() => patchItem(i, { ...item, correctIndex: oi })}
+                          title="Mark as correct"
+                        />
+                        <input
+                          className={inputClass}
+                          value={item.options?.[oi] ?? ""}
+                          onChange={(e) => patchOption(i, oi, e.target.value)}
+                          placeholder={`Option ${oi + 1}${item.correctIndex === oi ? " (correct)" : ""}`}
+                        />
+                      </div>
+                    ))}
+                    <p className="text-[11px] text-muted-fg">Select the radio button next to the correct answer.</p>
                   </div>
-                ))}
-                <p className="text-[11px] text-muted-fg">Select the radio button next to the correct answer.</p>
-              </div>
 
-              <EditorField label="Explanation">
-                <textarea className={textareaClass} value={item.explanation} onChange={(e) => patchItem(i, { ...item, explanation: e.target.value })} />
-              </EditorField>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <EditorField label="Topic">
-                  <input className={inputClass} value={item.topic} onChange={(e) => patchItem(i, { ...item, topic: e.target.value })} />
-                </EditorField>
-                <EditorField label="Recommend chapter">
-                  <input className={inputClass} value={item.recommendChapter ?? ""} onChange={(e) => patchItem(i, { ...item, recommendChapter: e.target.value })} />
-                </EditorField>
-                <EditorField label="Track">
-                  <TrackToggle value={item.track ?? "both"} onChange={(v) => patchItem(i, { ...item, track: v })} />
-                </EditorField>
-              </div>
-            </EditorRow>
-          );
-        })}
-        {items.length === 0 && (
-          <p className="text-center text-sm text-muted-fg py-8">No questions yet.</p>
-        )}
-      </div>
+                  <EditorField label="Explanation">
+                    <textarea className={textareaClass} value={item.explanation} onChange={(e) => patchItem(i, { ...item, explanation: e.target.value })} />
+                  </EditorField>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <EditorField label="Topic">
+                      <input className={inputClass} value={item.topic} onChange={(e) => patchItem(i, { ...item, topic: e.target.value })} />
+                    </EditorField>
+                    <EditorField label="Recommend chapter">
+                      <input className={inputClass} value={item.recommendChapter ?? ""} onChange={(e) => patchItem(i, { ...item, recommendChapter: e.target.value })} />
+                    </EditorField>
+                    <EditorField label="Track">
+                      <TrackToggle value={item.track ?? "both"} onChange={(v) => patchItem(i, { ...item, track: v })} />
+                    </EditorField>
+                  </div>
+                </EditorRow>
+              );
+            })}
+            {items.length === 0 && (
+              <p className="text-center text-sm text-muted-fg py-8">No questions in this set yet.</p>
+            )}
+          </div>
 
-      <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} />
-      </>}
+          <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} filesOnlyHint />
+        </>
+      )}
     </div>
   );
 }

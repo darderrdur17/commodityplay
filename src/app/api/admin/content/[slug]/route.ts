@@ -192,6 +192,15 @@ export async function PUT(
   if (slug === "mentor-connect") {
     revalidatePath("/mentor-connect", "page");
   }
+  if (slug === "desk-channel") {
+    revalidatePath("/desk-channel", "page");
+  }
+  if (slug === "interview-questions") {
+    revalidatePath("/interview-questions", "page");
+  }
+  if (slug === "knowledge-test") {
+    revalidatePath("/knowledge-test", "page");
+  }
 
   return NextResponse.json({
     ok: true,

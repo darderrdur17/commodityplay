@@ -7,6 +7,7 @@ export interface KnowledgeQuestion {
   topic: string;
   recommendChapter?: string;
   recommendLabel?: string;
+  track?: "career" | "sales" | "both";
 }
 
 export const KNOWLEDGE_TEST: KnowledgeQuestion[] = [

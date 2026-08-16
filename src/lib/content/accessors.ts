@@ -9,7 +9,7 @@ import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
 import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
 import { GLOSSARY_TERMS } from "@/data/glossary";
 import { INTERVIEW_QUESTIONS, INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/data/interview-questions";
-import { KNOWLEDGE_TEST } from "@/data/knowledge-test";
+import { getActiveKnowledgeTestQuestions, getActiveKnowledgeTestSet } from "@/lib/content/knowledge-test-payload";
 import { CAREER_ROLES } from "@/data/career-roadmap";
 import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-templates";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
@@ -368,8 +368,21 @@ export async function getInterviewQuestionsData() {
 }
 
 export async function getKnowledgeTestQuestions() {
-  const data = await getPublishedPayload<{ questions: typeof KNOWLEDGE_TEST }>("knowledge-test");
-  return data.questions ?? KNOWLEDGE_TEST;
+  const data = await getPublishedPayload<import("@/lib/content/knowledge-test-payload").KnowledgeTestPayload>(
+    "knowledge-test"
+  );
+  return getActiveKnowledgeTestQuestions(data);
+}
+
+export async function getKnowledgeTestPageData() {
+  const data = await getPublishedPayload<import("@/lib/content/knowledge-test-payload").KnowledgeTestPayload>(
+    "knowledge-test"
+  );
+  const active = getActiveKnowledgeTestSet(data);
+  return {
+    questions: active.questions,
+    activeSetLabel: active.label,
+  };
 }
 
 export async function getCareerRoles() {

@@ -4,7 +4,7 @@ import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
 import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
 import { GLOSSARY_TERMS } from "@/data/glossary";
 import { INTERVIEW_QUESTIONS, INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/data/interview-questions";
-import { KNOWLEDGE_TEST } from "@/data/knowledge-test";
+import { createDefaultKnowledgeTestPayload } from "@/lib/content/knowledge-test-payload";
 import { CAREER_ROLES } from "@/data/career-roadmap";
 import {
   FUNCTION_MATRIX,
@@ -43,7 +43,7 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
     case "interview-questions":
       return { questions: INTERVIEW_QUESTIONS, categories: INTERVIEW_CATEGORIES, tabs: INTERVIEW_TABS };
     case "knowledge-test":
-      return { questions: KNOWLEDGE_TEST };
+      return createDefaultKnowledgeTestPayload();
     case "career-roadmap":
       return {
         roles: CAREER_ROLES,

@@ -3,9 +3,10 @@
 import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/data/interview-questions";
 import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
+import { JsonImportSection } from "./json-import-section";
 
 type InterviewTab = "technical" | "commercial" | "behavioural" | "elimination";
 type Difficulty = "easy" | "med" | "hard";
@@ -22,6 +23,29 @@ interface InterviewQuestion {
   weakAnswer?: string;
   why?: string;
 }
+
+interface InterviewPayload {
+  questions: InterviewQuestion[];
+  categories?: string[];
+  tabs?: typeof INTERVIEW_TABS;
+}
+
+const INTERVIEW_IMPORT_EXAMPLE = JSON.stringify(
+  {
+    questions: [
+      {
+        id: "iq-example",
+        tab: "technical",
+        category: "Markets",
+        question: "Walk me through how contango affects storage economics.",
+        modelAnswer: "Contango means forward prices exceed spot, creating carry incentives when storage + financing costs are covered.",
+        difficulty: "med",
+      },
+    ],
+  },
+  null,
+  2
+);
 
 const TABS: { id: InterviewTab; label: string }[] = [
   { id: "technical", label: "Technical" },
@@ -40,6 +64,18 @@ function newQuestion(tab: InterviewTab): InterviewQuestion {
   return { id: `iq-${Date.now()}`, tab, category: "", question: "", modelAnswer: "", difficulty: "med" };
 }
 
+function readInterviewPayload(payload: unknown): InterviewPayload {
+  if (Array.isArray(payload)) {
+    return { questions: payload as InterviewQuestion[], categories: INTERVIEW_CATEGORIES, tabs: INTERVIEW_TABS };
+  }
+  const data = (payload ?? {}) as Partial<InterviewPayload>;
+  return {
+    questions: data.questions ?? [],
+    categories: data.categories ?? INTERVIEW_CATEGORIES,
+    tabs: data.tabs ?? INTERVIEW_TABS,
+  };
+}
+
 export function InterviewEditor({
   payload,
   onChange,
@@ -51,27 +87,48 @@ export function InterviewEditor({
   moduleSlug: string;
   requiredTier: string;
 }) {
-  const items: InterviewQuestion[] = Array.isArray(payload) ? (payload as InterviewQuestion[]) : [];
+  const data = readInterviewPayload(payload);
+  const items = data.questions;
   const [activeTab, setActiveTab] = useState<InterviewTab>("technical");
+
+  function patchQuestions(questions: InterviewQuestion[]) {
+    onChange({ ...data, questions });
+  }
 
   function patchItem(i: number, item: InterviewQuestion) {
     const next = [...items];
     next[i] = item;
-    onChange(next);
+    patchQuestions(next);
   }
 
   function deleteItem(i: number) {
-    onChange(items.filter((_, j) => j !== i));
+    patchQuestions(items.filter((_, j) => j !== i));
   }
 
   function addItem() {
-    onChange([...items, newQuestion(activeTab)]);
+    patchQuestions([...items, newQuestion(activeTab)]);
+  }
+
+  function importJson(parsed: unknown): { ok: true } | { ok: false; error: string } {
+    const imported = readInterviewPayload(parsed).questions;
+    if (!imported.length) {
+      return { ok: false, error: "JSON must include a non-empty questions array." };
+    }
+    patchQuestions(imported);
+    return { ok: true };
   }
 
   const filtered = items.map((item, i) => ({ item, i })).filter(({ item }) => item.tab === activeTab);
 
   return (
     <div className="space-y-4">
+      <JsonImportSection
+        description="Bulk-load interview questions from JSON ({ questions: [...] })."
+        exampleJson={INTERVIEW_IMPORT_EXAMPLE}
+        exampleFileName="interview-questions-example.json"
+        onImport={importJson}
+      />
+
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex gap-1">
           {TABS.map((t) => (
@@ -146,7 +203,7 @@ export function InterviewEditor({
         )}
       </div>
 
-      <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} />
+      <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} filesOnlyHint />
     </div>
   );
 }

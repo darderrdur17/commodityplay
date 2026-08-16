@@ -392,9 +392,12 @@ interface AssetRow {
 export function UploadSection({
   moduleSlug,
   requiredTier,
+  filesOnlyHint = false,
 }: {
   moduleSlug: string;
   requiredTier: string;
+  /** When true, explains that uploads are reference files — not CMS text/JSON import */
+  filesOnlyHint?: boolean;
 }) {
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -447,9 +450,24 @@ export function UploadSection({
   }
 
   return (
-    <EditorSection title="📎 Upload Files" description={`Assets for ${moduleSlug}`}>
+    <EditorSection
+      title="📎 Reference files"
+      description={
+        filesOnlyHint
+          ? `Optional PDFs or docs for ${moduleSlug} — not used to populate Q&A in the editor`
+          : `Assets for ${moduleSlug}`
+      }
+    >
       <p className="text-xs text-muted-fg">
-        PDF, Word, images, etc. (max {CONTENT_ASSET_MAX_BYTES / (1024 * 1024)}MB).
+        {filesOnlyHint ? (
+          <>
+            Stores downloadable files members can open (PDF, Word, images).{" "}
+            <strong>Does not import questions into the site.</strong> Use <strong>Import JSON</strong> above for bulk
+            Q&amp;A, then Save.
+          </>
+        ) : (
+          <>PDF, Word, images, etc. (max {CONTENT_ASSET_MAX_BYTES / (1024 * 1024)}MB).</>
+        )}
       </p>
       <input
         type="text"

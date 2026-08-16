@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getContentTierForSlug, getKnowledgeTestQuestions } from "@/lib/content/accessors";
+import { getContentTierForSlug, getKnowledgeTestPageData } from "@/lib/content/accessors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { KnowledgeTestClient } from "./knowledge-test-client";
@@ -19,14 +19,15 @@ export default async function KnowledgeTestPage() {
 
   if (!user) redirect("/login");
 
-  const [questions, requiredTier] = await Promise.all([
-    getKnowledgeTestQuestions(),
+  const [{ questions, activeSetLabel }, requiredTier] = await Promise.all([
+    getKnowledgeTestPageData(),
     getContentTierForSlug("knowledge-test"),
   ]);
   return (
     <KnowledgeTestClient
       userTier={user.tier}
       questions={questions}
+      activeSetLabel={activeSetLabel}
       requiredTier={requiredTier as "PRO" | "ELITE"}
     />
   );

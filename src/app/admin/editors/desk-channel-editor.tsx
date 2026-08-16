@@ -4,7 +4,9 @@ import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { DESK_CATEGORIES } from "@/data/desk-channel";
 import { EditorField, EditorRow, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
+import { JsonImportSection } from "./json-import-section";
 
 type DeskCategory = "trading" | "ops" | "risk" | "tools" | "career";
 
@@ -24,6 +26,35 @@ interface DeskQA {
   date: string;
   track?: "career" | "sales" | "both";
 }
+
+interface DeskChannelPayload {
+  categories?: typeof DESK_CATEGORIES;
+  questions: DeskQA[];
+}
+
+const DESK_IMPORT_EXAMPLE = JSON.stringify(
+  {
+    questions: [
+      {
+        id: "dq-example",
+        category: "trading",
+        categoryLabel: "Trading",
+        categoryColor: "bg-blue-100 text-blue-700",
+        question: "Example question?",
+        answer: "Example answer from a practitioner.",
+        attribution: "practitioner",
+        author: "Anonymous",
+        authorRole: "Senior Trader",
+        tags: ["spreads"],
+        helpful: 0,
+        date: "2026-03-01",
+        track: "both",
+      },
+    ],
+  },
+  null,
+  2
+);
 
 const CATEGORIES: { id: string; label: string }[] = [
   { id: "all", label: "All" },
@@ -51,6 +82,17 @@ function newQA(): DeskQA {
   };
 }
 
+function readDeskChannelPayload(payload: unknown): DeskChannelPayload {
+  if (Array.isArray(payload)) {
+    return { categories: DESK_CATEGORIES, questions: payload as DeskQA[] };
+  }
+  const data = (payload ?? {}) as Partial<DeskChannelPayload>;
+  return {
+    categories: data.categories ?? DESK_CATEGORIES,
+    questions: data.questions ?? [],
+  };
+}
+
 export function DeskChannelEditor({
   payload,
   onChange,
@@ -62,27 +104,48 @@ export function DeskChannelEditor({
   moduleSlug: string;
   requiredTier: string;
 }) {
-  const items: DeskQA[] = Array.isArray(payload) ? (payload as DeskQA[]) : [];
+  const data = readDeskChannelPayload(payload);
+  const items = data.questions;
   const [cat, setCat] = useState("all");
+
+  function patchQuestions(questions: DeskQA[]) {
+    onChange({ ...data, questions });
+  }
 
   function patchItem(i: number, item: DeskQA) {
     const next = [...items];
     next[i] = item;
-    onChange(next);
+    patchQuestions(next);
   }
 
   function deleteItem(i: number) {
-    onChange(items.filter((_, j) => j !== i));
+    patchQuestions(items.filter((_, j) => j !== i));
   }
 
   function addItem() {
-    onChange([...items, newQA()]);
+    patchQuestions([...items, newQA()]);
+  }
+
+  function importJson(parsed: unknown): { ok: true } | { ok: false; error: string } {
+    const imported = readDeskChannelPayload(parsed).questions;
+    if (!imported.length) {
+      return { ok: false, error: "JSON must include a non-empty questions array." };
+    }
+    patchQuestions(imported);
+    return { ok: true };
   }
 
   const filtered = items.map((item, i) => ({ item, i })).filter(({ item }) => cat === "all" || item.category === cat);
 
   return (
     <div className="space-y-4">
+      <JsonImportSection
+        description="Bulk-load Q&As from JSON (same shape as site defaults: { questions: [...] })."
+        exampleJson={DESK_IMPORT_EXAMPLE}
+        exampleFileName="desk-channel-example.json"
+        onImport={importJson}
+      />
+
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex gap-1 flex-wrap">
           {CATEGORIES.map((c) => (
@@ -161,7 +224,7 @@ export function DeskChannelEditor({
         )}
       </div>
 
-      <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} />
+      <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} filesOnlyHint />
     </div>
   );
 }
