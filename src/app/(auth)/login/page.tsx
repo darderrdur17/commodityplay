@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { GradientOrbs, HeroParticles } from "@/components/animations";
-import { Logo } from "@/components/brand/logo";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/data/demo-accounts";
 import { MAIN_MIN_HEIGHT_BELOW_NAV } from "@/lib/layout-constants";
 
@@ -82,9 +81,6 @@ function LoginForm() {
         <GradientOrbs />
         <HeroParticles count={10} />
         <div className="relative z-10">
-          <Logo variant="white" href="/" priority />
-        </div>
-        <div className="relative z-10">
           <div className="pill pill-dark mb-5 text-[10px]">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
             Welcome back
@@ -95,11 +91,11 @@ function LoginForm() {
             <span className="text-accent italic">back on the desk.</span>
           </h2>
           <p className="text-white/60 text-sm leading-relaxed max-w-xs">
-            Your playbook, your progress, your mentor credits — all waiting for you.
+            Your progress - all waiting for you.
           </p>
         </div>
         <div className="relative z-10 flex gap-6">
-          {["2,400+ Members", "196 Terms", "25 Mentors"].map((s) => (
+          {["2400+ Members", "25 Mentors", "Industry-Standard"].map((s) => (
             <div key={s} className="glass-card px-4 py-2.5">
               <p className="text-white text-xs font-semibold">{s}</p>
             </div>

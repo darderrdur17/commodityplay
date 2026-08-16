@@ -12,7 +12,6 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GradientOrbs, HeroParticles } from "@/components/animations";
-import { Logo } from "@/components/brand/logo";
 import { MAIN_MIN_HEIGHT_BELOW_NAV } from "@/lib/layout-constants";
 
 const schema = z.object({
@@ -90,9 +89,6 @@ function SignupForm() {
       <div className="hidden lg:flex lg:w-1/2 relative bg-primary-800 section-dark overflow-hidden flex-col justify-between p-12 pt-10">
         <GradientOrbs />
         <HeroParticles count={10} />
-        <div className="relative z-10">
-          <Logo variant="white" href="/" priority />
-        </div>
         <div className="relative z-10">
           <div className="pill pill-dark mb-5 text-[10px]">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
