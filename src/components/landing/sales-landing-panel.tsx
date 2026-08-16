@@ -139,7 +139,8 @@ function LearnAccordionItem({
 }
 
 function LearnAccordion() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  /** All items start collapsed — user expands on tap/click. */
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
     <div className="grid w-full min-w-0 grid-cols-1 md:grid-cols-2 gap-4 items-start">
