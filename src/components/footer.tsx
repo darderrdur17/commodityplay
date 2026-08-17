@@ -30,7 +30,7 @@ const COMMUNITY_LINKS: FooterLink[] = [
 
 const ACCESS_LINKS: FooterLink[] = [
   { label: "Be a Member", href: CAREER_PRICING_HREF },
-  { label: "Be a Partner", href: "/mentor-apply" },
+  { label: "Be a Partner", href: "#contact" },
   { label: "Team Licenses", href: `mailto:${BRAND_EMAIL_HELLO}` },
   { label: "Sign Up", href: "/signup" },
   { label: "Login", href: "/login" },
