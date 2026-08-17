@@ -59,7 +59,7 @@ export function PlaybookHubClient({
               <div className="glass-card px-5 py-3">
                 <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Chapters Done</p>
                 <p className="text-white font-serif text-2xl font-bold">
-                  {completedCount}/{PLAYBOOK_TOTAL_CHAPTERS} Chapters
+                  {completedCount}/{PLAYBOOK_TOTAL_CHAPTERS}
                 </p>
               </div>
               <div className="flex-1 min-w-[200px]">
