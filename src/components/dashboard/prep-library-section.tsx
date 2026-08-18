@@ -23,6 +23,7 @@ interface PrepLibrarySectionProps {
   userTier: string;
   /** When false, section is hidden for this track. */
   visible?: boolean;
+  isAdmin?: boolean;
 }
 
 interface TrackTheme {
@@ -185,9 +186,9 @@ function TopicCard({ topic, theme }: { topic: PrepLibraryTopic; theme: TrackThem
   );
 }
 
-export function PrepLibrarySection({ track, userTier, visible = true }: PrepLibrarySectionProps) {
+export function PrepLibrarySection({ track, userTier, visible = true, isAdmin = false }: PrepLibrarySectionProps) {
   const theme = TRACK_THEMES[track];
-  const unlocked = hasAccess(userTier, "PRO");
+  const unlocked = isAdmin || hasAccess(userTier, "PRO");
   const [topics, setTopics] = useState<PrepLibraryTopic[]>(theme.seedTopics);
   const [title, setTitle] = useState("");
   const [keyPointsRaw, setKeyPointsRaw] = useState("");
