@@ -272,8 +272,8 @@ export function DashboardClient({
               </>
             ) : (
               <>
-                <Badge variant="outline" size="sm" className="text-muted-fg border-border">
-                  Locked
+                <Badge variant={tier === "ELITE" ? "elite" : "pro"} size="sm">
+                  {tier === "ELITE" ? "Elite" : "Pro"}
                 </Badge>
                 <Link
                   href={planHref(tier === "ELITE" ? "elite" : "pro")}

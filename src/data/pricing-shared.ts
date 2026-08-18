@@ -1,5 +1,5 @@
 /** Career track subscription copy — landing, in-app gates, and upgrade prompts */
-export const UPGRADE_TO_ACCESS = "Upgrade to Access" as const;
+export const UPGRADE_TO_ACCESS = "Unlock" as const;
 
 export const PRO_SUBSCRIPTION = {
   price: "SGD 59",
