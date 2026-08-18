@@ -37,6 +37,7 @@ export default async function ResumeTemplatesPage() {
       industryMap={data.industryMap}
       assetUrls={assetUrls}
       requiredTier={requiredTier as "PRO" | "ELITE"}
+      vettingSection={data.vettingSection}
     />
   );
 }
