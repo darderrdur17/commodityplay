@@ -31,47 +31,50 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
   {
     slug: "playbook",
     title: "Full Playbook",
-    description: "Industry foundations through commercial decision-making — the full Pro Pack playbook.",
+    description:
+      "{chapterCount} chapters, {sectionCount} sections — industry foundations through commercial decision-making.",
   },
   {
     slug: "resume-templates",
     title: "Resume Templates",
-    description: "Tailored templates with persona analysis quiz.",
+    description: "{templateCount} tailored templates with persona analysis quiz.",
   },
   {
     slug: "career-roadmap",
     title: "Career Roadmap",
-    description: "Role blueprints, navigation guide, comp benchmarks, and 12-month action plans.",
+    description:
+      "{roleCount} role blueprints, navigation guide, comp benchmarks, and 12-month action plans.",
   },
   {
     slug: "interview-questions",
     title: "Interview Questions",
-    description: "Desk interview questions with model answers across technical and commercial tabs.",
+    description:
+      "{interviewCount} desk interview questions with model answers across technical and commercial tabs.",
   },
   {
     slug: "knowledge-test",
     title: "Knowledge Test",
-    description: "Gap analysis with personalised study recommendations.",
+    description: "{knowledgeTestCount}-question gap analysis with personalised study recommendations.",
   },
   {
     slug: "case-studies",
     title: "Case Studies",
-    description: "Real-world trading scenarios with full P&L breakdowns.",
+    description: "{caseStudyCount} real-world trading scenarios with full P&L breakdowns.",
   },
   {
     slug: "desk-channel",
     title: "Desk Channel",
-    description: "Practitioner Q&As across coverage segments.",
+    description: "{deskQaCount} practitioner Q&As across {deskSegmentCount} coverage segments.",
   },
   {
     slug: "mentor-connect",
     title: "Mentor Connect",
-    description: "One question. One mentor. One honest answer.",
+    description: "One question. One mentor. One honest answer — {mentorCount} anonymous practitioners.",
   },
   {
     slug: "job-openings",
     title: "Job Openings",
-    description: "Curated commodity trading roles across regions.",
+    description: "{jobCount} curated commodity trading roles across regions.",
   },
 ];
 

@@ -4,7 +4,8 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { BookOpen, Clock, ChevronRight, Lock, CheckCircle } from "lucide-react";
-import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS, PLAYBOOK_TOTAL_SECTIONS } from "@/data/playbook";
+import { CHAPTERS } from "@/data/playbook";
+import type { ContentStats } from "@/lib/content/content-stats";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 
 type Chapter = (typeof CHAPTERS)[number];
@@ -18,6 +19,7 @@ interface Props {
   userTier: string;
   progress: Array<{ chapterId: string; progress: number; completed: boolean }>;
   requiredTier?: "PRO" | "ELITE";
+  contentStats: Pick<ContentStats, "chapterCount" | "sectionCount">;
 }
 
 export function PlaybookHubClient({
@@ -25,11 +27,15 @@ export function PlaybookHubClient({
   userTier,
   progress,
   requiredTier = "PRO",
+  contentStats,
 }: Props) {
+  const { chapterCount, sectionCount } = contentStats;
   const getChapterProgress = (id: string) => progress.find((p) => p.chapterId === id);
   const completedCount = progress.filter((p) => p.completed).length;
   const totalProgress =
-    progress.reduce((s, p) => s + p.progress, 0) / (PLAYBOOK_TOTAL_CHAPTERS * 100) * 100;
+    chapterCount > 0
+      ? progress.reduce((s, p) => s + p.progress, 0) / (chapterCount * 100) * 100
+      : 0;
   const isPro = hasAccess(userTier, requiredTier);
 
   return (
@@ -47,7 +53,7 @@ export function PlaybookHubClient({
           </h1>
           <p className="text-white/65 text-lg max-w-xl mb-6">
             {isPro
-              ? `${PLAYBOOK_TOTAL_CHAPTERS} Chapters. ${PLAYBOOK_TOTAL_SECTIONS} sections. Industry foundations through commercial decision-making — sourced from the Pro Pack playbook.`
+              ? `${chapterCount} Chapters. ${sectionCount} sections. Industry foundations through commercial decision-making — sourced from the Pro Pack playbook.`
               : "The ground-level understanding every serious learner of commodity trading needs before anything else."}
           </p>
           {isPro && (
@@ -59,7 +65,7 @@ export function PlaybookHubClient({
               <div className="glass-card px-5 py-3">
                 <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Chapters Done</p>
                 <p className="text-white font-serif text-2xl font-bold">
-                  {completedCount}/{PLAYBOOK_TOTAL_CHAPTERS}
+                  {completedCount}/{chapterCount}
                 </p>
               </div>
               <div className="flex-1 min-w-[200px]">

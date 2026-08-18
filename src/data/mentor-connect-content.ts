@@ -26,12 +26,12 @@ export const DEFAULT_MENTOR_CONNECT_CONTENT: MentorConnectContent = {
   categories: [],
 };
 
+import { formatContentPlaceholders } from "@/lib/content/content-stat-placeholders";
+
 export function formatMentorConnectSubtitle(
   template: string,
   mentorCount: number,
   segmentCount: number
 ): string {
-  return template
-    .replace(/\{mentorCount\}/g, String(mentorCount))
-    .replace(/\{segmentCount\}/g, String(segmentCount));
+  return formatContentPlaceholders(template, { mentorCount, segmentCount });
 }

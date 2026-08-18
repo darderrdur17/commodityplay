@@ -7,6 +7,7 @@ import {
   type MemberDashboardContent,
 } from "@/data/member-dashboard";
 import { normalizeMemberDashboardPayload } from "@/lib/content/member-dashboard-schema";
+import { CONTENT_STAT_PLACEHOLDER_HINT } from "@/lib/content/content-stat-placeholders";
 import { EditorField, EditorSection, inputClass, textareaClass } from "./shared";
 
 function PromoBoxFields({
@@ -111,9 +112,13 @@ export function MemberDashboardEditor({
 
       <EditorSection
         title="Resource card descriptions"
-        description="Small text under each title in the dashboard grid — edit here instead of updating counts in code."
+        description="Small text under each title in the dashboard grid. Counts auto-fill from live CMS data."
         defaultOpen
       >
+        <p className="text-xs text-muted-fg mb-3">
+          Optional placeholders (updated automatically on the site):{" "}
+          <code className="text-[11px] bg-secondary px-1 rounded">{CONTENT_STAT_PLACEHOLDER_HINT}</code>
+        </p>
         <div className="space-y-4">
           {content.resourceCards.map((card, i) => (
             <EditorField key={card.slug} label={card.title}>

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { getStarterPackAssetUrls, getStarterPackContent } from "@/lib/content/accessors";
+import { getContentStats } from "@/lib/content/content-stats";
 import { StarterPackClient } from "./starter-pack-client";
 import { BRAND_NAME } from "@/lib/brand";
 
@@ -12,8 +13,12 @@ export const metadata = {
 
 export default async function StarterPackPage() {
   const session = await auth();
-  const content = await getStarterPackContent();
-  const assetUrls = session?.user ? await getStarterPackAssetUrls() : {};
+  const [content, assetUrls, contentStats] = await Promise.all([
+    getStarterPackContent(),
+    session?.user ? getStarterPackAssetUrls() : Promise.resolve({}),
+    getContentStats(),
+  ]);
+
   return (
     <StarterPackClient
       infographics={content.infographics}
@@ -21,6 +26,8 @@ export default async function StarterPackPage() {
       chapterPreview={content.chapterPreview}
       assetUrls={assetUrls}
       isLoggedIn={!!session?.user}
+      glossaryCount={contentStats.glossaryCount}
+      chapterCount={contentStats.chapterCount}
     />
   );
 }

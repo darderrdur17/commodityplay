@@ -20,7 +20,7 @@ export function CaseStudiesClient({ userTier, studies, requiredTier = "ELITE" }:
       <section className="rounded-2xl bg-primary-800 px-5 sm:px-8 py-8 sm:py-10 mb-6 sm:mb-8 relative overflow-hidden">
         <Reveal className="relative z-10">
           <div className="pill pill-dark mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" /> Elite · 10 Studies
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" /> Elite · {studies.length} Studies
           </div>
           <h1 className="font-serif text-2xl sm:text-4xl font-bold text-white mb-3">Case Studies</h1>
           <p className="text-white/65 text-sm sm:text-lg max-w-xl">

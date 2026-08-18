@@ -13,6 +13,7 @@ import {
   type WeeklyEdgeNote,
 } from "@/lib/content/edge-notes";
 import { WeeklyEdgeNoteEditor } from "./sales-edge-note-editor";
+import { CONTENT_STAT_PLACEHOLDER_HINT } from "@/lib/content/content-stat-placeholders";
 
 type TrackFilter = "career" | "sales" | "both";
 
@@ -72,6 +73,11 @@ export function LandingEditorWrapper({
           </button>
         ))}
       </div>
+
+      <p className="text-xs text-muted-fg px-1">
+        Count placeholders in pricing and feature copy auto-fill from live CMS on the public site:{" "}
+        <code className="text-[11px] bg-secondary px-1 rounded">{CONTENT_STAT_PLACEHOLDER_HINT}</code>
+      </p>
 
       <AdminLandingEditor
         content={content}

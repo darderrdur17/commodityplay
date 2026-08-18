@@ -21,12 +21,16 @@ export function StarterPackClient({
   chapterPreview,
   assetUrls = {},
   isLoggedIn = false,
+  glossaryCount,
+  chapterCount,
 }: {
   infographics: StarterInfographic[];
   marketNote: typeof import("@/data/starter-pack").STARTER_MARKET_NOTE;
   chapterPreview: typeof import("@/data/starter-pack").STARTER_CHAPTER_PREVIEW;
   assetUrls?: Record<string, string>;
   isLoggedIn?: boolean;
+  glossaryCount: number;
+  chapterCount: number;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [loadingPro, setLoadingPro] = useState(false);
@@ -188,11 +192,11 @@ export function StarterPackClient({
           </Link>
           {isLoggedIn ? (
             <Link href="/glossary">
-              <Button variant="outline">Browse Glossary (196 terms)</Button>
+              <Button variant="outline">Browse Glossary ({glossaryCount} terms)</Button>
             </Link>
           ) : (
             <Button variant="outline" onClick={() => setModalOpen(true)}>
-              Browse Glossary (196 terms)
+              Browse Glossary ({glossaryCount} terms)
             </Button>
           )}
         </div>
@@ -205,7 +209,7 @@ export function StarterPackClient({
               Ready for the full playbook?
             </h2>
             <p className="text-white/65 text-sm sm:text-base leading-relaxed">
-              Unlock all 9 chapters, resume templates, career roadmap, interview prep, and practitioner guides.
+              Unlock all {chapterCount} chapters, resume templates, career roadmap, interview prep, and practitioner guides.
             </p>
           </div>
           <Button

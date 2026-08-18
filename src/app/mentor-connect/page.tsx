@@ -1,9 +1,10 @@
+import { getContentStats } from "@/lib/content/content-stats";
+import { MentorConnectClient } from "./mentor-connect-client";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isMentorDemoUser } from "@/lib/mentor-demo";
 import { getMentorConnectHero, getPublishedMentorSegments } from "@/lib/content/accessors";
-import { MentorConnectClient } from "./mentor-connect-client";
 
 export const metadata = { title: "Mentor Connect" };
 
@@ -26,16 +27,19 @@ export default async function MentorConnectPage() {
     redirect("/mentor-connect/inbox");
   }
 
-  const mentorSegments = await getPublishedMentorSegments();
-  const mentorCount = mentorSegments.reduce((n, s) => n + s.mentors.length, 0);
-  const mentorConnectHero = await getMentorConnectHero();
+  const [mentorSegments, mentorConnectHero, contentStats] = await Promise.all([
+    getPublishedMentorSegments(),
+    getMentorConnectHero(),
+    getContentStats(),
+  ]);
 
   return (
     <MentorConnectClient
       userTier={user.tier}
       mentorCredits={user.mentorCredits}
       mentorSegments={mentorSegments}
-      mentorCount={mentorCount}
+      mentorCount={contentStats.mentorCount}
+      segmentCount={contentStats.segmentCount}
       mentorConnectHero={mentorConnectHero}
       questions={user.mentorQuestions.map((q) => ({
         id: q.id,

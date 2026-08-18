@@ -20,7 +20,7 @@ import {
   DEFAULT_MEMBER_DASHBOARD_CONTENT,
   type MemberDashboardContent,
 } from "@/data/member-dashboard";
-import { PLAYBOOK_TOTAL_CHAPTERS } from "@/data/playbook";
+import type { ContentStats } from "@/lib/content/content-stats";
 
 interface Props {
   contentTiers?: Record<string, string>;
@@ -29,6 +29,7 @@ interface Props {
     sales: NavigationGuideAttachment | null;
   };
   dashboardContent?: MemberDashboardContent;
+  contentStats: Pick<ContentStats, "chapterCount">;
   user: {
     id: string;
     name: string | null;
@@ -133,6 +134,7 @@ export function DashboardClient({
   contentTiers = {},
   navigationGuides = { career: null, sales: null },
   dashboardContent = DEFAULT_MEMBER_DASHBOARD_CONTENT,
+  contentStats,
   user,
   stats,
   isAdmin: isAdminUser = false,
@@ -240,7 +242,7 @@ export function DashboardClient({
           },
           {
             label: "Chapters Done",
-            value: `${stats.completedChapters}/${PLAYBOOK_TOTAL_CHAPTERS}`,
+            value: `${stats.completedChapters}/${contentStats.chapterCount}`,
             icon: BookOpen,
             color: "#16a34a",
           },

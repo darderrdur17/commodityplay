@@ -1,8 +1,11 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PLAYBOOK_TOTAL_CHAPTERS } from "@/data/playbook";
 import { getContentTiersMap, getMemberDashboardContent, getNavigationGuides } from "@/lib/content/accessors";
+import {
+  applyContentStatsToMemberDashboard,
+  getContentStats,
+} from "@/lib/content/content-stats";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { DashboardClient } from "./dashboard-client";
@@ -28,19 +31,29 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   const completedChapters = user.progress.filter((p) => p.completed).length;
-  const progressPct = user.progress.length > 0
-    ? Math.round(user.progress.reduce((s, p) => s + p.progress, 0) / (PLAYBOOK_TOTAL_CHAPTERS * 100) * 100)
-    : 0;
 
-  const contentTiers = await getContentTiersMap();
-  const navigationGuides = await getNavigationGuides();
-  const dashboardContent = await getMemberDashboardContent();
+  const [contentTiers, navigationGuides, dashboardContentRaw, contentStats] = await Promise.all([
+    getContentTiersMap(),
+    getNavigationGuides(),
+    getMemberDashboardContent(),
+    getContentStats(),
+  ]);
+
+  const dashboardContent = applyContentStatsToMemberDashboard(dashboardContentRaw, contentStats);
+
+  const progressPct =
+    contentStats.chapterCount > 0
+      ? Math.round(
+          user.progress.reduce((s, p) => s + p.progress, 0) / (contentStats.chapterCount * 100) * 100
+        )
+      : 0;
 
   return (
     <DashboardClient
       contentTiers={contentTiers}
       navigationGuides={navigationGuides}
       dashboardContent={dashboardContent}
+      contentStats={contentStats}
       user={{
         id: user.id,
         name: user.name,

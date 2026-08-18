@@ -56,7 +56,7 @@ export function JobOpeningsClient({
           </p>
           <div className="flex gap-3 mt-6 flex-wrap">
             <div className="glass-card px-4 py-2 text-white text-sm font-semibold">
-              {JOB_OPENINGS.length} active roles
+              {jobs.length} active roles
             </div>
             <div className="glass-card px-4 py-2 text-white text-sm font-semibold">
               5 regions

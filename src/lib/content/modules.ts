@@ -48,7 +48,7 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
   {
     slug: "playbook",
     title: "Full Playbook",
-    description: "5 chapters, 40 sections of playbook content",
+    description: "Playbook chapters and sections (counts from live CMS)",
     requiredTier: "PRO",
   },
   {
@@ -60,31 +60,31 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
   {
     slug: "career-roadmap",
     title: "Career Roadmap",
-    description: "10 role blueprints, 12-month plan, navigation guide, and comp benchmarks",
+    description: "Role blueprints, 12-month plan, navigation guide, and comp benchmarks",
     requiredTier: "PRO",
   },
   {
     slug: "interview-questions",
     title: "Interview Questions",
-    description: "50 desk interview Q&As with model answers",
+    description: "Desk interview Q&As with model answers",
     requiredTier: "PRO",
   },
   {
     slug: "knowledge-test",
     title: "Knowledge Test",
-    description: "20-question gap analysis quiz",
+    description: "Gap analysis quiz (question count from live CMS)",
     requiredTier: "PRO",
   },
   {
     slug: "case-studies",
     title: "Case Studies",
-    description: "10 trading scenarios with P&L breakdowns",
+    description: "Trading scenarios with P&L breakdowns",
     requiredTier: "ELITE",
   },
   {
     slug: "desk-channel",
     title: "Desk Channel",
-    description: "40 practitioner Q&As across 5 segments",
+    description: "Practitioner Q&As across coverage segments",
     requiredTier: "ELITE",
   },
   {

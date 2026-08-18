@@ -81,11 +81,11 @@ export function CareerRoadmapClient({
             Career Roadmap. <span className="text-accent italic">Role by Role.</span>
           </h1>
           <p className="text-white/65 text-base sm:text-lg max-w-xl">
-            Ten entry blueprints for downstream commodity trading. The paths that actually work, the filters that actually eliminate candidates, and the upgrade move for each role — built from 20+ years inside the industry.
+            {roles.length} entry blueprints for downstream commodity trading. The paths that actually work, the filters that actually eliminate candidates, and the upgrade move for each role — built from 20+ years inside the industry.
           </p>
           <div className="flex flex-wrap gap-3 mt-6">
             {[
-              { num: "10", label: "Role blueprints" },
+              { num: String(roles.length), label: "Role blueprints" },
               { num: "4", label: "Markets: SG · LN · ME · NA" },
               { num: "Live", label: "Job board — coming soon" },
               { num: "SGD", label: "Comp benchmarks" },

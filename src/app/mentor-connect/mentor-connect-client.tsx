@@ -43,6 +43,7 @@ interface Props {
   mentorCredits: number;
   mentorSegments: PublishedMentorSegment[];
   mentorCount: number;
+  segmentCount: number;
   questions: Question[];
   mentorConnectHero: {
     eyebrow: string;
@@ -58,6 +59,7 @@ export function MentorConnectClient({
   mentorCredits,
   mentorSegments,
   mentorCount,
+  segmentCount,
   questions,
   mentorConnectHero,
 }: Props) {
@@ -134,7 +136,7 @@ export function MentorConnectClient({
             {formatMentorConnectSubtitle(
               mentorConnectHero.subtitle,
               mentorCount,
-              mentorSegments.length
+              segmentCount
             )}
           </p>
           <div className="flex items-center gap-4 flex-wrap">
@@ -142,7 +144,7 @@ export function MentorConnectClient({
               {isElite ? `${mentorCredits} credits remaining` : "Elite only"}
             </div>
             <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">{mentorCount} Practitioners</div>
-            <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">{mentorSegments.length} Segments</div>
+            <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">{segmentCount} Segments</div>
           </div>
         </Reveal>
       </section>
@@ -152,7 +154,7 @@ export function MentorConnectClient({
         <section className="mb-14">
           <Reveal className="mb-8">
             <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">Browse mentors</p>
-            <h2 className="font-serif text-2xl font-bold text-gray-900">{mentorCount} Practitioners. {mentorSegments.length} Segments.</h2>
+            <h2 className="font-serif text-2xl font-bold text-gray-900">{mentorCount} Practitioners. {segmentCount} Segments.</h2>
             <p className="text-sm text-muted-fg mt-2">
               Tap a mentor to open the question panel right here — no scrolling to the bottom of the page.
             </p>

@@ -40,6 +40,8 @@ export function DeskChannelClient({
     });
   }, [search, category, questions]);
 
+  const deskSegmentCount = categories.filter((c) => c.id !== "all").length;
+
   const content = (
     <div className="page-container py-8 sm:py-10">
       {/* Hero */}
@@ -55,7 +57,7 @@ export function DeskChannelClient({
             <span className="text-accent italic">People Who&apos;ve Been There.</span>
           </h1>
           <p className="text-white/65 text-base sm:text-lg max-w-xl mb-6">
-            40 questions across 5 categories — answered by vetted practitioners and the {BRAND_NAME} editorial team. Search the library. Can&apos;t find yours? Submit it below.
+            {questions.length} questions across {deskSegmentCount} categories — answered by vetted practitioners and the {BRAND_NAME} editorial team. Search the library. Can&apos;t find yours? Submit it below.
           </p>
           <BrandedSearchInput
             variant="dark"

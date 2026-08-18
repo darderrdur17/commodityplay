@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getContentTierForSlug, getPlaybookChapters } from "@/lib/content/accessors";
+import { getContentStats } from "@/lib/content/content-stats";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { PlaybookHubClient } from "./playbook-hub-client";
@@ -19,9 +20,10 @@ export default async function PlaybookPage() {
 
   if (!user) redirect("/login");
 
-  const [chapters, requiredTier] = await Promise.all([
+  const [chapters, requiredTier, contentStats] = await Promise.all([
     getPlaybookChapters(),
     getContentTierForSlug("playbook"),
+    getContentStats(),
   ]);
 
   return (
@@ -29,6 +31,7 @@ export default async function PlaybookPage() {
       chapters={chapters}
       userTier={user.tier}
       requiredTier={requiredTier as "PRO" | "ELITE"}
+      contentStats={contentStats}
       progress={user.progress.map((p) => ({
         chapterId: p.chapterId,
         progress: p.progress,
