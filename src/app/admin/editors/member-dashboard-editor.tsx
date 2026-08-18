@@ -85,9 +85,9 @@ export function MemberDashboardEditor({
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-fg bg-secondary/50 rounded-lg px-3 py-2">
-        Edit the blue marketing banners on the member dashboard (<code className="text-[11px]">/dashboard</code>).
-        With <strong>Published</strong> checked, Save updates the live site. Starter members see the Starter Pack +
-        Upgrade-to-Pro boxes; Pro members see Upgrade-to-Elite; Elite members see neither upgrade banner.
+        Edit marketing banners and resource card descriptions on the member dashboard (
+        <code className="text-[11px]">/dashboard</code>). With <strong>Published</strong> checked, Save updates the
+        live site.
       </p>
 
       <PromoBoxFields
@@ -108,6 +108,29 @@ export function MemberDashboardEditor({
         box={content.upgradeToElite}
         onChange={(upgradeToElite) => patch({ ...content, upgradeToElite })}
       />
+
+      <EditorSection
+        title="Resource card descriptions"
+        description="Small text under each title in the dashboard grid — edit here instead of updating counts in code."
+        defaultOpen
+      >
+        <div className="space-y-4">
+          {content.resourceCards.map((card, i) => (
+            <EditorField key={card.slug} label={card.title}>
+              <textarea
+                className={textareaClass}
+                rows={2}
+                value={card.description}
+                onChange={(e) => {
+                  const next = [...content.resourceCards];
+                  next[i] = { ...card, description: e.target.value };
+                  patch({ ...content, resourceCards: next });
+                }}
+              />
+            </EditorField>
+          ))}
+        </div>
+      </EditorSection>
     </div>
   );
 }

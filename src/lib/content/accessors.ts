@@ -15,6 +15,7 @@ import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-template
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
 import { DEFAULT_MEMBER_DASHBOARD_CONTENT, type MemberDashboardContent } from "@/data/member-dashboard";
+import { normalizeMemberDashboardPayload } from "@/lib/content/member-dashboard-schema";
 import {
   DEFAULT_MENTOR_CONNECT_CONTENT,
   type MentorConnectHero,
@@ -93,11 +94,7 @@ export async function getMemberDashboardContent(): Promise<MemberDashboardConten
   if (cms === null) {
     return DEFAULT_MEMBER_DASHBOARD_CONTENT;
   }
-  return {
-    starterPack: { ...DEFAULT_MEMBER_DASHBOARD_CONTENT.starterPack, ...cms.starterPack },
-    upgradeToPro: { ...DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToPro, ...cms.upgradeToPro },
-    upgradeToElite: { ...DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToElite, ...cms.upgradeToElite },
-  };
+  return normalizeMemberDashboardPayload(cms);
 }
 
 export async function getFaqContent(): Promise<FaqContent> {

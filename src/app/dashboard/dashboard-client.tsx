@@ -53,93 +53,75 @@ const CONTENT_CARDS = [
     slug: "playbook",
     icon: BookOpen,
     title: "Full Playbook",
-    desc: "5 chapters covering the complete commodity trading landscape",
     href: "/playbook",
     requiredTier: "PRO",
-    badge: "5 Chapters",
     color: "#3280ff",
   },
   {
     slug: "resume-templates",
     icon: FileText,
     title: "Resume Templates",
-    desc: "5 tailored templates with persona analysis quiz",
     href: "/resume-templates",
     requiredTier: "PRO",
-    badge: "5 Templates",
     color: "#3280ff",
   },
   {
     slug: "career-roadmap",
     icon: Map,
     title: "Career Roadmap",
-    desc: "10 role blueprints, navigation guide, comp benchmarks, and 12-month action plans",
     href: "/career-roadmap",
     requiredTier: "PRO",
-    badge: "10 Roles",
     color: "#3280ff",
   },
   {
     slug: "interview-questions",
     icon: BarChart3,
     title: "Interview Questions",
-    desc: "50 desk interview questions with model answers",
     href: "/interview-questions",
     requiredTier: "PRO",
-    badge: "50 Q&As",
     color: "#3280ff",
   },
   {
     slug: "knowledge-test",
     icon: TrendingUp,
     title: "Knowledge Test",
-    desc: "20-question gap analysis with personalised recommendations",
     href: "/knowledge-test",
     requiredTier: "PRO",
-    badge: "20 Qs",
     color: "#3280ff",
   },
   {
     slug: "case-studies",
     icon: Briefcase,
     title: "Case Studies",
-    desc: "10 real-world trading scenarios with full P&L breakdowns",
     href: "/case-studies",
     requiredTier: "ELITE",
-    badge: "10 Studies",
     color: "#B45309",
   },
   {
     slug: "desk-channel",
     icon: MessageSquare,
     title: "Desk Channel",
-    desc: "40 Q&As from practitioners across 5 segments",
     href: "/desk-channel",
     requiredTier: "ELITE",
-    badge: "40 Q&As",
     color: "#B45309",
   },
   {
     slug: "mentor-connect",
     icon: Users,
     title: "Mentor Connect",
-    desc: "One question. One mentor. One honest answer.",
     href: "/mentor-connect",
     requiredTier: "ELITE",
-    badge: "25 Mentors",
     color: "#B45309",
   },
   {
     slug: "job-openings",
     icon: Briefcase,
     title: "Job Openings",
-    desc: "Curated commodity trading roles across 5 regions",
     href: "/job-openings",
     requiredTier: "ELITE",
-    badge: "10 Roles",
     color: "#B45309",
   },
-];
+] as const;
 
 const QUICK_LINKS = [
   { label: "Desk Glossary", href: "/glossary", free: true },
@@ -168,6 +150,10 @@ export function DashboardClient({
     navigationGuides.sales?.assetId &&
     (isAdminUser || !isCareerTrack);
 
+  const resourceCopyBySlug = Object.fromEntries(
+    dashboardContent.resourceCards.map((c) => [c.slug, c.description])
+  );
+
   return (
     <div className="page-container py-8 sm:py-10">
       {/* ── HEADER ── */}
@@ -192,7 +178,7 @@ export function DashboardClient({
           href="/admin?tab=content&slug=member-dashboard"
           className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-gray-900 text-white text-sm font-semibold px-4 py-2.5 shadow-xl hover:bg-gray-800 transition-colors"
         >
-          Edit dashboard banners
+          Edit dashboard
         </Link>
       )}
 
@@ -443,6 +429,10 @@ export function DashboardClient({
           {CONTENT_CARDS.map((card, i) => {
             const tier = (contentTiers[card.slug] || card.requiredTier) as "PRO" | "ELITE";
             const unlocked = hasAccess(user.tier, tier);
+            const description =
+              resourceCopyBySlug[card.slug] ??
+              DEFAULT_MEMBER_DASHBOARD_CONTENT.resourceCards.find((c) => c.slug === card.slug)?.description ??
+              "";
             return (
               <Reveal key={card.title} delay={i * 0.05}>
                 <div
@@ -464,22 +454,29 @@ export function DashboardClient({
                     <card.icon className="w-4.5 h-4.5" style={{ color: card.color }} />
                   </div>
                   <h3 className="font-semibold text-sm text-gray-900 mb-1">{card.title}</h3>
-                  <p className="text-xs text-muted-fg mb-3 leading-relaxed">{card.desc}</p>
+                  <p className="text-xs text-muted-fg mb-3 leading-relaxed">{description}</p>
                   <div className="flex items-center justify-between">
-                    <Badge
-                      variant={tier === "ELITE" ? "elite" : "pro"}
-                      size="sm"
-                    >
-                      {card.badge}
-                    </Badge>
                     {unlocked ? (
-                      <Link href={card.href} className="text-xs text-primary-400 font-medium hover:text-primary-500 flex items-center gap-0.5">
-                        Open <ChevronRight className="w-3.5 h-3.5" />
-                      </Link>
+                      <>
+                        <Badge variant={tier === "ELITE" ? "elite" : "pro"} size="sm">
+                          {tier === "ELITE" ? "Elite" : "Pro"}
+                        </Badge>
+                        <Link href={card.href} className="text-xs text-primary-400 font-medium hover:text-primary-500 flex items-center gap-0.5">
+                          Open <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </>
                     ) : (
-                      <Link href={CAREER_PLAN_HREF("pro")} className="text-xs text-muted-fg hover:text-primary-400 flex items-center gap-0.5">
-                        Unlock <Lock className="w-3 h-3" />
-                      </Link>
+                      <>
+                        <Badge variant="outline" size="sm" className="text-muted-fg border-border">
+                          Unlock
+                        </Badge>
+                        <Link
+                          href={CAREER_PLAN_HREF(tier === "ELITE" ? "elite" : "pro")}
+                          className="text-xs text-muted-fg hover:text-primary-400 flex items-center gap-0.5"
+                        >
+                          Upgrade <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </>
                     )}
                   </div>
                 </div>

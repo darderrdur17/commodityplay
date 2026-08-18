@@ -71,7 +71,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { slug: "starter-pack", label: "Free Infographics + Email Digest", track: "Both", tier: "STARTER" },
       { slug: "footer-guides", label: "Footer Career & Sales Guides", track: "Both", tier: "STARTER" },
-      { slug: "member-dashboard", label: "Member Dashboard Banners", track: "Both", tier: "STARTER" },
+      { slug: "member-dashboard", label: "Member Dashboard", track: "Both", tier: "STARTER" },
       { slug: "glossary", label: "Desk Glossary", track: "Both", tier: "STARTER" },
     ],
   },
