@@ -395,8 +395,8 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
         </Field>
         <div className="space-y-4">
           {content.whatsInside.features.map((feature, i) => (
-            <div key={feature.title} className="p-3 rounded-lg border border-border space-y-2">
-              <p className="text-xs font-bold text-muted-fg uppercase">{feature.title}</p>
+            <div key={feature.icon} className="p-3 rounded-lg border border-border space-y-2">
+              <p className="text-xs font-bold text-muted-fg uppercase">{feature.icon}</p>
               <Field label="Card title">
                 <TextInput
                   value={feature.title}
@@ -492,7 +492,7 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
         </Field>
         <div className="space-y-4">
           {content.pricing.tiers.map((tier, i) => (
-            <div key={tier.name} className="p-3 rounded-lg border border-border space-y-2">
+            <div key={`career-pricing-${i}`} className="p-3 rounded-lg border border-border space-y-2">
               <p className="text-xs font-bold text-muted-fg uppercase">{tier.name} tier</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 <Field label="Price label">
@@ -866,7 +866,7 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
       <Section title="Sales Pricing" description="Pro and Elite tiers on sales track">
         <div className="space-y-4">
           {content.sales.pricing.map((tier, i) => (
-            <div key={tier.name} className="p-3 rounded-lg border border-border space-y-2">
+            <div key={`sales-pricing-${i}`} className="p-3 rounded-lg border border-border space-y-2">
               <p className="text-xs font-bold text-muted-fg uppercase">{tier.name}</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 <Field label="Price">

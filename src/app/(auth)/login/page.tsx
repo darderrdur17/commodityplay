@@ -1,13 +1,9 @@
 import { Suspense } from "react";
-import { getContentStats } from "@/lib/content/content-stats";
 import { LoginForm } from "./login-form";
 
-export const dynamic = "force-dynamic";
+const LOGIN_HERO_STATS = ["Industry-Standard", "Your Community"];
 
-export default async function LoginPage() {
-  const { mentorCount } = await getContentStats();
-  const heroStats = ["2400+ Members", `${mentorCount} Mentors`, "Industry-Standard"];
-
+export default function LoginPage() {
   return (
     <Suspense
       fallback={
@@ -16,7 +12,7 @@ export default async function LoginPage() {
         </div>
       }
     >
-      <LoginForm heroStats={heroStats} />
+      <LoginForm heroStats={LOGIN_HERO_STATS} />
     </Suspense>
   );
 }
