@@ -5,7 +5,6 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  RESUME_VETTING_SECTION,
   mergeResumeVettingSection,
   type ResumeVettingSection,
 } from "@/data/resume-templates";

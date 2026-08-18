@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   mergeStarterEmailDigest,
+  mergeStarterUpgradeCta,
   type StarterEmailDigest,
   type StarterInfographic,
+  type StarterUpgradeCta,
 } from "@/data/starter-pack";
+import { CONTENT_STAT_PLACEHOLDER_HINT } from "@/lib/content/content-stat-placeholders";
 import {
   EditorField,
   EditorRow,
@@ -26,6 +29,7 @@ interface StarterPayload {
   emailDigest?: Partial<EmailDigest>;
   /** Legacy CMS key — read-only migration source */
   marketNote?: Partial<EmailDigest> & { subscribed?: string };
+  upgradeCta?: Partial<StarterUpgradeCta>;
   [key: string]: unknown;
 }
 
@@ -318,6 +322,9 @@ export function StarterPackEditor({
       )}
       {activeTab === "digest" && (
         <EmailDigestTab data={data} onChange={onChange as (d: StarterPayload) => void} />
+      )}
+      {activeTab === "upgrade" && (
+        <UpgradeCtaTab data={data} onChange={onChange as (d: StarterPayload) => void} />
       )}
     </div>
   );
