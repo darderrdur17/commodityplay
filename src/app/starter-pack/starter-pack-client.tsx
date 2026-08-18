@@ -8,7 +8,7 @@ import { ArrowRight, Download, Lock, BookOpen, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
 import { MarketNoteStrip } from "@/components/landing/market-note-strip";
-import type { StarterInfographic } from "@/data/starter-pack";
+import type { StarterInfographic, StarterUpgradeCta } from "@/data/starter-pack";
 import { attachmentHref, resolveAttachmentUrl } from "@/lib/content/attachments";
 import { StarterPackModal } from "@/components/landing/starter-pack-modal";
 import { startCheckout } from "@/lib/start-checkout";
@@ -23,6 +23,7 @@ export function StarterPackClient({
   isLoggedIn = false,
   glossaryCount,
   chapterCount,
+  upgradeCta,
 }: {
   infographics: StarterInfographic[];
   marketNote: typeof import("@/data/starter-pack").STARTER_MARKET_NOTE;
@@ -31,6 +32,7 @@ export function StarterPackClient({
   isLoggedIn?: boolean;
   glossaryCount: number;
   chapterCount: number;
+  upgradeCta: StarterUpgradeCta;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [loadingPro, setLoadingPro] = useState(false);
@@ -72,7 +74,7 @@ export function StarterPackClient({
               Your desk-ready starter resources.
             </h1>
             <p className="text-white/65 text-lg max-w-xl mb-8 leading-relaxed">
-              Five infographics, a weekly market note, Chapter A preview, and the full Desk Glossary — free, forever.
+              Five infographics, a biweekly email digest, Chapter A preview, and the full Desk Glossary — free, forever.
             </p>
             <Button size="xl" variant="primary-dark" onClick={() => setModalOpen(true)}>
               Get the Starter Pack <ArrowRight className="w-5 h-5" />
@@ -206,10 +208,10 @@ export function StarterPackClient({
         <div className="page-container flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="max-w-xl">
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white mb-3">
-              Ready for the full playbook?
+              {upgradeCta.title}
             </h2>
             <p className="text-white/65 text-sm sm:text-base leading-relaxed">
-              Unlock all {chapterCount} chapters, resume templates, career roadmap, interview prep, and practitioner guides.
+              {upgradeCta.description}
             </p>
           </div>
           <Button
@@ -219,7 +221,7 @@ export function StarterPackClient({
             onClick={handleUpgradePro}
             loading={loadingPro}
           >
-            Upgrade to Pro <ArrowRight className="w-4 h-4" />
+            {upgradeCta.buttonLabel} <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
       </section>

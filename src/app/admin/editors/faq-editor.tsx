@@ -31,6 +31,10 @@ export function FaqEditor({
     patch({ ...content, hero: { ...content.hero, [field]: value } });
   }
 
+  function patchFooter(field: keyof FaqContent["footerCta"], value: string) {
+    patch({ ...content, footerCta: { ...content.footerCta, [field]: value } });
+  }
+
   function patchItem(i: number, item: FaqItem) {
     const items = [...content.items];
     items[i] = item;
@@ -75,6 +79,40 @@ export function FaqEditor({
             onChange={(e) => patchHero("subtitle", e.target.value)}
           />
         </EditorField>
+      </EditorSection>
+
+      <EditorSection title="Bottom CTA" description="Footer section below the FAQ accordion" defaultOpen>
+        <EditorField label="Heading">
+          <input
+            className={inputClass}
+            value={content.footerCta.heading}
+            onChange={(e) => patchFooter("heading", e.target.value)}
+          />
+        </EditorField>
+        <EditorField label="Subtext" hint="Include the support email address in the text — it will be linked automatically.">
+          <textarea
+            className={textareaClass}
+            value={content.footerCta.subtext}
+            onChange={(e) => patchFooter("subtext", e.target.value)}
+          />
+        </EditorField>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <EditorField label="Support email">
+            <input
+              className={inputClass}
+              type="email"
+              value={content.footerCta.email}
+              onChange={(e) => patchFooter("email", e.target.value)}
+            />
+          </EditorField>
+          <EditorField label="Button label">
+            <input
+              className={inputClass}
+              value={content.footerCta.buttonLabel}
+              onChange={(e) => patchFooter("buttonLabel", e.target.value)}
+            />
+          </EditorField>
+        </div>
       </EditorSection>
 
       <EditorSection title="Questions & answers" description="Accordion items on the FAQ page" defaultOpen>

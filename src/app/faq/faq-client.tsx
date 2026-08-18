@@ -1,23 +1,39 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
-import { HelpCircle, ArrowRight, Shield } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, GradientOrbs } from "@/components/animations";
+import { ContactModal } from "@/components/landing/contact-modal";
 import { PAGE_HERO_TOP } from "@/lib/layout-constants";
-import { BRAND_EMAIL_HELLO } from "@/lib/brand";
-import type { FaqHero, FaqItem } from "@/data/faq";
-import { CAREER_PRICING_HREF } from "@/lib/pricing-routes";
+import type { FaqFooterCta, FaqHero, FaqItem } from "@/data/faq";
 
 interface FaqClientProps {
   hero: FaqHero;
   items: FaqItem[];
+  footerCta: FaqFooterCta;
 }
 
-export function FaqClient({ hero, items }: FaqClientProps) {
+function FooterSubtext({ subtext, email }: { subtext: string; email: string }) {
+  const parts = subtext.split(email);
+  if (parts.length === 1) {
+    return <span>{subtext}</span>;
+  }
+  return (
+    <>
+      {parts[0]}
+      <a href={`mailto:${email}`} className="text-primary-400 hover:underline">
+        {email}
+      </a>
+      {parts.slice(1).join(email)}
+    </>
+  );
+}
+
+export function FaqClient({ hero, items, footerCta }: FaqClientProps) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [contactOpen, setContactOpen] = useState(false);
 
   return (
     <div className="overflow-hidden">
@@ -73,23 +89,19 @@ export function FaqClient({ hero, items }: FaqClientProps) {
       <section className="bg-secondary py-12 sm:py-16">
         <div className="max-w-[600px] mx-auto px-4 sm:px-6 text-center">
           <Reveal>
-            <Shield className="w-8 h-8 text-primary-400 mx-auto mb-4" />
-            <h2 className="font-serif text-2xl font-bold text-gray-900 mb-3">Still have questions?</h2>
+            <HelpCircle className="w-8 h-8 text-primary-400 mx-auto mb-4" />
+            <h2 className="font-serif text-2xl font-bold text-gray-900 mb-3">{footerCta.heading}</h2>
             <p className="text-muted-fg text-sm mb-6">
-              Compare plans on the career landing page or reach out at{" "}
-              <a href={`mailto:${BRAND_EMAIL_HELLO}`} className="text-primary-400 hover:underline">
-                {BRAND_EMAIL_HELLO}
-              </a>
-              .
+              <FooterSubtext subtext={footerCta.subtext} email={footerCta.email} />
             </p>
-            <Link href={CAREER_PRICING_HREF}>
-              <Button size="lg">
-                View plans <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
+            <Button size="lg" onClick={() => setContactOpen(true)}>
+              {footerCta.buttonLabel}
+            </Button>
           </Reveal>
         </div>
       </section>
+
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
     </div>
   );
 }

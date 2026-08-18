@@ -17,6 +17,7 @@ import {
   PERSONA_QUIZ_QUESTIONS,
   PERSONA_QUIZ_STEPS,
   INDUSTRY_MAP,
+  RESUME_VETTING_SECTION,
 } from "@/data/resume-templates";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT } from "@/data/landing-content";
@@ -24,7 +25,12 @@ import { defaultCareerEdgeNote, defaultSalesEdgeNote } from "@/lib/content/edge-
 import { DEFAULT_FAQ_CONTENT } from "@/data/faq";
 import { DEFAULT_MEMBER_DASHBOARD_CONTENT } from "@/data/member-dashboard";
 import { DEFAULT_MENTOR_CONNECT_CONTENT } from "@/data/mentor-connect-content";
-import { STARTER_INFOGRAPHICS, STARTER_MARKET_NOTE, STARTER_CHAPTER_PREVIEW } from "@/data/starter-pack";
+import {
+  STARTER_INFOGRAPHICS,
+  STARTER_EMAIL_DIGEST,
+  STARTER_UPGRADE_CTA,
+  STARTER_CHAPTER_PREVIEW,
+} from "@/data/starter-pack";
 import type { ContentSlug } from "./modules";
 
 export function getDefaultPayload(slug: ContentSlug): unknown {
@@ -63,6 +69,7 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
         quiz: PERSONA_QUIZ_QUESTIONS,
         quizSteps: PERSONA_QUIZ_STEPS,
         industryMap: INDUSTRY_MAP,
+        vettingSection: RESUME_VETTING_SECTION,
       };
     case "job-openings":
       return {
@@ -74,8 +81,9 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
     case "starter-pack":
       return {
         infographics: STARTER_INFOGRAPHICS,
-        marketNote: STARTER_MARKET_NOTE,
+        emailDigest: STARTER_EMAIL_DIGEST,
         chapterPreview: STARTER_CHAPTER_PREVIEW,
+        upgradeCta: STARTER_UPGRADE_CTA,
       };
     case "mentor-connect":
       return DEFAULT_MENTOR_CONNECT_CONTENT;

@@ -97,7 +97,7 @@ export interface IndustryMapZone {
   title: string;
   color: string;
   muted?: boolean;
-  roles: { name: string; tag?: string }[];
+  roles: { name: string; tag?: string; dotColor?: string }[];
 }
 
 export interface TemplatePreviewSection {
@@ -114,8 +114,93 @@ export interface TemplateCardDetails {
   previewSections: TemplatePreviewSection[];
 }
 
+export interface ResumeVettingFormLabels {
+  name: string;
+  email: string;
+  archetype: string;
+  yearsExperience: string;
+  targetRole: string;
+  upload: string;
+  uploadHint: string;
+  uploadLimit: string;
+  submit: string;
+}
+
+export interface ResumeVettingSection {
+  eyebrow: string;
+  headline: string;
+  headlineAccent: string;
+  intro: string;
+  benefits: string[];
+  includedLabel: string;
+  includedNote: string;
+  formTitle: string;
+  formSubtitle: string;
+  labels: ResumeVettingFormLabels;
+  successTitle: string;
+  successMessage: string;
+}
+
+export const RESUME_VETTING_ARCHETYPE_OPTIONS = [
+  { value: "switcher", label: "The Switcher" },
+  { value: "insider", label: "The Insider" },
+  { value: "analyst", label: "Analyst-to-Trader" },
+  { value: "vendor", label: "The Vendor" },
+  { value: "none", label: "None of the Above" },
+] as const;
+
 export const PERSONA_QUIZ_STEPS: PersonaQuizStep[] = resumeExtras.quizSteps as PersonaQuizStep[];
 export const INDUSTRY_MAP: IndustryMapZone[] = resumeExtras.industryMap as IndustryMapZone[];
+export const RESUME_VETTING_SECTION: ResumeVettingSection = (
+  resumeExtras as { vettingSection?: ResumeVettingSection }
+).vettingSection ?? {
+  eyebrow: "Online Resume Vetting · Pro Feature",
+  headline: "Get Your Resume",
+  headlineAccent: "Reviewed by a Practitioner.",
+  intro: "",
+  benefits: [],
+  includedLabel: "Included in",
+  includedNote: "",
+  formTitle: "Submit for Review",
+  formSubtitle: "",
+  labels: {
+    name: "Full Name",
+    email: "Email Address",
+    archetype: "Your Archetype",
+    yearsExperience: "Years of Experience",
+    targetRole: "Target Role",
+    upload: "Upload Your Resume",
+    uploadHint: "Click to upload your resume · .docx or .pdf",
+    uploadLimit: "Maximum 5MB · .docx or PDF · One file only",
+    submit: "Submit for Review",
+  },
+  successTitle: "Resume submitted.",
+  successMessage: "",
+};
+
+export function mergeResumeVettingSection(
+  cms: Partial<ResumeVettingSection> | null | undefined,
+  defaults: ResumeVettingSection = RESUME_VETTING_SECTION
+): ResumeVettingSection {
+  const raw = cms ?? {};
+  return {
+    eyebrow: raw.eyebrow?.trim() || defaults.eyebrow,
+    headline: raw.headline?.trim() || defaults.headline,
+    headlineAccent: raw.headlineAccent?.trim() || defaults.headlineAccent,
+    intro: raw.intro?.trim() || defaults.intro,
+    benefits: raw.benefits?.length ? raw.benefits : defaults.benefits,
+    includedLabel: raw.includedLabel?.trim() || defaults.includedLabel,
+    includedNote: raw.includedNote?.trim() || defaults.includedNote,
+    formTitle: raw.formTitle?.trim() || defaults.formTitle,
+    formSubtitle: raw.formSubtitle?.trim() || defaults.formSubtitle,
+    labels: {
+      ...defaults.labels,
+      ...raw.labels,
+    },
+    successTitle: raw.successTitle?.trim() || defaults.successTitle,
+    successMessage: raw.successMessage?.trim() || defaults.successMessage,
+  };
+}
 export const POSITIONING_PRINCIPLE = (
   resumeExtras as {
     positioningPrinciple?: { title: string; body: string };

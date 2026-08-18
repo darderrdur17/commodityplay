@@ -12,7 +12,7 @@ const PACK_ITEMS = [
   "Trade Finance Flow",
   "LNG Cargo Flow",
   "Price Benchmarks 101",
-  "Weekly market note",
+  "Biweekly email digest",
 ];
 
 interface Props {
@@ -64,7 +64,7 @@ export function StarterPackModal({ open, onClose }: Props) {
                   Get 5 Infographics Free
                 </h2>
                 <p className="text-sm text-muted-fg mb-5">
-                  Download instantly. No credit card. Plus the weekly market digest to your inbox.
+                  Download instantly. No credit card. Plus the biweekly email digest to your inbox.
                 </p>
 
                 <ul className="grid grid-cols-2 gap-x-3 gap-y-2 mb-6">

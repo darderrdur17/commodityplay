@@ -1,4 +1,4 @@
-import { BRAND_EMAIL_HELLO } from "@/lib/brand";
+import { BRAND_EMAIL_HELLO, BRAND_EMAIL_SUPPORT } from "@/lib/brand";
 
 export interface FaqItem {
   q: string;
@@ -11,9 +11,17 @@ export interface FaqHero {
   subtitle: string;
 }
 
+export interface FaqFooterCta {
+  heading: string;
+  subtext: string;
+  email: string;
+  buttonLabel: string;
+}
+
 export interface FaqContent {
   hero: FaqHero;
   items: FaqItem[];
+  footerCta: FaqFooterCta;
 }
 
 export const FAQ_ITEMS: FaqItem[] = [
@@ -49,7 +57,15 @@ export const FAQ_HERO: FaqHero = {
   subtitle: "Everything you need to know about plans, billing, and access.",
 };
 
+export const FAQ_FOOTER_CTA: FaqFooterCta = {
+  heading: "Still have questions?",
+  subtext: `Email us at ${BRAND_EMAIL_SUPPORT}.`,
+  email: BRAND_EMAIL_SUPPORT,
+  buttonLabel: "Contact Us",
+};
+
 export const DEFAULT_FAQ_CONTENT: FaqContent = {
   hero: FAQ_HERO,
   items: FAQ_ITEMS,
+  footerCta: FAQ_FOOTER_CTA,
 };

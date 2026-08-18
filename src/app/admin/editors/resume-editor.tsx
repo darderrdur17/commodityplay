@@ -4,6 +4,11 @@ import React, { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  RESUME_VETTING_SECTION,
+  mergeResumeVettingSection,
+  type ResumeVettingSection,
+} from "@/data/resume-templates";
 import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -35,17 +40,13 @@ interface ResumeTemplate {
   fileKey: string;
 }
 
-interface VettingConfig {
-  instructions: string;
-  maxReviewsPerYear: number;
-  pricePerExtraReview: number;
-}
-
 interface ResumePayload {
   personas?: PersonaType[];
   quiz?: QuizQuestion[];
   templates?: ResumeTemplate[];
-  vetting?: VettingConfig;
+  vettingSection?: Partial<ResumeVettingSection>;
+  /** @deprecated Legacy vetting config — merged into vettingSection on read */
+  vetting?: Partial<ResumeVettingSection>;
 }
 
 // ─── Sub-editors ─────────────────────────────────────────────────────────────
@@ -203,25 +204,100 @@ function ResumeTemplatesTab({
 }
 
 function ResumeVettingTab({ data, onChange }: { data: ResumePayload; onChange: (d: ResumePayload) => void }) {
-  const vetting = data.vetting ?? { instructions: "", maxReviewsPerYear: 1, pricePerExtraReview: 0 };
+  const section = mergeResumeVettingSection(data.vettingSection ?? data.vetting);
 
-  function patch(updates: Partial<VettingConfig>) {
-    onChange({ ...data, vetting: { ...vetting, ...updates } });
+  function patch(updates: Partial<ResumeVettingSection>) {
+    onChange({ ...data, vettingSection: { ...section, ...updates } });
+  }
+
+  function patchLabel(field: keyof ResumeVettingSection["labels"], value: string) {
+    patch({ labels: { ...section.labels, [field]: value } });
+  }
+
+  function patchBenefit(i: number, value: string) {
+    const benefits = [...section.benefits];
+    benefits[i] = value;
+    patch({ benefits });
+  }
+
+  function addBenefit() {
+    patch({ benefits: [...section.benefits, ""] });
+  }
+
+  function delBenefit(i: number) {
+    patch({ benefits: section.benefits.filter((_, j) => j !== i) });
   }
 
   return (
     <div className="space-y-4">
-      <EditorField label="Instructions / Notes">
-        <textarea className={textareaClass} rows={5} value={vetting.instructions} onChange={(e) => patch({ instructions: e.target.value })} placeholder="Instructions for the vetting process..." />
-      </EditorField>
+      <p className="text-xs text-muted-fg">
+        Blue strip at the bottom of <strong>/resume-templates</strong> — headline, benefits, footer note, and form labels.
+        Archetype dropdown options are fixed in code.
+      </p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <EditorField label="Max reviews per year">
-          <input type="number" className={inputClass} value={vetting.maxReviewsPerYear} min={0} onChange={(e) => patch({ maxReviewsPerYear: Number(e.target.value) })} />
+        <EditorField label="Eyebrow">
+          <input className={inputClass} value={section.eyebrow} onChange={(e) => patch({ eyebrow: e.target.value })} />
         </EditorField>
-        <EditorField label="Price per extra review (USD)">
-          <input type="number" className={inputClass} value={vetting.pricePerExtraReview} min={0} step={0.01} onChange={(e) => patch({ pricePerExtraReview: Number(e.target.value) })} />
+        <EditorField label="Form subtitle">
+          <input className={inputClass} value={section.formSubtitle} onChange={(e) => patch({ formSubtitle: e.target.value })} />
         </EditorField>
       </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <EditorField label="Headline">
+          <input className={inputClass} value={section.headline} onChange={(e) => patch({ headline: e.target.value })} />
+        </EditorField>
+        <EditorField label="Headline accent (italic)">
+          <input className={inputClass} value={section.headlineAccent} onChange={(e) => patch({ headlineAccent: e.target.value })} />
+        </EditorField>
+      </div>
+      <EditorField label="Intro paragraph">
+        <textarea className={textareaClass} rows={3} value={section.intro} onChange={(e) => patch({ intro: e.target.value })} />
+      </EditorField>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-gray-700">Benefit bullets</p>
+          <Button variant="outline" size="sm" onClick={addBenefit}><Plus className="w-3.5 h-3.5" /> Add bullet</Button>
+        </div>
+        {section.benefits.map((item, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <textarea className={textareaClass} value={item} onChange={(e) => patchBenefit(i, e.target.value)} />
+            <button type="button" onClick={() => delBenefit(i)} className="text-red-400 hover:text-red-600 p-1 mt-2">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <EditorField label="Included box label">
+          <input className={inputClass} value={section.includedLabel} onChange={(e) => patch({ includedLabel: e.target.value })} />
+        </EditorField>
+        <EditorField label="Form title">
+          <input className={inputClass} value={section.formTitle} onChange={(e) => patch({ formTitle: e.target.value })} />
+        </EditorField>
+      </div>
+      <EditorField label="Included box note">
+        <textarea className={textareaClass} rows={3} value={section.includedNote} onChange={(e) => patch({ includedNote: e.target.value })} />
+      </EditorField>
+
+      <p className="text-xs font-semibold text-gray-700 pt-2">Form labels</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {(Object.keys(section.labels) as (keyof ResumeVettingSection["labels"])[]).map((key) => (
+          <EditorField key={key} label={key}>
+            <input className={inputClass} value={section.labels[key]} onChange={(e) => patchLabel(key, e.target.value)} />
+          </EditorField>
+        ))}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <EditorField label="Success title">
+          <input className={inputClass} value={section.successTitle} onChange={(e) => patch({ successTitle: e.target.value })} />
+        </EditorField>
+      </div>
+      <EditorField label="Success message">
+        <textarea className={textareaClass} rows={3} value={section.successMessage} onChange={(e) => patch({ successMessage: e.target.value })} />
+      </EditorField>
     </div>
   );
 }

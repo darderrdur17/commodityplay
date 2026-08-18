@@ -294,6 +294,29 @@ function extractResumeExtras() {
         { name: "Compliance / REMIT Officer" },
       ],
     },
+    {
+      zone: "E",
+      title: "Market Intelligence Vendors",
+      color: "#B45309",
+      roles: [
+        { name: "Price Reporter (Platts / Argus)" },
+        { name: "Intelligence Analyst (Kpler / Vortexa)" },
+        { name: "Research Analyst (Wood Mac)" },
+        { name: "Client Solutions (vendor-side)" },
+      ],
+    },
+    {
+      zone: "Entry",
+      title: "Which Zone First?",
+      color: "#0830a0",
+      muted: true,
+      roles: [
+        { name: "Scheduling / Ops → best entry for most", dotColor: "#0F766E" },
+        { name: "Analytics → best for quant backgrounds", dotColor: "#0040f5" },
+        { name: "Risk → best for finance graduates", dotColor: "#5B21B6" },
+        { name: "Front office → rare direct entry", dotColor: "#0830a0" },
+      ],
+    },
   ];
 
   return { quizSteps, industryMap };

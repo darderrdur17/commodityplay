@@ -12,5 +12,7 @@ export const metadata = {
 
 export default async function FaqPage() {
   const content = await getFaqContent();
-  return <FaqClient hero={content.hero} items={content.items} />;
+  return (
+    <FaqClient hero={content.hero} items={content.items} footerCta={content.footerCta} />
+  );
 }

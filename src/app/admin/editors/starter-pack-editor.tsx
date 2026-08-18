@@ -4,7 +4,11 @@ import React, { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { StarterInfographic } from "@/data/starter-pack";
+import {
+  mergeStarterEmailDigest,
+  type StarterEmailDigest,
+  type StarterInfographic,
+} from "@/data/starter-pack";
 import {
   EditorField,
   EditorRow,
@@ -15,18 +19,13 @@ import {
   uploadContentAssetFile,
 } from "./shared";
 
-interface EmailDigest {
-  eyebrow: string;
-  title: string;
-  description: string;
-  frequency: string;
-  topics: string[];
-  confirmedText: string;
-}
+interface EmailDigest extends StarterEmailDigest {}
 
 interface StarterPayload {
   infographics?: StarterInfographic[];
-  emailDigest?: EmailDigest;
+  emailDigest?: Partial<EmailDigest>;
+  /** Legacy CMS key — read-only migration source */
+  marketNote?: Partial<EmailDigest> & { subscribed?: string };
   [key: string]: unknown;
 }
 
@@ -160,26 +159,25 @@ function FreeInfographicsTab({
 // ─── Email Digest ─────────────────────────────────────────────────────────────
 
 function EmailDigestTab({ data, onChange }: { data: StarterPayload; onChange: (d: StarterPayload) => void }) {
-  const digest: EmailDigest = data.emailDigest ?? {
-    eyebrow: "",
-    title: "",
-    description: "",
-    frequency: "",
-    topics: [],
-    confirmedText: "",
-  };
+  const rawDigest = data.emailDigest ?? (data.marketNote
+    ? {
+        ...data.marketNote,
+        confirmedText: data.marketNote.confirmedText ?? data.marketNote.subscribed,
+      }
+    : undefined);
+  const digest = mergeStarterEmailDigest(rawDigest);
 
   function patch(updates: Partial<EmailDigest>) {
     onChange({ ...data, emailDigest: { ...digest, ...updates } });
   }
 
   function addTopic() {
-    patch({ topics: [...digest.topics, ""] });
+    patch({ topics: [...digest.topics, { title: "" }] });
   }
 
   function patchTopic(i: number, val: string) {
     const next = [...digest.topics];
-    next[i] = val;
+    next[i] = { ...next[i], title: val };
     patch({ topics: next });
   }
 
@@ -189,19 +187,25 @@ function EmailDigestTab({ data, onChange }: { data: StarterPayload; onChange: (d
 
   return (
     <div className="space-y-4">
+      <p className="text-xs text-muted-fg">
+        Shared headline and topics for both tracks. Career and Sales members receive different digest descriptions.
+      </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <EditorField label="Eyebrow">
           <input className={inputClass} value={digest.eyebrow} onChange={(e) => patch({ eyebrow: e.target.value })} />
         </EditorField>
         <EditorField label="Frequency">
-          <input className={inputClass} value={digest.frequency} onChange={(e) => patch({ frequency: e.target.value })} placeholder="e.g. Weekly, every Monday" />
+          <input className={inputClass} value={digest.frequency} onChange={(e) => patch({ frequency: e.target.value })} placeholder="e.g. Biweekly" />
         </EditorField>
       </div>
       <EditorField label="Title">
         <input className={inputClass} value={digest.title} onChange={(e) => patch({ title: e.target.value })} />
       </EditorField>
-      <EditorField label="Description">
-        <textarea className={textareaClass} value={digest.description} onChange={(e) => patch({ description: e.target.value })} />
+      <EditorField label="Career track description">
+        <textarea className={textareaClass} value={digest.careerDescription} onChange={(e) => patch({ careerDescription: e.target.value })} />
+      </EditorField>
+      <EditorField label="Sales track description">
+        <textarea className={textareaClass} value={digest.salesDescription} onChange={(e) => patch({ salesDescription: e.target.value })} />
       </EditorField>
       <EditorField label="Subscription confirmed text">
         <input className={inputClass} value={digest.confirmedText} onChange={(e) => patch({ confirmedText: e.target.value })} />
@@ -216,7 +220,7 @@ function EmailDigestTab({ data, onChange }: { data: StarterPayload; onChange: (d
           <div key={i} className="flex items-center gap-2">
             <input
               className={inputClass}
-              value={topic}
+              value={topic.title}
               onChange={(e) => patchTopic(i, e.target.value)}
               placeholder={`Topic ${i + 1}`}
             />
@@ -233,12 +237,40 @@ function EmailDigestTab({ data, onChange }: { data: StarterPayload; onChange: (d
   );
 }
 
+// ─── Upgrade CTA ──────────────────────────────────────────────────────────────
+
+function UpgradeCtaTab({ data, onChange }: { data: StarterPayload; onChange: (d: StarterPayload) => void }) {
+  const cta = mergeStarterUpgradeCta(data.upgradeCta);
+
+  function patch(updates: Partial<StarterUpgradeCta>) {
+    onChange({ ...data, upgradeCta: { ...cta, ...updates } });
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-fg">
+        Blue strip at the bottom of <strong>/starter-pack</strong>. Placeholders: {CONTENT_STAT_PLACEHOLDER_HINT}
+      </p>
+      <EditorField label="Title">
+        <input className={inputClass} value={cta.title} onChange={(e) => patch({ title: e.target.value })} />
+      </EditorField>
+      <EditorField label="Description">
+        <textarea className={textareaClass} value={cta.description} onChange={(e) => patch({ description: e.target.value })} />
+      </EditorField>
+      <EditorField label="Button label">
+        <input className={inputClass} value={cta.buttonLabel} onChange={(e) => patch({ buttonLabel: e.target.value })} />
+      </EditorField>
+    </div>
+  );
+}
+
 // ─── Main editor ─────────────────────────────────────────────────────────────
 
 const TABS = [
   { id: "infographics", label: "Free Infographics" },
   { id: "glossary", label: "Desk Glossary" },
   { id: "digest", label: "Email Digest" },
+  { id: "upgrade", label: "Upgrade CTA" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];

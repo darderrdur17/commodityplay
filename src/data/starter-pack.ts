@@ -1,4 +1,60 @@
-import { CAREER_MARKET_NOTE } from "@/data/market-notes";
+import { CAREER_MARKET_NOTE, SALES_MARKET_NOTE, type MarketNoteTopic } from "@/data/market-notes";
+
+export interface StarterEmailDigest {
+  eyebrow: string;
+  title: string;
+  careerDescription: string;
+  salesDescription: string;
+  /** Legacy single description — migrated to both track fields on read */
+  description?: string;
+  frequency: string;
+  topics: MarketNoteTopic[];
+  confirmedText: string;
+}
+
+export const STARTER_EMAIL_DIGEST: StarterEmailDigest = {
+  eyebrow: "Live · Biweekly Edition",
+  title: "The Email Digest for Starter Members.",
+  careerDescription: CAREER_MARKET_NOTE.description,
+  salesDescription: SALES_MARKET_NOTE.description,
+  frequency: "Biweekly",
+  topics: CAREER_MARKET_NOTE.topics,
+  confirmedText: "You're subscribed. First note lands on the next biweekly send.",
+};
+
+export type StarterUserTrack = "CAREER" | "SALES" | null | undefined;
+
+export function mergeStarterEmailDigest(
+  cms: Partial<StarterEmailDigest> | null | undefined,
+  defaults: StarterEmailDigest = STARTER_EMAIL_DIGEST
+): StarterEmailDigest {
+  const raw = cms ?? {};
+  const legacyDesc = raw.description?.trim();
+  const careerDescription =
+    raw.careerDescription?.trim() || legacyDesc || defaults.careerDescription;
+  const salesDescription =
+    raw.salesDescription?.trim() || legacyDesc || defaults.salesDescription;
+
+  return {
+    eyebrow: raw.eyebrow?.trim() || defaults.eyebrow,
+    title: raw.title?.trim() || defaults.title,
+    careerDescription,
+    salesDescription,
+    frequency: raw.frequency?.trim() || defaults.frequency,
+    topics: raw.topics?.length ? raw.topics : defaults.topics,
+    confirmedText: raw.confirmedText?.trim() || defaults.confirmedText,
+  };
+}
+
+export function resolveStarterMarketNote(digest: StarterEmailDigest, track?: StarterUserTrack) {
+  return {
+    eyebrow: digest.eyebrow,
+    title: digest.title,
+    description: track === "SALES" ? digest.salesDescription : digest.careerDescription,
+    topics: digest.topics,
+    subscribed: digest.confirmedText,
+  };
+}
 
 export interface StarterInfographic {
   id: string;
@@ -55,10 +111,39 @@ export const STARTER_INFOGRAPHICS: StarterInfographic[] = [
   },
 ];
 
+/** @deprecated Use STARTER_EMAIL_DIGEST + resolveStarterMarketNote */
 export const STARTER_MARKET_NOTE = {
-  ...CAREER_MARKET_NOTE,
-  subscribed: "You're subscribed. First note lands next Tuesday.",
+  eyebrow: STARTER_EMAIL_DIGEST.eyebrow,
+  title: STARTER_EMAIL_DIGEST.title,
+  description: STARTER_EMAIL_DIGEST.careerDescription,
+  topics: STARTER_EMAIL_DIGEST.topics,
+  subscribed: STARTER_EMAIL_DIGEST.confirmedText,
 };
+
+export interface StarterUpgradeCta {
+  title: string;
+  description: string;
+  buttonLabel: string;
+}
+
+export const STARTER_UPGRADE_CTA: StarterUpgradeCta = {
+  title: "Ready for the full playbook?",
+  description:
+    "Unlock all {chapterCount} chapters, resume templates, career roadmap, interview prep, and practitioner guides.",
+  buttonLabel: "Upgrade to Pro",
+};
+
+export function mergeStarterUpgradeCta(
+  cms: Partial<StarterUpgradeCta> | null | undefined,
+  defaults: StarterUpgradeCta = STARTER_UPGRADE_CTA
+): StarterUpgradeCta {
+  const raw = cms ?? {};
+  return {
+    title: raw.title?.trim() || defaults.title,
+    description: raw.description?.trim() || defaults.description,
+    buttonLabel: raw.buttonLabel?.trim() || defaults.buttonLabel,
+  };
+}
 
 export const STARTER_CHAPTER_PREVIEW = {
   label: "Chapter A · Free Preview",

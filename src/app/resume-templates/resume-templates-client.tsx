@@ -30,10 +30,13 @@ import {
   INDUSTRY_MAP,
   POSITIONING_PRINCIPLE,
   TEMPLATE_CARD_DETAILS,
+  RESUME_VETTING_ARCHETYPE_OPTIONS,
+  RESUME_VETTING_SECTION,
   type ResumeTemplate,
   type PersonaQuizStep,
   type IndustryMapZone,
   type TemplateCardDetails,
+  type ResumeVettingSection,
 } from "@/data/resume-templates";
 import { PERSONA_ARCHETYPES } from "@/data/persona-archetypes";
 import { scorePersonaQuiz, type PersonaId } from "@/lib/persona-quiz";
@@ -53,6 +56,7 @@ interface Props {
   industryMap?: IndustryMapZone[];
   assetUrls?: Record<string, string>;
   requiredTier?: "PRO" | "ELITE";
+  vettingSection?: ResumeVettingSection;
 }
 
 const ARCHETYPE_ICONS: Record<PersonaId, React.ElementType> = {
@@ -109,14 +113,21 @@ function TemplatePreview({
   );
 }
 
-function ResumeVettingSection() {
+function ResumeVettingSection({ content }: { content: ResumeVettingSection }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [archetype, setArchetype] = useState("");
+  const [yearsExperience, setYearsExperience] = useState("");
   const [targetRole, setTargetRole] = useState("");
   const [fileName, setFileName] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+
+  function isValidYears(value: string) {
+    if (!value.trim()) return false;
+    const num = Number(value);
+    return Number.isFinite(num) && num >= 0 && num <= 50 && Number.isInteger(num);
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -124,17 +135,15 @@ function ResumeVettingSection() {
       setError("Please fill in your name, email, and archetype before submitting.");
       return;
     }
+    if (!isValidYears(yearsExperience)) {
+      setError("Please enter years of experience as a whole number from 0 to 50.");
+      return;
+    }
     setError("");
     setSubmitted(true);
   }
 
-  const vettingBenefits = [
-    "Line-by-line commercial language assessment — does every bullet demonstrate market awareness?",
-    "Archetype positioning check — is the resume consistent with the archetype strategy?",
-    "Top 3 improvements — specific, actionable rewrites to the weakest sections",
-    "Recruiter readability score — how fast does the key message land?",
-    "Written feedback delivered as annotated PDF within 5 business days",
-  ];
+  const { labels } = content;
 
   return (
     <section id="vetting" className="mb-10">
@@ -145,18 +154,16 @@ function ResumeVettingSection() {
             <div className="flex items-center gap-2 mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-primary-400 animate-pulse" />
               <p className="text-[10px] font-bold uppercase tracking-widest text-primary-300">
-                Online Resume Vetting · Pro Feature
+                {content.eyebrow}
               </p>
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white mb-3">
-              Get Your Resume <span className="text-accent italic">Reviewed by a Practitioner.</span>
+              {content.headline}{" "}
+              <span className="text-accent italic">{content.headlineAccent}</span>
             </h2>
-            <p className="text-sm text-white/70 leading-relaxed mb-5">
-              Submit your completed resume — using any of the five templates — and a commodity trading practitioner
-              from our network will review it and provide written feedback within 5 business days.
-            </p>
+            <p className="text-sm text-white/70 leading-relaxed mb-5">{content.intro}</p>
             <ul className="space-y-2 mb-6">
-              {vettingBenefits.map((item) => (
+              {content.benefits.map((item) => (
                 <li key={item} className="flex items-start gap-2.5 text-sm text-white/75 py-1.5 border-b border-white/10 last:border-0">
                   <Check className="w-3.5 h-3.5 text-primary-400 mt-0.5 flex-shrink-0" />
                   <span>{item}</span>
@@ -164,11 +171,8 @@ function ResumeVettingSection() {
               ))}
             </ul>
             <div className="rounded-lg border border-white/20 bg-white/10 px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Included in</p>
-              <p className="text-sm text-white/80 leading-relaxed">
-                Pro and Elite subscribers get <strong className="text-white">2 resume vetting reviews per year</strong>.
-                Starter members can purchase additional reviews at SGD 49 per review advisory.
-              </p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">{content.includedLabel}</p>
+              <p className="text-sm text-white/80 leading-relaxed">{content.includedNote}</p>
             </div>
           </Reveal>
 
@@ -178,24 +182,21 @@ function ResumeVettingSection() {
                 <div className="w-14 h-14 rounded-full bg-primary-400/20 border border-primary-400/40 flex items-center justify-center mx-auto mb-4">
                   <Check className="w-6 h-6 text-primary-300" />
                 </div>
-                <h3 className="font-serif text-xl font-bold text-white mb-2">Resume submitted.</h3>
-                <p className="text-sm text-white/65 leading-relaxed">
-                  You&apos;ll receive your annotated feedback within 5 business days at the email address provided.
-                  Check your inbox — including spam — for confirmation.
-                </p>
+                <h3 className="font-serif text-xl font-bold text-white mb-2">{content.successTitle}</h3>
+                <p className="text-sm text-white/65 leading-relaxed">{content.successMessage}</p>
               </div>
             ) : (
               <form
                 onSubmit={handleSubmit}
                 className="rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-6"
               >
-                <h3 className="font-serif text-lg font-bold text-white mb-1">Submit for Review</h3>
-                <p className="text-xs text-white/50 mb-5">Pro members · 2 reviews included · 5 business day turnaround</p>
+                <h3 className="font-serif text-lg font-bold text-white mb-1">{content.formTitle}</h3>
+                <p className="text-xs text-white/50 mb-5">{content.formSubtitle}</p>
 
                 <div className="space-y-3">
                   <div>
                     <label className="text-[11px] font-semibold text-white/65 tracking-wide block mb-1.5">
-                      Full Name
+                      {labels.name}
                     </label>
                     <input
                       type="text"
@@ -207,7 +208,7 @@ function ResumeVettingSection() {
                   </div>
                   <div>
                     <label className="text-[11px] font-semibold text-white/65 tracking-wide block mb-1.5">
-                      Email Address
+                      {labels.email}
                     </label>
                     <input
                       type="email"
@@ -219,7 +220,7 @@ function ResumeVettingSection() {
                   </div>
                   <div>
                     <label className="text-[11px] font-semibold text-white/65 tracking-wide block mb-1.5">
-                      Your Archetype
+                      {labels.archetype}
                     </label>
                     <select
                       value={archetype}
@@ -229,16 +230,31 @@ function ResumeVettingSection() {
                       <option value="" disabled>
                         Select your archetype
                       </option>
-                      <option value="switcher">The Switcher — Coming from finance / consulting / engineering</option>
-                      <option value="insider">The Insider — Already in industry, moving toward the desk</option>
-                      <option value="analyst">Analyst-to-Trader — Quant / analytics background</option>
-                      <option value="vendor">The Vendor — Market intelligence firm background</option>
-                      <option value="fresh_grad">Fresh Graduate — Student or early career</option>
+                      {RESUME_VETTING_ARCHETYPE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
                     <label className="text-[11px] font-semibold text-white/65 tracking-wide block mb-1.5">
-                      Target Role
+                      {labels.yearsExperience}
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={50}
+                      step={1}
+                      value={yearsExperience}
+                      onChange={(e) => setYearsExperience(e.target.value)}
+                      placeholder="e.g. 5"
+                      className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary-400/60"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-white/65 tracking-wide block mb-1.5">
+                      {labels.targetRole}
                     </label>
                     <input
                       type="text"
@@ -250,13 +266,11 @@ function ResumeVettingSection() {
                   </div>
                   <div>
                     <label className="text-[11px] font-semibold text-white/65 tracking-wide block mb-1.5">
-                      Upload Your Resume
+                      {labels.upload}
                     </label>
                     <label className="block border border-dashed border-white/25 rounded-md p-4 text-center cursor-pointer hover:border-primary-400/50 transition-colors">
                       <Upload className="w-5 h-5 text-white/40 mx-auto mb-2" />
-                      <p className="text-xs text-white/50">
-                        <strong className="text-primary-300">Click to upload</strong> your resume · .docx or .pdf
-                      </p>
+                      <p className="text-xs text-white/50">{labels.uploadHint}</p>
                       {fileName && <p className="text-[11px] text-white/50 mt-1">✓ {fileName}</p>}
                       <input
                         type="file"
@@ -265,7 +279,7 @@ function ResumeVettingSection() {
                         onChange={(e) => setFileName(e.target.files?.[0]?.name ?? "")}
                       />
                     </label>
-                    <p className="text-[11px] text-white/35 text-center mt-1.5">Maximum 5MB · .docx or PDF · One file only</p>
+                    <p className="text-[11px] text-white/35 text-center mt-1.5">{labels.uploadLimit}</p>
                   </div>
                 </div>
 
@@ -277,7 +291,7 @@ function ResumeVettingSection() {
 
                 <Button type="submit" className="w-full mt-4">
                   <Send className="w-4 h-4" />
-                  Submit for Review
+                  {labels.submit}
                 </Button>
               </form>
             )}
@@ -296,6 +310,7 @@ export function ResumeTemplatesClient({
   industryMap = INDUSTRY_MAP,
   assetUrls = {},
   requiredTier = "PRO",
+  vettingSection = RESUME_VETTING_SECTION,
 }: Props) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -626,7 +641,7 @@ export function ResumeTemplatesClient({
               </p>
               <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Where Does Your Role Sit?</h2>
               <p className="text-muted-fg text-sm max-w-2xl">
-                Commodity trading is not one function — it is a set of closely connected roles across four zones.
+                Commodity trading is not one function — it is a set of closely connected roles across six zones.
                 Understanding where you sit shapes how your resume must be written.
               </p>
             </Reveal>
@@ -659,7 +674,7 @@ export function ResumeTemplatesClient({
                       <li key={role.name} className="text-sm text-gray-700 flex items-start gap-2">
                         <span
                           className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
-                          style={{ background: zone.color }}
+                          style={{ background: role.dotColor ?? zone.color }}
                         />
                         <span className="flex-1">
                           {role.name}
@@ -792,7 +807,7 @@ export function ResumeTemplatesClient({
           </div>
         </section>
 
-        <ResumeVettingSection />
+        <ResumeVettingSection content={vettingSection} />
 
         {!quizComplete && persona && (
           <p className="text-sm text-muted-fg text-center">

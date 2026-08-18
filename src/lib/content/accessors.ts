@@ -22,7 +22,14 @@ import {
 } from "@/data/mentor-connect-content";
 import { DEFAULT_FAQ_CONTENT, type FaqContent } from "@/data/faq";
 import { normalizeBrandReferences } from "@/lib/brand";
-import { STARTER_INFOGRAPHICS, type StarterInfographic } from "@/data/starter-pack";
+import {
+  STARTER_INFOGRAPHICS,
+  type StarterInfographic,
+  mergeStarterEmailDigest,
+  mergeStarterUpgradeCta,
+  type StarterEmailDigest,
+  type StarterUpgradeCta,
+} from "@/data/starter-pack";
 import { getSectionAssets } from "@/data/playbook-assets";
 import type { ContentAttachment } from "./attachments";
 import { mergeLandingContent, resolveMentorSegments } from "./merge";
@@ -100,6 +107,7 @@ export async function getMemberDashboardContent(): Promise<MemberDashboardConten
 export async function getFaqContent(): Promise<FaqContent> {
   const data = await getPublishedPayload<Partial<FaqContent>>("faq");
   const items = data?.items?.length ? data.items : DEFAULT_FAQ_CONTENT.items;
+  const footer = data?.footerCta ?? DEFAULT_FAQ_CONTENT.footerCta;
   return {
     hero: {
       ...DEFAULT_FAQ_CONTENT.hero,
@@ -112,6 +120,12 @@ export async function getFaqContent(): Promise<FaqContent> {
       q: normalizeBrandReferences(item.q),
       a: normalizeBrandReferences(item.a),
     })),
+    footerCta: {
+      heading: normalizeBrandReferences(footer.heading ?? DEFAULT_FAQ_CONTENT.footerCta.heading),
+      subtext: normalizeBrandReferences(footer.subtext ?? DEFAULT_FAQ_CONTENT.footerCta.subtext),
+      email: footer.email?.trim() || DEFAULT_FAQ_CONTENT.footerCta.email,
+      buttonLabel: normalizeBrandReferences(footer.buttonLabel ?? DEFAULT_FAQ_CONTENT.footerCta.buttonLabel),
+    },
   };
 }
 
@@ -165,19 +179,47 @@ function mergeStarterInfographics(
   });
 }
 
+function normalizeStarterDigestCms(data: {
+  emailDigest?: Partial<StarterEmailDigest>;
+  marketNote?: Partial<StarterEmailDigest> & { subscribed?: string };
+}): Partial<StarterEmailDigest> | undefined {
+  if (data.emailDigest) return data.emailDigest;
+  if (!data.marketNote) return undefined;
+  const { subscribed, ...rest } = data.marketNote;
+  return {
+    ...rest,
+    confirmedText: data.marketNote.confirmedText ?? subscribed,
+  };
+}
+
+function mergeIndustryMap<T extends { zone: string }>(defaults: T[], cms?: T[]): T[] {
+  if (!cms?.length) return defaults;
+  const byZone = new Map(defaults.map((zone) => [zone.zone, zone]));
+  for (const zone of cms) {
+    const base = byZone.get(zone.zone);
+    byZone.set(zone.zone, base ? { ...base, ...zone } : zone);
+  }
+  const defaultOrder = defaults.map((zone) => zone.zone);
+  const extraZones = cms.map((zone) => zone.zone).filter((zone) => !defaultOrder.includes(zone));
+  return [...defaultOrder, ...extraZones].map((zone) => byZone.get(zone)!);
+}
+
 export async function getStarterPackContent() {
   const data = await getPublishedPayload<{
     infographics?: StarterInfographic[];
-    marketNote?: typeof import("@/data/starter-pack").STARTER_MARKET_NOTE;
+    emailDigest?: Partial<StarterEmailDigest>;
+    marketNote?: Partial<StarterEmailDigest> & { subscribed?: string };
     chapterPreview?: typeof import("@/data/starter-pack").STARTER_CHAPTER_PREVIEW;
+    upgradeCta?: Partial<StarterUpgradeCta>;
   }>("starter-pack");
 
-  const { STARTER_MARKET_NOTE, STARTER_CHAPTER_PREVIEW } = await import("@/data/starter-pack");
+  const { STARTER_CHAPTER_PREVIEW } = await import("@/data/starter-pack");
 
   return {
     infographics: mergeStarterInfographics(STARTER_INFOGRAPHICS, data.infographics),
-    marketNote: data.marketNote ?? STARTER_MARKET_NOTE,
+    emailDigest: mergeStarterEmailDigest(normalizeStarterDigestCms(data)),
     chapterPreview: data.chapterPreview ?? STARTER_CHAPTER_PREVIEW,
+    upgradeCta: mergeStarterUpgradeCta(data.upgradeCta),
   };
 }
 
@@ -431,13 +473,19 @@ export async function getResumeTemplatesData() {
     quiz: typeof PERSONA_QUIZ_QUESTIONS;
     quizSteps?: typeof import("@/data/resume-templates").PERSONA_QUIZ_STEPS;
     industryMap?: typeof import("@/data/resume-templates").INDUSTRY_MAP;
+    vettingSection?: Partial<import("@/data/resume-templates").ResumeVettingSection>;
   }>("resume-templates");
-  const { PERSONA_QUIZ_STEPS, INDUSTRY_MAP } = await import("@/data/resume-templates");
+  const {
+    PERSONA_QUIZ_STEPS,
+    INDUSTRY_MAP,
+    mergeResumeVettingSection,
+  } = await import("@/data/resume-templates");
   return {
     templates: data.templates ?? RESUME_TEMPLATES,
     quiz: data.quiz ?? PERSONA_QUIZ_QUESTIONS,
     quizSteps: data.quizSteps ?? PERSONA_QUIZ_STEPS,
-    industryMap: data.industryMap ?? INDUSTRY_MAP,
+    industryMap: mergeIndustryMap(INDUSTRY_MAP, data.industryMap),
+    vettingSection: mergeResumeVettingSection(data.vettingSection),
   };
 }
 
