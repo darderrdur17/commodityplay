@@ -323,7 +323,7 @@ export function SalesLandingPanel({ content, membersStrip, edgeNote, onOpenConta
                 <h3 className="font-serif font-semibold text-gray-900 mb-2">{card.title}</h3>
                 <p className="text-sm text-muted-fg mb-4 flex-1 leading-relaxed">{card.desc}</p>
                 {card.outcome && (
-                  <blockquote className="text-xs text-gray-600 italic border-l-2 border-teal-300 pl-3 leading-relaxed">
+                  <blockquote className="text-xs text-primary-400 italic border-l-2 border-primary-400 pl-3 leading-relaxed">
                     &ldquo;{card.outcome}&rdquo;
                   </blockquote>
                 )}
