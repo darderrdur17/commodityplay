@@ -157,12 +157,20 @@ export const RESUME_VETTING_SECTION: ResumeVettingSection = (
   eyebrow: "Online Resume Vetting · Pro Feature",
   headline: "Get Your Resume",
   headlineAccent: "Reviewed by a Practitioner.",
-  intro: "",
-  benefits: [],
+  intro:
+    "Submit your completed resume — using any of the five templates — and a commodity trading practitioner from our network will review it and provide written feedback within 5 business days.",
+  benefits: [
+    "Line-by-line commercial language assessment — does every bullet demonstrate market awareness?",
+    "Archetype positioning check — is the resume consistent with the archetype strategy?",
+    "Top 3 improvements — specific, actionable rewrites to the weakest sections",
+    "Recruiter readability score — how fast does the key message land?",
+    "Written feedback delivered as annotated PDF within 5 business days",
+  ],
   includedLabel: "Included in",
-  includedNote: "",
+  includedNote:
+    "Pro Pack subscribers get 2 resume vetting reviews per year — included in your SGD 299/yr subscription. Starter members can purchase additional reviews at SGD 49 per review.",
   formTitle: "Submit for Review",
-  formSubtitle: "",
+  formSubtitle: "Pro members · 2 reviews included · 5 business day turnaround",
   labels: {
     name: "Full Name",
     email: "Email Address",
@@ -175,7 +183,8 @@ export const RESUME_VETTING_SECTION: ResumeVettingSection = (
     submit: "Submit for Review",
   },
   successTitle: "Resume submitted.",
-  successMessage: "",
+  successMessage:
+    "You'll receive your annotated feedback within 5 business days at the email address provided. Check your inbox — including spam — for confirmation.",
 };
 
 export function mergeResumeVettingSection(
