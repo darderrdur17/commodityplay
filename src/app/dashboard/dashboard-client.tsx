@@ -133,15 +133,6 @@ const CONTENT_CARDS = [
   },
 ] as const;
 
-const ADMIN_DASHBOARD_CARD = {
-  slug: "admin-dashboard",
-  icon: Shield,
-  title: "Admin Dashboard",
-  description: "Manage content, members, mentors, and every dashboard segment.",
-  href: "/admin",
-  color: "#92400e",
-} as const;
-
 const SALES_CARD_ICONS: Record<string, typeof FileText> = {
   "sales-edge-note": ScrollText,
   "industry-guide-for-sales": BookOpen,
@@ -573,7 +564,7 @@ export function DashboardClient({
           {/* Tiered content */}
           {CONTENT_CARDS.map((card, i) => {
             const tier = (contentTiers[card.slug] || card.requiredTier) as "PRO" | "ELITE";
-            const unlocked = isAdminUser || hasAccess(user.tier, tier);
+            const unlocked = hasAccess(user.tier, tier);
             const description =
               resourceCopyBySlug[card.slug] ??
               DEFAULT_MEMBER_DASHBOARD_CONTENT.resourceCards.find((c) => c.slug === card.slug)?.description ??
@@ -602,7 +593,7 @@ export function DashboardClient({
               const href = resolveSalesCardHref(card) ?? card.href;
               const Icon = SALES_CARD_ICONS[card.slug] ?? FileText;
               const color = SALES_CARD_COLORS[card.slug] ?? "#3280ff";
-              const tierUnlocked = isAdminUser || hasAccess(user.tier, tier);
+              const tierUnlocked = hasAccess(user.tier, tier);
               const fileReady = card.deliverableKey
                 ? Boolean(salesDeliverables[card.deliverableKey]?.assetId)
                 : true;
@@ -623,18 +614,6 @@ export function DashboardClient({
               });
             })}
 
-          {isAdminUser &&
-            renderResourceCard({
-              title: ADMIN_DASHBOARD_CARD.title,
-              description: ADMIN_DASHBOARD_CARD.description,
-              icon: ADMIN_DASHBOARD_CARD.icon,
-              color: ADMIN_DASHBOARD_CARD.color,
-              tier: "ELITE",
-              unlocked: true,
-              href: ADMIN_DASHBOARD_CARD.href,
-              delay: (CONTENT_CARDS.length + dashboardContent.salesResourceCards.length) * 0.05,
-              accessLabel: "Admin",
-            })}
         </div>
       </div>
 
@@ -643,17 +622,15 @@ export function DashboardClient({
         track="CAREER"
         userTier={user.tier}
         visible={isAdminUser || isCareerTrack}
-        isAdmin={isAdminUser}
       />
       <PrepLibrarySection
         track="SALES"
         userTier={user.tier}
         visible={isAdminUser || !isCareerTrack}
-        isAdmin={isAdminUser}
       />
 
       {/* ── UPGRADE CTA (if not Elite) ── */}
-      {user.tier !== "ELITE" && !isAdminUser && (
+      {user.tier !== "ELITE" && (
         <Reveal>
           <div className="rounded-2xl bg-primary-800 p-6 sm:p-8 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3280ff 0%, transparent 70%)", filter: "blur(40px)" }} />

@@ -7,6 +7,7 @@ import {
   type DashboardSalesResourceCardCopy,
   type MemberDashboardContent,
 } from "@/data/member-dashboard";
+import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import {
   DEFAULT_SALES_DASHBOARD_DELIVERABLES,
   normalizeSalesDashboardDeliverables,
@@ -100,11 +101,27 @@ function mergeSalesResourceCards(
   });
 }
 
+function mergePromoBox(
+  defaults: MemberDashboardContent["upgradeToPro"],
+  saved?: Partial<MemberDashboardContent["upgradeToPro"]>
+) {
+  return {
+    ...defaults,
+    ...saved,
+    cta: UPGRADE_TO_ACCESS,
+  };
+}
+
 export function normalizeMemberDashboardPayload(payload: unknown): MemberDashboardContent {
   const parsed = parseMemberDashboardPayload(payload);
   if (parsed.success) {
     return {
       ...parsed.data,
+      upgradeToPro: mergePromoBox(DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToPro, parsed.data.upgradeToPro),
+      upgradeToElite: mergePromoBox(
+        DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToElite,
+        parsed.data.upgradeToElite
+      ),
       resourceCards: mergeResourceCards(parsed.data.resourceCards),
       salesResourceCards: mergeSalesResourceCards(parsed.data.salesResourceCards),
       salesDeliverables: normalizeSalesDashboardDeliverables(parsed.data.salesDeliverables),
@@ -114,8 +131,11 @@ export function normalizeMemberDashboardPayload(payload: unknown): MemberDashboa
   const partial = (payload ?? {}) as Partial<MemberDashboardContent>;
   return {
     starterPack: { ...DEFAULT_MEMBER_DASHBOARD_CONTENT.starterPack, ...partial.starterPack },
-    upgradeToPro: { ...DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToPro, ...partial.upgradeToPro },
-    upgradeToElite: { ...DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToElite, ...partial.upgradeToElite },
+    upgradeToPro: mergePromoBox(DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToPro, partial.upgradeToPro),
+    upgradeToElite: mergePromoBox(
+      DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToElite,
+      partial.upgradeToElite
+    ),
     resourceCards: mergeResourceCards(partial.resourceCards),
     salesResourceCards: mergeSalesResourceCards(partial.salesResourceCards),
     salesDeliverables: normalizeSalesDashboardDeliverables(
