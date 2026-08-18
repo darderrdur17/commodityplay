@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { AnimatedProgress, Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
 import { PERSONA_LABELS, TIER_LABELS, hasAccess } from "@/lib/utils";
 import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
-import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
+import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import { attachmentHref } from "@/lib/content/attachments";
 import type { NavigationGuideAttachment } from "@/lib/content/accessors";
 import {
@@ -27,6 +27,7 @@ import {
   formatMentorCreditsUsedLabel,
   type MentorCreditUsage,
 } from "@/lib/mentor-credits";
+import { PrepLibrarySection } from "@/components/dashboard/prep-library-section";
 
 interface Props {
   contentTiers?: Record<string, string>;
@@ -165,6 +166,8 @@ export function DashboardClient({
   const personaInfo = user.persona ? PERSONA_LABELS[user.persona] : null;
   const greeting = user.name?.split(" ")[0] || "there";
   const isCareerTrack = user.track === "CAREER";
+  const planHref = (tier: "pro" | "elite") =>
+    isCareerTrack ? CAREER_PLAN_HREF(tier) : SALES_PLAN_HREF(tier);
   const showSalesTrackCards = isAdminUser || !isCareerTrack;
   const isElite = hasAccess(user.tier, "ELITE");
   const showCareerNavGuide =
@@ -258,7 +261,7 @@ export function DashboardClient({
                   Locked
                 </Badge>
                 <Link
-                  href={CAREER_PLAN_HREF(tier === "ELITE" ? "elite" : "pro")}
+                  href={planHref(tier === "ELITE" ? "elite" : "pro")}
                   className="text-xs font-medium text-primary-400 hover:text-primary-500 flex items-center gap-0.5"
                 >
                   {UPGRADE_TO_ACCESS} <ChevronRight className="w-3.5 h-3.5" />
@@ -528,7 +531,7 @@ export function DashboardClient({
         <Reveal className="flex items-center justify-between mb-5">
           <h2 className="font-serif text-xl font-bold text-gray-900">Your Content</h2>
           {!hasAccess(user.tier, "PRO") && (
-            <Link href={CAREER_PLAN_HREF("pro")}>
+            <Link href={planHref("pro")}>
               <Button size="sm" variant="default">{UPGRADE_TO_ACCESS}</Button>
             </Link>
           )}
@@ -607,6 +610,18 @@ export function DashboardClient({
         </div>
       </div>
 
+      {/* ── PREP LIBRARY (track-specific · Pro+) ── */}
+      <PrepLibrarySection
+        track="CAREER"
+        userTier={user.tier}
+        visible={isAdminUser || isCareerTrack}
+      />
+      <PrepLibrarySection
+        track="SALES"
+        userTier={user.tier}
+        visible={isAdminUser || !isCareerTrack}
+      />
+
       {/* ── UPGRADE CTA (if not Elite) ── */}
       {user.tier !== "ELITE" && (
         <Reveal>
@@ -630,7 +645,7 @@ export function DashboardClient({
                       <p className="text-white/60 text-sm">{promo.description}</p>
                     </div>
                     <Link
-                      href={user.tier === "STARTER" ? CAREER_PLAN_HREF("pro") : CAREER_PLAN_HREF("elite")}
+                      href={user.tier === "STARTER" ? planHref("pro") : planHref("elite")}
                       className="flex-shrink-0 w-full sm:w-auto"
                     >
                       <Button size="lg" variant="primary-dark" className="whitespace-nowrap w-full sm:w-auto">
