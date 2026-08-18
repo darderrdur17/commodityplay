@@ -4,7 +4,11 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isMentorDemoUser } from "@/lib/mentor-demo";
-import { getMentorConnectHero, getPublishedMentorSegments } from "@/lib/content/accessors";
+import {
+  getMentorConnectHero,
+  getMentorConnectHowItWorks,
+  getPublishedMentorSegments,
+} from "@/lib/content/accessors";
 
 export const metadata = { title: "Mentor Connect" };
 
@@ -27,9 +31,10 @@ export default async function MentorConnectPage() {
     redirect("/mentor-connect/inbox");
   }
 
-  const [mentorSegments, mentorConnectHero, contentStats] = await Promise.all([
+  const [mentorSegments, mentorConnectHero, mentorConnectHowItWorks, contentStats] = await Promise.all([
     getPublishedMentorSegments(),
     getMentorConnectHero(),
+    getMentorConnectHowItWorks(),
     getContentStats(),
   ]);
 
@@ -41,6 +46,7 @@ export default async function MentorConnectPage() {
       mentorCount={contentStats.mentorCount}
       segmentCount={contentStats.segmentCount}
       mentorConnectHero={mentorConnectHero}
+      mentorConnectHowItWorks={mentorConnectHowItWorks}
       questions={user.mentorQuestions.map((q) => ({
         id: q.id,
         segment: q.segment,

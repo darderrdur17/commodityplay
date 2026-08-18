@@ -19,7 +19,9 @@ import { normalizeMemberDashboardPayload } from "@/lib/content/member-dashboard-
 import {
   DEFAULT_MENTOR_CONNECT_CONTENT,
   type MentorConnectHero,
+  type MentorConnectHowItWorks,
 } from "@/data/mentor-connect-content";
+import { normalizeMentorConnectPayload } from "@/lib/content/mentor-connect-schema";
 import { DEFAULT_FAQ_CONTENT, type FaqContent } from "@/data/faq";
 import { normalizeBrandReferences } from "@/lib/brand";
 import {
@@ -94,6 +96,14 @@ export async function getMentorConnectHero(): Promise<MentorConnectHero> {
     title: hero.title || landing.mentorConnect.title,
     subtitle: hero.subtitle || DEFAULT_MENTOR_CONNECT_CONTENT.hero.subtitle,
   };
+}
+
+/** Mentor Connect "How the session works" — CMS module `mentor-connect`. */
+export async function getMentorConnectHowItWorks(): Promise<MentorConnectHowItWorks> {
+  const cms = await tryReadPublishedPayload<Partial<{ howItWorks?: Partial<MentorConnectHowItWorks> }>>(
+    "mentor-connect"
+  );
+  return normalizeMentorConnectPayload(cms ?? {}).howItWorks;
 }
 
 export async function getMemberDashboardContent(): Promise<MemberDashboardContent> {

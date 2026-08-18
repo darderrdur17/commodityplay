@@ -50,6 +50,11 @@ interface Props {
     title: string;
     subtitle: string;
   };
+  mentorConnectHowItWorks: {
+    title: string;
+    steps: { num: string; title: string; body: string }[];
+    callout: { title: string; body: string };
+  };
 }
 
 type SelectedMentor = PublicMentorProfile & { segmentId: string; segmentTitle: string };
@@ -62,6 +67,7 @@ export function MentorConnectClient({
   segmentCount,
   questions,
   mentorConnectHero,
+  mentorConnectHowItWorks,
 }: Props) {
   const router = useRouter();
   const [segment, setSegment] = useState("");
@@ -279,26 +285,10 @@ export function MentorConnectClient({
         <section className="mt-16 pt-12 border-t border-border">
           <Reveal>
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-10">
-              How the Session Works
+              {mentorConnectHowItWorks.title}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl mx-auto">
-              {[
-                {
-                  num: "01",
-                  title: "Pick a Mentor",
-                  body: "Browse five segments and twenty-five anonymous practitioners. Read their background and pick the one closest to your question.",
-                },
-                {
-                  num: "02",
-                  title: "Ask One Question",
-                  body: "Each mentor will only answer one question per session. Make it count — be specific, give context, ask the question only they can answer. Each question is one credit. You can return back to the same mentor with another question, but another credit will be used. Follow up answers can be done at the discretion of each mentor.",
-                },
-                {
-                  num: "03",
-                  title: "Session Ends at 25",
-                  body: "Once you've asked every mentor, the session is complete. Your full transcript stays saved on this device for future reference.",
-                },
-              ].map((step) => (
+              {mentorConnectHowItWorks.steps.map((step) => (
                 <div
                   key={step.num}
                   className="bg-white rounded-xl border border-border p-6 transition-all hover:border-primary-line hover:shadow-sm"
@@ -307,7 +297,9 @@ export function MentorConnectClient({
                     {step.num}
                   </div>
                   <h3 className="font-serif font-bold text-lg text-gray-900 mb-2">{step.title}</h3>
-                  <p className="text-sm text-muted-fg leading-relaxed">{step.body}</p>
+                  <p className="text-sm text-muted-fg leading-relaxed">
+                    {formatMentorConnectSubtitle(step.body, mentorCount, segmentCount)}
+                  </p>
                 </div>
               ))}
             </div>
@@ -315,9 +307,9 @@ export function MentorConnectClient({
             <div className="max-w-4xl mx-auto mt-9 flex gap-4 items-start rounded-r-lg border border-primary-line border-l-[3px] border-l-primary-400 bg-accent px-6 py-5">
               <Lock className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-serif font-bold text-primary-800 mb-1">Strictly anonymous.</p>
+                <p className="font-serif font-bold text-primary-800 mb-1">{mentorConnectHowItWorks.callout.title}</p>
                 <p className="text-sm text-secondary-fg leading-relaxed">
-                  Mentor identities are never disclosed. Your questions are routed anonymously and answers appear in My Questions when ready.
+                  {mentorConnectHowItWorks.callout.body}
                 </p>
               </div>
             </div>

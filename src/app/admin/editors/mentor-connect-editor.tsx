@@ -36,6 +36,12 @@ export function MentorConnectEditor({
     patch({ ...content, categories: next });
   }
 
+  function patchStep(i: number, step: MentorConnectContent["howItWorks"]["steps"][number]) {
+    const next = [...content.howItWorks.steps];
+    next[i] = step;
+    patch({ ...content, howItWorks: { ...content.howItWorks, steps: next } });
+  }
+
   function deleteCategory(i: number) {
     if (!confirm("Delete this category?")) return;
     patch({ ...content, categories: content.categories.filter((_, j) => j !== i) });
@@ -48,9 +54,9 @@ export function MentorConnectEditor({
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-fg bg-secondary/50 rounded-lg px-3 py-2">
-        Edit the blue hero on <code className="text-[11px]">/mentor-connect</code>. With{" "}
-        <strong>Published</strong> checked, Save updates the live page. In the subtitle, use{" "}
-        <code className="text-[11px]">{`{mentorCount}`}</code> and{" "}
+        Edit copy on <code className="text-[11px]">/mentor-connect</code>. With{" "}
+        <strong>Published</strong> checked, Save updates the live page. In the hero subtitle and step 01
+        body, use <code className="text-[11px]">{`{mentorCount}`}</code> and{" "}
         <code className="text-[11px]">{`{segmentCount}`}</code> for live practitioner/segment counts.
       </p>
 
@@ -81,6 +87,88 @@ export function MentorConnectEditor({
             onChange={(e) => patch({ ...content, hero: { ...content.hero, subtitle: e.target.value } })}
           />
         </EditorField>
+      </EditorSection>
+
+      <EditorSection
+        title="How the session works"
+        description="Three step cards and the anonymity callout at the bottom of the page"
+      >
+        <EditorField label="Section title">
+          <input
+            className={inputClass}
+            value={content.howItWorks.title}
+            onChange={(e) =>
+              patch({ ...content, howItWorks: { ...content.howItWorks, title: e.target.value } })
+            }
+          />
+        </EditorField>
+
+        <div className="space-y-3 mt-4">
+          {content.howItWorks.steps.map((step, i) => (
+            <div key={step.num} className="border border-border rounded-lg p-4 space-y-3">
+              <p className="text-xs font-semibold text-muted-fg uppercase tracking-wider">
+                Step {step.num}
+              </p>
+              <EditorField label="Title">
+                <input
+                  className={inputClass}
+                  value={step.title}
+                  onChange={(e) => patchStep(i, { ...step, title: e.target.value })}
+                />
+              </EditorField>
+              <EditorField
+                label="Body"
+                hint={
+                  step.num === "01"
+                    ? "Supports {mentorCount} and {segmentCount} placeholders for live stats."
+                    : undefined
+                }
+              >
+                <textarea
+                  className={textareaClass}
+                  value={step.body}
+                  onChange={(e) => patchStep(i, { ...step, body: e.target.value })}
+                />
+              </EditorField>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-border space-y-3">
+          <p className="text-xs font-semibold text-muted-fg uppercase tracking-wider">
+            Anonymity callout (blue strip)
+          </p>
+          <EditorField label="Title">
+            <input
+              className={inputClass}
+              value={content.howItWorks.callout.title}
+              onChange={(e) =>
+                patch({
+                  ...content,
+                  howItWorks: {
+                    ...content.howItWorks,
+                    callout: { ...content.howItWorks.callout, title: e.target.value },
+                  },
+                })
+              }
+            />
+          </EditorField>
+          <EditorField label="Body">
+            <textarea
+              className={textareaClass}
+              value={content.howItWorks.callout.body}
+              onChange={(e) =>
+                patch({
+                  ...content,
+                  howItWorks: {
+                    ...content.howItWorks,
+                    callout: { ...content.howItWorks.callout, body: e.target.value },
+                  },
+                })
+              }
+            />
+          </EditorField>
+        </div>
       </EditorSection>
 
       <EditorSection title="Subject categories" description="Optional taxonomy labels (legacy admin field)">
