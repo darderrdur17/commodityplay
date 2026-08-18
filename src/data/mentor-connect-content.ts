@@ -51,8 +51,8 @@ export const DEFAULT_MENTOR_CONNECT_HOW_IT_WORKS: MentorConnectHowItWorks = {
     },
     {
       num: "03",
-      title: "Session Ends at 25",
-      body: "Once you've asked every mentor, the session is complete. Your full transcript stays saved on this device for future reference.",
+      title: "Session Ends at 15",
+      body: "Once you've used all 15 monthly credits, the session pauses until your credits reset. Your full transcript stays saved on this device for future reference.",
     },
   ],
   callout: {
@@ -66,7 +66,7 @@ export const DEFAULT_MENTOR_CONNECT_CONTENT: MentorConnectContent = {
     eyebrow: "Elite Access",
     title: "Mentor Connect",
     subtitle:
-      "One question. One mentor. One honest answer. Choose from {mentorCount} anonymous practitioners across {segmentCount} coverage segments. Your session ends once you've finished using all 25 credits and the credits will get reset every month.",
+      "One question. One mentor. One honest answer. Choose from {mentorCount} anonymous practitioners across {segmentCount} coverage segments. Your session ends once you've finished using all 15 credits and the credits will get reset every month.",
   },
   categories: [],
   howItWorks: DEFAULT_MENTOR_CONNECT_HOW_IT_WORKS,

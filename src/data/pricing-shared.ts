@@ -1,12 +1,14 @@
 /** Career track subscription copy — landing, in-app gates, and upgrade prompts */
+export const UPGRADE_TO_ACCESS = "Upgrade to Access" as const;
+
 export const PRO_SUBSCRIPTION = {
   price: "SGD 59",
   period: "per month",
   note: "cancel anytime",
   label: "SGD 59/month",
-  fullNote: "SGD 59/month — cancel anytime",
-  cta: "Get Pro",
-  unlockCta: "Unlock Pro",
+  fullNote: "Unlock the full playbook, resume templates, career roadmap, and more.",
+  cta: UPGRADE_TO_ACCESS,
+  unlockCta: UPGRADE_TO_ACCESS,
 } as const;
 
 export const ELITE_SUBSCRIPTION = {
@@ -14,9 +16,9 @@ export const ELITE_SUBSCRIPTION = {
   period: "per month",
   note: "cancel anytime",
   label: "SGD 99/month",
-  fullNote: "SGD 99/month — cancel anytime",
-  cta: "Get Elite",
-  unlockCta: "Unlock Elite",
+  fullNote: "Unlock case studies, Mentor Connect, the Desk Channel, and job openings.",
+  cta: UPGRADE_TO_ACCESS,
+  unlockCta: UPGRADE_TO_ACCESS,
 } as const;
 
 /** Sales track subscription copy — landing sales panel */

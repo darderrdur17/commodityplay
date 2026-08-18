@@ -22,15 +22,25 @@ const schema = z.object({
     .min(8, "Password must be at least 8 characters")
     .regex(/[A-Z]/, "Must contain an uppercase letter")
     .regex(/[0-9]/, "Must contain a number"),
+  track: z.enum(["CAREER", "SALES"], { message: "Please select a track" }),
   gdpr: z.boolean().refine((v) => v, "Please accept the privacy policy"),
 });
 type FormData = z.infer<typeof schema>;
+
+function trackFromParam(value: string | null): "CAREER" | "SALES" {
+  return value?.toLowerCase() === "sales" ? "SALES" : "CAREER";
+}
 
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const plan = searchParams.get("plan") || "starter";
+  const trackParam = searchParams.get("track");
   const callbackUrl = searchParams.get("callbackUrl") || "/onboarding";
+  const onboardingUrl =
+    callbackUrl.startsWith("/onboarding")
+      ? `${callbackUrl}${callbackUrl.includes("?") ? "&" : "?"}fromSignup=1`
+      : `/onboarding?fromSignup=1&callbackUrl=${encodeURIComponent(callbackUrl)}`;
   const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -38,13 +48,15 @@ function SignupForm() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { gdpr: false },
+    defaultValues: { gdpr: false, track: trackFromParam(trackParam) },
   });
 
   const password = watch("password", "");
+  const selectedTrack = watch("track");
 
   const passwordStrength = {
     length: password.length >= 8,
@@ -61,7 +73,13 @@ function SignupForm() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: data.name, email: data.email, password: data.password, plan }),
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          plan,
+          track: data.track,
+        }),
       });
 
       if (!res.ok) {
@@ -77,7 +95,7 @@ function SignupForm() {
         redirect: false,
       });
 
-      router.push(callbackUrl);
+      router.push(onboardingUrl);
     } catch {
       setApiError("Network error. Please try again.");
     }
@@ -142,7 +160,10 @@ function SignupForm() {
             type="button"
             variant="outline"
             className="w-full mb-6"
-            onClick={() => signIn("google", { callbackUrl })}
+            onClick={() => {
+              sessionStorage.setItem("signupTrack", selectedTrack);
+              signIn("google", { callbackUrl: onboardingUrl });
+            }}
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -229,6 +250,48 @@ function SignupForm() {
                 </div>
               </div>
             )}
+
+            {/* Track selection */}
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Your track</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {(["CAREER", "SALES"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setValue("track", t, { shouldValidate: true })}
+                    className={`p-3 rounded-lg border-2 text-left transition-all ${
+                      selectedTrack === t
+                        ? "border-primary-400 bg-primary-soft"
+                        : "border-border hover:border-primary-line"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        readOnly
+                        checked={selectedTrack === t}
+                        className="mt-0.5 rounded border-border accent-primary-400 pointer-events-none"
+                      />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {t === "CAREER" ? "Build a Career" : "Sell into Firms"}
+                        </p>
+                        <p className="text-xs text-muted-fg mt-0.5">
+                          {t === "CAREER"
+                            ? "Breaking in or moving up on the desk"
+                            : "Selling products and services into trading firms"}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <input type="hidden" {...register("track")} />
+              {errors.track && (
+                <p className="text-xs text-red-500 mt-1.5">{errors.track.message}</p>
+              )}
+            </div>
 
             {/* GDPR */}
             <label className="flex items-start gap-2.5 cursor-pointer">

@@ -124,6 +124,10 @@ export function applyContentStatsToMemberDashboard(
       ...card,
       description: formatContentPlaceholders(card.description, stats),
     })),
+    salesResourceCards: content.salesResourceCards.map((card) => ({
+      ...card,
+      description: formatContentPlaceholders(card.description, stats),
+    })),
   };
 }
 

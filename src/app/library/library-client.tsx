@@ -10,6 +10,7 @@ import { PAGE_HERO_TOP } from "@/lib/layout-constants";
 import { attachmentHref } from "@/lib/content/attachments";
 import type { LibraryFilePublic } from "@/lib/content/accessors";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
+import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 
 function LibraryFileCard({ file, locked }: { file: LibraryFilePublic; locked?: boolean }) {
   const url = `/api/content/assets/${file.assetId}`;
@@ -125,7 +126,7 @@ export function LibraryClient({
                     <Lock className="w-8 h-8 text-muted-fg mx-auto mb-4" />
                     <h3 className="font-serif text-lg font-bold text-gray-900 mb-2">Elite access required</h3>
                     <p className="text-sm text-muted-fg mb-6">
-                      Upgrade to Elite to view and download Elite library resources.
+                      {UPGRADE_TO_ACCESS} to view and download Elite library resources.
                     </p>
                     <Link href={CAREER_PLAN_HREF("elite")}>
                       <Button size="lg">View Elite plans</Button>

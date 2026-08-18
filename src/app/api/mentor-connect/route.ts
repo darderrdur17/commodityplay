@@ -3,9 +3,18 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notifyMentorPoolNewQuestion } from "@/lib/mentor-questions";
+import { assertMentorCreditAvailable } from "@/lib/mentor-credits-server";
+import { apiSegmentAllowedForTrack } from "@/lib/mentor-segments";
 
 const schema = z.object({
-  segment: z.enum(["physical-trading", "finance", "analytics", "operations", "sales"]),
+  segment: z.enum([
+    "physical-trading",
+    "finance",
+    "analytics",
+    "operations",
+    "sales",
+    "sales-advisory",
+  ]),
   question: z.string().min(20, "Question must be at least 20 characters").max(500),
   isPublic: z.boolean().optional().default(false),
 });
@@ -18,15 +27,11 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { tier: true, mentorCredits: true },
+    select: { tier: true, track: true },
   });
 
   if (!user || user.tier !== "ELITE") {
     return NextResponse.json({ error: "Elite membership required" }, { status: 403 });
-  }
-
-  if (user.mentorCredits < 1) {
-    return NextResponse.json({ error: "No mentor credits remaining" }, { status: 402 });
   }
 
   const body = await req.json();
@@ -35,23 +40,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
-  // Deduct credit and create question atomically
-  const [, question] = await prisma.$transaction([
-    prisma.user.update({
-      where: { id: session.user.id },
-      data: { mentorCredits: { decrement: 1 } },
-    }),
-    prisma.mentorQuestion.create({
-      data: {
-        userId: session.user.id,
-        segment: parsed.data.segment,
-        question: parsed.data.question,
-        isPublic: parsed.data.isPublic,
-      },
-    }),
-  ]);
+  if (!apiSegmentAllowedForTrack(parsed.data.segment, user.track)) {
+    return NextResponse.json(
+      { error: "This mentor segment is only available on the Sales track" },
+      { status: 403 }
+    );
+  }
 
-  // Notify mentor pool (email) — non-blocking for member submit
+  const creditCheck = await assertMentorCreditAvailable(session.user.id);
+  if (!creditCheck.ok) {
+    return NextResponse.json({ error: creditCheck.error }, { status: creditCheck.status });
+  }
+
+  const question = await prisma.mentorQuestion.create({
+    data: {
+      userId: session.user.id,
+      segment: parsed.data.segment,
+      question: parsed.data.question,
+      isPublic: parsed.data.isPublic,
+    },
+  });
+
   notifyMentorPoolNewQuestion(question.id).catch((err) =>
     console.error("[mentor-connect] mentor pool notify failed", err)
   );

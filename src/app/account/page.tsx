@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/animations";
 import { TIER_LABELS, PERSONA_LABELS, formatDate } from "@/lib/utils";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
+import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
+import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
+import { formatMentorCreditsUsedLabel } from "@/lib/mentor-credits";
 import { User, Mail, CreditCard, Sparkles, ArrowRight } from "lucide-react";
 
 export const metadata = { title: "Account" };
@@ -18,6 +21,7 @@ export default async function AccountPage() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
+      id: true,
       name: true,
       email: true,
       tier: true,
@@ -30,6 +34,8 @@ export default async function AccountPage() {
     },
   });
   if (!user) redirect("/login");
+
+  const mentorCreditUsage = await getMentorCreditUsageForUser(user.id, user.tier);
 
   const tierInfo = TIER_LABELS[user.tier] || TIER_LABELS.STARTER;
   const personaInfo = user.persona ? PERSONA_LABELS[user.persona] : null;
@@ -58,7 +64,13 @@ export default async function AccountPage() {
             {[
               { icon: User, label: "Track", value: user.track === "CAREER" ? "Build a Career" : "Sell Into Firms" },
               { icon: Sparkles, label: "Persona", value: personaInfo?.label || "Not set — complete onboarding" },
-              { icon: CreditCard, label: "Mentor credits", value: String(user.mentorCredits) },
+              {
+                icon: CreditCard,
+                label: "Mentor credits",
+                value: mentorCreditUsage
+                  ? `${formatMentorCreditsUsedLabel(mentorCreditUsage)} · ${mentorCreditUsage.monthLabel}`
+                  : "Elite only",
+              },
               { icon: Mail, label: "Member since", value: formatDate(user.createdAt) },
             ].map((row) => (
               <div key={row.label} className="flex items-center gap-3 px-6 py-4">
@@ -82,7 +94,7 @@ export default async function AccountPage() {
             </p>
             <Link href={user.tier === "STARTER" ? CAREER_PLAN_HREF("pro") : CAREER_PLAN_HREF("elite")}>
               <Button variant="primary-dark" size="sm">
-                View Plans <ArrowRight className="w-4 h-4" />
+                {UPGRADE_TO_ACCESS} <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
           </div>

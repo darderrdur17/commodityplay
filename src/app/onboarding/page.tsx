@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -102,14 +102,75 @@ const PERSONAS = {
 type PersonaKey = keyof typeof PERSONAS;
 
 export default function OnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-secondary">
+          <div className="animate-spin w-6 h-6 border-2 border-primary-400 border-t-transparent rounded-full" />
+        </div>
+      }
+    >
+      <OnboardingContent />
+    </Suspense>
+  );
+}
+
+function OnboardingContent() {
   const router = useRouter();
-  const { data: session, update } = useSession();
+  const searchParams = useSearchParams();
+  const fromSignup = searchParams.get("fromSignup") === "1";
+  const { data: session, update, status } = useSession();
   const [step, setStep] = useState(0); // 0 = track, 1-N = quiz, N+1 = result
   const [track, setTrack] = useState<"CAREER" | "SALES">("CAREER");
   const [answers, setAnswers] = useState<number[]>([]);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [persona, setPersona] = useState<PersonaKey | null>(null);
   const [saving, setSaving] = useState(false);
+  const [trackReady, setTrackReady] = useState(false);
+  const [skipTrackStep, setSkipTrackStep] = useState(fromSignup);
+
+  useEffect(() => {
+    if (status === "loading") return;
+
+    let cancelled = false;
+
+    async function initTrack() {
+      let nextTrack: "CAREER" | "SALES" = session?.user?.track ?? "CAREER";
+      let skipTrackStep = fromSignup;
+
+      const stored = sessionStorage.getItem("signupTrack");
+      if (stored === "CAREER" || stored === "SALES") {
+        sessionStorage.removeItem("signupTrack");
+        nextTrack = stored;
+        skipTrackStep = true;
+        try {
+          await fetch("/api/user/track", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ track: stored }),
+          });
+          await update({ track: stored });
+        } catch {
+          // Continue with quiz — track saves again at finish.
+        }
+      }
+
+      if (!cancelled) {
+        setTrack(nextTrack);
+        if (skipTrackStep) {
+          setSkipTrackStep(true);
+          setStep(1);
+        }
+        setTrackReady(true);
+      }
+    }
+
+    initTrack();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fromSignup, session?.user?.track, status, update]);
 
   const isQuiz = step >= 1 && step <= QUIZ.length;
   const isResult = step > QUIZ.length;
@@ -191,6 +252,16 @@ export default function OnboardingPage() {
   }
 
   const progress = isResult ? 100 : (step / (QUIZ.length + 1)) * 100;
+  const totalSteps = QUIZ.length + (skipTrackStep ? 1 : 2);
+  const currentStep = skipTrackStep ? step : step + 1;
+
+  if (!trackReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-secondary">
+        <div className="animate-spin w-6 h-6 border-2 border-primary-400 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-secondary flex flex-col items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
@@ -199,7 +270,7 @@ export default function OnboardingPage() {
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between text-sm text-muted-fg mb-2">
-            <span>Step {Math.min(step + 1, QUIZ.length + 2)} of {QUIZ.length + 2}</span>
+            <span>Step {Math.min(currentStep, totalSteps)} of {totalSteps}</span>
             <span>{Math.round(progress)}% complete</span>
           </div>
           <div className="h-1.5 bg-border rounded-full overflow-hidden">

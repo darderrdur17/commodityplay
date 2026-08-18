@@ -6,6 +6,7 @@ import {
   applyContentStatsToMemberDashboard,
   getContentStats,
 } from "@/lib/content/content-stats";
+import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { DashboardClient } from "./dashboard-client";
@@ -31,6 +32,7 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   const completedChapters = user.progress.filter((p) => p.completed).length;
+  const mentorCreditUsage = await getMentorCreditUsageForUser(user.id, user.tier);
 
   const [contentTiers, navigationGuides, dashboardContentRaw, contentStats] = await Promise.all([
     getContentTiersMap(),
@@ -70,6 +72,8 @@ export default async function DashboardPage() {
         progressPct,
         mentorQuestions: user.mentorQuestions.length,
       }}
+      mentorCreditUsage={mentorCreditUsage}
+      salesDeliverables={dashboardContent.salesDeliverables}
       isAdmin={session.user.role === "ADMIN"}
     />
   );

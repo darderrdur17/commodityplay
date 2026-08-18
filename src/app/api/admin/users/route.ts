@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { getCurrentMonthStart } from "@/lib/mentor-credits";
 
 export async function GET() {
   const session = await requireAdmin();
@@ -9,37 +10,52 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const users = await prisma.user.findMany({
-    where: { isMentor: false },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      tier: true,
-      track: true,
-      persona: true,
-      mentorCredits: true,
-      resumeCredits: true,
-      onboardingDone: true,
-      stripeStatus: true,
-      stripeCurrentPeriodEnd: true,
-      stripeCustomerId: true,
-      stripeSubscriptionId: true,
-      jobWaitlist: true,
-      createdAt: true,
-      updatedAt: true,
-      _count: {
-        select: {
-          mentorQuestions: true,
-          progress: true,
+  const monthStart = getCurrentMonthStart();
+
+  const [users, usageRows] = await Promise.all([
+    prisma.user.findMany({
+      where: { isMentor: false },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        tier: true,
+        track: true,
+        persona: true,
+        resumeCredits: true,
+        onboardingDone: true,
+        stripeStatus: true,
+        stripeCurrentPeriodEnd: true,
+        stripeCustomerId: true,
+        stripeSubscriptionId: true,
+        jobWaitlist: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            mentorQuestions: true,
+            progress: true,
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.mentorQuestion.groupBy({
+      by: ["userId"],
+      where: { createdAt: { gte: monthStart } },
+      _count: { id: true },
+    }),
+  ]);
 
-  return NextResponse.json(users);
+  const usageByUserId = new Map(usageRows.map((row) => [row.userId, row._count.id]));
+
+  return NextResponse.json(
+    users.map((user) => ({
+      ...user,
+      mentorCreditsUsedThisMonth: usageByUserId.get(user.id) ?? 0,
+    }))
+  );
 }
 
 const updateSchema = z.object({
@@ -51,7 +67,6 @@ const updateSchema = z.object({
     .enum(["FRESH_GRAD", "CAREER_SWITCHER", "INSIDER", "ANALYST_TRADER", "VENDOR"])
     .nullable()
     .optional(),
-  mentorCredits: z.number().min(0).optional(),
   resumeCredits: z.number().min(0).optional(),
   onboardingDone: z.boolean().optional(),
 });
@@ -82,7 +97,6 @@ export async function PATCH(req: NextRequest) {
       email: true,
       tier: true,
       role: true,
-      mentorCredits: true,
       resumeCredits: true,
       track: true,
       persona: true,

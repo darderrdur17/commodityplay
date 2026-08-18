@@ -9,6 +9,7 @@ import {
 import { normalizeMemberDashboardPayload } from "@/lib/content/member-dashboard-schema";
 import { CONTENT_STAT_PLACEHOLDER_HINT } from "@/lib/content/content-stat-placeholders";
 import { EditorField, EditorSection, inputClass, textareaClass } from "./shared";
+import { SingleGuideUpload } from "./single-guide-upload";
 
 function PromoBoxFields({
   label,
@@ -134,6 +135,67 @@ export function MemberDashboardEditor({
               />
             </EditorField>
           ))}
+        </div>
+      </EditorSection>
+
+      <EditorSection
+        title="Sales track resource cards"
+        description="Extra locked/unlocked cards shown only to Sales track members on /dashboard."
+        defaultOpen
+      >
+        <div className="space-y-4">
+          {content.salesResourceCards.map((card, i) => (
+            <div key={card.slug} className="rounded-lg border border-border p-4 space-y-3">
+              <p className="text-sm font-semibold text-gray-900">{card.title}</p>
+              <EditorField label="Description">
+                <textarea
+                  className={textareaClass}
+                  rows={2}
+                  value={card.description}
+                  onChange={(e) => {
+                    const next = [...content.salesResourceCards];
+                    next[i] = { ...card, description: e.target.value };
+                    patch({ ...content, salesResourceCards: next });
+                  }}
+                />
+              </EditorField>
+            </div>
+          ))}
+        </div>
+      </EditorSection>
+
+      <EditorSection
+        title="Sales track file uploads"
+        description="PDFs for Sales Edge Note and Industry Guide for Sales — unlock on the dashboard when a Pro+ Sales member has access."
+        defaultOpen
+      >
+        <div className="space-y-6">
+          <SingleGuideUpload
+            guide={content.salesDeliverables.salesEdgeNote}
+            onChange={(g) =>
+              patch({
+                ...content,
+                salesDeliverables: { ...content.salesDeliverables, salesEdgeNote: g },
+              })
+            }
+            moduleSlug="member-dashboard"
+            requiredTier="PRO"
+            assetKey="member-dashboard/sales-edge-note"
+            defaultLabel="Sales Edge Note"
+          />
+          <SingleGuideUpload
+            guide={content.salesDeliverables.industryGuideForSales}
+            onChange={(g) =>
+              patch({
+                ...content,
+                salesDeliverables: { ...content.salesDeliverables, industryGuideForSales: g },
+              })
+            }
+            moduleSlug="member-dashboard"
+            requiredTier="PRO"
+            assetKey="member-dashboard/industry-guide-for-sales"
+            defaultLabel="Industry Guide for Sales"
+          />
         </div>
       </EditorSection>
     </div>

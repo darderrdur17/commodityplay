@@ -7,6 +7,7 @@ import { BookOpen, Clock, ChevronRight, Lock, CheckCircle } from "lucide-react";
 import { CHAPTERS } from "@/data/playbook";
 import type { ContentStats } from "@/lib/content/content-stats";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
+import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 
 type Chapter = (typeof CHAPTERS)[number];
 import { Badge } from "@/components/ui/badge";
@@ -164,7 +165,7 @@ export function PlaybookHubClient({
                     ) : (
                       <Link href={CAREER_PLAN_HREF("pro")}>
                         <Button size="sm">
-                          Unlock Pro
+                          {UPGRADE_TO_ACCESS}
                         </Button>
                       </Link>
                     )}

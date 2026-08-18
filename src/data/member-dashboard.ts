@@ -1,4 +1,6 @@
-import { ELITE_SUBSCRIPTION, PRO_SUBSCRIPTION } from "@/data/pricing-shared";
+import { ELITE_SUBSCRIPTION, PRO_SUBSCRIPTION, UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
+import type { SalesDashboardDeliverables } from "@/lib/content/sales-dashboard-deliverables";
+import { DEFAULT_SALES_DASHBOARD_DELIVERABLES } from "@/lib/content/sales-dashboard-deliverables";
 
 /** Marketing copy for a dashboard promo / upgrade banner. */
 export interface DashboardPromoBox {
@@ -16,6 +18,15 @@ export interface DashboardResourceCardCopy {
   description: string;
 }
 
+/** Sales-track-only cards in the dashboard grid (Career members never see these). */
+export interface DashboardSalesResourceCardCopy extends DashboardResourceCardCopy {
+  requiredTier: "PRO" | "ELITE";
+  /** Route when unlocked — e.g. /mentor-connect?segment=sales-advisory */
+  href: string;
+  /** When set, unlocked Pro+ members open the uploaded file instead of href. */
+  deliverableKey?: "salesEdgeNote" | "industryGuideForSales";
+}
+
 export interface MemberDashboardContent {
   /** Light-blue Starter Pack banner — shown to Starter members only. */
   starterPack: DashboardPromoBox;
@@ -25,6 +36,10 @@ export interface MemberDashboardContent {
   upgradeToElite: DashboardPromoBox;
   /** Resource grid card descriptions (counts live in product — not repeated here). */
   resourceCards: DashboardResourceCardCopy[];
+  /** Sales track only — extra greyed-out / unlocked cards on the member dashboard. */
+  salesResourceCards: DashboardSalesResourceCardCopy[];
+  /** PDF/file uploads for Sales Edge Note and Industry Guide for Sales. */
+  salesDeliverables: SalesDashboardDeliverables;
 }
 
 export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
@@ -78,6 +93,32 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
   },
 ];
 
+export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardCopy[] = [
+  {
+    slug: "sales-edge-note",
+    title: "Sales Edge Note",
+    description: "Weekly sales intelligence note — desk language, commercial angles, and what buyers are thinking this week.",
+    requiredTier: "PRO",
+    href: "/starter-pack",
+    deliverableKey: "salesEdgeNote",
+  },
+  {
+    slug: "industry-guide-for-sales",
+    title: "Industry Guide for Sales",
+    description: "A structured guide to commodity trading desks — products, roles, and how firms actually buy.",
+    requiredTier: "PRO",
+    href: "/library",
+    deliverableKey: "industryGuideForSales",
+  },
+  {
+    slug: "sales-advisory-channel",
+    title: "Sales Advisory Channel",
+    description: "Your private repository for sales notes, plus access to sales-only mentor practitioners.",
+    requiredTier: "ELITE",
+    href: "/mentor-connect?segment=sales-advisory",
+  },
+];
+
 export const DEFAULT_MEMBER_DASHBOARD_CONTENT: MemberDashboardContent = {
   starterPack: {
     badge: "Starter Pack",
@@ -91,13 +132,15 @@ export const DEFAULT_MEMBER_DASHBOARD_CONTENT: MemberDashboardContent = {
     badge: "Upgrade to Pro",
     headline: "Unlock the full playbook, resume templates, career roadmap and more.",
     description: PRO_SUBSCRIPTION.fullNote,
-    cta: PRO_SUBSCRIPTION.cta,
+    cta: UPGRADE_TO_ACCESS,
   },
   upgradeToElite: {
     badge: "Upgrade to Elite",
     headline: "Unlock case studies, Mentor Connect, Desk Channel and job openings.",
     description: ELITE_SUBSCRIPTION.fullNote,
-    cta: ELITE_SUBSCRIPTION.cta,
+    cta: UPGRADE_TO_ACCESS,
   },
   resourceCards: DEFAULT_DASHBOARD_RESOURCE_CARDS,
+  salesResourceCards: DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS,
+  salesDeliverables: DEFAULT_SALES_DASHBOARD_DELIVERABLES,
 };

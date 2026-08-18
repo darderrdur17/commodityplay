@@ -1,9 +1,10 @@
-import { getContentStats } from "@/lib/content/content-stats";
+import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
 import { MentorConnectClient } from "./mentor-connect-client";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isMentorDemoUser } from "@/lib/mentor-demo";
+import { Suspense } from "react";
 import {
   getMentorConnectHero,
   getMentorConnectHowItWorks,
@@ -31,31 +32,33 @@ export default async function MentorConnectPage() {
     redirect("/mentor-connect/inbox");
   }
 
-  const [mentorSegments, mentorConnectHero, mentorConnectHowItWorks, contentStats] = await Promise.all([
+  const mentorCreditUsage = await getMentorCreditUsageForUser(user.id, user.tier);
+
+  const [mentorSegments, mentorConnectHero, mentorConnectHowItWorks] = await Promise.all([
     getPublishedMentorSegments(),
     getMentorConnectHero(),
     getMentorConnectHowItWorks(),
-    getContentStats(),
   ]);
 
   return (
-    <MentorConnectClient
-      userTier={user.tier}
-      mentorCredits={user.mentorCredits}
-      mentorSegments={mentorSegments}
-      mentorCount={contentStats.mentorCount}
-      segmentCount={contentStats.segmentCount}
-      mentorConnectHero={mentorConnectHero}
-      mentorConnectHowItWorks={mentorConnectHowItWorks}
-      questions={user.mentorQuestions.map((q) => ({
-        id: q.id,
-        segment: q.segment,
-        question: q.question,
-        answer: q.answer,
-        isAnswered: q.isAnswered,
-        createdAt: q.createdAt.toISOString(),
-        answeredAt: q.answeredAt?.toISOString(),
-      }))}
-    />
+    <Suspense fallback={<div className="page-container py-20 text-center text-muted-fg">Loading…</div>}>
+      <MentorConnectClient
+        userTier={user.tier}
+        userTrack={user.track}
+        mentorCreditUsage={mentorCreditUsage}
+        mentorSegments={mentorSegments}
+        mentorConnectHero={mentorConnectHero}
+        mentorConnectHowItWorks={mentorConnectHowItWorks}
+        questions={user.mentorQuestions.map((q) => ({
+          id: q.id,
+          segment: q.segment,
+          question: q.question,
+          answer: q.answer,
+          isAnswered: q.isAnswered,
+          createdAt: q.createdAt.toISOString(),
+          answeredAt: q.answeredAt?.toISOString(),
+        }))}
+      />
+    </Suspense>
   );
 }

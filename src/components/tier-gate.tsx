@@ -6,20 +6,18 @@ import { Lock, ArrowRight, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
+import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 
 const TIER_UPGRADE = {
   STARTER: {
     label: "Pro",
-    price: "SGD 59/mo",
     href: CAREER_PLAN_HREF("pro"),
     color: "#3280ff",
     description: "Unlock the full playbook, resume templates, career roadmap, and more.",
   },
   PRO: {
     label: "Elite",
-    price: "SGD 99/mo",
     href: CAREER_PLAN_HREF("elite"),
     color: "#B45309",
     description: "Unlock case studies, the Desk Channel, Mentor Connect, and job openings.",
@@ -61,7 +59,7 @@ export function TierGate({
           <Lock className="w-5 h-5 text-muted-fg mb-2" />
           <p className="text-xs font-semibold text-gray-600 mb-2">{upgrade.label} required</p>
           <Link href={upgrade.href}>
-            <Button size="sm" variant="default">Upgrade</Button>
+            <Button size="sm" variant="default">{UPGRADE_TO_ACCESS}</Button>
           </Link>
         </div>
       </div>
@@ -94,11 +92,8 @@ export function TierGate({
       </div>
       <p className="text-muted-fg text-sm mb-6 max-w-xs mx-auto">{upgrade.description}</p>
       <Link href={upgrade.href}>
-        <Button
-          className="group"
-          style={{ background: upgrade.color }}
-        >
-          Unlock {upgrade.label} — {upgrade.price}
+        <Button className="group" style={{ background: upgrade.color }}>
+          {UPGRADE_TO_ACCESS}
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </Button>
       </Link>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { Users, MessageSquare, Clock, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,11 @@ import { Reveal } from "@/components/animations";
 import { MentorAskPanel } from "@/components/mentor-connect/mentor-ask-panel";
 import { formatDate } from "@/lib/utils";
 import { formatMentorConnectSubtitle } from "@/data/mentor-connect-content";
+import {
+  formatMentorCreditsUsedLabel,
+  type MentorCreditUsage,
+} from "@/lib/mentor-credits";
+import { filterMentorSegmentsForTrack } from "@/lib/mentor-segments";
 import type { PublicMentorProfile, PublishedMentorSegment } from "@/data/mentors";
 
 const SEGMENT_API_MAP: Record<string, string> = {
@@ -18,6 +23,7 @@ const SEGMENT_API_MAP: Record<string, string> = {
   "risk-management": "finance",
   "market-intelligence": "analytics",
   "tools": "sales",
+  "sales-advisory": "sales-advisory",
 };
 
 const SEGMENTS = [
@@ -40,11 +46,9 @@ interface Question {
 
 interface Props {
   userTier: string;
-  mentorCredits: number;
+  userTrack: "CAREER" | "SALES";
+  mentorCreditUsage: MentorCreditUsage | null;
   mentorSegments: PublishedMentorSegment[];
-  mentorCount: number;
-  segmentCount: number;
-  questions: Question[];
   mentorConnectHero: {
     eyebrow: string;
     title: string;
@@ -55,21 +59,23 @@ interface Props {
     steps: { num: string; title: string; body: string }[];
     callout: { title: string; body: string };
   };
+  questions: Question[];
 }
 
 type SelectedMentor = PublicMentorProfile & { segmentId: string; segmentTitle: string };
 
 export function MentorConnectClient({
   userTier,
-  mentorCredits,
+  userTrack,
+  mentorCreditUsage,
   mentorSegments,
-  mentorCount,
-  segmentCount,
   questions,
   mentorConnectHero,
   mentorConnectHowItWorks,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const focusSegment = searchParams.get("segment");
   const [segment, setSegment] = useState("");
   const [question, setQuestion] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -78,6 +84,18 @@ export function MentorConnectClient({
   const [selectedMentor, setSelectedMentor] = useState<SelectedMentor | null>(null);
 
   const isElite = userTier === "ELITE";
+  const creditsRemaining = mentorCreditUsage?.remaining ?? 0;
+  const visibleSegments = filterMentorSegmentsForTrack(mentorSegments, userTrack);
+  const visibleSegmentCount = visibleSegments.length;
+  const visibleMentorCount = visibleSegments.reduce((sum, seg) => sum + seg.mentors.length, 0);
+
+  useEffect(() => {
+    if (!focusSegment) return;
+    const el = document.getElementById(`mentor-segment-${focusSegment}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [focusSegment, visibleSegments.length]);
 
   function openMentor(mentor: PublicMentorProfile, segmentId: string, segmentTitle: string) {
     if (selectedMentor?.id === mentor.id) {
@@ -141,16 +159,25 @@ export function MentorConnectClient({
           <p className="text-white/65 text-lg max-w-2xl mb-6">
             {formatMentorConnectSubtitle(
               mentorConnectHero.subtitle,
-              mentorCount,
-              segmentCount
+              visibleMentorCount,
+              visibleSegmentCount
             )}
           </p>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">
-              {isElite ? `${mentorCredits} credits remaining` : "Elite only"}
+              {isElite && mentorCreditUsage
+                ? formatMentorCreditsUsedLabel(mentorCreditUsage)
+                : isElite
+                  ? "0/15 used"
+                  : "Elite only"}
             </div>
-            <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">{mentorCount} Practitioners</div>
-            <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">{segmentCount} Segments</div>
+            {isElite && mentorCreditUsage && (
+              <div className="glass-card px-4 py-2.5 text-white/80 text-xs font-semibold uppercase tracking-widest">
+                {mentorCreditUsage.monthLabel}
+              </div>
+            )}
+            <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">{visibleMentorCount} Practitioners</div>
+            <div className="glass-card px-4 py-2.5 text-white text-sm font-semibold">{visibleSegmentCount} Segments</div>
           </div>
         </Reveal>
       </section>
@@ -160,18 +187,18 @@ export function MentorConnectClient({
         <section className="mb-14">
           <Reveal className="mb-8">
             <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">Browse mentors</p>
-            <h2 className="font-serif text-2xl font-bold text-gray-900">{mentorCount} Practitioners. {segmentCount} Segments.</h2>
+            <h2 className="font-serif text-2xl font-bold text-gray-900">{visibleMentorCount} Practitioners. {visibleSegmentCount} Segments.</h2>
             <p className="text-sm text-muted-fg mt-2">
               Tap a mentor to open the question panel right here — no scrolling to the bottom of the page.
             </p>
           </Reveal>
 
           <div className="space-y-10">
-            {mentorSegments.map((seg) => {
+            {visibleSegments.map((seg) => {
               const panelOpen = selectedMentor?.segmentId === seg.id;
 
               return (
-                <div key={seg.id}>
+                <div key={seg.id} id={`mentor-segment-${seg.id}`}>
                   <div className="mb-4 pb-4 border-b border-border">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-primary-800">{seg.num} · {seg.title}</p>
                     <p className="text-sm text-muted-fg mt-1">{seg.blurb}</p>
@@ -225,7 +252,7 @@ export function MentorConnectClient({
                           submitting={submitting}
                           submitted={submitted}
                           error={error}
-                          mentorCredits={mentorCredits}
+                          mentorCredits={creditsRemaining}
                           onQuestionChange={setQuestion}
                           onClose={clearMentorSelection}
                           onSubmit={handleSubmit}
@@ -298,7 +325,7 @@ export function MentorConnectClient({
                   </div>
                   <h3 className="font-serif font-bold text-lg text-gray-900 mb-2">{step.title}</h3>
                   <p className="text-sm text-muted-fg leading-relaxed">
-                    {formatMentorConnectSubtitle(step.body, mentorCount, segmentCount)}
+                    {formatMentorConnectSubtitle(step.body, visibleMentorCount, visibleSegmentCount)}
                   </p>
                 </div>
               ))}

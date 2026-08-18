@@ -8,6 +8,7 @@ const schema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   plan: z.enum(["starter", "pro", "elite"]).optional().default("starter"),
+  track: z.enum(["CAREER", "SALES"]).default("CAREER"),
 });
 
 export async function POST(req: NextRequest) {
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    const { name, email, password } = parsed.data;
+    const { name, email, password, track } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
         email,
         passwordHash,
         tier: "STARTER",
-        track: "CAREER",
+        track,
         onboardingDone: false,
       },
     });

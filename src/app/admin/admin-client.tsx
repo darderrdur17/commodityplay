@@ -15,6 +15,13 @@ import { AdminContentTab } from "./admin-content-tab";
 import { AdminUserDetailPanel, type AdminUserDetail } from "./admin-user-detail";
 import { AdminMentorDetailPanel, type AdminMentorDetail, type MentorSegmentOption } from "./admin-mentor-detail";
 import { MENTOR_COUNT, MENTOR_SEGMENTS, UNASSIGNED_SEGMENT_ID } from "@/data/mentors";
+import { formatMentorCreditsUsedLabel, getMentorCreditUsage } from "@/lib/mentor-credits";
+
+function formatAdminMentorCreditsCell(user: AdminUserDetail): string {
+  if (user.tier !== "ELITE") return "M: —";
+  const usage = getMentorCreditUsage(user.mentorCreditsUsedThisMonth ?? 0);
+  return `M: ${formatMentorCreditsUsedLabel(usage)}`;
+}
 
 interface Stats {
   totalUsers: number;
@@ -337,7 +344,7 @@ export function AdminClient({
                     <th className="px-4 py-3 font-semibold text-muted-fg">Tier</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg">Persona</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg">Track</th>
-                    <th className="px-4 py-3 font-semibold text-muted-fg">Credits</th>
+                    <th className="px-4 py-3 font-semibold text-muted-fg">Mentor / Resume</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg">Joined</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg" />
                   </tr>
@@ -368,7 +375,7 @@ export function AdminClient({
                       </td>
                       <td className="px-4 py-3 text-xs">{u.track}</td>
                       <td className="px-4 py-3 text-xs text-muted-fg">
-                        M:{u.mentorCredits} / R:{u.resumeCredits}
+                        {formatAdminMentorCreditsCell(u)} / R:{u.resumeCredits}
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-fg">{formatDate(u.createdAt)}</td>
                       <td className="px-4 py-3">

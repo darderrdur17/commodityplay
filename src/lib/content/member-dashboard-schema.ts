@@ -2,9 +2,15 @@ import { z } from "zod";
 import {
   DEFAULT_DASHBOARD_RESOURCE_CARDS,
   DEFAULT_MEMBER_DASHBOARD_CONTENT,
+  DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS,
   type DashboardResourceCardCopy,
+  type DashboardSalesResourceCardCopy,
   type MemberDashboardContent,
 } from "@/data/member-dashboard";
+import {
+  DEFAULT_SALES_DASHBOARD_DELIVERABLES,
+  normalizeSalesDashboardDeliverables,
+} from "@/lib/content/sales-dashboard-deliverables";
 
 const promoBoxSchema = z.object({
   badge: z.string().min(1).max(80),
@@ -20,11 +26,33 @@ const resourceCardSchema = z.object({
   description: z.string().min(1).max(500),
 });
 
+const salesResourceCardSchema = resourceCardSchema.extend({
+  requiredTier: z.enum(["PRO", "ELITE"]),
+  href: z.string().min(1).max(200),
+  deliverableKey: z.enum(["salesEdgeNote", "industryGuideForSales"]).optional(),
+});
+
+const guideAttachmentSchema = z
+  .object({
+    label: z.string(),
+    fileName: z.string(),
+    assetId: z.string(),
+    mimeType: z.string(),
+  })
+  .nullable();
+
+const salesDeliverablesSchema = z.object({
+  salesEdgeNote: guideAttachmentSchema.optional(),
+  industryGuideForSales: guideAttachmentSchema.optional(),
+});
+
 export const memberDashboardSchema = z.object({
   starterPack: promoBoxSchema,
   upgradeToPro: promoBoxSchema,
   upgradeToElite: promoBoxSchema,
   resourceCards: z.array(resourceCardSchema).min(1),
+  salesResourceCards: z.array(salesResourceCardSchema).min(1).optional(),
+  salesDeliverables: salesDeliverablesSchema.optional(),
 });
 
 export function parseMemberDashboardPayload(payload: unknown) {
@@ -54,12 +82,32 @@ function mergeResourceCards(cms?: DashboardResourceCardCopy[]): DashboardResourc
   });
 }
 
+function mergeSalesResourceCards(
+  cms?: DashboardSalesResourceCardCopy[]
+): DashboardSalesResourceCardCopy[] {
+  const bySlug = new Map((cms ?? []).map((c) => [c.slug, c]));
+  return DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS.map((def) => {
+    const saved = bySlug.get(def.slug);
+    if (!saved) return def;
+    return {
+      ...def,
+      title: saved.title?.trim() || def.title,
+      description: saved.description?.trim() || def.description,
+      href: saved.href?.trim() || def.href,
+      requiredTier: saved.requiredTier ?? def.requiredTier,
+      deliverableKey: saved.deliverableKey ?? def.deliverableKey,
+    };
+  });
+}
+
 export function normalizeMemberDashboardPayload(payload: unknown): MemberDashboardContent {
   const parsed = parseMemberDashboardPayload(payload);
   if (parsed.success) {
     return {
       ...parsed.data,
       resourceCards: mergeResourceCards(parsed.data.resourceCards),
+      salesResourceCards: mergeSalesResourceCards(parsed.data.salesResourceCards),
+      salesDeliverables: normalizeSalesDashboardDeliverables(parsed.data.salesDeliverables),
     };
   }
 
@@ -69,5 +117,9 @@ export function normalizeMemberDashboardPayload(payload: unknown): MemberDashboa
     upgradeToPro: { ...DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToPro, ...partial.upgradeToPro },
     upgradeToElite: { ...DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToElite, ...partial.upgradeToElite },
     resourceCards: mergeResourceCards(partial.resourceCards),
+    salesResourceCards: mergeSalesResourceCards(partial.salesResourceCards),
+    salesDeliverables: normalizeSalesDashboardDeliverables(
+      partial.salesDeliverables ?? DEFAULT_SALES_DASHBOARD_DELIVERABLES
+    ),
   };
 }

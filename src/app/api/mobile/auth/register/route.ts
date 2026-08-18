@@ -8,6 +8,7 @@ const schema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(8),
+  track: z.enum(["CAREER", "SALES"]).default("CAREER"),
 });
 
 export async function POST(req: NextRequest) {
@@ -20,7 +21,13 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
   const user = await prisma.user.create({
-    data: { name: parsed.data.name, email: parsed.data.email, passwordHash, tier: "STARTER", track: "CAREER" },
+    data: {
+      name: parsed.data.name,
+      email: parsed.data.email,
+      passwordHash,
+      tier: "STARTER",
+      track: parsed.data.track,
+    },
   });
 
   const token = sign({ userId: user.id }, process.env.AUTH_SECRET!, { expiresIn: "30d" });

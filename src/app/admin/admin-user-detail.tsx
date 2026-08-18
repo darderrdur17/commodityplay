@@ -3,8 +3,12 @@
 import React, { useState } from "react";
 import { X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PERSONA_LABELS, formatDate } from "@/lib/utils";
+import {
+  formatMentorCreditsUsedLabel,
+  getMentorCreditUsage,
+  MENTOR_CREDITS_MONTHLY_LIMIT,
+} from "@/lib/mentor-credits";
 
 export interface AdminUserDetail {
   id: string;
@@ -14,7 +18,7 @@ export interface AdminUserDetail {
   tier: string;
   track: string;
   persona: string | null;
-  mentorCredits: number;
+  mentorCreditsUsedThisMonth?: number;
   resumeCredits: number;
   onboardingDone?: boolean;
   stripeStatus?: string | null;
@@ -39,12 +43,16 @@ export function AdminUserDetailPanel({ user, onClose, onSaved, isSelf }: Props) 
     role: user.role,
     track: user.track,
     persona: user.persona || "",
-    mentorCredits: user.mentorCredits,
     resumeCredits: user.resumeCredits,
     onboardingDone: user.onboardingDone ?? false,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const mentorUsage =
+    form.tier === "ELITE"
+      ? getMentorCreditUsage(user.mentorCreditsUsedThisMonth ?? 0)
+      : null;
 
   async function save() {
     setSaving(true);
@@ -58,7 +66,6 @@ export function AdminUserDetailPanel({ user, onClose, onSaved, isSelf }: Props) 
         role: form.role,
         track: form.track,
         persona: form.persona || null,
-        mentorCredits: form.mentorCredits,
         resumeCredits: form.resumeCredits,
         onboardingDone: form.onboardingDone,
       }),
@@ -99,7 +106,7 @@ export function AdminUserDetailPanel({ user, onClose, onSaved, isSelf }: Props) 
               <p className="font-medium">{user.stripeStatus || "inactive"}</p>
             </div>
             <div className="bg-secondary rounded-lg p-3">
-              <p className="text-xs text-muted-fg mb-1">Mentor Qs</p>
+              <p className="text-xs text-muted-fg mb-1">Mentor Qs (all time)</p>
               <p className="font-medium">{user._count?.mentorQuestions ?? 0}</p>
             </div>
             <div className="bg-secondary rounded-lg p-3">
@@ -163,14 +170,29 @@ export function AdminUserDetailPanel({ user, onClose, onSaved, isSelf }: Props) 
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg mb-1">Mentor credits</label>
-              <input
-                type="number"
-                min={0}
-                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
-                value={form.mentorCredits}
-                onChange={(e) => setForm((f) => ({ ...f, mentorCredits: Number(e.target.value) }))}
-              />
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg mb-1">
+                Mentor credits this month
+              </label>
+              <div className="rounded-lg border border-border bg-secondary/50 px-3 py-2.5">
+                {mentorUsage ? (
+                  <>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {formatMentorCreditsUsedLabel(mentorUsage)}
+                    </p>
+                    <p className="text-xs text-muted-fg mt-0.5">
+                      {mentorUsage.monthLabel} · {mentorUsage.remaining} remaining of {MENTOR_CREDITS_MONTHLY_LIMIT}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-gray-700">Elite only</p>
+                    <p className="text-xs text-muted-fg mt-0.5">Not applicable for Starter / Pro</p>
+                  </>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-fg mt-1.5 leading-relaxed">
+                Read-only — counted from questions asked this month. Resets automatically; not editable here.
+              </p>
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg mb-1">Resume credits</label>

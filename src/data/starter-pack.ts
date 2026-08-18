@@ -130,7 +130,7 @@ export const STARTER_UPGRADE_CTA: StarterUpgradeCta = {
   title: "Ready for the full playbook?",
   description:
     "Unlock all {chapterCount} chapters, resume templates, career roadmap, interview prep, and practitioner guides.",
-  buttonLabel: "Upgrade to Pro",
+  buttonLabel: "Upgrade to Access",
 };
 
 export function mergeStarterUpgradeCta(

@@ -194,7 +194,7 @@ export function SalesLandingPanel({ content, membersStrip, edgeNote, onOpenConta
 
   async function handlePurchase(plan: "pro" | "elite") {
     if (!session?.user) {
-      router.push(`/signup?plan=${plan}&callbackUrl=/?track=sales`);
+      router.push(`/signup?plan=${plan}&track=sales&callbackUrl=/?track=sales`);
       return;
     }
     setLoadingPlan(plan);
