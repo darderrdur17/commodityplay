@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -27,7 +27,7 @@ import {
   formatMentorCreditsUsedLabel,
   type MentorCreditUsage,
 } from "@/lib/mentor-credits";
-import { PrepLibraryCard, PrepLibraryBody } from "@/components/dashboard/prep-library-section";
+import { PrepLibraryCard } from "@/components/dashboard/prep-library-section";
 
 interface Props {
   contentTiers?: Record<string, string>;
@@ -186,11 +186,9 @@ export function DashboardClient({
     dashboardContent.salesResourceCards.map((c) => [c.slug, c.description])
   );
 
-  // Live topic counts — synced between the compact card and the body form below.
-  const [careerTopicCount, setCareerTopicCount] = useState(7);
-  const [salesTopicCount, setSalesTopicCount] = useState(6);
-  const handleCareerTopicCount = useCallback((n: number) => setCareerTopicCount(n), []);
-  const handleSalesTopicCount = useCallback((n: number) => setSalesTopicCount(n), []);
+  // Static seed counts shown on the compact card (live count is on the dedicated page).
+  const careerTopicCount = 7;
+  const salesTopicCount = 6;
 
   function resolveSalesCardHref(card: DashboardSalesResourceCardCopy): string | null {
     if (card.deliverableKey) {
@@ -607,20 +605,32 @@ export function DashboardClient({
               const pendingLabel =
                 tierUnlocked && card.deliverableKey && !fileReady ? "File coming soon" : undefined;
 
-              return renderResourceCard({
-                title: card.title,
-                description,
-                icon: Icon,
-                color,
-                tier,
-                unlocked: canOpen,
-                href,
-                delay: (CONTENT_CARDS.length + i) * 0.05,
-                pendingLabel,
-              });
+              return (
+                <React.Fragment key={card.slug}>
+                  {renderResourceCard({
+                    title: card.title,
+                    description,
+                    icon: Icon,
+                    color,
+                    tier,
+                    unlocked: canOpen,
+                    href,
+                    delay: (CONTENT_CARDS.length + i) * 0.05,
+                    pendingLabel,
+                  })}
+                  {/* Insert Prep Library card immediately after Industry Guide for Sales */}
+                  {card.slug === "industry-guide-for-sales" && (isAdminUser || !isCareerTrack) && (
+                    <PrepLibraryCard
+                      track="SALES"
+                      userTier={user.tier}
+                      topicCount={salesTopicCount}
+                    />
+                  )}
+                </React.Fragment>
+              );
             })}
 
-          {/* Prep Library compact card — same visual as every other resource card */}
+          {/* Career track: Prep Library card in Pro position */}
           {(isAdminUser || isCareerTrack) && (
             <PrepLibraryCard
               track="CAREER"
@@ -628,32 +638,9 @@ export function DashboardClient({
               topicCount={careerTopicCount}
             />
           )}
-          {(isAdminUser || !isCareerTrack) && (
-            <PrepLibraryCard
-              track="SALES"
-              userTier={user.tier}
-              topicCount={salesTopicCount}
-            />
-          )}
 
         </div>
       </div>
-
-      {/* ── PREP LIBRARY BODY (below grid — scrolled to via "Open" on the card) ── */}
-      {(isAdminUser || isCareerTrack) && (
-        <PrepLibraryBody
-          track="CAREER"
-          userTier={user.tier}
-          onTopicCountChange={handleCareerTopicCount}
-        />
-      )}
-      {(isAdminUser || !isCareerTrack) && (
-        <PrepLibraryBody
-          track="SALES"
-          userTier={user.tier}
-          onTopicCountChange={handleSalesTopicCount}
-        />
-      )}
 
       {/* ── UPGRADE CTA (if not Elite) ── */}
       {user.tier !== "ELITE" && (

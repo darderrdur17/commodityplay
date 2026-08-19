@@ -217,12 +217,12 @@ export function PrepLibraryCard({
           </div>
 
           {unlocked ? (
-            <a
-              href={`#${segment.anchor}`}
+            <Link
+              href="/dashboard/prep-library"
               className="text-xs text-primary-400 font-medium hover:text-primary-500 flex items-center gap-0.5 shrink-0"
             >
               Open <ChevronRight className="w-3.5 h-3.5" />
-            </a>
+            </Link>
           ) : (
             <Link
               href={theme.upgradeHref}
