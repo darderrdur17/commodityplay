@@ -2,16 +2,17 @@
 
 import React, { useCallback, useState } from "react";
 import Link from "next/link";
-import { BarChart3, Lock, Plus } from "lucide-react";
+import { BarChart3, ChevronRight, Lock, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Reveal } from "@/components/animations";
-import { SectionCategoryLabel } from "@/components/landing/section-category-label";
 import { hasAccess } from "@/lib/utils";
 import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   CAREER_PREP_LIBRARY_SEED_TOPICS,
+  PREP_LIBRARY_SEGMENTS,
   SALES_PREP_LIBRARY_SEED_TOPICS,
   type PrepLibraryTopic,
   type PrepLibraryTrack,
@@ -26,13 +27,9 @@ interface PrepLibrarySectionProps {
 }
 
 interface TrackTheme {
-  eyebrow: string;
-  description: string;
   formHeader: string;
-  formShellClass: string;
   iconWrapClass: string;
   iconClass: string;
-  statNumberClass: string;
   categoryBadgeClass: string;
   linkedBadgeClass: string;
   linkedTextClass: string;
@@ -57,14 +54,9 @@ interface TrackTheme {
 
 const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
   CAREER: {
-    eyebrow: "Market talking points",
-    description:
-      "A private, growing set of market topics you can speak to confidently. Built from what you study — ready to pull up before your next interview.",
     formHeader: "Add a talking point",
-    formShellClass: "rounded-xl border border-border bg-white p-5 sm:p-6",
     iconWrapClass: "w-8 h-8 rounded-lg bg-primary-400/10 flex items-center justify-center",
     iconClass: "w-4 h-4 text-primary-400",
-    statNumberClass: "font-serif text-4xl sm:text-5xl font-bold text-gray-900 tabular-nums",
     categoryBadgeClass:
       "inline-flex shrink-0 rounded-full bg-primary-400/10 px-2.5 py-1 text-[11px] font-semibold text-primary-400",
     linkedBadgeClass: "",
@@ -94,15 +86,9 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
     },
   },
   SALES: {
-    eyebrow: "Market talking points for sales",
-    description:
-      "A private, growing set of market topics you can bring into a client conversation with confidence. Built from what you read here — ready to pull up before your next meeting.",
     formHeader: "Add a talking point",
-    formShellClass:
-      "rounded-xl border border-dashed border-teal-200 bg-teal-50/80 p-5 sm:p-6",
     iconWrapClass: "w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center",
     iconClass: "w-4 h-4 text-teal-700",
-    statNumberClass: "font-serif text-4xl sm:text-5xl font-bold text-teal-700 tabular-nums",
     categoryBadgeClass:
       "inline-flex shrink-0 rounded-full bg-teal-100 px-2.5 py-1 text-[11px] font-semibold text-teal-800",
     linkedBadgeClass:
@@ -146,7 +132,7 @@ function TopicCard({ topic, theme }: { topic: PrepLibraryTopic; theme: TrackThem
   const linked = Boolean(topic.usageTarget);
 
   return (
-    <article className="rounded-xl border border-border bg-white p-5 sm:p-6">
+    <article className="rounded-xl border border-border bg-secondary/30 p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
         <h3 className="font-semibold text-gray-900 text-base leading-snug">{topic.title}</h3>
         <span className={theme.categoryBadgeClass}>{topic.category}</span>
@@ -186,8 +172,9 @@ function TopicCard({ topic, theme }: { topic: PrepLibraryTopic; theme: TrackThem
 }
 
 export function PrepLibrarySection({ track, userTier, visible = true }: PrepLibrarySectionProps) {
+  const segment = PREP_LIBRARY_SEGMENTS[track];
   const theme = TRACK_THEMES[track];
-  const unlocked = hasAccess(userTier, "PRO");
+  const unlocked = hasAccess(userTier, segment.requiredTier);
   const [topics, setTopics] = useState<PrepLibraryTopic[]>(theme.seedTopics);
   const [title, setTitle] = useState("");
   const [keyPointsRaw, setKeyPointsRaw] = useState("");
@@ -195,6 +182,7 @@ export function PrepLibrarySection({ track, userTier, visible = true }: PrepLibr
   const [canUseFor, setCanUseFor] = useState("");
 
   const topicCount = topics.length;
+  const bodyAnchor = `#${segment.anchor}-body`;
 
   const handleSave = useCallback(
     (e: React.FormEvent) => {
@@ -227,15 +215,15 @@ export function PrepLibrarySection({ track, userTier, visible = true }: PrepLibr
   if (!visible) return null;
 
   const formFields = (
-    <form onSubmit={handleSave} className={theme.formShellClass}>
-      <div className="flex items-center gap-2 mb-5">
+    <form onSubmit={handleSave} className="space-y-4">
+      <div className="flex items-center gap-2">
         <div className={theme.iconWrapClass}>
           <BarChart3 className={theme.iconClass} />
         </div>
         <h3 className="font-semibold text-gray-900">{theme.formHeader}</h3>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2 space-y-1.5">
           <label
             htmlFor={`prep-topic-title-${track}`}
@@ -335,57 +323,108 @@ export function PrepLibrarySection({ track, userTier, visible = true }: PrepLibr
 
   return (
     <Reveal className="mb-10">
-      <section aria-labelledby={`prep-library-heading-${track}`}>
-        <div className="text-center mb-8">
-          <SectionCategoryLabel
-            colorClass={track === "SALES" ? "text-teal-700" : "text-primary-400"}
+      <section
+        id={segment.anchor}
+        aria-labelledby={`prep-library-heading-${track}`}
+        className={cn(
+          "rounded-xl border bg-white overflow-hidden transition-all duration-200",
+          unlocked ? "border-border" : "border-border opacity-90"
+        )}
+      >
+        {/* Access header — matches Your Content resource cards */}
+        <div className="relative p-5 sm:p-6">
+          {!unlocked && (
+            <div className="absolute top-3 right-3">
+              <Lock className="w-3.5 h-3.5 text-muted-fg" />
+            </div>
+          )}
+
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg mb-3">
+            {segment.eyebrow}
+          </p>
+
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
+            style={{ background: `${segment.color}12` }}
           >
-            {theme.eyebrow}
-          </SectionCategoryLabel>
+            <BarChart3 className="w-4.5 h-4.5" style={{ color: segment.color }} />
+          </div>
+
           <h2
             id={`prep-library-heading-${track}`}
-            className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 mb-3"
+            className="font-semibold text-sm text-gray-900 mb-1"
           >
-            Your Prep Library.
+            {segment.title}
           </h2>
-          <p className="text-sm text-muted-fg max-w-2xl mx-auto leading-relaxed">
-            {theme.description}
+          <p className="text-xs text-muted-fg mb-3 leading-relaxed max-w-xl">
+            {segment.cardDescription}
           </p>
-        </div>
 
-        <div className="flex justify-center mb-8">
-          <div className="rounded-xl border border-border bg-white px-8 py-5 text-center min-w-[180px]">
-            <p className={theme.statNumberClass}>{topicCount}</p>
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-fg mt-1">
-              Topics saved
-            </p>
-          </div>
-        </div>
-
-        {!unlocked ? (
-          <div className="relative rounded-2xl overflow-hidden mb-6">
-            <div className="blur-sm pointer-events-none select-none" aria-hidden>
-              {formFields}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="pro" size="sm">
+                Pro
+              </Badge>
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-fg">
+                {topicCount} topics saved
+              </span>
             </div>
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm rounded-2xl px-6 text-center">
-              <Lock className="w-5 h-5 text-muted-fg mb-2" />
-              <p className="text-sm font-semibold text-gray-700 mb-1">Pro Pack required</p>
-              <p className="text-xs text-muted-fg mb-4 max-w-xs">{theme.upgradeDescription}</p>
-              <Link href={theme.upgradeHref}>
-                <Button size="sm">{UPGRADE_TO_ACCESS}</Button>
+
+            {unlocked ? (
+              <a
+                href={bodyAnchor}
+                className="text-xs text-primary-400 font-medium hover:text-primary-500 flex items-center gap-0.5 shrink-0"
+              >
+                Open <ChevronRight className="w-3.5 h-3.5" />
+              </a>
+            ) : (
+              <Link
+                href={theme.upgradeHref}
+                className="text-xs font-medium text-primary-400 hover:text-primary-500 flex items-center gap-0.5 shrink-0"
+              >
+                {UPGRADE_TO_ACCESS} <ChevronRight className="w-3.5 h-3.5" />
               </Link>
-            </div>
+            )}
           </div>
-        ) : (
-          <div className="mb-6">{formFields}</div>
-        )}
+        </div>
 
-        <div className={cn("space-y-4", !unlocked && "opacity-60")}>
-          {topics.map((topic, i) => (
-            <Reveal key={topic.id} delay={i * 0.03}>
-              <TopicCard topic={topic} theme={theme} />
-            </Reveal>
-          ))}
+        {/* Body — gated like other Pro segments */}
+        <div id={`${segment.anchor}-body`} className="border-t border-border">
+          {!unlocked ? (
+            <div className="relative">
+              <div className="blur-sm pointer-events-none select-none px-5 sm:px-6 py-5" aria-hidden>
+                {formFields}
+              </div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center">
+                <Lock className="w-5 h-5 text-muted-fg mb-2" />
+                <p className="text-sm font-semibold text-gray-700 mb-1">Pro Pack required</p>
+                <p className="text-xs text-muted-fg mb-4 max-w-xs">{theme.upgradeDescription}</p>
+                <Link href={theme.upgradeHref}>
+                  <Button size="sm">{UPGRADE_TO_ACCESS}</Button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="px-5 sm:px-6 py-5 space-y-6">
+              {formFields}
+
+              <div className="space-y-4">
+                {topics.map((topic, i) => (
+                  <Reveal key={topic.id} delay={i * 0.03}>
+                    <TopicCard topic={topic} theme={theme} />
+                  </Reveal>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!unlocked && (
+            <div className="px-5 sm:px-6 pb-5 space-y-4 opacity-60">
+              {topics.slice(0, 2).map((topic) => (
+                <TopicCard key={topic.id} topic={topic} theme={theme} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </Reveal>

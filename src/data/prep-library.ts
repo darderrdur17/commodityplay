@@ -182,3 +182,35 @@ export const SALES_PREP_LIBRARY_CATEGORIES: PrepLibraryCategory[] = [
   "Relationship building",
   "Other",
 ];
+
+/** Dashboard card + section metadata — shared by grid cards and boxed prep library UI. */
+export const PREP_LIBRARY_SEGMENTS: Record<
+  PrepLibraryTrack,
+  {
+    anchor: string;
+    title: string;
+    eyebrow: string;
+    cardDescription: string;
+    color: string;
+    requiredTier: "PRO";
+  }
+> = {
+  CAREER: {
+    anchor: "prep-library-career",
+    title: "Your Prep Library",
+    eyebrow: "Market talking points",
+    cardDescription:
+      "A private set of market topics you can speak to confidently — ready before your next interview.",
+    color: "#3280ff",
+    requiredTier: "PRO",
+  },
+  SALES: {
+    anchor: "prep-library-sales",
+    title: "Your Prep Library",
+    eyebrow: "Market talking points for sales",
+    cardDescription:
+      "Market topics you can bring into client conversations — ready before your next meeting.",
+    color: "#0f766e",
+    requiredTier: "PRO",
+  },
+};
