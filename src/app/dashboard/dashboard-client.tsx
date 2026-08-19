@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -185,6 +185,12 @@ export function DashboardClient({
   const salesResourceCopyBySlug = Object.fromEntries(
     dashboardContent.salesResourceCards.map((c) => [c.slug, c.description])
   );
+
+  // Live topic counts — synced between the compact card and the body form below.
+  const [careerTopicCount, setCareerTopicCount] = useState(7);
+  const [salesTopicCount, setSalesTopicCount] = useState(6);
+  const handleCareerTopicCount = useCallback((n: number) => setCareerTopicCount(n), []);
+  const handleSalesTopicCount = useCallback((n: number) => setSalesTopicCount(n), []);
 
   function resolveSalesCardHref(card: DashboardSalesResourceCardCopy): string | null {
     if (card.deliverableKey) {
@@ -619,14 +625,14 @@ export function DashboardClient({
             <PrepLibraryCard
               track="CAREER"
               userTier={user.tier}
-              topicCount={7}
+              topicCount={careerTopicCount}
             />
           )}
           {(isAdminUser || !isCareerTrack) && (
             <PrepLibraryCard
               track="SALES"
               userTier={user.tier}
-              topicCount={6}
+              topicCount={salesTopicCount}
             />
           )}
 
@@ -635,10 +641,18 @@ export function DashboardClient({
 
       {/* ── PREP LIBRARY BODY (below grid — scrolled to via "Open" on the card) ── */}
       {(isAdminUser || isCareerTrack) && (
-        <PrepLibraryBody track="CAREER" userTier={user.tier} />
+        <PrepLibraryBody
+          track="CAREER"
+          userTier={user.tier}
+          onTopicCountChange={handleCareerTopicCount}
+        />
       )}
       {(isAdminUser || !isCareerTrack) && (
-        <PrepLibraryBody track="SALES" userTier={user.tier} />
+        <PrepLibraryBody
+          track="SALES"
+          userTier={user.tier}
+          onTopicCountChange={handleSalesTopicCount}
+        />
       )}
 
       {/* ── UPGRADE CTA (if not Elite) ── */}

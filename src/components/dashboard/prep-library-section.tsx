@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { BarChart3, ChevronRight, Lock, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -174,6 +174,7 @@ export function PrepLibraryCard({
 }: {
   track: PrepLibraryTrack;
   userTier: string;
+  /** Live count passed down from parent state — updated when user saves topics. */
   topicCount: number;
 }) {
   const segment = PREP_LIBRARY_SEGMENTS[track];
@@ -182,29 +183,30 @@ export function PrepLibraryCard({
 
   return (
     <Reveal>
+      {/* Structure mirrors renderResourceCard exactly */}
       <div
         className={cn(
-          "rounded-xl border bg-white p-5 flex flex-col h-full transition-all duration-200",
+          "relative h-full bg-white rounded-xl border transition-all duration-200 p-5",
           unlocked ? "border-border card-hover" : "border-border opacity-75"
         )}
       >
-        {/* Lock badge */}
-        <div className="flex items-start justify-between mb-3">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: `${segment.color}12` }}
-          >
-            <BarChart3 className="w-4.5 h-4.5" style={{ color: segment.color }} />
+        {!unlocked && (
+          <div className="absolute top-3 right-3">
+            <Lock className="w-3.5 h-3.5 text-muted-fg" />
           </div>
-          {!unlocked && <Lock className="w-3.5 h-3.5 text-muted-fg mt-0.5" />}
+        )}
+
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
+          style={{ background: `${segment.color}12` }}
+        >
+          <BarChart3 className="w-4.5 h-4.5" style={{ color: segment.color }} />
         </div>
 
         <h3 className="font-semibold text-sm text-gray-900 mb-1">{segment.title}</h3>
-        <p className="text-xs text-muted-fg leading-relaxed mb-3 flex-1">
-          {segment.cardDescription}
-        </p>
+        <p className="text-xs text-muted-fg mb-3 leading-relaxed">{segment.cardDescription}</p>
 
-        <div className="flex items-center justify-between gap-2 mt-auto pt-1">
+        <div className="flex items-center justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="pro" size="sm">
               Pro
@@ -251,10 +253,13 @@ export function PrepLibraryBody({
   const theme = TRACK_THEMES[track];
   const unlocked = hasAccess(userTier, segment.requiredTier);
 
-  const [topics, setTopics] = useState<PrepLibraryTopic[]>(() => {
+  const [topics, setTopics] = useState<PrepLibraryTopic[]>(theme.seedTopics);
+
+  // Sync initial count to parent on mount
+  useEffect(() => {
     onTopicCountChange?.(theme.seedTopics.length);
-    return theme.seedTopics;
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [title, setTitle] = useState("");
   const [keyPointsRaw, setKeyPointsRaw] = useState("");
   const [category, setCategory] = useState("");
