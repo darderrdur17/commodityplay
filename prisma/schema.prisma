@@ -89,6 +89,7 @@ model User {
   contentUpdates     ContentModule[]  @relation("ContentUpdates")
   contentRevisions   ContentModuleRevision[] @relation("ContentRevisionUpdates")
   assetUploads       ContentAsset[]   @relation("AssetUploads")
+  talkingPoints      TalkingPoint[]
 
   @@index([email])
   @@index([stripeCustomerId])
@@ -98,6 +99,20 @@ model User {
 enum Role {
   USER
   ADMIN
+}
+
+enum PrepStatus {
+  LEARNING_IT
+  INTERVIEW_READY
+  USED_IT
+}
+
+enum PrepCategory {
+  MARKET_MECHANICS
+  CURRENT_EVENT
+  RISK_PRICING
+  LOGISTICS
+  OTHER
 }
 
 enum Tier {
@@ -256,6 +271,26 @@ model ContactMessage {
   email     String
   message   String   @db.Text
   createdAt DateTime @default(now())
+}
+
+// ── Prep Library ─────────────────────────────────────────────────────
+model TalkingPoint {
+  id         String      @id @default(uuid())
+  userId     String
+  track      Track
+  createdAt  DateTime    @default(now())
+  title      String
+  category   PrepCategory
+  keyPoints  String[]
+  source     String?
+  prepStatus PrepStatus  @default(LEARNING_IT)
+  usedInNote String?     @db.Text
+  canUseFor  String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, track])
 }
 
 // ── Demo email log (Mentor Connect notifications preview) ───────────

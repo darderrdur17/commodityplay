@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BarChart3, ChevronRight, Lock, Plus } from "lucide-react";
+import { BarChart3, ChevronRight, ExternalLink, Lock, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,12 @@ import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   CAREER_PREP_LIBRARY_SEED_TOPICS,
+  PREP_LIBRARY_CATEGORIES,
   PREP_LIBRARY_SEGMENTS,
   SALES_PREP_LIBRARY_SEED_TOPICS,
-  type PrepLibraryTopic,
+  type PrepCategoryEnum,
+  type PrepStatusEnum,
+  type TalkingPoint,
   type PrepLibraryTrack,
 } from "@/data/prep-library";
 import { cn } from "@/lib/utils";
@@ -26,7 +29,6 @@ interface TrackTheme {
   iconWrapClass: string;
   iconClass: string;
   categoryBadgeClass: string;
-  linkedBadgeClass: string;
   linkedTextClass: string;
   labelColorClass: string;
   textareaFocusClass: string;
@@ -34,17 +36,15 @@ interface TrackTheme {
   placeholders: {
     title: string;
     keyPoints: string;
-    category: string;
+    source: string;
     canUseFor: string;
   };
-  defaultCategory: string;
+  defaultCategory: PrepCategoryEnum;
   saveButtonLabel: string;
-  linkedLabel: (target: string) => string;
   unlinkedLabel: string;
   upgradeDescription: string;
   upgradeHref: string;
-  seedTopics: PrepLibraryTopic[];
-  parseUsageTarget: (raw: string) => string | undefined;
+  seedTopics: TalkingPoint[];
 }
 
 // ─── Track themes ─────────────────────────────────────────────────────────────
@@ -56,7 +56,6 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
     iconClass: "w-4 h-4 text-primary-400",
     categoryBadgeClass:
       "inline-flex shrink-0 rounded-full bg-primary-400/10 px-2.5 py-1 text-[11px] font-semibold text-primary-400",
-    linkedBadgeClass: "",
     linkedTextClass: "text-xs font-semibold text-primary-400",
     labelColorClass: "text-muted-fg",
     textareaFocusClass: "focus:ring-primary-400",
@@ -64,23 +63,16 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
     placeholders: {
       title: "e.g. Why cargo diversion happens",
       keyPoints: "Add up to 4 short bullets",
-      category: "Market mechanics",
+      source: "e.g. Chapter 4 · Weekly Market Update",
       canUseFor: "e.g. Meridian Energy interview",
     },
     defaultCategory: "Market mechanics",
     saveButtonLabel: "Save topic",
-    linkedLabel: (target) => `Can use for ${target} interview`,
     unlinkedLabel: "Not yet linked to an interview",
     upgradeDescription:
       "Build your private prep library with talking points linked to upcoming interviews.",
     upgradeHref: CAREER_PLAN_HREF("pro"),
     seedTopics: CAREER_PREP_LIBRARY_SEED_TOPICS,
-    parseUsageTarget: (raw) => {
-      const trimmed = raw.trim();
-      if (!trimmed) return undefined;
-      const match = trimmed.match(/^(.+?)\s+interview$/i);
-      return match ? match[1].trim() : trimmed;
-    },
   },
   SALES: {
     formHeader: "Add a talking point",
@@ -88,8 +80,6 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
     iconClass: "w-4 h-4 text-teal-700",
     categoryBadgeClass:
       "inline-flex shrink-0 rounded-full bg-teal-100 px-2.5 py-1 text-[11px] font-semibold text-teal-800",
-    linkedBadgeClass:
-      "inline-flex rounded-full bg-teal-100 px-2.5 py-1 text-[11px] font-semibold text-teal-800",
     linkedTextClass: "text-xs font-semibold text-teal-800",
     labelColorClass: "text-teal-800/70",
     textareaFocusClass: "focus:ring-teal-600",
@@ -97,23 +87,16 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
     placeholders: {
       title: "e.g. Framing this week's spread move",
       keyPoints: "Add up to 4 short bullets",
-      category: "Current event",
+      source: "e.g. Chapter 4 · Weekly Market Update",
       canUseFor: "e.g. Meridian Energy",
     },
     defaultCategory: "Current event",
     saveButtonLabel: "Save topic",
-    linkedLabel: (target) => `Used in: ${target}`,
     unlinkedLabel: "Not yet linked to a meeting",
     upgradeDescription:
       "Build your private prep library with talking points ready for your next client meeting.",
     upgradeHref: SALES_PLAN_HREF("pro"),
     seedTopics: SALES_PREP_LIBRARY_SEED_TOPICS,
-    parseUsageTarget: (raw) => {
-      const trimmed = raw.trim();
-      if (!trimmed) return undefined;
-      const match = trimmed.match(/^used in:\s*(.+)$/i);
-      return match ? match[1].trim() : trimmed;
-    },
   },
 };
 
@@ -127,13 +110,51 @@ function parseKeyPoints(raw: string): string[] {
     .slice(0, 4);
 }
 
-function TopicCard({ topic, theme }: { topic: PrepLibraryTopic; theme: TrackTheme }) {
-  const linked = Boolean(topic.usageTarget);
+const PREP_STATUS_STYLES: Record<PrepStatusEnum, { badge: string; label: string }> = {
+  "Learning it": {
+    badge: "inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600",
+    label: "Learning it",
+  },
+  "Interview-ready": {
+    badge: "inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700",
+    label: "Interview-ready",
+  },
+  "Used it": {
+    badge: "inline-flex rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-semibold text-green-700",
+    label: "Used it",
+  },
+};
+
+// ─── Topic card ───────────────────────────────────────────────────────────────
+
+function TopicCard({
+  topic,
+  theme,
+  onDelete,
+}: {
+  topic: TalkingPoint;
+  theme: TrackTheme;
+  onDelete?: (id: string) => void;
+}) {
+  const statusStyle = PREP_STATUS_STYLES[topic.prepStatus] ?? PREP_STATUS_STYLES["Learning it"];
+
   return (
     <article className="rounded-xl border border-border bg-secondary/30 p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-        <h3 className="font-semibold text-gray-900 text-sm leading-snug">{topic.title}</h3>
-        <span className={theme.categoryBadgeClass}>{topic.category}</span>
+        <h3 className="font-semibold text-gray-900 text-sm leading-snug flex-1">{topic.title}</h3>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={theme.categoryBadgeClass}>{topic.category}</span>
+          <span className={statusStyle.badge}>{statusStyle.label}</span>
+          {onDelete && (
+            <button
+              onClick={() => onDelete(topic.id)}
+              className="p-1 rounded hover:bg-red-50 text-muted-fg hover:text-red-500 transition-colors"
+              aria-label="Delete talking point"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {topic.keyPoints.length > 0 && (
@@ -147,25 +168,27 @@ function TopicCard({ topic, theme }: { topic: PrepLibraryTopic; theme: TrackThem
         </ul>
       )}
 
-      <div className="pt-2.5 border-t border-border/60">
-        {linked ? (
-          theme.linkedBadgeClass ? (
-            <span className={theme.linkedBadgeClass}>{theme.linkedLabel(topic.usageTarget!)}</span>
-          ) : (
-            <p className={theme.linkedTextClass}>{theme.linkedLabel(topic.usageTarget!)}</p>
-          )
+      <div className="pt-2.5 border-t border-border/60 space-y-1.5">
+        {topic.canUseFor ? (
+          <p className={theme.linkedTextClass}>Can use for: {topic.canUseFor}</p>
         ) : (
           <p className="text-xs font-medium text-muted-fg">{theme.unlinkedLabel}</p>
         )}
-        {topic.note && <p className="mt-1.5 text-xs italic text-muted-fg">— {topic.note}</p>}
+        {topic.source && (
+          <p className="flex items-center gap-1 text-xs text-muted-fg">
+            <ExternalLink className="w-3 h-3 shrink-0" />
+            <span>{topic.source}</span>
+          </p>
+        )}
+        {topic.usedInNote && (
+          <p className="text-xs italic text-muted-fg">— {topic.usedInNote}</p>
+        )}
       </div>
     </article>
   );
 }
 
 // ─── Compact card (lives inside the content grid) ────────────────────────────
-// Identical visual structure to every other resource card: icon · title ·
-// description · tier badge · action link.  No inline expansion.
 
 export function PrepLibraryCard({
   track,
@@ -174,7 +197,6 @@ export function PrepLibraryCard({
 }: {
   track: PrepLibraryTrack;
   userTier: string;
-  /** Live count passed down from parent state — updated when user saves topics. */
   topicCount: number;
 }) {
   const segment = PREP_LIBRARY_SEGMENTS[track];
@@ -183,7 +205,6 @@ export function PrepLibraryCard({
 
   return (
     <Reveal>
-      {/* Structure mirrors renderResourceCard exactly */}
       <div
         className={cn(
           "relative h-full bg-white rounded-xl border transition-all duration-200 p-5",
@@ -238,7 +259,6 @@ export function PrepLibraryCard({
 }
 
 // ─── Full-width body (rendered BELOW the content grid) ───────────────────────
-// Scrolled to when the user taps "Open" on the compact card above.
 
 export function PrepLibraryBody({
   track,
@@ -253,45 +273,116 @@ export function PrepLibraryBody({
   const theme = TRACK_THEMES[track];
   const unlocked = hasAccess(userTier, segment.requiredTier);
 
-  const [topics, setTopics] = useState<PrepLibraryTopic[]>(theme.seedTopics);
+  // TODO: replace with DB persistence
+  const [topics, setTopics] = useState<TalkingPoint[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sync initial count to parent on mount
-  useEffect(() => {
-    onTopicCountChange?.(theme.seedTopics.length);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const [title, setTitle] = useState("");
   const [keyPointsRaw, setKeyPointsRaw] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState<PrepCategoryEnum>(theme.defaultCategory);
+  const [source, setSource] = useState("");
+  const [prepStatus, setPrepStatus] = useState<PrepStatusEnum>("Learning it");
+  const [usedInNote, setUsedInNote] = useState("");
   const [canUseFor, setCanUseFor] = useState("");
 
+  // Load from API on mount
+  useEffect(() => {
+    if (!unlocked) {
+      onTopicCountChange?.(theme.seedTopics.length);
+      setLoading(false);
+      return;
+    }
+
+    fetch(`/api/prep-library?track=${track}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data: TalkingPoint[]) => {
+        const parsed = data.map((t) => ({ ...t, createdAt: new Date(t.createdAt) }));
+        setTopics(parsed);
+        onTopicCountChange?.(parsed.length);
+      })
+      .catch(() => {
+        // Fall back to seed topics if API fails
+        setTopics(theme.seedTopics);
+        onTopicCountChange?.(theme.seedTopics.length);
+      })
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [track, unlocked]);
+
   const handleSave = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       const trimmedTitle = title.trim();
       if (!trimmedTitle) return;
 
       const keyPoints = parseKeyPoints(keyPointsRaw);
-      const usageTarget = theme.parseUsageTarget(canUseFor);
-      const newTopics: PrepLibraryTopic[] = [
-        {
-          id: `user-${Date.now()}`,
-          title: trimmedTitle,
-          category: category.trim() || theme.defaultCategory,
-          keyPoints,
-          usageTarget,
-        },
-        ...topics,
-      ];
+      const body = {
+        track,
+        title: trimmedTitle,
+        category,
+        keyPoints,
+        source: source.trim() || undefined,
+        prepStatus,
+        usedInNote: usedInNote.trim() || undefined,
+        canUseFor: canUseFor.trim() || undefined,
+      };
 
-      setTopics(newTopics);
-      onTopicCountChange?.(newTopics.length);
+      try {
+        const res = await fetch("/api/prep-library", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          const created: TalkingPoint = await res.json();
+          const newTopics = [{ ...created, createdAt: new Date(created.createdAt) }, ...topics];
+          setTopics(newTopics);
+          onTopicCountChange?.(newTopics.length);
+        }
+      } catch {
+        // Optimistic local-only fallback
+        const optimistic: TalkingPoint = {
+          id: `user-${Date.now()}`,
+          track,
+          createdAt: new Date(),
+          ...body,
+          prepStatus,
+        };
+        const newTopics = [optimistic, ...topics];
+        setTopics(newTopics);
+        onTopicCountChange?.(newTopics.length);
+      }
+
       setTitle("");
       setKeyPointsRaw("");
-      setCategory("");
+      setCategory(theme.defaultCategory);
+      setSource("");
+      setPrepStatus("Learning it");
+      setUsedInNote("");
       setCanUseFor("");
     },
-    [title, keyPointsRaw, category, canUseFor, theme, topics, onTopicCountChange]
+    [title, keyPointsRaw, category, source, prepStatus, usedInNote, canUseFor, track, theme, topics, onTopicCountChange]
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        await fetch(`/api/prep-library/${id}`, { method: "DELETE" });
+      } catch {
+        // best-effort
+      }
+      setTopics((prev) => {
+        const next = prev.filter((t) => t.id !== id);
+        onTopicCountChange?.(next.length);
+        return next;
+      });
+    },
+    [onTopicCountChange]
+  );
+
+  const labelClass = cn(
+    "text-[10px] font-bold uppercase tracking-widest",
+    theme.labelColorClass
   );
 
   return (
@@ -321,7 +412,7 @@ export function PrepLibraryBody({
               className="blur-sm pointer-events-none select-none px-5 sm:px-6 py-5 space-y-4"
               aria-hidden
             >
-              {topics.slice(0, 2).map((topic) => (
+              {theme.seedTopics.slice(0, 2).map((topic) => (
                 <TopicCard key={topic.id} topic={topic} theme={theme} />
               ))}
             </div>
@@ -346,14 +437,9 @@ export function PrepLibraryBody({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Title */}
                 <div className="sm:col-span-2 space-y-1.5">
-                  <label
-                    htmlFor={`prep-topic-title-${track}`}
-                    className={cn(
-                      "text-[10px] font-bold uppercase tracking-widest",
-                      theme.labelColorClass
-                    )}
-                  >
+                  <label htmlFor={`prep-topic-title-${track}`} className={labelClass}>
                     Topic title
                   </label>
                   <Input
@@ -365,14 +451,9 @@ export function PrepLibraryBody({
                   />
                 </div>
 
+                {/* Key points */}
                 <div className="sm:col-span-2 space-y-1.5">
-                  <label
-                    htmlFor={`prep-key-points-${track}`}
-                    className={cn(
-                      "text-[10px] font-bold uppercase tracking-widest",
-                      theme.labelColorClass
-                    )}
-                  >
+                  <label htmlFor={`prep-key-points-${track}`} className={labelClass}>
                     Key points
                   </label>
                   <textarea
@@ -391,32 +472,75 @@ export function PrepLibraryBody({
                   />
                 </div>
 
+                {/* Category */}
                 <div className="space-y-1.5">
-                  <label
-                    htmlFor={`prep-category-${track}`}
-                    className={cn(
-                      "text-[10px] font-bold uppercase tracking-widest",
-                      theme.labelColorClass
-                    )}
-                  >
+                  <label htmlFor={`prep-category-${track}`} className={labelClass}>
                     Category
                   </label>
-                  <Input
+                  <select
                     id={`prep-category-${track}`}
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    placeholder={theme.placeholders.category}
+                    onChange={(e) => setCategory(e.target.value as PrepCategoryEnum)}
+                    className={cn(
+                      "flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-10",
+                      "focus:outline-none focus:ring-2 focus:border-transparent",
+                      theme.textareaFocusClass,
+                      "transition-all duration-200"
+                    )}
+                  >
+                    {PREP_LIBRARY_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Source */}
+                <div className="space-y-1.5">
+                  <label htmlFor={`prep-source-${track}`} className={labelClass}>
+                    Source <span className="font-normal normal-case tracking-normal">(optional)</span>
+                  </label>
+                  <Input
+                    id={`prep-source-${track}`}
+                    value={source}
+                    onChange={(e) => setSource(e.target.value)}
+                    placeholder={theme.placeholders.source}
+                    className="h-10"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor={`prep-can-use-for-${track}`}
-                    className={cn(
-                      "text-[10px] font-bold uppercase tracking-widest",
-                      theme.labelColorClass
+                {/* Prep status */}
+                <div className="sm:col-span-2 space-y-1.5">
+                  <span className={labelClass}>Prep status</span>
+                  <div className="flex gap-2 flex-wrap">
+                    {(["Learning it", "Interview-ready", "Used it"] as PrepStatusEnum[]).map(
+                      (status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => setPrepStatus(status)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150",
+                            prepStatus === status
+                              ? status === "Learning it"
+                                ? "bg-gray-200 border-gray-300 text-gray-700"
+                                : status === "Interview-ready"
+                                ? "bg-amber-100 border-amber-300 text-amber-700"
+                                : "bg-green-100 border-green-300 text-green-700"
+                              : "bg-white border-border text-muted-fg hover:border-gray-300"
+                          )}
+                        >
+                          {status}
+                        </button>
+                      )
                     )}
-                  >
+                  </div>
+                </div>
+
+                {/* Can use for */}
+                <div className="space-y-1.5">
+                  <label htmlFor={`prep-can-use-for-${track}`} className={labelClass}>
                     Can use for
                   </label>
                   <Input
@@ -424,6 +548,21 @@ export function PrepLibraryBody({
                     value={canUseFor}
                     onChange={(e) => setCanUseFor(e.target.value)}
                     placeholder={theme.placeholders.canUseFor}
+                    className="h-10"
+                  />
+                </div>
+
+                {/* Used in note */}
+                <div className="space-y-1.5">
+                  <label htmlFor={`prep-used-in-note-${track}`} className={labelClass}>
+                    Notes <span className="font-normal normal-case tracking-normal">(optional)</span>
+                  </label>
+                  <Input
+                    id={`prep-used-in-note-${track}`}
+                    value={usedInNote}
+                    onChange={(e) => setUsedInNote(e.target.value)}
+                    placeholder="e.g. Referenced this in my Meridian interview"
+                    className="h-10"
                   />
                 </div>
               </div>
@@ -438,18 +577,20 @@ export function PrepLibraryBody({
               </Button>
             </form>
 
-            {topics.length > 0 && (
+            {loading ? (
+              <p className="text-xs text-muted-fg">Loading your topics…</p>
+            ) : topics.length > 0 ? (
               <div className="space-y-3">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
                   {topics.length} {topics.length === 1 ? "topic" : "topics"} saved
                 </p>
                 {topics.map((topic, i) => (
                   <Reveal key={topic.id} delay={i * 0.03}>
-                    <TopicCard topic={topic} theme={theme} />
+                    <TopicCard topic={topic} theme={theme} onDelete={handleDelete} />
                   </Reveal>
                 ))}
               </div>
-            )}
+            ) : null}
           </div>
         )}
       </section>
@@ -458,5 +599,4 @@ export function PrepLibraryBody({
 }
 
 // ─── Legacy export kept for backwards compat ─────────────────────────────────
-// dashboard-client now imports PrepLibraryCard + PrepLibraryBody separately.
 export { PrepLibraryCard as PrepLibrarySection };

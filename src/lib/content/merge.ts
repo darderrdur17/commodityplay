@@ -127,7 +127,7 @@ export function resolveTestimonials(
 ): LandingContent["testimonials"] {
   return {
     eyebrow: cms?.eyebrow ?? defaults.testimonials.eyebrow,
-    title: cms?.title || defaults.testimonials.title,
+    title: cms?.title ?? defaults.testimonials.title,
     items: cms?.items?.length ? cms.items : defaults.testimonials.items,
   };
 }
@@ -138,8 +138,8 @@ export function resolveMentorConnect(
   cms?: Partial<LandingContent["mentorConnect"]>
 ): LandingContent["mentorConnect"] {
   return {
-    eyebrow: cms?.eyebrow || defaults.mentorConnect.eyebrow,
-    title: cms?.title || defaults.mentorConnect.title,
+    eyebrow: cms?.eyebrow ?? defaults.mentorConnect.eyebrow,
+    title: cms?.title ?? defaults.mentorConnect.title,
   };
 }
 
@@ -149,8 +149,8 @@ export function resolvePricing(
   cms?: Partial<LandingContent["pricing"]>
 ): LandingContent["pricing"] {
   return {
-    title: cms?.title || defaults.pricing.title,
-    subtitle: cms?.subtitle || defaults.pricing.subtitle,
+    title: cms?.title ?? defaults.pricing.title,
+    subtitle: cms?.subtitle ?? defaults.pricing.subtitle,
     tiers: cms?.tiers?.length ? mergeByKey(defaults.pricing.tiers, cms.tiers, "name") : defaults.pricing.tiers,
     comparison: {
       groups: resolveComparisonGroups(defaults.pricing.comparison.groups, cms?.comparison?.groups),
@@ -220,7 +220,7 @@ function resolveCareerFinalCta(
   const defaultAccent = defaults.career.finalCtaAccent;
 
   let title = cmsString(cms?.finalCtaTitle, defaultTitle).trim();
-  let accent = cms?.finalCtaAccent?.trim() || defaultAccent;
+  let accent = cms?.finalCtaAccent !== undefined ? cms.finalCtaAccent : defaultAccent;
 
   // Strip legacy combined copy so accent isn't duplicated on the page.
   title = title

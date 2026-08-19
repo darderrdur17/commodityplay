@@ -25,6 +25,8 @@ export interface DashboardSalesResourceCardCopy extends DashboardResourceCardCop
   href: string;
   /** When set, unlocked Pro+ members open the uploaded file instead of href. */
   deliverableKey?: "salesEdgeNote" | "industryGuideForSales";
+  /** When true, this card is rendered separately as a PrepLibraryCard in the UI. */
+  isPrepLibrary?: boolean;
 }
 
 export interface MemberDashboardContent {
@@ -95,8 +97,8 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
 
 export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardCopy[] = [
   {
-    slug: "sales-edge-note",
-    title: "Sales Edge Note",
+    slug: "sales-market-nudges",
+    title: "Sales Market Nudges",
     description: "Weekly sales intelligence note — desk language, commercial angles, and what buyers are thinking this week.",
     requiredTier: "PRO",
     href: "/starter-pack",
@@ -111,11 +113,19 @@ export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardC
     deliverableKey: "industryGuideForSales",
   },
   {
-    slug: "sales-advisory-channel",
-    title: "Sales Advisory Channel",
-    description: "Your private repository for sales notes, plus access to sales-only mentor practitioners.",
-    requiredTier: "ELITE",
-    href: "/mentor-connect?segment=sales-advisory",
+    slug: "sales-prep-library",
+    title: "Sales Prep Library",
+    description: "Curated prep materials and reference guides for commodity sales professionals.",
+    requiredTier: "PRO",
+    href: "#",
+    isPrepLibrary: true,
+  },
+  {
+    slug: "account-intelligence",
+    title: "Account Intelligence",
+    description: "Company and contact intelligence to help you understand who you're selling to and what they care about.",
+    requiredTier: "PRO",
+    href: "#",
   },
 ];
 

@@ -134,15 +134,17 @@ const CONTENT_CARDS = [
 ] as const;
 
 const SALES_CARD_ICONS: Record<string, typeof FileText> = {
-  "sales-edge-note": ScrollText,
+  "sales-market-nudges": ScrollText,
   "industry-guide-for-sales": BookOpen,
-  "sales-advisory-channel": NotebookPen,
+  "sales-prep-library": NotebookPen,
+  "account-intelligence": Users,
 };
 
 const SALES_CARD_COLORS: Record<string, string> = {
-  "sales-edge-note": "#3280ff",
+  "sales-market-nudges": "#3280ff",
   "industry-guide-for-sales": "#3280ff",
-  "sales-advisory-channel": "#B45309",
+  "sales-prep-library": "#3280ff",
+  "account-intelligence": "#7c3aed",
 };
 
 const QUICK_LINKS = [

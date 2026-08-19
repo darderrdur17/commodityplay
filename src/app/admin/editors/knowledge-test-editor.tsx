@@ -85,9 +85,11 @@ export function KnowledgeTestEditor({
   const [editingSetId, setEditingSetId] = useState(liveSetId);
 
   useEffect(() => {
-    if (testSets.some((s) => s.id === liveSetId)) {
-      setEditingSetId(liveSetId);
-    }
+    setEditingSetId((prev) => {
+      // Keep the current selection unless the set was deleted or liveSetId changed externally.
+      if (testSets.some((s) => s.id === prev)) return prev;
+      return liveSetId;
+    });
   }, [liveSetId, testSets]);
 
   const editingSet = testSets.find((s) => s.id === editingSetId) ?? testSets[0];

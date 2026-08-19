@@ -63,6 +63,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { slug: "landing", label: "Career Track", track: "Career", tier: "STARTER" },
       { slug: "landing", label: "Sales Track", track: "Sales", tier: "STARTER" },
       { slug: "faq", label: "FAQ", track: "Both", tier: "STARTER" },
+      { slug: "member-dashboard", label: "Member Dashboard", track: "Both", tier: "STARTER" },
     ],
   },
   {
@@ -71,7 +72,6 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { slug: "starter-pack", label: "Free Infographics + Email Digest", track: "Both", tier: "STARTER" },
       { slug: "footer-guides", label: "Footer Career & Sales Guides", track: "Both", tier: "STARTER" },
-      { slug: "member-dashboard", label: "Member Dashboard", track: "Both", tier: "STARTER" },
       { slug: "glossary", label: "Desk Glossary", track: "Both", tier: "STARTER" },
     ],
   },

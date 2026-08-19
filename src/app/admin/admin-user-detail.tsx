@@ -43,7 +43,6 @@ export function AdminUserDetailPanel({ user, onClose, onSaved, isSelf }: Props) 
     role: user.role,
     track: user.track,
     persona: user.persona || "",
-    resumeCredits: user.resumeCredits,
     onboardingDone: user.onboardingDone ?? false,
   });
   const [saving, setSaving] = useState(false);
@@ -66,7 +65,6 @@ export function AdminUserDetailPanel({ user, onClose, onSaved, isSelf }: Props) 
         role: form.role,
         track: form.track,
         persona: form.persona || null,
-        resumeCredits: form.resumeCredits,
         onboardingDone: form.onboardingDone,
       }),
     });
@@ -168,42 +166,30 @@ export function AdminUserDetailPanel({ user, onClose, onSaved, isSelf }: Props) 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg mb-1">
-                Mentor credits this month
-              </label>
-              <div className="rounded-lg border border-border bg-secondary/50 px-3 py-2.5">
-                {mentorUsage ? (
-                  <>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {formatMentorCreditsUsedLabel(mentorUsage)}
-                    </p>
-                    <p className="text-xs text-muted-fg mt-0.5">
-                      {mentorUsage.monthLabel} · {mentorUsage.remaining} remaining of {MENTOR_CREDITS_MONTHLY_LIMIT}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm font-medium text-gray-700">Elite only</p>
-                    <p className="text-xs text-muted-fg mt-0.5">Not applicable for Starter / Pro</p>
-                  </>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-fg mt-1.5 leading-relaxed">
-                Read-only — counted from questions asked this month. Resets automatically; not editable here.
-              </p>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg mb-1">
+              Mentor credits this month
+            </label>
+            <div className="rounded-lg border border-border bg-secondary/50 px-3 py-2.5">
+              {mentorUsage ? (
+                <>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {formatMentorCreditsUsedLabel(mentorUsage)}
+                  </p>
+                  <p className="text-xs text-muted-fg mt-0.5">
+                    {mentorUsage.monthLabel} · {mentorUsage.remaining} remaining of {MENTOR_CREDITS_MONTHLY_LIMIT}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-gray-700">Elite only</p>
+                  <p className="text-xs text-muted-fg mt-0.5">Not applicable for Starter / Pro</p>
+                </>
+              )}
             </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg mb-1">Resume credits</label>
-              <input
-                type="number"
-                min={0}
-                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
-                value={form.resumeCredits}
-                onChange={(e) => setForm((f) => ({ ...f, resumeCredits: Number(e.target.value) }))}
-              />
-            </div>
+            <p className="text-[11px] text-muted-fg mt-1.5 leading-relaxed">
+              Read-only — counted from questions asked this month. Resets automatically; not editable here.
+            </p>
           </div>
 
           <label className="flex items-center gap-2 text-sm">

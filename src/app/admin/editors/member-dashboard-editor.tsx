@@ -166,7 +166,7 @@ export function MemberDashboardEditor({
 
       <EditorSection
         title="Sales track file uploads"
-        description="PDFs for Sales Edge Note and Industry Guide for Sales — unlock on the dashboard when a Pro+ Sales member has access."
+        description="PDFs for Sales Market Nudges and Industry Guide for Sales — unlock on the dashboard when a Pro+ Sales member has access."
         defaultOpen
       >
         <div className="space-y-6">
@@ -181,7 +181,7 @@ export function MemberDashboardEditor({
             moduleSlug="member-dashboard"
             requiredTier="PRO"
             assetKey="member-dashboard/sales-edge-note"
-            defaultLabel="Sales Edge Note"
+            defaultLabel="Sales Market Nudges"
           />
           <SingleGuideUpload
             guide={content.salesDeliverables.industryGuideForSales}
