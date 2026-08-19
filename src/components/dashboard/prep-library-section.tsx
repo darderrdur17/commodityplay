@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState } from "react";
 import Link from "next/link";
-import { BarChart3, ChevronDown, ChevronRight, ChevronUp, Lock, Plus } from "lucide-react";
+import { BarChart3, ChevronRight, Lock, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -19,10 +19,7 @@ import {
 } from "@/data/prep-library";
 import { cn } from "@/lib/utils";
 
-interface PrepLibrarySectionProps {
-  track: PrepLibraryTrack;
-  userTier: string;
-}
+// ─── Shared types ────────────────────────────────────────────────────────────
 
 interface TrackTheme {
   formHeader: string;
@@ -49,6 +46,8 @@ interface TrackTheme {
   seedTopics: PrepLibraryTopic[];
   parseUsageTarget: (raw: string) => string | undefined;
 }
+
+// ─── Track themes ─────────────────────────────────────────────────────────────
 
 const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
   CAREER: {
@@ -118,6 +117,8 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
   },
 };
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function parseKeyPoints(raw: string): string[] {
   return raw
     .split("\n")
@@ -128,7 +129,6 @@ function parseKeyPoints(raw: string): string[] {
 
 function TopicCard({ topic, theme }: { topic: PrepLibraryTopic; theme: TrackTheme }) {
   const linked = Boolean(topic.usageTarget);
-
   return (
     <article className="rounded-xl border border-border bg-secondary/30 p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
@@ -150,40 +150,115 @@ function TopicCard({ topic, theme }: { topic: PrepLibraryTopic; theme: TrackThem
       <div className="pt-2.5 border-t border-border/60">
         {linked ? (
           theme.linkedBadgeClass ? (
-            <span className={theme.linkedBadgeClass}>
-              {theme.linkedLabel(topic.usageTarget!)}
-            </span>
+            <span className={theme.linkedBadgeClass}>{theme.linkedLabel(topic.usageTarget!)}</span>
           ) : (
-            <p className={theme.linkedTextClass}>
-              {theme.linkedLabel(topic.usageTarget!)}
-            </p>
+            <p className={theme.linkedTextClass}>{theme.linkedLabel(topic.usageTarget!)}</p>
           )
         ) : (
           <p className="text-xs font-medium text-muted-fg">{theme.unlinkedLabel}</p>
         )}
-        {topic.note && (
-          <p className="mt-1.5 text-xs italic text-muted-fg">— {topic.note}</p>
-        )}
+        {topic.note && <p className="mt-1.5 text-xs italic text-muted-fg">— {topic.note}</p>}
       </div>
     </article>
   );
 }
 
-export function PrepLibrarySection({ track, userTier }: PrepLibrarySectionProps) {
+// ─── Compact card (lives inside the content grid) ────────────────────────────
+// Identical visual structure to every other resource card: icon · title ·
+// description · tier badge · action link.  No inline expansion.
+
+export function PrepLibraryCard({
+  track,
+  userTier,
+  topicCount,
+}: {
+  track: PrepLibraryTrack;
+  userTier: string;
+  topicCount: number;
+}) {
   const segment = PREP_LIBRARY_SEGMENTS[track];
   const theme = TRACK_THEMES[track];
   const unlocked = hasAccess(userTier, segment.requiredTier);
 
-  // Body collapsed by default — tap Open to expand, matching other card behaviour
-  const [expanded, setExpanded] = useState(false);
+  return (
+    <Reveal>
+      <div
+        className={cn(
+          "rounded-xl border bg-white p-5 flex flex-col h-full transition-all duration-200",
+          unlocked ? "border-border card-hover" : "border-border opacity-75"
+        )}
+      >
+        {/* Lock badge */}
+        <div className="flex items-start justify-between mb-3">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: `${segment.color}12` }}
+          >
+            <BarChart3 className="w-4.5 h-4.5" style={{ color: segment.color }} />
+          </div>
+          {!unlocked && <Lock className="w-3.5 h-3.5 text-muted-fg mt-0.5" />}
+        </div>
 
-  const [topics, setTopics] = useState<PrepLibraryTopic[]>(theme.seedTopics);
+        <h3 className="font-semibold text-sm text-gray-900 mb-1">{segment.title}</h3>
+        <p className="text-xs text-muted-fg leading-relaxed mb-3 flex-1">
+          {segment.cardDescription}
+        </p>
+
+        <div className="flex items-center justify-between gap-2 mt-auto pt-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="pro" size="sm">
+              Pro
+            </Badge>
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-fg">
+              {topicCount} saved
+            </span>
+          </div>
+
+          {unlocked ? (
+            <a
+              href={`#${segment.anchor}`}
+              className="text-xs text-primary-400 font-medium hover:text-primary-500 flex items-center gap-0.5 shrink-0"
+            >
+              Open <ChevronRight className="w-3.5 h-3.5" />
+            </a>
+          ) : (
+            <Link
+              href={theme.upgradeHref}
+              className="text-xs font-medium text-primary-400 hover:text-primary-500 flex items-center gap-0.5 shrink-0"
+            >
+              {UPGRADE_TO_ACCESS} <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          )}
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
+// ─── Full-width body (rendered BELOW the content grid) ───────────────────────
+// Scrolled to when the user taps "Open" on the compact card above.
+
+export function PrepLibraryBody({
+  track,
+  userTier,
+  onTopicCountChange,
+}: {
+  track: PrepLibraryTrack;
+  userTier: string;
+  onTopicCountChange?: (count: number) => void;
+}) {
+  const segment = PREP_LIBRARY_SEGMENTS[track];
+  const theme = TRACK_THEMES[track];
+  const unlocked = hasAccess(userTier, segment.requiredTier);
+
+  const [topics, setTopics] = useState<PrepLibraryTopic[]>(() => {
+    onTopicCountChange?.(theme.seedTopics.length);
+    return theme.seedTopics;
+  });
   const [title, setTitle] = useState("");
   const [keyPointsRaw, setKeyPointsRaw] = useState("");
   const [category, setCategory] = useState("");
   const [canUseFor, setCanUseFor] = useState("");
-
-  const topicCount = topics.length;
 
   const handleSave = useCallback(
     (e: React.FormEvent) => {
@@ -193,8 +268,7 @@ export function PrepLibrarySection({ track, userTier }: PrepLibrarySectionProps)
 
       const keyPoints = parseKeyPoints(keyPointsRaw);
       const usageTarget = theme.parseUsageTarget(canUseFor);
-
-      setTopics((prev) => [
+      const newTopics: PrepLibraryTopic[] = [
         {
           id: `user-${Date.now()}`,
           title: trimmedTitle,
@@ -202,237 +276,173 @@ export function PrepLibrarySection({ track, userTier }: PrepLibrarySectionProps)
           keyPoints,
           usageTarget,
         },
-        ...prev,
-      ]);
+        ...topics,
+      ];
 
+      setTopics(newTopics);
+      onTopicCountChange?.(newTopics.length);
       setTitle("");
       setKeyPointsRaw("");
       setCategory("");
       setCanUseFor("");
     },
-    [title, keyPointsRaw, category, canUseFor, theme]
+    [title, keyPointsRaw, category, canUseFor, theme, topics, onTopicCountChange]
   );
 
   return (
-    <Reveal className="mb-4">
+    <Reveal className="mb-6">
       <section
         id={segment.anchor}
         aria-labelledby={`prep-library-heading-${track}`}
-        className={cn(
-          "rounded-xl border bg-white overflow-hidden transition-all duration-200",
-          unlocked ? "border-border card-hover" : "border-border opacity-75"
-        )}
+        className="rounded-xl border border-border bg-white overflow-hidden"
       >
-        {/* Compact card header — identical structure to other content cards */}
-        <div className="relative p-5">
-          {!unlocked && (
-            <div className="absolute top-3 right-3">
-              <Lock className="w-3.5 h-3.5 text-muted-fg" />
-            </div>
-          )}
-
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
-            style={{ background: `${segment.color}12` }}
-          >
-            <BarChart3 className="w-4.5 h-4.5" style={{ color: segment.color }} />
-          </div>
-
+        {/* Section header */}
+        <div className="px-5 sm:px-6 py-5 border-b border-border">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg mb-1">
+            {segment.eyebrow}
+          </p>
           <h2
             id={`prep-library-heading-${track}`}
-            className="font-semibold text-sm text-gray-900 mb-1"
+            className="font-semibold text-base text-gray-900"
           >
             {segment.title}
           </h2>
-          <p className="text-xs text-muted-fg mb-3 leading-relaxed">
-            {segment.cardDescription}
-          </p>
-
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="pro" size="sm">
-                Pro
-              </Badge>
-              <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-fg">
-                {topicCount} saved
-              </span>
-            </div>
-
-            {unlocked ? (
-              <button
-                type="button"
-                onClick={() => setExpanded((v) => !v)}
-                className="text-xs text-primary-400 font-medium hover:text-primary-500 flex items-center gap-0.5 shrink-0"
-                aria-expanded={expanded}
-                aria-controls={`${segment.anchor}-body`}
-              >
-                {expanded ? (
-                  <>Collapse <ChevronUp className="w-3.5 h-3.5" /></>
-                ) : (
-                  <>Open <ChevronRight className="w-3.5 h-3.5" /></>
-                )}
-              </button>
-            ) : (
-              <Link
-                href={theme.upgradeHref}
-                className="text-xs font-medium text-primary-400 hover:text-primary-500 flex items-center gap-0.5 shrink-0"
-              >
-                {UPGRADE_TO_ACCESS} <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            )}
-          </div>
         </div>
 
-        {/* Expandable body — only shown when Open is tapped or locked preview */}
-        {(expanded || !unlocked) && (
-          <div id={`${segment.anchor}-body`} className="border-t border-border">
-            {!unlocked ? (
-              <div className="relative">
-                {/* Blurred locked preview */}
-                <div
-                  className="blur-sm pointer-events-none select-none px-5 py-5 space-y-4"
-                  aria-hidden
-                >
-                  {topics.slice(0, 2).map((topic) => (
-                    <TopicCard key={topic.id} topic={topic} theme={theme} />
-                  ))}
+        {!unlocked ? (
+          /* Locked: blurred preview + upgrade CTA */
+          <div className="relative">
+            <div
+              className="blur-sm pointer-events-none select-none px-5 sm:px-6 py-5 space-y-4"
+              aria-hidden
+            >
+              {topics.slice(0, 2).map((topic) => (
+                <TopicCard key={topic.id} topic={topic} theme={theme} />
+              ))}
+            </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center py-10">
+              <Lock className="w-5 h-5 text-muted-fg mb-2" />
+              <p className="text-sm font-semibold text-gray-700 mb-1">Pro Pack required</p>
+              <p className="text-xs text-muted-fg mb-4 max-w-xs">{theme.upgradeDescription}</p>
+              <Link href={theme.upgradeHref}>
+                <Button size="sm">{UPGRADE_TO_ACCESS}</Button>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          /* Unlocked: form + saved topics */
+          <div className="px-5 sm:px-6 py-5 space-y-6">
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className={theme.iconWrapClass}>
+                  <BarChart3 className={theme.iconClass} />
                 </div>
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center">
-                  <Lock className="w-5 h-5 text-muted-fg mb-2" />
-                  <p className="text-sm font-semibold text-gray-700 mb-1">Pro Pack required</p>
-                  <p className="text-xs text-muted-fg mb-4 max-w-xs">{theme.upgradeDescription}</p>
-                  <Link href={theme.upgradeHref}>
-                    <Button size="sm">{UPGRADE_TO_ACCESS}</Button>
-                  </Link>
+                <h3 className="font-semibold text-gray-900">{theme.formHeader}</h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2 space-y-1.5">
+                  <label
+                    htmlFor={`prep-topic-title-${track}`}
+                    className={cn(
+                      "text-[10px] font-bold uppercase tracking-widest",
+                      theme.labelColorClass
+                    )}
+                  >
+                    Topic title
+                  </label>
+                  <Input
+                    id={`prep-topic-title-${track}`}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={theme.placeholders.title}
+                    className="h-10"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 space-y-1.5">
+                  <label
+                    htmlFor={`prep-key-points-${track}`}
+                    className={cn(
+                      "text-[10px] font-bold uppercase tracking-widest",
+                      theme.labelColorClass
+                    )}
+                  >
+                    Key points
+                  </label>
+                  <textarea
+                    id={`prep-key-points-${track}`}
+                    value={keyPointsRaw}
+                    onChange={(e) => setKeyPointsRaw(e.target.value)}
+                    placeholder={theme.placeholders.keyPoints}
+                    rows={3}
+                    className={cn(
+                      "flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm",
+                      "placeholder:text-muted-fg resize-none",
+                      "focus:outline-none focus:ring-2 focus:border-transparent",
+                      theme.textareaFocusClass,
+                      "transition-all duration-200"
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor={`prep-category-${track}`}
+                    className={cn(
+                      "text-[10px] font-bold uppercase tracking-widest",
+                      theme.labelColorClass
+                    )}
+                  >
+                    Category
+                  </label>
+                  <Input
+                    id={`prep-category-${track}`}
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder={theme.placeholders.category}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor={`prep-can-use-for-${track}`}
+                    className={cn(
+                      "text-[10px] font-bold uppercase tracking-widest",
+                      theme.labelColorClass
+                    )}
+                  >
+                    Can use for
+                  </label>
+                  <Input
+                    id={`prep-can-use-for-${track}`}
+                    value={canUseFor}
+                    onChange={(e) => setCanUseFor(e.target.value)}
+                    placeholder={theme.placeholders.canUseFor}
+                  />
                 </div>
               </div>
-            ) : (
-              <div className="px-5 py-5 space-y-6">
-                {/* Add form */}
-                <form onSubmit={handleSave} className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <div className={theme.iconWrapClass}>
-                      <BarChart3 className={theme.iconClass} />
-                    </div>
-                    <h3 className="font-semibold text-gray-900">{theme.formHeader}</h3>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2 space-y-1.5">
-                      <label
-                        htmlFor={`prep-topic-title-${track}`}
-                        className={cn(
-                          "text-[10px] font-bold uppercase tracking-widest",
-                          theme.labelColorClass
-                        )}
-                      >
-                        Topic title
-                      </label>
-                      <Input
-                        id={`prep-topic-title-${track}`}
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder={theme.placeholders.title}
-                        className="h-10"
-                      />
-                    </div>
+              <Button
+                type="submit"
+                disabled={!title.trim()}
+                className={cn("gap-1.5", theme.saveButtonClass)}
+              >
+                <Plus className="w-4 h-4" />
+                {theme.saveButtonLabel}
+              </Button>
+            </form>
 
-                    <div className="sm:col-span-2 space-y-1.5">
-                      <label
-                        htmlFor={`prep-key-points-${track}`}
-                        className={cn(
-                          "text-[10px] font-bold uppercase tracking-widest",
-                          theme.labelColorClass
-                        )}
-                      >
-                        Key points
-                      </label>
-                      <textarea
-                        id={`prep-key-points-${track}`}
-                        value={keyPointsRaw}
-                        onChange={(e) => setKeyPointsRaw(e.target.value)}
-                        placeholder={theme.placeholders.keyPoints}
-                        rows={3}
-                        className={cn(
-                          "flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm",
-                          "placeholder:text-muted-fg resize-none",
-                          "focus:outline-none focus:ring-2 focus:border-transparent",
-                          theme.textareaFocusClass,
-                          "transition-all duration-200"
-                        )}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label
-                        htmlFor={`prep-category-${track}`}
-                        className={cn(
-                          "text-[10px] font-bold uppercase tracking-widest",
-                          theme.labelColorClass
-                        )}
-                      >
-                        Category
-                      </label>
-                      <Input
-                        id={`prep-category-${track}`}
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        placeholder={theme.placeholders.category}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label
-                        htmlFor={`prep-can-use-for-${track}`}
-                        className={cn(
-                          "text-[10px] font-bold uppercase tracking-widest",
-                          theme.labelColorClass
-                        )}
-                      >
-                        Can use for
-                      </label>
-                      <Input
-                        id={`prep-can-use-for-${track}`}
-                        value={canUseFor}
-                        onChange={(e) => setCanUseFor(e.target.value)}
-                        placeholder={theme.placeholders.canUseFor}
-                      />
-                    </div>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={!title.trim()}
-                    className={cn("gap-1.5", theme.saveButtonClass)}
-                  >
-                    <Plus className="w-4 h-4" />
-                    {theme.saveButtonLabel}
-                  </Button>
-                </form>
-
-                {/* Saved topics */}
-                {topics.length > 0 && (
-                  <div className="space-y-3">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
-                      {topicCount} {topicCount === 1 ? "topic" : "topics"} saved
-                    </p>
-                    {topics.map((topic, i) => (
-                      <Reveal key={topic.id} delay={i * 0.03}>
-                        <TopicCard topic={topic} theme={theme} />
-                      </Reveal>
-                    ))}
-                  </div>
-                )}
-
-                {/* Collapse button at bottom */}
-                <button
-                  type="button"
-                  onClick={() => setExpanded(false)}
-                  className="w-full flex items-center justify-center gap-1 text-xs text-muted-fg hover:text-gray-700 pt-2 transition-colors"
-                >
-                  <ChevronDown className="w-3.5 h-3.5 rotate-180" />
-                  Collapse
-                </button>
+            {topics.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
+                  {topics.length} {topics.length === 1 ? "topic" : "topics"} saved
+                </p>
+                {topics.map((topic, i) => (
+                  <Reveal key={topic.id} delay={i * 0.03}>
+                    <TopicCard topic={topic} theme={theme} />
+                  </Reveal>
+                ))}
               </div>
             )}
           </div>
@@ -441,3 +451,7 @@ export function PrepLibrarySection({ track, userTier }: PrepLibrarySectionProps)
     </Reveal>
   );
 }
+
+// ─── Legacy export kept for backwards compat ─────────────────────────────────
+// dashboard-client now imports PrepLibraryCard + PrepLibraryBody separately.
+export { PrepLibraryCard as PrepLibrarySection };

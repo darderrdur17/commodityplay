@@ -27,7 +27,7 @@ import {
   formatMentorCreditsUsedLabel,
   type MentorCreditUsage,
 } from "@/lib/mentor-credits";
-import { PrepLibrarySection } from "@/components/dashboard/prep-library-section";
+import { PrepLibraryCard, PrepLibraryBody } from "@/components/dashboard/prep-library-section";
 
 interface Props {
   contentTiers?: Record<string, string>;
@@ -614,22 +614,32 @@ export function DashboardClient({
               });
             })}
 
-          {/* Prep Library — track-specific Pro+ card, lives in the grid */}
+          {/* Prep Library compact card — same visual as every other resource card */}
           {(isAdminUser || isCareerTrack) && (
-            <PrepLibrarySection
+            <PrepLibraryCard
               track="CAREER"
               userTier={user.tier}
+              topicCount={7}
             />
           )}
           {(isAdminUser || !isCareerTrack) && (
-            <PrepLibrarySection
+            <PrepLibraryCard
               track="SALES"
               userTier={user.tier}
+              topicCount={6}
             />
           )}
 
         </div>
       </div>
+
+      {/* ── PREP LIBRARY BODY (below grid — scrolled to via "Open" on the card) ── */}
+      {(isAdminUser || isCareerTrack) && (
+        <PrepLibraryBody track="CAREER" userTier={user.tier} />
+      )}
+      {(isAdminUser || !isCareerTrack) && (
+        <PrepLibraryBody track="SALES" userTier={user.tier} />
+      )}
 
       {/* ── UPGRADE CTA (if not Elite) ── */}
       {user.tier !== "ELITE" && (
