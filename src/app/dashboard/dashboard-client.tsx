@@ -614,20 +614,22 @@ export function DashboardClient({
               });
             })}
 
+          {/* Prep Library — track-specific Pro+ card, lives in the grid */}
+          {(isAdminUser || isCareerTrack) && (
+            <PrepLibrarySection
+              track="CAREER"
+              userTier={user.tier}
+            />
+          )}
+          {(isAdminUser || !isCareerTrack) && (
+            <PrepLibrarySection
+              track="SALES"
+              userTier={user.tier}
+            />
+          )}
+
         </div>
       </div>
-
-      {/* ── PREP LIBRARY (track-specific · Pro+) ── */}
-      <PrepLibrarySection
-        track="CAREER"
-        userTier={user.tier}
-        visible={isAdminUser || isCareerTrack}
-      />
-      <PrepLibrarySection
-        track="SALES"
-        userTier={user.tier}
-        visible={isAdminUser || !isCareerTrack}
-      />
 
       {/* ── UPGRADE CTA (if not Elite) ── */}
       {user.tier !== "ELITE" && (
