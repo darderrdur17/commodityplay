@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import type { PrepCategory, PrepStatus } from "@prisma/client";
+import type { PrepCategory, PrepStatus, Track } from "@prisma/client";
 
 // ─── Category / Status maps ───────────────────────────────────────────────────
 
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
   const track = req.nextUrl.searchParams.get("track");
   const where = {
     userId: session.user.id,
-    ...(track === "CAREER" || track === "SALES" ? { track } : {}),
+    ...(track === "CAREER" || track === "SALES" ? { track: track as Track } : {}),
   };
 
   const rows = await prisma.talkingPoint.findMany({

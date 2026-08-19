@@ -343,7 +343,6 @@ export function PrepLibraryBody({
         // Optimistic local-only fallback
         const optimistic: TalkingPoint = {
           id: `user-${Date.now()}`,
-          track,
           createdAt: new Date(),
           ...body,
           prepStatus,
