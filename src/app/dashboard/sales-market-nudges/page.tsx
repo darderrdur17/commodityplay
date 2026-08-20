@@ -1,8 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSalesMarketNudgesContent } from "@/lib/content/accessors";
-import { getContentTierForSlug } from "@/lib/content/accessors";
+import { getSalesMarketNudgesContent, getContentTierForSlug } from "@/lib/content/accessors";
 import { SalesMarketNudgesSection } from "@/components/dashboard/sales-market-nudges-section";
 
 export const dynamic = "force-dynamic";

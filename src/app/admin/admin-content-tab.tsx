@@ -23,6 +23,7 @@ import { LibraryEditor } from "./editors/library-editor";
 import { FooterGuidesEditor } from "./editors/footer-guides-editor";
 import { MemberDashboardEditor } from "./editors/member-dashboard-editor";
 import { SalesNavigationGuideEditor } from "./editors/sales-navigation-guide-editor";
+import { SalesMarketNudgesEditor } from "./editors/sales-market-nudges-editor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -86,6 +87,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { slug: "career-roadmap", label: "Sales Navigation Guide", track: "Sales", tier: "PRO", editorVariant: "sales-nav" },
       { slug: "interview-questions", label: "Interview Questions", track: "Career", tier: "PRO" },
       { slug: "knowledge-test", label: "Market Knowledge Test", track: "Both", tier: "PRO" },
+      { slug: "sales-market-nudges", label: "Sales Market Nudges", track: "Sales", tier: "PRO" },
     ],
   },
   {
@@ -231,6 +233,8 @@ function ModuleEditor({
         return <FooterGuidesEditor payload={payload} onChange={setPayload} moduleSlug={slug} />;
       case "member-dashboard":
         return <MemberDashboardEditor {...editorProps} />;
+      case "sales-market-nudges":
+        return <SalesMarketNudgesEditor {...editorProps} />;
       default:
         return (
           <div className="p-6 text-center text-muted-fg text-sm">

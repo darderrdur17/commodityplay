@@ -35,10 +35,8 @@ export function PrepLibraryPageClient({
   }, []);
 
   const forceSales = hashAnchor === PREP_LIBRARY_SEGMENTS.SALES.anchor;
-  const forceCareer = hashAnchor === PREP_LIBRARY_SEGMENTS.CAREER.anchor;
 
-  const showSales =
-    userTrack === "SALES" || isAdmin || forceSales;
+  const showSales = userTrack === "SALES" || isAdmin || forceSales;
   const showCareer =
     (userTrack === "CAREER" || isAdmin) && !forceSales;
 
@@ -64,9 +62,6 @@ export function PrepLibraryPageClient({
       )}
       {showCareer && <PrepLibraryBody track="CAREER" userTier={userTier} />}
       {showSales && <PrepLibraryBody track="SALES" userTier={userTier} />}
-      {!showCareer && !showSales && forceCareer && (
-        <PrepLibraryBody track="CAREER" userTier={userTier} />
-      )}
     </>
   );
 }

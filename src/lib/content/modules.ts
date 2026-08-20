@@ -17,7 +17,8 @@ export type ContentSlug =
   | "mentors"
   | "library"
   | "footer-guides"
-  | "member-dashboard";
+  | "member-dashboard"
+  | "sales-market-nudges";
 
 export interface ContentModuleMeta {
   slug: ContentSlug;
@@ -122,6 +123,12 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
     title: "Member Dashboard",
     description: "Blue marketing banners on the member dashboard — Starter Pack and upgrade prompts for all tiers",
     requiredTier: "STARTER",
+  },
+  {
+    slug: "sales-market-nudges",
+    title: "Sales Market Nudges",
+    description: "Weekly market nudges and intelligence briefs for Sales track members",
+    requiredTier: "PRO",
   },
   {
     slug: "mentors",

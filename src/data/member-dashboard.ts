@@ -99,10 +99,10 @@ export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardC
   {
     slug: "sales-market-nudges",
     title: "Sales Market Nudges",
-    description: "Weekly sales intelligence note — desk language, commercial angles, and what buyers are thinking this week.",
+    description:
+      "Weekly sales intelligence note — desk language, commercial angles, and what buyers are thinking this week.",
     requiredTier: "PRO",
-    href: "/starter-pack",
-    deliverableKey: "salesEdgeNote",
+    href: "/dashboard/sales-market-nudges",
   },
   {
     slug: "industry-guide-for-sales",

@@ -76,27 +76,29 @@ function MonthYearFilterBar({
 }
 
 function NudgeText({ nudge }: { nudge: MarketNudgeItem }) {
-  if (nudge.accountNames.length === 0) {
-    return <span>{nudge.text}</span>;
+  const { text, accountNames } = nudge;
+  if (accountNames.length === 0) {
+    return <span>{text}</span>;
   }
 
-  const suffix =
-    nudge.text.endsWith("(") || nudge.text.endsWith("—") || nudge.text.endsWith("to")
-      ? ""
-      : ".";
+  const trimmed = text.trimEnd();
+  const endsWithOpenParen = trimmed.endsWith("(");
+  const endsWithTo = /\bto$/.test(trimmed);
 
   return (
     <span>
-      {nudge.text}
-      {nudge.text.endsWith("(") ? "" : nudge.text.endsWith("to") ? " " : " ("}
-      {nudge.accountNames.map((name, i) => (
+      {text}
+      {!endsWithOpenParen && !endsWithTo && " ("}
+      {endsWithTo && " "}
+      {accountNames.map((name, i) => (
         <React.Fragment key={name}>
           {i > 0 && ", "}
           <strong className="font-semibold text-white">{name}</strong>
         </React.Fragment>
       ))}
-      {nudge.text.endsWith("(") ? ")" : ")"}
-      {suffix}
+      {endsWithOpenParen && ")"}
+      {!endsWithOpenParen && !endsWithTo && ")"}
+      {!trimmed.endsWith(".") && "."}
     </span>
   );
 }

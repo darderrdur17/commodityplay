@@ -16,6 +16,10 @@ import {
   formatMemberDashboardValidationErrors,
 } from "@/lib/content/member-dashboard-schema";
 import {
+  parseSalesMarketNudgesPayload,
+  formatSalesMarketNudgesValidationErrors,
+} from "@/lib/content/sales-market-nudges-schema";
+import {
   parseMentorConnectPayload,
   formatMentorConnectValidationErrors,
 } from "@/lib/content/mentor-connect-schema";
@@ -153,6 +157,20 @@ export async function PUT(
         );
       }
       parsed.data.payload = dashboardValidation.data;
+    }
+
+    if (slug === "sales-market-nudges") {
+      const nudgesValidation = parseSalesMarketNudgesPayload(parsed.data.payload);
+      if (!nudgesValidation.success) {
+        return NextResponse.json(
+          {
+            error: "Invalid sales market nudges content",
+            details: formatSalesMarketNudgesValidationErrors(nudgesValidation),
+          },
+          { status: 400 }
+        );
+      }
+      parsed.data.payload = nudgesValidation.data;
     }
 
     if (slug === "mentor-connect") {

@@ -17,6 +17,11 @@ import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-con
 import { DEFAULT_MEMBER_DASHBOARD_CONTENT, type MemberDashboardContent } from "@/data/member-dashboard";
 import { normalizeMemberDashboardPayload } from "@/lib/content/member-dashboard-schema";
 import {
+  DEFAULT_SALES_MARKET_NUDGES_CONTENT,
+  type SalesMarketNudgesContent,
+} from "@/data/sales-market-nudges";
+import { normalizeSalesMarketNudgesPayload } from "@/lib/content/sales-market-nudges-schema";
+import {
   DEFAULT_MENTOR_CONNECT_CONTENT,
   type MentorConnectHero,
   type MentorConnectHowItWorks,
@@ -112,6 +117,14 @@ export async function getMemberDashboardContent(): Promise<MemberDashboardConten
     return DEFAULT_MEMBER_DASHBOARD_CONTENT;
   }
   return normalizeMemberDashboardPayload(cms);
+}
+
+export async function getSalesMarketNudgesContent(): Promise<SalesMarketNudgesContent> {
+  const cms = await tryReadPublishedPayload<Partial<SalesMarketNudgesContent>>("sales-market-nudges");
+  if (cms === null) {
+    return DEFAULT_SALES_MARKET_NUDGES_CONTENT;
+  }
+  return normalizeSalesMarketNudgesPayload(cms);
 }
 
 export async function getFaqContent(): Promise<FaqContent> {
