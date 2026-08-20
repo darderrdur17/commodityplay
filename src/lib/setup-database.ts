@@ -1,61 +1,13 @@
-import fs from "fs";
-import path from "path";
+import { execSync } from "child_process";
 import { prisma } from "@/lib/prisma";
 import { seedDatabase } from "../../prisma/seed";
 
-function stripSqlComments(sql: string): string {
-  return sql.replace(/--[^\n\r]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
-}
-
-function parseSqlStatements(sql: string): string[] {
-  const cleaned = stripSqlComments(sql);
-  const statements: string[] = [];
-  let current = "";
-  let inDollarQuote = false;
-
-  for (let i = 0; i < cleaned.length; i++) {
-    if (cleaned[i] === "$" && cleaned[i + 1] === "$") {
-      inDollarQuote = !inDollarQuote;
-      current += "$$";
-      i++;
-      continue;
-    }
-    if (!inDollarQuote && cleaned[i] === ";") {
-      const trimmed = current.trim();
-      if (trimmed.length > 0) statements.push(trimmed);
-      current = "";
-      continue;
-    }
-    current += cleaned[i];
-  }
-
-  const trimmed = current.trim();
-  if (trimmed.length > 0) statements.push(trimmed);
-  return statements;
-}
-
-async function runSqlFile(relativePath: string): Promise<void> {
-  const sqlPath = path.join(process.cwd(), relativePath);
-  const sql = fs.readFileSync(sqlPath, "utf8");
-  const statements = parseSqlStatements(sql);
-
-  for (const statement of statements) {
-    try {
-      await prisma.$executeRawUnsafe(statement);
-    } catch (err) {
-      if (!isIgnorableDbError(err)) throw err;
-    }
-  }
-}
-
-function isIgnorableDbError(err: unknown): boolean {
-  const msg = String(err);
-  return (
-    msg.includes("already exists") ||
-    msg.includes("duplicate key") ||
-    msg.includes("42P07") || // relation exists
-    msg.includes("42710") // type exists
-  );
+/** Apply full Prisma schema to the connected database (Neon production). */
+export async function applyPrismaSchema(): Promise<void> {
+  execSync("npx prisma db push --skip-generate", {
+    stdio: "pipe",
+    env: process.env,
+  });
 }
 
 export async function isDatabaseSeeded(): Promise<boolean> {
@@ -67,26 +19,10 @@ export async function isDatabaseSeeded(): Promise<boolean> {
   }
 }
 
-export async function applySchemaSql(): Promise<void> {
-  await runSqlFile("prisma/init.sql");
-}
-
-export async function applyCmsSchemaSql(): Promise<void> {
-  await runSqlFile("prisma/cms-migration.sql");
-}
-
 export async function setupProductionDatabase(): Promise<{ alreadySeeded: boolean }> {
-  await applyCmsSchemaSql();
+  await applyPrismaSchema();
 
   const alreadySeeded = await isDatabaseSeeded();
-
-  if (alreadySeeded) {
-    // Upsert any new demo accounts added after initial seed (e.g. elite.mentor@demo.com)
-    await seedDatabase();
-    return { alreadySeeded: true };
-  }
-
-  await applySchemaSql();
   await seedDatabase();
-  return { alreadySeeded: false };
+  return { alreadySeeded };
 }
