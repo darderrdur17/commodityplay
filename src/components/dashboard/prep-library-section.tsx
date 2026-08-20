@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BarChart3, Bookmark, ChevronRight, ExternalLink, Lock, Plus, Trash2 } from "lucide-react";
+import { BarChart3, ChevronRight, ExternalLink, Lock, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ import {
   SALES_HERO_GREEN,
 } from "@/lib/sales-brand-colors";
 import { ModuleTrackBadge } from "@/components/dashboard/module-track-badge";
-import { BookmarkUnderAccountModal } from "@/components/dashboard/bookmark-under-account-modal";
+import { LinkToAccountDropdown } from "@/components/dashboard/link-to-account-dropdown";
 
 // ─── Shared types ────────────────────────────────────────────────────────────
 
@@ -401,13 +401,13 @@ function SalesAccountIntelligenceBanner({ userTier }: { userTier: string }) {
 function SalesTopicCard({
   topic,
   onDelete,
-  onBookmark,
-  showBookmark = false,
+  onLinkedToAccount,
+  showLinkToAccount = false,
 }: {
   topic: TalkingPoint;
   onDelete?: (id: string) => void;
-  onBookmark?: (topic: TalkingPoint) => void;
-  showBookmark?: boolean;
+  onLinkedToAccount?: (topicId: string, accountName: string) => void;
+  showLinkToAccount?: boolean;
 }) {
   const usedWithAccount = Boolean(topic.canUseFor?.trim());
   const showExampleBadge = Boolean(topic.isStarterExample);
@@ -457,39 +457,35 @@ function SalesTopicCard({
         </ul>
       )}
 
-      <div className="pt-3 border-t border-border/60 flex flex-wrap items-center gap-2">
-        {usedWithAccount ? (
-          <>
-            <span
-              className="inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold text-white"
-              style={{ backgroundColor: SALES_HERO_GREEN }}
-            >
-              Used in: {topic.canUseFor}
+      <div className="pt-3 border-t border-border/60 flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3">
+        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+          {usedWithAccount ? (
+            <>
+              <span
+                className="inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold text-white"
+                style={{ backgroundColor: SALES_HERO_GREEN }}
+              >
+                Used in: {topic.canUseFor}
+              </span>
+              {topic.usedInNote && (
+                <span className="text-xs italic text-muted-fg">— {topic.usedInNote}</span>
+              )}
+            </>
+          ) : (
+            <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-500">
+              Not yet used with an account
             </span>
-            {topic.usedInNote && (
-              <span className="text-xs italic text-muted-fg">— {topic.usedInNote}</span>
-            )}
-          </>
-        ) : (
-          <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-500">
-            Not yet used with an account
-          </span>
-        )}
-        {showBookmark && onBookmark && !topic.isStarterExample && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onBookmark(topic)}
-            className="ml-auto gap-1.5 h-8 text-xs hover:bg-teal-50"
-            style={{
-              borderColor: `${SALES_HERO_GREEN}33`,
-              color: SALES_HERO_GREEN,
-            }}
-          >
-            <Bookmark className="w-3.5 h-3.5" />
-            Bookmark under account
-          </Button>
+          )}
+        </div>
+        {showLinkToAccount && !topic.isStarterExample && (
+          <LinkToAccountDropdown
+            sourceType="PREP_LIBRARY"
+            sourceId={topic.id}
+            sourceTitle={topic.title}
+            variant="compact"
+            className="sm:ml-auto sm:min-w-[200px]"
+            onLinked={(accountName) => onLinkedToAccount?.(topic.id, accountName)}
+          />
         )}
       </div>
     </article>
@@ -600,7 +596,6 @@ export function PrepLibraryBody({
   const [monthYearFilter, setMonthYearFilter] = useState<string>("all");
   const [usedInNote, setUsedInNote] = useState("");
   const [canUseFor, setCanUseFor] = useState("");
-  const [bookmarkTopic, setBookmarkTopic] = useState<TalkingPoint | null>(null);
   const [saveError, setSaveError] = useState("");
 
   const hasElite = hasAccess(userTier, "ELITE");
@@ -1055,8 +1050,8 @@ export function PrepLibraryBody({
                                   <SalesTopicCard
                                     topic={topic}
                                     onDelete={handleDelete}
-                                    showBookmark={hasElite}
-                                    onBookmark={setBookmarkTopic}
+                                    showLinkToAccount={hasElite}
+                                    onLinkedToAccount={handleBookmarked}
                                   />
                                 </Reveal>
                               ))}
@@ -1074,19 +1069,6 @@ export function PrepLibraryBody({
               )}
 
               <SalesAccountIntelligenceBanner userTier={userTier} />
-
-              <BookmarkUnderAccountModal
-                open={Boolean(bookmarkTopic)}
-                onClose={() => setBookmarkTopic(null)}
-                sourceType="PREP_LIBRARY"
-                sourceId={bookmarkTopic?.id ?? ""}
-                sourceTitle={bookmarkTopic?.title ?? ""}
-                onBookmarked={(accountName) => {
-                  if (bookmarkTopic) {
-                    handleBookmarked(bookmarkTopic.id, accountName);
-                  }
-                }}
-              />
             </div>
           )}
 

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Bookmark, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/animations";
 import { hasAccess } from "@/lib/utils";
@@ -14,7 +14,7 @@ import {
   type MarketNudgeItem,
   type SalesMarketNudgesContent,
 } from "@/data/sales-market-nudges";
-import { BookmarkUnderAccountModal } from "@/components/dashboard/bookmark-under-account-modal";
+import { LinkToAccountDropdown } from "@/components/dashboard/link-to-account-dropdown";
 import { cn } from "@/lib/utils";
 const ROYAL = "#1a4fd6";
 const CTA_BLUE = "#3280ff";
@@ -102,7 +102,13 @@ function NudgeText({ nudge }: { nudge: MarketNudgeItem }) {
   );
 }
 
-function IntelligenceBriefCard({ brief }: { brief: IntelligenceBrief }) {
+function IntelligenceBriefCard({
+  brief,
+  showLinkToAccount = false,
+}: {
+  brief: IntelligenceBrief;
+  showLinkToAccount?: boolean;
+}) {
   return (
     <article className="rounded-xl border border-border bg-white p-5 sm:p-6 shadow-sm flex flex-col h-full">
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -114,18 +120,28 @@ function IntelligenceBriefCard({ brief }: { brief: IntelligenceBrief }) {
         )}
       </div>
       <p className="text-sm text-muted-fg leading-relaxed mb-4 flex-1">{brief.description}</p>
-      <div className="pt-3 border-t border-border/60">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg mb-2">
-          Discovery Questions
-        </p>
-        <ul className="space-y-1.5">
-          {brief.discoveryQuestions.map((question) => (
-            <li key={question} className="flex gap-2 text-sm text-muted-fg leading-relaxed">
-              <span className="text-gray-400 shrink-0">—</span>
-              <span>{question}</span>
-            </li>
-          ))}
-        </ul>
+      <div className="pt-3 border-t border-border/60 space-y-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg mb-2">
+            Discovery Questions
+          </p>
+          <ul className="space-y-1.5">
+            {brief.discoveryQuestions.map((question) => (
+              <li key={question} className="flex gap-2 text-sm text-muted-fg leading-relaxed">
+                <span className="text-gray-400 shrink-0">—</span>
+                <span>{question}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        {showLinkToAccount && (
+          <LinkToAccountDropdown
+            sourceType="MARKET_NUDGE"
+            sourceId={brief.id}
+            sourceTitle={brief.title}
+            variant="compact"
+          />
+        )}
       </div>
     </article>
   );
@@ -180,7 +196,6 @@ export function SalesMarketNudgesSection({
 }) {
   const unlocked = hasAccess(userTier, requiredTier);
   const hasElite = hasAccess(userTier, "ELITE");
-  const [bookmarkNudge, setBookmarkNudge] = useState<MarketNudgeItem | null>(null);
   const briefGroups = useMemo(
     () => groupBriefsByMonthYear(content.intelligenceBriefs),
     [content.intelligenceBriefs]
@@ -262,16 +277,13 @@ export function SalesMarketNudgesSection({
                 <NudgeText nudge={nudge} />
               </p>
               {hasElite && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setBookmarkNudge(nudge)}
-                  className="shrink-0 border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white gap-1.5"
-                >
-                  <Bookmark className="w-3.5 h-3.5" />
-                  Bookmark under account
-                </Button>
+                <LinkToAccountDropdown
+                  sourceType="MARKET_NUDGE"
+                  sourceId={nudge.id}
+                  sourceTitle={getNudgeBookmarkTitle(nudge)}
+                  variant="on-green"
+                  className="shrink-0 sm:min-w-[200px]"
+                />
               )}
             </li>
           ))}
@@ -311,7 +323,10 @@ export function SalesMarketNudgesSection({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {activeBriefs.map((brief, i) => (
                   <Reveal key={brief.id} delay={i * 0.03}>
-                    <IntelligenceBriefCard brief={brief} />
+                    <IntelligenceBriefCard
+                      brief={brief}
+                      showLinkToAccount={hasElite}
+                    />
                   </Reveal>
                 ))}
               </div>
@@ -323,14 +338,6 @@ export function SalesMarketNudgesSection({
       </section>
 
       <AccountIntelligenceBanner userTier={userTier} />
-
-      <BookmarkUnderAccountModal
-        open={Boolean(bookmarkNudge)}
-        onClose={() => setBookmarkNudge(null)}
-        sourceType="MARKET_NUDGE"
-        sourceId={bookmarkNudge?.id ?? ""}
-        sourceTitle={bookmarkNudge ? getNudgeBookmarkTitle(bookmarkNudge) : ""}
-      />
     </Reveal>
   );
 }
