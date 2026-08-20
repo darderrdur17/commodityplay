@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ClipboardList, Lock, Pin, Plus, X } from "lucide-react";
+import { ClipboardList, Lock, Pin, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Reveal } from "@/components/animations";
@@ -158,7 +158,15 @@ function BookmarkChip({
   );
 }
 
-function AccountCard({ account }: { account: TrackedAccountRecord }) {
+function AccountCard({
+  account,
+  onDelete,
+  deleting = false,
+}: {
+  account: TrackedAccountRecord;
+  onDelete?: (id: string) => void;
+  deleting?: boolean;
+}) {
   const statusMeta = getAccountStatusMeta(account.status);
   const prepBookmarks = account.bookmarks.filter((b) => b.sourceType === "PREP_LIBRARY");
   const nudgeBookmarks = account.bookmarks.filter((b) => b.sourceType === "MARKET_NUDGE");
@@ -173,14 +181,27 @@ function AccountCard({ account }: { account: TrackedAccountRecord }) {
           <h3 className="font-bold text-gray-900 text-base leading-snug">{account.name}</h3>
           <p className="text-sm text-muted-fg mt-0.5">{account.deskType}</p>
         </div>
-        <span
-          className={cn(
-            "inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold",
-            statusMeta.badgeClass
+        <div className="flex items-start gap-2 shrink-0">
+          <span
+            className={cn(
+              "inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold",
+              statusMeta.badgeClass
+            )}
+          >
+            {statusMeta.label}
+          </span>
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(account.id)}
+              disabled={deleting}
+              className="p-1.5 rounded-lg text-muted-fg hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+              aria-label={`Delete ${account.name}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           )}
-        >
-          {statusMeta.label}
-        </span>
+        </div>
       </div>
 
       {account.notes && (
@@ -433,6 +454,7 @@ export function AccountIntelligenceSection({ userTier }: { userTier: string }) {
   const [loading, setLoading] = useState(unlocked);
   const [addOpen, setAddOpen] = useState(false);
   const [jumpTarget, setJumpTarget] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadAccounts = useCallback(async () => {
     if (!unlocked) return;
@@ -461,6 +483,28 @@ export function AccountIntelligenceSection({ userTier }: { userTier: string }) {
     const el = document.getElementById(`account-${accountId}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  async function handleDeleteAccount(accountId: string) {
+    const account = accounts.find((a) => a.id === accountId);
+    if (!account) return;
+
+    const confirmed = window.confirm(
+      `Delete "${account.name}"? Any bookmarks linked to this account will also be removed.`
+    );
+    if (!confirmed) return;
+
+    setDeletingId(accountId);
+    try {
+      const res = await fetch(`/api/account-intelligence/accounts/${accountId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) return;
+      setAccounts((prev) => prev.filter((a) => a.id !== accountId));
+      if (jumpTarget === accountId) setJumpTarget("");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -557,7 +601,11 @@ export function AccountIntelligenceSection({ userTier }: { userTier: string }) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {accounts.map((account, i) => (
               <Reveal key={account.id} delay={i * 0.03}>
-                <AccountCard account={account} />
+                <AccountCard
+                  account={account}
+                  onDelete={handleDeleteAccount}
+                  deleting={deletingId === account.id}
+                />
               </Reveal>
             ))}
           </div>
