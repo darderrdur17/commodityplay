@@ -1,8 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PrepLibraryBody } from "@/components/dashboard/prep-library-section";
-import { PREP_LIBRARY_SEGMENTS, type PrepLibraryTrack } from "@/data/prep-library";
+import { PrepLibraryPageClient } from "./prep-library-page-client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -24,24 +23,16 @@ export default async function PrepLibraryPage() {
 
   if (!user) redirect("/login");
 
-  const track: PrepLibraryTrack = user.track === "CAREER" ? "CAREER" : "SALES";
-  const showCareer = track === "CAREER";
-  const showSales = track === "SALES";
+  const userTrack = user.track === "SALES" ? "SALES" : "CAREER";
+  const isAdmin = session.user.role === "ADMIN";
 
   return (
     <div className="page-container py-8 sm:py-10">
-      {showCareer && (
-        <div className="mb-8">
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900">
-            {PREP_LIBRARY_SEGMENTS.CAREER.title}
-          </h1>
-          <p className="text-sm text-muted-fg mt-1">
-            {PREP_LIBRARY_SEGMENTS.CAREER.cardDescription}
-          </p>
-        </div>
-      )}
-      {showCareer && <PrepLibraryBody track="CAREER" userTier={user.tier} />}
-      {showSales && <PrepLibraryBody track="SALES" userTier={user.tier} />}
+      <PrepLibraryPageClient
+        userTier={user.tier}
+        userTrack={userTrack}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }

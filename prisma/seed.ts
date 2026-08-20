@@ -37,6 +37,16 @@ const DEMO_ACCOUNTS = [
     resumeCredits: 0,
   },
   {
+    email: "pro.vendor@demo.com",
+    name: "Jamie Chen (Pro – Sales)",
+    role: "USER" as const,
+    tier: "PRO" as const,
+    track: "SALES" as const,
+    persona: "VENDOR" as const,
+    mentorCredits: 0,
+    resumeCredits: 2,
+  },
+  {
     email: "pro.switcher@demo.com",
     name: "Sarah Wong (Pro)",
     role: "USER" as const,
