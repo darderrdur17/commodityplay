@@ -41,17 +41,6 @@ export default async function PrepLibraryPage() {
         </div>
       )}
       {showCareer && <PrepLibraryBody track="CAREER" userTier={user.tier} />}
-
-      {showSales && (
-        <div className={showCareer ? "mt-12 mb-8" : "mb-8"}>
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900">
-            {PREP_LIBRARY_SEGMENTS.SALES.title}
-          </h1>
-          <p className="text-sm text-muted-fg mt-1">
-            {PREP_LIBRARY_SEGMENTS.SALES.cardDescription}
-          </p>
-        </div>
-      )}
       {showSales && <PrepLibraryBody track="SALES" userTier={user.tier} />}
     </div>
   );

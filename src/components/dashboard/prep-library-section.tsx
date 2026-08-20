@@ -99,7 +99,7 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
     },
     defaultCategory: "Current event",
     saveButtonLabel: "Save topic",
-    unlinkedLabel: "Not yet linked to a meeting",
+    unlinkedLabel: "Not yet used with an account",
     upgradeDescription:
       "Build your private prep library with talking points ready for your next client meeting.",
     upgradeHref: SALES_PLAN_HREF("pro"),
@@ -132,6 +132,31 @@ function normalizeCategoryInput(raw: string, fallback: PrepCategoryEnum): PrepCa
   if (lower.includes("logistic")) return "Logistics";
 
   return "Other";
+}
+
+/** Group talking points by month/year for long lists (newest first). */
+function groupTopicsByMonthYear(
+  topics: TalkingPoint[]
+): { label: string; topics: TalkingPoint[] }[] {
+  const sorted = [...topics].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  const groups = new Map<string, TalkingPoint[]>();
+
+  for (const topic of sorted) {
+    const label = new Date(topic.createdAt).toLocaleDateString("en-GB", {
+      month: "long",
+      year: "numeric",
+    });
+    const bucket = groups.get(label) ?? [];
+    bucket.push(topic);
+    groups.set(label, bucket);
+  }
+
+  return Array.from(groups.entries()).map(([label, groupTopics]) => ({
+    label,
+    topics: groupTopics,
+  }));
 }
 
 const PREP_STATUS_STYLES: Record<PrepStatusEnum, { badge: string; label: string }> = {
@@ -210,6 +235,77 @@ function TopicCard({
         )}
         {showLinkedFields && topic.usedInNote && (
           <p className="text-xs italic text-muted-fg">— {topic.usedInNote}</p>
+        )}
+      </div>
+    </article>
+  );
+}
+
+/** Sales track topic card — matches Frances mockup layout. */
+function SalesTopicCard({
+  topic,
+  onDelete,
+}: {
+  topic: TalkingPoint;
+  onDelete?: (id: string) => void;
+}) {
+  const usedWithAccount = Boolean(topic.canUseFor?.trim()) && topic.prepStatus === "Used it";
+
+  return (
+    <article className="rounded-xl border border-border bg-white p-5 sm:p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 text-sm sm:text-base leading-snug">
+            {topic.title}
+          </h3>
+          <span className="inline-flex shrink-0 rounded-full bg-teal-100 px-2.5 py-0.5 text-[11px] font-semibold text-teal-800">
+            {topic.category}
+          </span>
+        </div>
+        <div className="flex items-start gap-2 shrink-0">
+          {topic.source && (
+            <p className="text-[11px] text-muted-fg text-right max-w-[160px] leading-snug">
+              {topic.source}
+            </p>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(topic.id)}
+              className="p-1 rounded hover:bg-red-50 text-muted-fg hover:text-red-500 transition-colors"
+              aria-label="Delete talking point"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {topic.keyPoints.length > 0 && (
+        <ul className="space-y-2 mb-4">
+          {topic.keyPoints.map((point) => (
+            <li key={point} className="flex gap-2 text-sm text-muted-fg leading-relaxed">
+              <span className="text-gray-400 shrink-0">—</span>
+              <span>{point}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="pt-3 border-t border-border/60 flex flex-wrap items-center gap-2">
+        {usedWithAccount ? (
+          <>
+            <span className="inline-flex rounded-full bg-teal-800 px-2.5 py-1 text-[11px] font-semibold text-white">
+              Used in: {topic.canUseFor}
+            </span>
+            {topic.usedInNote && (
+              <span className="text-xs italic text-muted-fg">— {topic.usedInNote}</span>
+            )}
+          </>
+        ) : (
+          <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-500">
+            Not yet used with an account
+          </span>
         )}
       </div>
     </article>
@@ -313,7 +409,6 @@ export function PrepLibraryBody({
 
   const [title, setTitle] = useState("");
   const [keyPointsRaw, setKeyPointsRaw] = useState("");
-  const [category, setCategory] = useState<PrepCategoryEnum>(theme.defaultCategory);
   const [categoryInput, setCategoryInput] = useState("");
   const [source, setSource] = useState("");
   const [prepStatus, setPrepStatus] = useState<PrepStatusEnum>("Learning it");
@@ -351,10 +446,9 @@ export function PrepLibraryBody({
       if (!trimmedTitle) return;
 
       const keyPoints = parseKeyPoints(keyPointsRaw);
-      const resolvedCategory =
-        track === "CAREER"
-          ? normalizeCategoryInput(categoryInput, theme.defaultCategory)
-          : category;
+      if (keyPoints.length === 0) return;
+
+      const resolvedCategory = normalizeCategoryInput(categoryInput, theme.defaultCategory);
       const body = {
         track,
         title: trimmedTitle,
@@ -397,7 +491,6 @@ export function PrepLibraryBody({
 
       setTitle("");
       setKeyPointsRaw("");
-      setCategory(theme.defaultCategory);
       setCategoryInput("");
       setSource("");
       setPrepStatus("Learning it");
@@ -407,7 +500,6 @@ export function PrepLibraryBody({
     [
       title,
       keyPointsRaw,
-      category,
       categoryInput,
       source,
       prepStatus,
@@ -441,6 +533,214 @@ export function PrepLibraryBody({
     theme.labelColorClass
   );
 
+  const topicGroups = groupTopicsByMonthYear(topics);
+
+  const addTopicForm = (
+    <form onSubmit={handleSave} className="space-y-4">
+      <div className="flex items-center gap-2">
+        <div className={theme.iconWrapClass}>
+          <BarChart3 className={theme.iconClass} />
+        </div>
+        <h3 className="font-semibold text-gray-900">{theme.formHeader}</h3>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="sm:col-span-2 space-y-1.5">
+          <label htmlFor={`prep-topic-title-${track}`} className={labelClass}>
+            Topic title
+          </label>
+          <Input
+            id={`prep-topic-title-${track}`}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={theme.placeholders.title}
+            className="h-10"
+          />
+        </div>
+
+        <div className="sm:col-span-2 space-y-1.5">
+          <label htmlFor={`prep-key-points-${track}`} className={labelClass}>
+            Key points
+          </label>
+          <textarea
+            id={`prep-key-points-${track}`}
+            value={keyPointsRaw}
+            onChange={(e) => setKeyPointsRaw(e.target.value)}
+            placeholder={theme.placeholders.keyPoints}
+            rows={3}
+            className={cn(
+              "flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm",
+              "placeholder:text-muted-fg resize-none",
+              "focus:outline-none focus:ring-2 focus:border-transparent",
+              theme.textareaFocusClass,
+              "transition-all duration-200"
+            )}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor={`prep-category-${track}`} className={labelClass}>
+            Category
+          </label>
+          <Input
+            id={`prep-category-${track}`}
+            value={categoryInput}
+            onChange={(e) => setCategoryInput(e.target.value)}
+            placeholder={theme.placeholders.category}
+            className="h-10"
+          />
+        </div>
+
+        {track === "CAREER" && (
+          <div className="space-y-1.5">
+            <label htmlFor={`prep-source-${track}`} className={labelClass}>
+              Source <span className="font-normal normal-case tracking-normal">(optional)</span>
+            </label>
+            <Input
+              id={`prep-source-${track}`}
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              placeholder={theme.placeholders.source}
+              className="h-10"
+            />
+          </div>
+        )}
+
+        {track === "SALES" && (
+          <div className="space-y-1.5">
+            <label htmlFor={`prep-can-use-for-${track}`} className={labelClass}>
+              Can use for
+            </label>
+            <Input
+              id={`prep-can-use-for-${track}`}
+              value={canUseFor}
+              onChange={(e) => setCanUseFor(e.target.value)}
+              placeholder={theme.placeholders.canUseFor}
+              className="h-10"
+            />
+          </div>
+        )}
+
+        {track === "CAREER" && (
+          <>
+            <div className="sm:col-span-2 space-y-1.5">
+              <span className={labelClass}>Prep status</span>
+              <div className="flex gap-2 flex-wrap">
+                {(["Learning it", "Interview-ready", "Used it"] as PrepStatusEnum[]).map(
+                  (status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => setPrepStatus(status)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150",
+                        prepStatus === status
+                          ? status === "Learning it"
+                            ? "bg-gray-200 border-gray-300 text-gray-700"
+                            : status === "Interview-ready"
+                            ? "bg-amber-100 border-amber-300 text-amber-700"
+                            : "bg-green-100 border-green-300 text-green-700"
+                          : "bg-white border-border text-muted-fg hover:border-gray-300"
+                      )}
+                    >
+                      {status}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      <Button
+        type="submit"
+        disabled={!title.trim() || !keyPointsRaw.trim()}
+        className={cn("gap-1.5", theme.saveButtonClass)}
+      >
+        <Plus className="w-4 h-4" />
+        {theme.saveButtonLabel}
+      </Button>
+    </form>
+  );
+
+  if (track === "SALES") {
+    return (
+      <Reveal className="mb-6">
+        <section id={segment.anchor} aria-labelledby={`prep-library-heading-${track}`}>
+          {!unlocked ? (
+            <div className="relative rounded-xl border border-border bg-white overflow-hidden">
+              <div className="blur-sm pointer-events-none select-none px-5 sm:px-6 py-5 space-y-4" aria-hidden>
+                {theme.seedTopics.slice(0, 2).map((topic) => (
+                  <SalesTopicCard key={topic.id} topic={topic} />
+                ))}
+              </div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center py-10">
+                <Lock className="w-5 h-5 text-muted-fg mb-2" />
+                <p className="text-sm font-semibold text-gray-700 mb-1">Pro Pack required</p>
+                <p className="text-xs text-muted-fg mb-4 max-w-xs">{theme.upgradeDescription}</p>
+                <Link href={theme.upgradeHref}>
+                  <Button size="sm">{UPGRADE_TO_ACCESS}</Button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* Hero */}
+              <div className="space-y-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-teal-700">
+                  {segment.eyebrow}
+                </p>
+                <h1
+                  id={`prep-library-heading-${track}`}
+                  className="font-serif text-3xl sm:text-4xl font-bold text-gray-900"
+                >
+                  {segment.pageTitle}
+                </h1>
+                <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">
+                  {segment.pageDescription}
+                </p>
+                <div className="inline-flex flex-col rounded-xl border border-teal-200 bg-teal-50/60 px-5 py-3 min-w-[120px]">
+                  <span className="text-3xl font-bold text-teal-800 leading-none">
+                    {loading ? "…" : topics.length}
+                  </span>
+                  <span className="text-xs font-medium text-teal-700 mt-1">Topics saved</span>
+                </div>
+              </div>
+
+              {/* Add form card */}
+              <div className="rounded-xl border border-border bg-white p-5 sm:p-6 shadow-sm">
+                {addTopicForm}
+              </div>
+
+              {/* Topics grouped by month/year */}
+              {loading ? (
+                <p className="text-xs text-muted-fg">Loading your topics…</p>
+              ) : topics.length > 0 ? (
+                <div className="space-y-8">
+                  {topicGroups.map((group) => (
+                    <div key={group.label} className="space-y-4">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
+                        {group.label}
+                      </p>
+                      <div className="space-y-4">
+                        {group.topics.map((topic, i) => (
+                          <Reveal key={topic.id} delay={i * 0.03}>
+                            <SalesTopicCard topic={topic} onDelete={handleDelete} />
+                          </Reveal>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
+        </section>
+      </Reveal>
+    );
+  }
+
   return (
     <Reveal className="mb-6">
       <section
@@ -473,7 +773,7 @@ export function PrepLibraryBody({
                   key={topic.id}
                   topic={topic}
                   theme={theme}
-                  showLinkedFields={track === "SALES"}
+                  showLinkedFields={false}
                 />
               ))}
             </div>
@@ -489,185 +789,30 @@ export function PrepLibraryBody({
         ) : (
           /* Unlocked: form + saved topics */
           <div className="px-5 sm:px-6 py-5 space-y-6">
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className={theme.iconWrapClass}>
-                  <BarChart3 className={theme.iconClass} />
-                </div>
-                <h3 className="font-semibold text-gray-900">{theme.formHeader}</h3>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Title */}
-                <div className="sm:col-span-2 space-y-1.5">
-                  <label htmlFor={`prep-topic-title-${track}`} className={labelClass}>
-                    Topic title
-                  </label>
-                  <Input
-                    id={`prep-topic-title-${track}`}
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder={theme.placeholders.title}
-                    className="h-10"
-                  />
-                </div>
-
-                {/* Key points */}
-                <div className="sm:col-span-2 space-y-1.5">
-                  <label htmlFor={`prep-key-points-${track}`} className={labelClass}>
-                    Key points
-                  </label>
-                  <textarea
-                    id={`prep-key-points-${track}`}
-                    value={keyPointsRaw}
-                    onChange={(e) => setKeyPointsRaw(e.target.value)}
-                    placeholder={theme.placeholders.keyPoints}
-                    rows={3}
-                    className={cn(
-                      "flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm",
-                      "placeholder:text-muted-fg resize-none",
-                      "focus:outline-none focus:ring-2 focus:border-transparent",
-                      theme.textareaFocusClass,
-                      "transition-all duration-200"
-                    )}
-                  />
-                </div>
-
-                {/* Category — career: free-text hint field; sales: enum dropdown */}
-                <div className="space-y-1.5">
-                  <label htmlFor={`prep-category-${track}`} className={labelClass}>
-                    Category
-                  </label>
-                  {track === "CAREER" ? (
-                    <Input
-                      id={`prep-category-${track}`}
-                      value={categoryInput}
-                      onChange={(e) => setCategoryInput(e.target.value)}
-                      placeholder={theme.placeholders.category}
-                      className="h-10"
-                    />
-                  ) : (
-                    <select
-                      id={`prep-category-${track}`}
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value as PrepCategoryEnum)}
-                      className={cn(
-                        "flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-10",
-                        "focus:outline-none focus:ring-2 focus:border-transparent",
-                        theme.textareaFocusClass,
-                        "transition-all duration-200"
-                      )}
-                    >
-                      {PREP_LIBRARY_CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-
-                {/* Source */}
-                <div className="space-y-1.5">
-                  <label htmlFor={`prep-source-${track}`} className={labelClass}>
-                    Source <span className="font-normal normal-case tracking-normal">(optional)</span>
-                  </label>
-                  <Input
-                    id={`prep-source-${track}`}
-                    value={source}
-                    onChange={(e) => setSource(e.target.value)}
-                    placeholder={theme.placeholders.source}
-                    className="h-10"
-                  />
-                </div>
-
-                {/* Prep status */}
-                <div className="sm:col-span-2 space-y-1.5">
-                  <span className={labelClass}>Prep status</span>
-                  <div className="flex gap-2 flex-wrap">
-                    {(["Learning it", "Interview-ready", "Used it"] as PrepStatusEnum[]).map(
-                      (status) => (
-                        <button
-                          key={status}
-                          type="button"
-                          onClick={() => setPrepStatus(status)}
-                          className={cn(
-                            "px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150",
-                            prepStatus === status
-                              ? status === "Learning it"
-                                ? "bg-gray-200 border-gray-300 text-gray-700"
-                                : status === "Interview-ready"
-                                ? "bg-amber-100 border-amber-300 text-amber-700"
-                                : "bg-green-100 border-green-300 text-green-700"
-                              : "bg-white border-border text-muted-fg hover:border-gray-300"
-                          )}
-                        >
-                          {status}
-                        </button>
-                      )
-                    )}
-                  </div>
-                </div>
-
-                {/* Can use for + notes — sales track only */}
-                {track === "SALES" && (
-                  <>
-                    <div className="space-y-1.5">
-                      <label htmlFor={`prep-can-use-for-${track}`} className={labelClass}>
-                        Can use for
-                      </label>
-                      <Input
-                        id={`prep-can-use-for-${track}`}
-                        value={canUseFor}
-                        onChange={(e) => setCanUseFor(e.target.value)}
-                        placeholder={theme.placeholders.canUseFor}
-                        className="h-10"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label htmlFor={`prep-used-in-note-${track}`} className={labelClass}>
-                        Notes{" "}
-                        <span className="font-normal normal-case tracking-normal">(optional)</span>
-                      </label>
-                      <Input
-                        id={`prep-used-in-note-${track}`}
-                        value={usedInNote}
-                        onChange={(e) => setUsedInNote(e.target.value)}
-                        placeholder={theme.placeholders.usedInNote}
-                        className="h-10"
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                disabled={!title.trim()}
-                className={cn("gap-1.5", theme.saveButtonClass)}
-              >
-                <Plus className="w-4 h-4" />
-                {theme.saveButtonLabel}
-              </Button>
-            </form>
+            {addTopicForm}
 
             {loading ? (
               <p className="text-xs text-muted-fg">Loading your topics…</p>
             ) : topics.length > 0 ? (
-              <div className="space-y-3">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
-                  {topics.length} {topics.length === 1 ? "topic" : "topics"} saved
-                </p>
-                {topics.map((topic, i) => (
-                  <Reveal key={topic.id} delay={i * 0.03}>
-                    <TopicCard
-                      topic={topic}
-                      theme={theme}
-                      onDelete={handleDelete}
-                      showLinkedFields={track === "SALES"}
-                    />
-                  </Reveal>
+              <div className="space-y-6">
+                {topicGroups.map((group) => (
+                  <div key={group.label} className="space-y-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
+                      {group.label}
+                    </p>
+                    <div className="space-y-3">
+                      {group.topics.map((topic, i) => (
+                        <Reveal key={topic.id} delay={i * 0.03}>
+                          <TopicCard
+                            topic={topic}
+                            theme={theme}
+                            onDelete={handleDelete}
+                            showLinkedFields={false}
+                          />
+                        </Reveal>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : null}

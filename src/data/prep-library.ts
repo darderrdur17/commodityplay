@@ -132,7 +132,7 @@ export const SALES_PREP_LIBRARY_SEED_TOPICS: TalkingPoint[] = [
   {
     id: "opening-with-observation",
     track: "SALES",
-    createdAt: new Date("2024-01-01"),
+    createdAt: new Date("2026-08-15"),
     title: "Opening a Meeting with a Market Observation, Not a Pitch",
     category: "Other",
     keyPoints: [
@@ -145,74 +145,79 @@ export const SALES_PREP_LIBRARY_SEED_TOPICS: TalkingPoint[] = [
     prepStatus: "Used it",
   },
   {
-    id: "crack-spread-framing",
+    id: "spread-move-framing",
     track: "SALES",
-    createdAt: new Date("2024-01-01"),
-    title: "Framing This Week's Crack Spread Move for a Refinery Client",
+    createdAt: new Date("2026-08-10"),
+    title: "Framing a Spread Move in a Client Conversation",
     category: "Current event",
     keyPoints: [
-      "Start with the margin change, not your recommendation — let them react first",
-      "Tie the move to run rates and seasonal demand, not just flat price",
-      "Offer one data point they may not have seen — e.g. Gulf Coast diesel cracks vs. Singapore",
+      "JKM-TTF has compressed 3 weeks straight — good opener with LNG-exposed accounts",
+      "Ask how they're adjusting hedge coverage, don't just report the number",
     ],
-    canUseFor: "Pacific Refining Co.",
-    usedInNote: "client asked follow-up questions",
+    source: "From this week's Market Update",
+    canUseFor: "Northbridge Gas",
+    usedInNote: "used to explain the hedge angle",
     prepStatus: "Used it",
   },
   {
-    id: "price-pushback",
+    id: "freight-costs-conversation",
     track: "SALES",
-    createdAt: new Date("2024-01-01"),
-    title: "When a Client Pushes Back on Your Price — Stay on the Market",
+    createdAt: new Date("2026-07-22"),
+    title: "Talking About Freight Costs Without Sounding Like a Pitch",
+    category: "Logistics",
+    keyPoints: [
+      "Freight cost is a real input to their cargo economics — frame it as their P&L problem, not your data point",
+      "Reference a recent route or basin where rates moved, not your firm's offering",
+      "Good line: \"I noticed VLCC rates on this route moved X% — how is that affecting your freight budget?\"",
+    ],
+    source: "From Chapter B",
+    canUseFor: "Solace Trade Finance",
+    usedInNote: "client asked for a follow-up",
+    prepStatus: "Used it",
+  },
+  {
+    id: "desk-priorities-stress",
+    track: "SALES",
+    createdAt: new Date("2026-07-08"),
+    title: "Reading Desk Priorities From Recent Market Stress",
     category: "Risk & pricing",
     keyPoints: [
-      "Don't get defensive — acknowledge the gap and pivot to the benchmark",
-      "Reference where the market traded yesterday, not where you need to be",
-      "Good line: \"Let's look at what the screen says together before we talk terms\"",
+      "When spreads blow out, desks prioritise risk management over new business — read that before you pitch",
+      "Ask what changed in their risk limits or credit lines, not what they want to buy",
+      "Good line: \"With the move last week, are you rebalancing exposure or holding through?\"",
     ],
-    prepStatus: "Learning it",
+    source: "From Chapter D",
+    canUseFor: "Halcyon Resources",
+    usedInNote: "landed well in a tense market week",
+    prepStatus: "Used it",
   },
   {
-    id: "contango-plain-language",
+    id: "coverage-depth-edge",
     track: "SALES",
-    createdAt: new Date("2024-01-01"),
-    title: "Explaining Contango Without Sounding Like a Textbook",
-    category: "Market mechanics",
-    keyPoints: [
-      "Use a storage analogy: \"It costs more to hold barrels than to sell now\"",
-      "Connect curve shape to what their procurement team is likely seeing in tenders",
-      "Avoid jargon first — add the technical term only after they nod along",
-    ],
-    canUseFor: "Horizon LNG",
-    prepStatus: "Interview-ready",
-  },
-  {
-    id: "quiet-meeting-follow-up",
-    track: "SALES",
-    createdAt: new Date("2024-01-01"),
-    title: "Following Up After a Quiet Meeting — Add Value, Don't Chase",
+    createdAt: new Date("2026-06-18"),
+    title: "Positioning Coverage Depth as an Edge, Not a Feature List",
     category: "Other",
     keyPoints: [
-      "Send one relevant market note, not a check-in email asking for business",
-      "Reference something specific from the meeting — shows you were listening",
-      "Keep it short: one chart, one insight, no attachment overload",
-    ],
-    canUseFor: "Cascade Commodities",
-    usedInNote: "got a callback",
-    prepStatus: "Used it",
-  },
-  {
-    id: "basis-risk-story",
-    track: "SALES",
-    createdAt: new Date("2024-01-01"),
-    title: "Using a Physical Market Story to Explain Basis Risk",
-    category: "Risk & pricing",
-    keyPoints: [
-      "Pick a recent cargo or delivery window — basis is easier when it's concrete",
-      "Contrast local price vs. benchmark on the same day, not in theory",
-      "Close with how your desk watches the spread, not how you can fix it",
+      "Don't lead with product breadth — lead with one insight only your coverage could produce",
+      "Reference a specific data point or relationship your desk has that a generalist wouldn't",
+      "Good line: \"We noticed something in the [product] curve this week that most generalists wouldn't flag\"",
     ],
     prepStatus: "Learning it",
+  },
+  {
+    id: "vendor-data-turning-points",
+    track: "SALES",
+    createdAt: new Date("2026-06-04"),
+    title: "Why Vendor Data Matters More at Turning Points",
+    category: "Market mechanics",
+    keyPoints: [
+      "At inflection points, desks need faster, cleaner data — not more of it",
+      "Frame your value as reducing decision latency, not adding another screen",
+      "Good line: \"When the curve moves this fast, the question isn't what happened — it's what happened first\"",
+    ],
+    canUseFor: "Northbridge Gas",
+    usedInNote: "referenced in a follow-up email",
+    prepStatus: "Used it",
   },
 ];
 
@@ -234,14 +239,17 @@ export const SALES_PREP_LIBRARY_CATEGORIES: PrepCategoryEnum[] = [
   "Other",
 ];
 
-/** Dashboard card + section metadata — shared by grid cards and boxed prep library UI. */
+/** Dashboard card + section metadata — shared by grid cards and full prep library page. */
 export const PREP_LIBRARY_SEGMENTS: Record<
   PrepLibraryTrack,
   {
     anchor: string;
     title: string;
+    /** Full-page heading (may differ from dashboard card title). */
+    pageTitle: string;
     eyebrow: string;
     cardDescription: string;
+    pageDescription: string;
     color: string;
     requiredTier: "PRO";
   }
@@ -249,8 +257,11 @@ export const PREP_LIBRARY_SEGMENTS: Record<
   CAREER: {
     anchor: "prep-library-career",
     title: "Your Prep Library",
+    pageTitle: "Your Prep Library",
     eyebrow: "Market talking points",
     cardDescription:
+      "A private set of market topics you can speak to confidently — ready before your next interview.",
+    pageDescription:
       "A private set of market topics you can speak to confidently — ready before your next interview.",
     color: "#3280ff",
     requiredTier: "PRO",
@@ -258,9 +269,12 @@ export const PREP_LIBRARY_SEGMENTS: Record<
   SALES: {
     anchor: "prep-library-sales",
     title: "Sales Prep Library",
+    pageTitle: "Your Prep Library.",
     eyebrow: "Market talking points for sales",
     cardDescription:
       "Market topics you can bring into client conversations — ready before your next meeting.",
+    pageDescription:
+      "A private, growing set of market topics you can bring into a client conversation with confidence. Built from what you read here — ready to pull up before your next meeting.",
     color: "#0f766e",
     requiredTier: "PRO",
   },
