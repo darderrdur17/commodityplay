@@ -32,6 +32,8 @@ export interface TalkingPoint {
   /** Parsed/resolved link target derived from canUseFor (e.g. interview question id). */
   usageTarget?: string;
   note?: string;
+  /** True for server-seeded starter examples (deletable). */
+  isStarterExample?: boolean;
 }
 
 /** @deprecated Use TalkingPoint */
@@ -286,6 +288,21 @@ export const SALES_PREP_LIBRARY_EXAMPLE_TOPICS: TalkingPoint[] = [
     usedInNote: "used to explain the hedge angle",
     prepStatus: "Used it",
   },
+  {
+    id: "example-sales-freight-costs",
+    track: "SALES",
+    createdAt: new Date("2026-07-22"),
+    title: "Talking About Freight Costs Without Sounding Like a Pitch",
+    category: "Logistics",
+    keyPoints: [
+      "Freight cost is a real input to their cargo economics – frame it as their P&L problem, not your data point",
+      "Tie a rate spike to a specific decision they're likely facing this week",
+    ],
+    source: "From Chapter B",
+    canUseFor: "Solace Trade Finance",
+    usedInNote: "used to re-open a stalled conversation",
+    prepStatus: "Used it",
+  },
 ];
 
 export const PREP_LIBRARY_EXAMPLE_TOPICS: Record<PrepLibraryTrack, TalkingPoint[]> = {
@@ -329,7 +346,7 @@ export const PREP_LIBRARY_SEGMENTS: Record<
   CAREER: {
     anchor: "prep-library-career",
     title: "Your Prep Library",
-    pageTitle: "Your Prep Library",
+    pageTitle: "Your Prep Library.",
     eyebrow: "Market talking points",
     cardDescription:
       "A private set of market topics you can speak to confidently — ready before your next interview.",

@@ -27,7 +27,7 @@ import {
   formatMentorCreditsUsedLabel,
   type MentorCreditUsage,
 } from "@/lib/mentor-credits";
-import { PrepLibraryCard } from "@/components/dashboard/prep-library-section";
+import { PrepLibraryCard, PREP_LIBRARY_COUNT_EVENT } from "@/components/dashboard/prep-library-section";
 import { ModuleTrackBadge, type ModuleTrack } from "@/components/dashboard/module-track-badge";
 
 interface Props {
@@ -212,13 +212,26 @@ export function DashboardClient({
   useEffect(() => {
     if (!hasAccess(user.tier, "PRO")) return;
 
-    void Promise.all([
-      fetch("/api/prep-library?track=CAREER").then((res) => (res.ok ? res.json() : [])),
-      fetch("/api/prep-library?track=SALES").then((res) => (res.ok ? res.json() : [])),
-    ]).then(([career, sales]) => {
-      if (Array.isArray(career)) setCareerTopicCount(career.length);
-      if (Array.isArray(sales)) setSalesTopicCount(sales.length);
-    });
+    function loadCounts() {
+      void Promise.all([
+        fetch("/api/prep-library?track=CAREER").then((res) => (res.ok ? res.json() : [])),
+        fetch("/api/prep-library?track=SALES").then((res) => (res.ok ? res.json() : [])),
+      ]).then(([career, sales]) => {
+        if (Array.isArray(career)) setCareerTopicCount(career.length);
+        if (Array.isArray(sales)) setSalesTopicCount(sales.length);
+      });
+    }
+
+    loadCounts();
+
+    function onPrepLibraryCount(event: Event) {
+      const detail = (event as CustomEvent<{ track: string; count: number }>).detail;
+      if (detail.track === "CAREER") setCareerTopicCount(detail.count);
+      if (detail.track === "SALES") setSalesTopicCount(detail.count);
+    }
+
+    window.addEventListener(PREP_LIBRARY_COUNT_EVENT, onPrepLibraryCount);
+    return () => window.removeEventListener(PREP_LIBRARY_COUNT_EVENT, onPrepLibraryCount);
   }, [user.tier]);
 
   function resolveSalesCardHref(card: DashboardSalesResourceCardCopy): string | null {

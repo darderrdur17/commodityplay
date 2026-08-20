@@ -54,7 +54,6 @@ interface TrackTheme {
   upgradeDescription: string;
   upgradeHref: string;
   seedTopics: TalkingPoint[];
-  exampleTopics: TalkingPoint[];
 }
 
 /** Frances mockup — forest green sales palette (see TRACK_THEMES.SALES) */
@@ -85,7 +84,6 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
       "Build your private prep library with talking points linked to upcoming interviews.",
     upgradeHref: CAREER_PLAN_HREF("pro"),
     seedTopics: CAREER_PREP_LIBRARY_SEED_TOPICS,
-    exampleTopics: PREP_LIBRARY_EXAMPLE_TOPICS.CAREER,
   },
   SALES: {
     formHeader: "Add a talking point",
@@ -112,7 +110,6 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
       "Build your private prep library with talking points ready for your next client meeting.",
     upgradeHref: SALES_PLAN_HREF("pro"),
     seedTopics: SALES_PREP_LIBRARY_SEED_TOPICS,
-    exampleTopics: PREP_LIBRARY_EXAMPLE_TOPICS.SALES,
   },
 };
 
@@ -260,7 +257,26 @@ function MonthYearFilterBar({
   );
 }
 
-// ─── Example topics (static, not saved to DB) ────────────────────────────────
+export const PREP_LIBRARY_COUNT_EVENT = "prep-library:count";
+
+function TopicsSavedStatBox({
+  count,
+  loading,
+  accentColor,
+}: {
+  count: number;
+  loading: boolean;
+  accentColor: string;
+}) {
+  return (
+    <div className="inline-flex flex-col rounded-xl border border-border bg-white px-5 py-3 min-w-[120px] shadow-sm">
+      <span className="text-3xl font-bold leading-none" style={{ color: accentColor }}>
+        {loading ? "…" : count}
+      </span>
+      <span className="text-xs font-medium text-muted-fg mt-1">Topics saved</span>
+    </div>
+  );
+}
 
 function ExampleBadge() {
   return (
@@ -270,40 +286,17 @@ function ExampleBadge() {
   );
 }
 
-function PrepLibraryExamplesSection({
-  track,
-  examples,
-  theme,
-}: {
-  track: PrepLibraryTrack;
-  examples: TalkingPoint[];
-  theme: TrackTheme;
-}) {
-  if (examples.length === 0) return null;
-
-  return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg mb-1">
-          Examples
-        </p>
-        <p className="text-xs text-muted-fg leading-relaxed">
-          See how a topic looks — then add your own below.
-        </p>
-      </div>
-      <div className="space-y-4">
-        {examples.map((topic, i) => (
-          <Reveal key={topic.id} delay={i * 0.03}>
-            {track === "SALES" ? (
-              <SalesTopicCard topic={topic} isExample />
-            ) : (
-              <TopicCard topic={topic} theme={theme} showLinkedFields={false} isExample />
-            )}
-          </Reveal>
-        ))}
-      </div>
-    </div>
-  );
+function notifyPrepLibraryCount(
+  track: PrepLibraryTrack,
+  count: number,
+  onTopicCountChange?: (count: number) => void
+) {
+  onTopicCountChange?.(count);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent(PREP_LIBRARY_COUNT_EVENT, { detail: { track, count } })
+    );
+  }
 }
 
 // ─── Topic card ───────────────────────────────────────────────────────────────
@@ -313,26 +306,25 @@ function TopicCard({
   theme,
   onDelete,
   showLinkedFields = true,
-  isExample = false,
 }: {
   topic: TalkingPoint;
   theme: TrackTheme;
   onDelete?: (id: string) => void;
   /** Sales-only: can use for / notes. Hidden on career track. */
   showLinkedFields?: boolean;
-  isExample?: boolean;
 }) {
   const statusStyle = getPrepStatusBadge(topic.prepStatus);
+  const showExampleBadge = Boolean(topic.isStarterExample);
 
   return (
     <article className="rounded-xl border border-border bg-secondary/30 p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
         <h3 className="font-semibold text-gray-900 text-sm leading-snug flex-1">{topic.title}</h3>
         <div className="flex items-center gap-2 shrink-0">
-          {isExample && <ExampleBadge />}
+          {showExampleBadge && <ExampleBadge />}
           <span className={theme.categoryBadgeClass}>{topic.category}</span>
           <span className={statusStyle.badge}>{statusStyle.label}</span>
-          {onDelete && !isExample && (
+          {onDelete && (
             <button
               onClick={() => onDelete(topic.id)}
               className="p-1 rounded hover:bg-red-50 text-muted-fg hover:text-red-500 transition-colors"
@@ -411,15 +403,14 @@ function SalesTopicCard({
   onDelete,
   onBookmark,
   showBookmark = false,
-  isExample = false,
 }: {
   topic: TalkingPoint;
   onDelete?: (id: string) => void;
   onBookmark?: (topic: TalkingPoint) => void;
   showBookmark?: boolean;
-  isExample?: boolean;
 }) {
   const usedWithAccount = Boolean(topic.canUseFor?.trim());
+  const showExampleBadge = Boolean(topic.isStarterExample);
 
   return (
     <article className="rounded-xl border border-border bg-white p-5 sm:p-6 shadow-sm">
@@ -428,7 +419,7 @@ function SalesTopicCard({
           <h3 className="font-semibold text-gray-900 text-sm sm:text-base leading-snug">
             {topic.title}
           </h3>
-          {isExample && <ExampleBadge />}
+          {showExampleBadge && <ExampleBadge />}
           <span
             className="inline-flex shrink-0 rounded-full bg-teal-50 px-2.5 py-0.5 text-[11px] font-semibold"
             style={{ color: SALES_HERO_GREEN }}
@@ -442,7 +433,7 @@ function SalesTopicCard({
               {topic.source}
             </p>
           )}
-          {onDelete && !isExample && (
+          {onDelete && (
             <button
               type="button"
               onClick={() => onDelete(topic.id)}
@@ -484,7 +475,7 @@ function SalesTopicCard({
             Not yet used with an account
           </span>
         )}
-        {showBookmark && onBookmark && !isExample && (
+        {showBookmark && onBookmark && !topic.isStarterExample && (
           <Button
             type="button"
             variant="outline"
@@ -610,6 +601,7 @@ export function PrepLibraryBody({
   const [usedInNote, setUsedInNote] = useState("");
   const [canUseFor, setCanUseFor] = useState("");
   const [bookmarkTopic, setBookmarkTopic] = useState<TalkingPoint | null>(null);
+  const [saveError, setSaveError] = useState("");
 
   const hasElite = hasAccess(userTier, "ELITE");
 
@@ -626,12 +618,11 @@ export function PrepLibraryBody({
       .then((data: TalkingPoint[]) => {
         const parsed = data.map((t) => ({ ...t, createdAt: new Date(t.createdAt) }));
         setTopics(parsed);
-        onTopicCountChange?.(parsed.length);
+        notifyPrepLibraryCount(track, parsed.length, onTopicCountChange);
       })
       .catch(() => {
-        // Fall back to seed topics if API fails
-        setTopics(theme.seedTopics);
-        onTopicCountChange?.(theme.seedTopics.length);
+        setTopics([]);
+        notifyPrepLibraryCount(track, 0, onTopicCountChange);
       })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -665,20 +656,24 @@ export function PrepLibraryBody({
           : {}),
       };
 
+      setSaveError("");
       try {
         const res = await fetch("/api/prep-library", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        if (res.ok) {
-          const created: TalkingPoint = await res.json();
-          const newTopics = [{ ...created, createdAt: new Date(created.createdAt) }, ...topics];
-          setTopics(newTopics);
-          onTopicCountChange?.(newTopics.length);
+        if (!res.ok) {
+          setSaveError("Could not save your topic. Please try again.");
+          return;
         }
+        const created: TalkingPoint = await res.json();
+        const newTopics = [{ ...created, createdAt: new Date(created.createdAt) }, ...topics];
+        setTopics(newTopics);
+        notifyPrepLibraryCount(track, newTopics.length, onTopicCountChange);
       } catch {
-        // Network error — keep form data so the user can retry
+        setSaveError("Could not save your topic. Check your connection and try again.");
+        return;
       }
 
       setTitle("");
@@ -716,11 +711,11 @@ export function PrepLibraryBody({
       }
       setTopics((prev) => {
         const next = prev.filter((t) => t.id !== id);
-        onTopicCountChange?.(next.length);
+        notifyPrepLibraryCount(track, next.length, onTopicCountChange);
         return next;
       });
     },
-    [onTopicCountChange]
+    [track, onTopicCountChange]
   );
 
   const handleBookmarked = useCallback(
@@ -835,6 +830,7 @@ export function PrepLibraryBody({
         <Plus className="w-4 h-4" />
         {theme.saveButtonLabel}
       </Button>
+      {saveError && <p className="text-xs text-red-600">{saveError}</p>}
     </form>
   );
 
@@ -963,6 +959,7 @@ export function PrepLibraryBody({
         <Plus className="w-4 h-4" />
         {theme.saveButtonLabel}
       </Button>
+      {saveError && <p className="text-xs text-red-600">{saveError}</p>}
     </form>
   );
 
@@ -1005,25 +1002,15 @@ export function PrepLibraryBody({
                 <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">
                   {segment.pageDescription}
                 </p>
-                <div className="inline-flex flex-col rounded-xl border border-border bg-white px-5 py-3 min-w-[120px] shadow-sm">
-                  <span
-                    className="text-3xl font-bold leading-none"
-                    style={{ color: SALES_HERO_GREEN }}
-                  >
-                    {loading ? "…" : topics.length}
-                  </span>
-                  <span className="text-xs font-medium text-muted-fg mt-1">Topics saved</span>
-                </div>
+                <TopicsSavedStatBox
+                  count={topics.length}
+                  loading={loading}
+                  accentColor={SALES_HERO_GREEN}
+                />
               </div>
 
-              <PrepLibraryExamplesSection
-                track="SALES"
-                examples={theme.exampleTopics}
-                theme={theme}
-              />
-
               {/* Add form — mint dotted border */}
-              <div className="rounded-xl border-2 border-dashed border-teal-200 bg-white p-5 sm:p-6 shadow-sm">
+              <div className="rounded-xl border-2 border-dashed border-teal-200 bg-teal-50/20 p-5 sm:p-6 shadow-sm">
                 {salesAddTopicForm}
               </div>
 
@@ -1032,9 +1019,6 @@ export function PrepLibraryBody({
                 <p className="text-xs text-muted-fg">Loading your topics…</p>
               ) : topics.length > 0 ? (
                 <div className="space-y-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
-                    Your topics
-                  </p>
                   <MonthYearFilterBar
                     groups={topicGroups}
                     value={monthYearFilter}
@@ -1085,7 +1069,9 @@ export function PrepLibraryBody({
                     </div>
                   </div>
                 </div>
-              ) : null}
+              ) : (
+                <p className="text-sm text-muted-fg">No topics yet — add one above.</p>
+              )}
 
               <SalesAccountIntelligenceBanner userTier={userTier} />
 
@@ -1116,38 +1102,15 @@ export function PrepLibraryBody({
 
   return (
     <Reveal className="mb-6">
-      <section
-        id={segment.anchor}
-        aria-labelledby={`prep-library-heading-${track}`}
-        className="rounded-xl border border-border bg-white overflow-hidden"
-      >
-        {/* Section header */}
-        <div className="px-5 sm:px-6 py-5 border-b border-border">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg mb-1">
-            {segment.eyebrow}
-          </p>
-          <h2
-            id={`prep-library-heading-${track}`}
-            className="font-semibold text-base text-gray-900"
-          >
-            {segment.title}
-          </h2>
-        </div>
-
+      <section id={segment.anchor} aria-labelledby={`prep-library-heading-${track}`}>
         {!unlocked ? (
-          /* Locked: blurred preview + upgrade CTA */
-          <div className="relative">
+          <div className="relative rounded-xl border border-border bg-white overflow-hidden">
             <div
               className="blur-sm pointer-events-none select-none px-5 sm:px-6 py-5 space-y-4"
               aria-hidden
             >
               {theme.seedTopics.slice(0, 2).map((topic) => (
-                <TopicCard
-                  key={topic.id}
-                  topic={topic}
-                  theme={theme}
-                  showLinkedFields={false}
-                />
+                <TopicCard key={topic.id} topic={topic} theme={theme} showLinkedFields={false} />
               ))}
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center py-10">
@@ -1160,24 +1123,35 @@ export function PrepLibraryBody({
             </div>
           </div>
         ) : (
-          /* Unlocked: form + saved topics */
-          <div className="px-5 sm:px-6 py-5 space-y-6">
-            <PrepLibraryExamplesSection
-              track="CAREER"
-              examples={theme.exampleTopics}
-              theme={theme}
-            />
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-primary-400">
+                {segment.eyebrow}
+              </p>
+              <h1
+                id={`prep-library-heading-${track}`}
+                className="font-serif text-3xl sm:text-4xl font-bold text-gray-900"
+              >
+                {segment.pageTitle}
+              </h1>
+              <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">
+                {segment.pageDescription}
+              </p>
+              <TopicsSavedStatBox
+                count={topics.length}
+                loading={loading}
+                accentColor={segment.color}
+              />
+            </div>
 
-            {careerAddTopicForm}
+            <div className="rounded-xl border-2 border-dashed border-primary-200 bg-primary-50/10 p-5 sm:p-6 shadow-sm">
+              {careerAddTopicForm}
+            </div>
 
             {loading ? (
               <p className="text-xs text-muted-fg">Loading your topics…</p>
             ) : topics.length > 0 ? (
               <div className="space-y-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
-                  Your topics
-                </p>
-                {/* Mobile: horizontal month/year filter */}
                 <MonthYearFilterBar
                   groups={topicGroups}
                   value={monthYearFilter}
@@ -1187,7 +1161,6 @@ export function PrepLibraryBody({
                 />
 
                 <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-                  {/* Desktop: sticky side filter */}
                   <MonthYearFilterBar
                     groups={topicGroups}
                     value={monthYearFilter}
@@ -1199,7 +1172,11 @@ export function PrepLibraryBody({
                   <div className="flex-1 min-w-0 space-y-6">
                     {filteredTopicGroups.length > 0 ? (
                       filteredTopicGroups.map((group) => (
-                        <div key={group.label} id={`prep-month-${group.label.replace(/\s+/g, "-")}`} className="space-y-3">
+                        <div
+                          key={group.label}
+                          id={`prep-month-${group.label.replace(/\s+/g, "-")}`}
+                          className="space-y-3"
+                        >
                           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
                             {group.label}
                           </p>
@@ -1223,7 +1200,9 @@ export function PrepLibraryBody({
                   </div>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <p className="text-sm text-muted-fg">No topics yet — add one above.</p>
+            )}
           </div>
         )}
       </section>

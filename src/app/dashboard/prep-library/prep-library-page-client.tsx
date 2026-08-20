@@ -53,16 +53,6 @@ export function PrepLibraryPageClient({
 
   return (
     <>
-      {showCareer && (
-        <div className="mb-8">
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900">
-            {PREP_LIBRARY_SEGMENTS.CAREER.title}
-          </h1>
-          <p className="text-sm text-muted-fg mt-1">
-            {PREP_LIBRARY_SEGMENTS.CAREER.cardDescription}
-          </p>
-        </div>
-      )}
       {showCareer && <PrepLibraryBody track="CAREER" userTier={userTier} />}
       {showSales && <PrepLibraryBody track="SALES" userTier={userTier} />}
     </>

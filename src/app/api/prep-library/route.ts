@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import type { Prisma, PrepCategory, Track } from "@prisma/client";
 import { canAccessPrepTrack, requireProSession } from "@/lib/prep-library-auth";
+import {
+  ensureStarterTopics,
+  withStarterFlag,
+} from "@/lib/prep-library-starters";
+import type { PrepLibraryTrack } from "@/data/prep-library";
 
 // ─── Category / Status maps ───────────────────────────────────────────────────
 
@@ -42,20 +46,23 @@ const createSchema = z.object({
   canUseFor: z.string().max(200).optional(),
 });
 
-function serializeRow(r: {
-  id: string;
-  userId: string;
-  track: Track;
-  createdAt: Date;
-  title: string;
-  category: PrepCategory;
-  keyPoints: string[];
-  source: string | null;
-  prepStatus: string;
-  usedInNote: string | null;
-  canUseFor: string | null;
-}) {
-  return {
+function serializeRow(
+  userId: string,
+  r: {
+    id: string;
+    userId: string;
+    track: Track;
+    createdAt: Date;
+    title: string;
+    category: PrepCategory;
+    keyPoints: string[];
+    source: string | null;
+    prepStatus: string;
+    usedInNote: string | null;
+    canUseFor: string | null;
+  }
+) {
+  return withStarterFlag(userId, {
     id: r.id,
     userId: r.userId,
     track: r.track,
@@ -67,7 +74,7 @@ function serializeRow(r: {
     prepStatus: r.prepStatus,
     usedInNote: r.usedInNote ?? undefined,
     canUseFor: r.canUseFor ?? undefined,
-  };
+  });
 }
 
 // ─── GET /api/prep-library?track=CAREER|SALES ────────────────────────────────
@@ -76,16 +83,19 @@ export async function GET(req: NextRequest) {
   const authResult = await requireProSession();
   if ("error" in authResult) return authResult.error;
 
-  const track = req.nextUrl.searchParams.get("track");
-  if (track === "CAREER" || track === "SALES") {
-    if (!canAccessPrepTrack(authResult.user, track)) {
+  const trackParam = req.nextUrl.searchParams.get("track");
+  if (trackParam === "CAREER" || trackParam === "SALES") {
+    if (!canAccessPrepTrack(authResult.user, trackParam)) {
       return NextResponse.json({ error: "Track access denied" }, { status: 403 });
     }
+    await ensureStarterTopics(authResult.user.id, trackParam as PrepLibraryTrack);
   }
 
   const where: Prisma.TalkingPointWhereInput = {
     userId: authResult.user.id,
-    ...(track === "CAREER" || track === "SALES" ? { track: track as Track } : {}),
+    ...(trackParam === "CAREER" || trackParam === "SALES"
+      ? { track: trackParam as Track }
+      : {}),
   };
 
   const rows = await prisma.talkingPoint.findMany({
@@ -94,7 +104,9 @@ export async function GET(req: NextRequest) {
     take: 500,
   });
 
-  return NextResponse.json(rows.map(serializeRow));
+  return NextResponse.json(
+    rows.map((row) => serializeRow(authResult.user.id, row))
+  );
 }
 
 // ─── POST /api/prep-library ───────────────────────────────────────────────────
@@ -130,5 +142,5 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(serializeRow(row));
+  return NextResponse.json(serializeRow(authResult.user.id, row));
 }
