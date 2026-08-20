@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       message: alreadySeeded
         ? "Database already seeded — demo accounts and glossary refreshed."
         : "Database schema applied and demo accounts seeded.",
-      demo: { email: "elite.insider@demo.com", password: "Demo1234!" },
+      demo: { email: "elite.vendor@demo.com", password: "Demo1234!" },
     });
   } catch (err) {
     console.error("[setup-db]", err);

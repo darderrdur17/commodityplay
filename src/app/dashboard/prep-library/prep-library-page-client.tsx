@@ -35,10 +35,13 @@ export function PrepLibraryPageClient({
   }, []);
 
   const forceSales = hashAnchor === PREP_LIBRARY_SEGMENTS.SALES.anchor;
+  const forceCareer = hashAnchor === PREP_LIBRARY_SEGMENTS.CAREER.anchor;
 
-  const showSales = userTrack === "SALES" || isAdmin || forceSales;
-  const showCareer =
-    (userTrack === "CAREER" || isAdmin) && !forceSales;
+  const canPreviewSales = userTrack === "SALES" || isAdmin;
+  const canPreviewCareer = userTrack === "CAREER" || isAdmin;
+
+  const showSales = canPreviewSales && !forceCareer;
+  const showCareer = canPreviewCareer && !forceSales;
 
   useEffect(() => {
     if (!hashAnchor) return;

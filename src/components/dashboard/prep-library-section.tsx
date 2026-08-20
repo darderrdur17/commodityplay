@@ -361,7 +361,7 @@ function SalesTopicCard({
   onBookmark?: (topic: TalkingPoint) => void;
   showBookmark?: boolean;
 }) {
-  const usedWithAccount = Boolean(topic.canUseFor?.trim()) && topic.prepStatus === "Used it";
+  const usedWithAccount = Boolean(topic.canUseFor?.trim());
 
   return (
     <article className="rounded-xl border border-border bg-white p-5 sm:p-6 shadow-sm">
@@ -527,7 +527,7 @@ export function PrepLibraryBody({
   const theme = TRACK_THEMES[track];
   const unlocked = hasAccess(userTier, segment.requiredTier);
 
-  // TODO: replace with DB persistence
+  // Loaded from /api/prep-library on mount
   const [topics, setTopics] = useState<TalkingPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -609,16 +609,7 @@ export function PrepLibraryBody({
           onTopicCountChange?.(newTopics.length);
         }
       } catch {
-        // Optimistic local-only fallback
-        const optimistic: TalkingPoint = {
-          id: `user-${Date.now()}`,
-          createdAt: new Date(),
-          ...body,
-          prepStatus: resolvedPrepStatus,
-        };
-        const newTopics = [optimistic, ...topics];
-        setTopics(newTopics);
-        onTopicCountChange?.(newTopics.length);
+        // Network error — keep form data so the user can retry
       }
 
       setTitle("");
@@ -649,9 +640,10 @@ export function PrepLibraryBody({
   const handleDelete = useCallback(
     async (id: string) => {
       try {
-        await fetch(`/api/prep-library/${id}`, { method: "DELETE" });
+        const res = await fetch(`/api/prep-library/${id}`, { method: "DELETE" });
+        if (!res.ok) return;
       } catch {
-        // best-effort
+        return;
       }
       setTopics((prev) => {
         const next = prev.filter((t) => t.id !== id);
@@ -660,6 +652,22 @@ export function PrepLibraryBody({
       });
     },
     [onTopicCountChange]
+  );
+
+  const handleBookmarked = useCallback(
+    (topicId: string, accountName: string) => {
+      setTopics((prev) =>
+        prev.map((t) =>
+          t.id === topicId ? { ...t, canUseFor: accountName, prepStatus: "Used it" } : t
+        )
+      );
+      void fetch(`/api/prep-library/${topicId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ canUseFor: accountName, prepStatus: "Used it" }),
+      });
+    },
+    []
   );
 
   const labelClass = cn(
@@ -1003,6 +1011,11 @@ export function PrepLibraryBody({
                 sourceType="PREP_LIBRARY"
                 sourceId={bookmarkTopic?.id ?? ""}
                 sourceTitle={bookmarkTopic?.title ?? ""}
+                onBookmarked={(accountName) => {
+                  if (bookmarkTopic) {
+                    handleBookmarked(bookmarkTopic.id, accountName);
+                  }
+                }}
               />
             </div>
           )}

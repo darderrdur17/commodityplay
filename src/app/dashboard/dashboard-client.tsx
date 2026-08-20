@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -206,9 +206,20 @@ export function DashboardClient({
     dashboardContent.salesResourceCards.map((c) => [c.slug, c.description])
   );
 
-  // Static seed counts shown on the compact card (live count is on the dedicated page).
-  const careerTopicCount = 7;
-  const salesTopicCount = 6;
+  const [careerTopicCount, setCareerTopicCount] = useState(0);
+  const [salesTopicCount, setSalesTopicCount] = useState(0);
+
+  useEffect(() => {
+    if (!hasAccess(user.tier, "PRO")) return;
+
+    void Promise.all([
+      fetch("/api/prep-library?track=CAREER").then((res) => (res.ok ? res.json() : [])),
+      fetch("/api/prep-library?track=SALES").then((res) => (res.ok ? res.json() : [])),
+    ]).then(([career, sales]) => {
+      if (Array.isArray(career)) setCareerTopicCount(career.length);
+      if (Array.isArray(sales)) setSalesTopicCount(sales.length);
+    });
+  }, [user.tier]);
 
   function resolveSalesCardHref(card: DashboardSalesResourceCardCopy): string | null {
     if (card.deliverableKey) {

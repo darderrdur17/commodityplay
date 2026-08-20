@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import type { Prisma, PrepCategory, Track } from "@prisma/client";
+import { canAccessPrepTrack, requireProSession } from "@/lib/prep-library-auth";
 
 // ─── Category / Status maps ───────────────────────────────────────────────────
 
@@ -41,26 +42,20 @@ const createSchema = z.object({
   canUseFor: z.string().max(200).optional(),
 });
 
-// ─── GET /api/prep-library?track=CAREER|SALES ────────────────────────────────
-
-export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const track = req.nextUrl.searchParams.get("track");
-  const where: Prisma.TalkingPointWhereInput = {
-    userId: session.user.id,
-    ...(track === "CAREER" || track === "SALES" ? { track: track as Track } : {}),
-  };
-
-  const rows = await prisma.talkingPoint.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-  });
-
-  const data = rows.map((r) => ({
+function serializeRow(r: {
+  id: string;
+  userId: string;
+  track: Track;
+  createdAt: Date;
+  title: string;
+  category: PrepCategory;
+  keyPoints: string[];
+  source: string | null;
+  prepStatus: string;
+  usedInNote: string | null;
+  canUseFor: string | null;
+}) {
+  return {
     id: r.id,
     userId: r.userId,
     track: r.track,
@@ -72,18 +67,41 @@ export async function GET(req: NextRequest) {
     prepStatus: r.prepStatus,
     usedInNote: r.usedInNote ?? undefined,
     canUseFor: r.canUseFor ?? undefined,
-  }));
+  };
+}
 
-  return NextResponse.json(data);
+// ─── GET /api/prep-library?track=CAREER|SALES ────────────────────────────────
+
+export async function GET(req: NextRequest) {
+  const authResult = await requireProSession();
+  if ("error" in authResult) return authResult.error;
+
+  const track = req.nextUrl.searchParams.get("track");
+  if (track === "CAREER" || track === "SALES") {
+    if (!canAccessPrepTrack(authResult.user, track)) {
+      return NextResponse.json({ error: "Track access denied" }, { status: 403 });
+    }
+  }
+
+  const where: Prisma.TalkingPointWhereInput = {
+    userId: authResult.user.id,
+    ...(track === "CAREER" || track === "SALES" ? { track: track as Track } : {}),
+  };
+
+  const rows = await prisma.talkingPoint.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: 500,
+  });
+
+  return NextResponse.json(rows.map(serializeRow));
 }
 
 // ─── POST /api/prep-library ───────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireProSession();
+  if ("error" in authResult) return authResult.error;
 
   const body = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
@@ -94,9 +112,13 @@ export async function POST(req: NextRequest) {
   const { track, title, category, keyPoints, source, prepStatus, usedInNote, canUseFor } =
     parsed.data;
 
+  if (!canAccessPrepTrack(authResult.user, track)) {
+    return NextResponse.json({ error: "Track access denied" }, { status: 403 });
+  }
+
   const row = await prisma.talkingPoint.create({
     data: {
-      userId: session.user.id,
+      userId: authResult.user.id,
       track,
       title,
       category: CATEGORY_TO_PRISMA[category],
@@ -108,17 +130,5 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({
-    id: row.id,
-    userId: row.userId,
-    track: row.track,
-    createdAt: row.createdAt,
-    title: row.title,
-    category: CATEGORY_FROM_PRISMA[row.category],
-    keyPoints: row.keyPoints,
-    source: row.source ?? undefined,
-    prepStatus: row.prepStatus,
-    usedInNote: row.usedInNote ?? undefined,
-    canUseFor: row.canUseFor ?? undefined,
-  });
+  return NextResponse.json(serializeRow(row));
 }
