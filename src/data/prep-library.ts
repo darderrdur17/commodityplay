@@ -257,7 +257,7 @@ export const PREP_LIBRARY_SEGMENTS: Record<
   },
   SALES: {
     anchor: "prep-library-sales",
-    title: "Your Prep Library",
+    title: "Sales Prep Library",
     eyebrow: "Market talking points for sales",
     cardDescription:
       "Market topics you can bring into client conversations — ready before your next meeting.",

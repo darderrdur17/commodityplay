@@ -643,6 +643,18 @@ export function DashboardClient({
               const pendingLabel =
                 tierUnlocked && card.deliverableKey && !fileReady ? "File coming soon" : undefined;
 
+              if (card.isPrepLibrary) {
+                return (
+                  <PrepLibraryCard
+                    key={card.slug}
+                    track="SALES"
+                    userTier={user.tier}
+                    topicCount={salesTopicCount}
+                    showTrackBadge={isAdminUser}
+                  />
+                );
+              }
+
               return (
                 <React.Fragment key={card.slug}>
                   {renderResourceCard({
@@ -657,15 +669,6 @@ export function DashboardClient({
                     pendingLabel,
                     trackLabel: "Sales",
                   })}
-                  {/* Insert Prep Library card immediately after Industry Guide for Sales */}
-                  {card.slug === "industry-guide-for-sales" && !isCareerTrack && (
-                    <PrepLibraryCard
-                      track="SALES"
-                      userTier={user.tier}
-                      topicCount={salesTopicCount}
-                      showTrackBadge={isAdminUser}
-                    />
-                  )}
                 </React.Fragment>
               );
             })}

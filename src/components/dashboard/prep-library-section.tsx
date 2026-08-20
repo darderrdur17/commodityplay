@@ -246,7 +246,7 @@ export function PrepLibraryCard({
 
           {unlocked ? (
             <Link
-              href="/dashboard/prep-library"
+              href={`/dashboard/prep-library#${segment.anchor}`}
               className="text-xs text-primary-400 font-medium hover:text-primary-500 flex items-center gap-0.5 shrink-0"
             >
               Open <ChevronRight className="w-3.5 h-3.5" />

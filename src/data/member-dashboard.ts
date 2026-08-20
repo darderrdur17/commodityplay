@@ -115,9 +115,10 @@ export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardC
   {
     slug: "sales-prep-library",
     title: "Sales Prep Library",
-    description: "Curated prep materials and reference guides for commodity sales professionals.",
+    description:
+      "Market topics you can bring into client conversations — ready before your next meeting.",
     requiredTier: "PRO",
-    href: "#",
+    href: "/dashboard/prep-library#prep-library-sales",
     isPrepLibrary: true,
   },
   {
