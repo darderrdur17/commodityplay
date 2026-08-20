@@ -38,7 +38,9 @@ interface TrackTheme {
     title: string;
     keyPoints: string;
     source: string;
+    category: string;
     canUseFor: string;
+    usedInNote: string;
   };
   defaultCategory: PrepCategoryEnum;
   saveButtonLabel: string;
@@ -65,7 +67,9 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
       title: "e.g. Why cargo diversion happens",
       keyPoints: "Add up to 4 short bullets",
       source: "e.g. Chapter 4 · Weekly Market Update",
+      category: "e.g. current event, market mechanics, role movement etc",
       canUseFor: "e.g. Meridian Energy interview",
+      usedInNote: "e.g. Referenced this in my Meridian interview",
     },
     defaultCategory: "Market mechanics",
     saveButtonLabel: "Save topic",
@@ -89,7 +93,9 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
       title: "e.g. Framing this week's spread move",
       keyPoints: "Add up to 4 short bullets",
       source: "e.g. Chapter 4 · Weekly Market Update",
+      category: "e.g. current event, market mechanics, role movement etc",
       canUseFor: "e.g. Meridian Energy",
+      usedInNote: "e.g. Referenced this in my Meridian client meeting",
     },
     defaultCategory: "Current event",
     saveButtonLabel: "Save topic",
@@ -109,6 +115,23 @@ function parseKeyPoints(raw: string): string[] {
     .map((line) => line.replace(/^[-•*]\s*/, "").trim())
     .filter(Boolean)
     .slice(0, 4);
+}
+
+/** Map free-text category input to the closest enum value. */
+function normalizeCategoryInput(raw: string, fallback: PrepCategoryEnum): PrepCategoryEnum {
+  const trimmed = raw.trim();
+  if (!trimmed) return fallback;
+
+  const exact = PREP_LIBRARY_CATEGORIES.find((c) => c.toLowerCase() === trimmed.toLowerCase());
+  if (exact) return exact;
+
+  const lower = trimmed.toLowerCase();
+  if (lower.includes("current event")) return "Current event";
+  if (lower.includes("market mechanic")) return "Market mechanics";
+  if (lower.includes("risk") || lower.includes("pricing")) return "Risk & pricing";
+  if (lower.includes("logistic")) return "Logistics";
+
+  return "Other";
 }
 
 const PREP_STATUS_STYLES: Record<PrepStatusEnum, { badge: string; label: string }> = {
@@ -132,10 +155,13 @@ function TopicCard({
   topic,
   theme,
   onDelete,
+  showLinkedFields = true,
 }: {
   topic: TalkingPoint;
   theme: TrackTheme;
   onDelete?: (id: string) => void;
+  /** Sales-only: can use for / notes. Hidden on career track. */
+  showLinkedFields?: boolean;
 }) {
   const statusStyle = PREP_STATUS_STYLES[topic.prepStatus] ?? PREP_STATUS_STYLES["Learning it"];
 
@@ -170,18 +196,19 @@ function TopicCard({
       )}
 
       <div className="pt-2.5 border-t border-border/60 space-y-1.5">
-        {topic.canUseFor ? (
-          <p className={theme.linkedTextClass}>Can use for: {topic.canUseFor}</p>
-        ) : (
-          <p className="text-xs font-medium text-muted-fg">{theme.unlinkedLabel}</p>
-        )}
+        {showLinkedFields &&
+          (topic.canUseFor ? (
+            <p className={theme.linkedTextClass}>Can use for: {topic.canUseFor}</p>
+          ) : (
+            <p className="text-xs font-medium text-muted-fg">{theme.unlinkedLabel}</p>
+          ))}
         {topic.source && (
           <p className="flex items-center gap-1 text-xs text-muted-fg">
             <ExternalLink className="w-3 h-3 shrink-0" />
             <span>{topic.source}</span>
           </p>
         )}
-        {topic.usedInNote && (
+        {showLinkedFields && topic.usedInNote && (
           <p className="text-xs italic text-muted-fg">— {topic.usedInNote}</p>
         )}
       </div>
@@ -287,6 +314,7 @@ export function PrepLibraryBody({
   const [title, setTitle] = useState("");
   const [keyPointsRaw, setKeyPointsRaw] = useState("");
   const [category, setCategory] = useState<PrepCategoryEnum>(theme.defaultCategory);
+  const [categoryInput, setCategoryInput] = useState("");
   const [source, setSource] = useState("");
   const [prepStatus, setPrepStatus] = useState<PrepStatusEnum>("Learning it");
   const [usedInNote, setUsedInNote] = useState("");
@@ -323,15 +351,23 @@ export function PrepLibraryBody({
       if (!trimmedTitle) return;
 
       const keyPoints = parseKeyPoints(keyPointsRaw);
+      const resolvedCategory =
+        track === "CAREER"
+          ? normalizeCategoryInput(categoryInput, theme.defaultCategory)
+          : category;
       const body = {
         track,
         title: trimmedTitle,
-        category,
+        category: resolvedCategory,
         keyPoints,
         source: source.trim() || undefined,
         prepStatus,
-        usedInNote: usedInNote.trim() || undefined,
-        canUseFor: canUseFor.trim() || undefined,
+        ...(track === "SALES"
+          ? {
+              usedInNote: usedInNote.trim() || undefined,
+              canUseFor: canUseFor.trim() || undefined,
+            }
+          : {}),
       };
 
       try {
@@ -362,12 +398,26 @@ export function PrepLibraryBody({
       setTitle("");
       setKeyPointsRaw("");
       setCategory(theme.defaultCategory);
+      setCategoryInput("");
       setSource("");
       setPrepStatus("Learning it");
       setUsedInNote("");
       setCanUseFor("");
     },
-    [title, keyPointsRaw, category, source, prepStatus, usedInNote, canUseFor, track, theme, topics, onTopicCountChange]
+    [
+      title,
+      keyPointsRaw,
+      category,
+      categoryInput,
+      source,
+      prepStatus,
+      usedInNote,
+      canUseFor,
+      track,
+      theme,
+      topics,
+      onTopicCountChange,
+    ]
   );
 
   const handleDelete = useCallback(
@@ -419,7 +469,12 @@ export function PrepLibraryBody({
               aria-hidden
             >
               {theme.seedTopics.slice(0, 2).map((topic) => (
-                <TopicCard key={topic.id} topic={topic} theme={theme} />
+                <TopicCard
+                  key={topic.id}
+                  topic={topic}
+                  theme={theme}
+                  showLinkedFields={track === "SALES"}
+                />
               ))}
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center py-10">
@@ -478,28 +533,38 @@ export function PrepLibraryBody({
                   />
                 </div>
 
-                {/* Category */}
+                {/* Category — career: free-text hint field; sales: enum dropdown */}
                 <div className="space-y-1.5">
                   <label htmlFor={`prep-category-${track}`} className={labelClass}>
                     Category
                   </label>
-                  <select
-                    id={`prep-category-${track}`}
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as PrepCategoryEnum)}
-                    className={cn(
-                      "flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-10",
-                      "focus:outline-none focus:ring-2 focus:border-transparent",
-                      theme.textareaFocusClass,
-                      "transition-all duration-200"
-                    )}
-                  >
-                    {PREP_LIBRARY_CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                  {track === "CAREER" ? (
+                    <Input
+                      id={`prep-category-${track}`}
+                      value={categoryInput}
+                      onChange={(e) => setCategoryInput(e.target.value)}
+                      placeholder={theme.placeholders.category}
+                      className="h-10"
+                    />
+                  ) : (
+                    <select
+                      id={`prep-category-${track}`}
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value as PrepCategoryEnum)}
+                      className={cn(
+                        "flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-10",
+                        "focus:outline-none focus:ring-2 focus:border-transparent",
+                        theme.textareaFocusClass,
+                        "transition-all duration-200"
+                      )}
+                    >
+                      {PREP_LIBRARY_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 {/* Source */}
@@ -544,33 +609,37 @@ export function PrepLibraryBody({
                   </div>
                 </div>
 
-                {/* Can use for */}
-                <div className="space-y-1.5">
-                  <label htmlFor={`prep-can-use-for-${track}`} className={labelClass}>
-                    Can use for
-                  </label>
-                  <Input
-                    id={`prep-can-use-for-${track}`}
-                    value={canUseFor}
-                    onChange={(e) => setCanUseFor(e.target.value)}
-                    placeholder={theme.placeholders.canUseFor}
-                    className="h-10"
-                  />
-                </div>
+                {/* Can use for + notes — sales track only */}
+                {track === "SALES" && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label htmlFor={`prep-can-use-for-${track}`} className={labelClass}>
+                        Can use for
+                      </label>
+                      <Input
+                        id={`prep-can-use-for-${track}`}
+                        value={canUseFor}
+                        onChange={(e) => setCanUseFor(e.target.value)}
+                        placeholder={theme.placeholders.canUseFor}
+                        className="h-10"
+                      />
+                    </div>
 
-                {/* Used in note */}
-                <div className="space-y-1.5">
-                  <label htmlFor={`prep-used-in-note-${track}`} className={labelClass}>
-                    Notes <span className="font-normal normal-case tracking-normal">(optional)</span>
-                  </label>
-                  <Input
-                    id={`prep-used-in-note-${track}`}
-                    value={usedInNote}
-                    onChange={(e) => setUsedInNote(e.target.value)}
-                    placeholder="e.g. Referenced this in my Meridian interview"
-                    className="h-10"
-                  />
-                </div>
+                    <div className="space-y-1.5">
+                      <label htmlFor={`prep-used-in-note-${track}`} className={labelClass}>
+                        Notes{" "}
+                        <span className="font-normal normal-case tracking-normal">(optional)</span>
+                      </label>
+                      <Input
+                        id={`prep-used-in-note-${track}`}
+                        value={usedInNote}
+                        onChange={(e) => setUsedInNote(e.target.value)}
+                        placeholder={theme.placeholders.usedInNote}
+                        className="h-10"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               <Button
@@ -592,7 +661,12 @@ export function PrepLibraryBody({
                 </p>
                 {topics.map((topic, i) => (
                   <Reveal key={topic.id} delay={i * 0.03}>
-                    <TopicCard topic={topic} theme={theme} onDelete={handleDelete} />
+                    <TopicCard
+                      topic={topic}
+                      theme={theme}
+                      onDelete={handleDelete}
+                      showLinkedFields={track === "SALES"}
+                    />
                   </Reveal>
                 ))}
               </div>

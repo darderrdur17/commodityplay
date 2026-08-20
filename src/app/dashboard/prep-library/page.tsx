@@ -25,9 +25,8 @@ export default async function PrepLibraryPage() {
   if (!user) redirect("/login");
 
   const track: PrepLibraryTrack = user.track === "CAREER" ? "CAREER" : "SALES";
-  const isAdmin = session.user.role === "ADMIN";
-  const showCareer = isAdmin || track === "CAREER";
-  const showSales = isAdmin || track === "SALES";
+  const showCareer = track === "CAREER";
+  const showSales = track === "SALES";
 
   return (
     <div className="page-container py-8 sm:py-10">
