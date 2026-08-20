@@ -222,6 +222,77 @@ export const SALES_PREP_LIBRARY_SEED_TOPICS: TalkingPoint[] = [
   },
 ];
 
+/** Static examples shown on the live prep library page (not stored in DB). */
+export const CAREER_PREP_LIBRARY_EXAMPLE_TOPICS: TalkingPoint[] = [
+  {
+    id: "example-career-lng-diversion",
+    track: "CAREER",
+    createdAt: new Date("2024-01-01"),
+    title: "Why LNG Cargo Diversion Happens",
+    category: "Market mechanics",
+    keyPoints: [
+      "Triggered by a regional price gap opening up between two markets",
+      "The spread has to cover freight cost and demurrage risk, not just the price gap",
+      "Desk speed depends on how fast the pricing window is expected to close",
+    ],
+    canUseFor: "Meridian Energy interview",
+    usedInNote: "landed well",
+    prepStatus: "Interview-ready",
+  },
+  {
+    id: "example-career-crack-spread",
+    track: "CAREER",
+    createdAt: new Date("2024-01-01"),
+    title: "Crack Spread Compression — What It Signals",
+    category: "Risk & pricing",
+    keyPoints: [
+      "Refinery margins tightening as run rates rise ahead of driving season",
+      "Forward curve often signals the move before flat price reacts",
+      "Desks position ahead of the compression, not after it's visible",
+    ],
+    canUseFor: "Anchorpoint Trading",
+    prepStatus: "Learning it",
+  },
+];
+
+export const SALES_PREP_LIBRARY_EXAMPLE_TOPICS: TalkingPoint[] = [
+  {
+    id: "example-sales-opening-observation",
+    track: "SALES",
+    createdAt: new Date("2026-08-15"),
+    title: "Opening a Meeting with a Market Observation, Not a Pitch",
+    category: "Other",
+    keyPoints: [
+      "Lead with something specific from your coverage beat, not your product",
+      "Signals you track the market daily, not just when there's something to sell",
+      "Good line: reference a number that moved this week before you mention your firm",
+    ],
+    canUseFor: "Meridian Energy",
+    usedInNote: "opened the conversation well",
+    prepStatus: "Used it",
+  },
+  {
+    id: "example-sales-spread-framing",
+    track: "SALES",
+    createdAt: new Date("2026-08-10"),
+    title: "Framing a Spread Move in a Client Conversation",
+    category: "Current event",
+    keyPoints: [
+      "JKM–TTF has compressed 3 weeks straight – good opener with LNG-exposed accounts",
+      "Ask how they're adjusting hedge coverage, don't just report the number",
+    ],
+    source: "From this week's Market Update",
+    canUseFor: "Northbridge Gas",
+    usedInNote: "used to explain the hedge angle",
+    prepStatus: "Used it",
+  },
+];
+
+export const PREP_LIBRARY_EXAMPLE_TOPICS: Record<PrepLibraryTrack, TalkingPoint[]> = {
+  CAREER: CAREER_PREP_LIBRARY_EXAMPLE_TOPICS,
+  SALES: SALES_PREP_LIBRARY_EXAMPLE_TOPICS,
+};
+
 /** @deprecated Use CAREER_PREP_LIBRARY_SEED_TOPICS */
 export const PREP_LIBRARY_SEED_TOPICS = CAREER_PREP_LIBRARY_SEED_TOPICS;
 
@@ -276,7 +347,7 @@ export const PREP_LIBRARY_SEGMENTS: Record<
       "Market topics you can bring into client conversations — ready before your next meeting.",
     pageDescription:
       "A private, growing set of market topics you can bring into a client conversation with confidence. Built from what you read here — ready to pull up before your next meeting.",
-    color: "#1a3d36",
+    color: "#065F46",
     requiredTier: "PRO",
   },
 };

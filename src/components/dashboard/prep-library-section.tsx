@@ -13,6 +13,7 @@ import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   CAREER_PREP_LIBRARY_SEED_TOPICS,
   PREP_LIBRARY_CATEGORIES,
+  PREP_LIBRARY_EXAMPLE_TOPICS,
   PREP_LIBRARY_SEGMENTS,
   PREP_STATUS_PRESETS,
   SALES_PREP_LIBRARY_SEED_TOPICS,
@@ -22,6 +23,9 @@ import {
   type PrepLibraryTrack,
 } from "@/data/prep-library";
 import { cn } from "@/lib/utils";
+import {
+  SALES_HERO_GREEN,
+} from "@/lib/sales-brand-colors";
 import { ModuleTrackBadge } from "@/components/dashboard/module-track-badge";
 import { BookmarkUnderAccountModal } from "@/components/dashboard/bookmark-under-account-modal";
 
@@ -50,6 +54,7 @@ interface TrackTheme {
   upgradeDescription: string;
   upgradeHref: string;
   seedTopics: TalkingPoint[];
+  exampleTopics: TalkingPoint[];
 }
 
 /** Frances mockup — forest green sales palette (see TRACK_THEMES.SALES) */
@@ -80,17 +85,18 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
       "Build your private prep library with talking points linked to upcoming interviews.",
     upgradeHref: CAREER_PLAN_HREF("pro"),
     seedTopics: CAREER_PREP_LIBRARY_SEED_TOPICS,
+    exampleTopics: PREP_LIBRARY_EXAMPLE_TOPICS.CAREER,
   },
   SALES: {
     formHeader: "Add a talking point",
-    iconWrapClass: "w-8 h-8 rounded-lg bg-[#1a3d36]/10 flex items-center justify-center",
-    iconClass: "w-4 h-4 text-[#1a3d36]",
+    iconWrapClass: "w-8 h-8 rounded-lg bg-[#065F46]/10 flex items-center justify-center",
+    iconClass: "w-4 h-4 text-[#065F46]",
     categoryBadgeClass:
-      "inline-flex shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-[#1a3d36]",
-    linkedTextClass: "text-xs font-semibold text-[#1a3d36]",
-    labelColorClass: "text-[#1a3d36]/70",
-    textareaFocusClass: "focus:ring-[#1a3d36]",
-    saveButtonClass: "bg-[#1a3d36] hover:bg-[#153229] text-white border-0",
+      "inline-flex shrink-0 rounded-full bg-teal-50 px-2.5 py-0.5 text-[11px] font-semibold text-[#065F46]",
+    linkedTextClass: "text-xs font-semibold text-[#065F46]",
+    labelColorClass: "text-[#065F46]/70",
+    textareaFocusClass: "focus:ring-[#065F46]",
+    saveButtonClass: "bg-[#065F46] hover:bg-[#047857] text-white border-0",
     placeholders: {
       title: "e.g. Framing this week's spread move",
       keyPoints: "Add up to 4 short bullets",
@@ -106,6 +112,7 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
       "Build your private prep library with talking points ready for your next client meeting.",
     upgradeHref: SALES_PLAN_HREF("pro"),
     seedTopics: SALES_PREP_LIBRARY_SEED_TOPICS,
+    exampleTopics: PREP_LIBRARY_EXAMPLE_TOPICS.SALES,
   },
 };
 
@@ -209,7 +216,7 @@ function MonthYearFilterBar({
 
   const activeClass =
     accent === "sales"
-      ? "bg-[#1a3d36]/10 text-[#1a3d36]"
+      ? "bg-[#065F46]/10 text-[#065F46]"
       : "bg-primary-400/10 text-primary-400";
 
   const buttonClass = (active: boolean) =>
@@ -253,6 +260,52 @@ function MonthYearFilterBar({
   );
 }
 
+// ─── Example topics (static, not saved to DB) ────────────────────────────────
+
+function ExampleBadge() {
+  return (
+    <span className="inline-flex shrink-0 rounded-full border border-border bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-muted-fg">
+      Example
+    </span>
+  );
+}
+
+function PrepLibraryExamplesSection({
+  track,
+  examples,
+  theme,
+}: {
+  track: PrepLibraryTrack;
+  examples: TalkingPoint[];
+  theme: TrackTheme;
+}) {
+  if (examples.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg mb-1">
+          Examples
+        </p>
+        <p className="text-xs text-muted-fg leading-relaxed">
+          See how a topic looks — then add your own below.
+        </p>
+      </div>
+      <div className="space-y-4">
+        {examples.map((topic, i) => (
+          <Reveal key={topic.id} delay={i * 0.03}>
+            {track === "SALES" ? (
+              <SalesTopicCard topic={topic} isExample />
+            ) : (
+              <TopicCard topic={topic} theme={theme} showLinkedFields={false} isExample />
+            )}
+          </Reveal>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Topic card ───────────────────────────────────────────────────────────────
 
 function TopicCard({
@@ -260,12 +313,14 @@ function TopicCard({
   theme,
   onDelete,
   showLinkedFields = true,
+  isExample = false,
 }: {
   topic: TalkingPoint;
   theme: TrackTheme;
   onDelete?: (id: string) => void;
   /** Sales-only: can use for / notes. Hidden on career track. */
   showLinkedFields?: boolean;
+  isExample?: boolean;
 }) {
   const statusStyle = getPrepStatusBadge(topic.prepStatus);
 
@@ -274,9 +329,10 @@ function TopicCard({
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
         <h3 className="font-semibold text-gray-900 text-sm leading-snug flex-1">{topic.title}</h3>
         <div className="flex items-center gap-2 shrink-0">
+          {isExample && <ExampleBadge />}
           <span className={theme.categoryBadgeClass}>{topic.category}</span>
           <span className={statusStyle.badge}>{statusStyle.label}</span>
-          {onDelete && (
+          {onDelete && !isExample && (
             <button
               onClick={() => onDelete(topic.id)}
               className="p-1 rounded hover:bg-red-50 text-muted-fg hover:text-red-500 transition-colors"
@@ -355,11 +411,13 @@ function SalesTopicCard({
   onDelete,
   onBookmark,
   showBookmark = false,
+  isExample = false,
 }: {
   topic: TalkingPoint;
   onDelete?: (id: string) => void;
   onBookmark?: (topic: TalkingPoint) => void;
   showBookmark?: boolean;
+  isExample?: boolean;
 }) {
   const usedWithAccount = Boolean(topic.canUseFor?.trim());
 
@@ -370,7 +428,11 @@ function SalesTopicCard({
           <h3 className="font-semibold text-gray-900 text-sm sm:text-base leading-snug">
             {topic.title}
           </h3>
-          <span className="inline-flex shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-[#1a3d36]">
+          {isExample && <ExampleBadge />}
+          <span
+            className="inline-flex shrink-0 rounded-full bg-teal-50 px-2.5 py-0.5 text-[11px] font-semibold"
+            style={{ color: SALES_HERO_GREEN }}
+          >
             {topic.category}
           </span>
         </div>
@@ -380,7 +442,7 @@ function SalesTopicCard({
               {topic.source}
             </p>
           )}
-          {onDelete && (
+          {onDelete && !isExample && (
             <button
               type="button"
               onClick={() => onDelete(topic.id)}
@@ -407,7 +469,10 @@ function SalesTopicCard({
       <div className="pt-3 border-t border-border/60 flex flex-wrap items-center gap-2">
         {usedWithAccount ? (
           <>
-            <span className="inline-flex rounded-full bg-[#1a3d36] px-2.5 py-1 text-[11px] font-semibold text-white">
+            <span
+              className="inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold text-white"
+              style={{ backgroundColor: SALES_HERO_GREEN }}
+            >
               Used in: {topic.canUseFor}
             </span>
             {topic.usedInNote && (
@@ -419,13 +484,17 @@ function SalesTopicCard({
             Not yet used with an account
           </span>
         )}
-        {showBookmark && onBookmark && (
+        {showBookmark && onBookmark && !isExample && (
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => onBookmark(topic)}
-            className="ml-auto gap-1.5 h-8 text-xs border-[#1a3d36]/20 text-[#1a3d36] hover:bg-emerald-50"
+            className="ml-auto gap-1.5 h-8 text-xs hover:bg-teal-50"
+            style={{
+              borderColor: `${SALES_HERO_GREEN}33`,
+              color: SALES_HERO_GREEN,
+            }}
           >
             <Bookmark className="w-3.5 h-3.5" />
             Bookmark under account
@@ -921,7 +990,10 @@ export function PrepLibraryBody({
             <div className="space-y-8">
               {/* Hero — forest green mockup */}
               <div className="space-y-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a3d36]">
+                <p
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: SALES_HERO_GREEN }}
+                >
                   {segment.eyebrow}
                 </p>
                 <h1
@@ -934,15 +1006,24 @@ export function PrepLibraryBody({
                   {segment.pageDescription}
                 </p>
                 <div className="inline-flex flex-col rounded-xl border border-border bg-white px-5 py-3 min-w-[120px] shadow-sm">
-                  <span className="text-3xl font-bold text-[#1a3d36] leading-none">
+                  <span
+                    className="text-3xl font-bold leading-none"
+                    style={{ color: SALES_HERO_GREEN }}
+                  >
                     {loading ? "…" : topics.length}
                   </span>
                   <span className="text-xs font-medium text-muted-fg mt-1">Topics saved</span>
                 </div>
               </div>
 
+              <PrepLibraryExamplesSection
+                track="SALES"
+                examples={theme.exampleTopics}
+                theme={theme}
+              />
+
               {/* Add form — mint dotted border */}
-              <div className="rounded-xl border-2 border-dashed border-emerald-200 bg-white p-5 sm:p-6 shadow-sm">
+              <div className="rounded-xl border-2 border-dashed border-teal-200 bg-white p-5 sm:p-6 shadow-sm">
                 {salesAddTopicForm}
               </div>
 
@@ -951,6 +1032,9 @@ export function PrepLibraryBody({
                 <p className="text-xs text-muted-fg">Loading your topics…</p>
               ) : topics.length > 0 ? (
                 <div className="space-y-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
+                    Your topics
+                  </p>
                   <MonthYearFilterBar
                     groups={topicGroups}
                     value={monthYearFilter}
@@ -967,7 +1051,7 @@ export function PrepLibraryBody({
                       onChange={setMonthYearFilter}
                       orientation="vertical"
                       accent="sales"
-                      className="hidden lg:block lg:w-44 shrink-0 lg:sticky lg:top-24 lg:self-start rounded-xl border border-emerald-100 bg-emerald-50/40 p-3"
+                      className="hidden lg:block lg:w-44 shrink-0 lg:sticky lg:top-24 lg:self-start rounded-xl border border-teal-100 bg-teal-50/40 p-3"
                     />
 
                     <div className="flex-1 min-w-0 space-y-8">
@@ -1078,12 +1162,21 @@ export function PrepLibraryBody({
         ) : (
           /* Unlocked: form + saved topics */
           <div className="px-5 sm:px-6 py-5 space-y-6">
+            <PrepLibraryExamplesSection
+              track="CAREER"
+              examples={theme.exampleTopics}
+              theme={theme}
+            />
+
             {careerAddTopicForm}
 
             {loading ? (
               <p className="text-xs text-muted-fg">Loading your topics…</p>
             ) : topics.length > 0 ? (
               <div className="space-y-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
+                  Your topics
+                </p>
                 {/* Mobile: horizontal month/year filter */}
                 <MonthYearFilterBar
                   groups={topicGroups}

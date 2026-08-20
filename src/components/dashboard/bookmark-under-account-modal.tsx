@@ -122,7 +122,7 @@ export function BookmarkUnderAccountModal({
             </button>
 
             <div className="flex items-center gap-2 mb-1">
-              <Bookmark className="w-4 h-4 text-[#1a3d36]" />
+              <Bookmark className="w-4 h-4 text-[#065F46]" />
               <h2 className="font-semibold text-gray-900">Bookmark under account</h2>
             </div>
             <p className="text-sm text-muted-fg mb-4 pr-6 leading-relaxed">
@@ -140,7 +140,7 @@ export function BookmarkUnderAccountModal({
                 <p className="text-sm text-muted-fg mb-3">No tracked accounts yet.</p>
                 <Link
                   href="/dashboard/account-intelligence"
-                  className="inline-flex h-9 items-center justify-center rounded-lg bg-[#1a3d36] px-4 text-sm font-medium text-white hover:bg-[#153229]"
+                  className="inline-flex h-9 items-center justify-center rounded-lg bg-[#065F46] px-4 text-sm font-medium text-white hover:bg-[#047857]"
                 >
                   Create an account first
                 </Link>
@@ -156,7 +156,7 @@ export function BookmarkUnderAccountModal({
                         type="button"
                         disabled={Boolean(savingId)}
                         onClick={() => void handleSelect(account)}
-                        className="w-full rounded-xl border border-border px-4 py-3 text-left hover:border-[#1a3d36]/30 hover:bg-emerald-50/40 transition-colors disabled:opacity-60"
+                        className="w-full rounded-xl border border-border px-4 py-3 text-left hover:border-[#065F46]/30 hover:bg-teal-50/40 transition-colors disabled:opacity-60"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">

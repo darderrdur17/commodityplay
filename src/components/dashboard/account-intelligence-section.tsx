@@ -288,7 +288,7 @@ function AddAccountModal({
     setTimeout(resetForm, 250);
   }
 
-  const labelClass = "text-[10px] font-bold uppercase tracking-widest text-[#1a3d36]/70";
+  const labelClass = "text-[10px] font-bold uppercase tracking-widest text-[#065F46]/70";
 
   return (
     <AnimatePresence>
@@ -359,7 +359,7 @@ function AddAccountModal({
                         className={cn(
                           "rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors",
                           status === option.value
-                            ? "border-[#1a3d36] bg-[#1a3d36]/10 text-[#1a3d36]"
+                            ? "border-[#065F46] bg-[#065F46]/10 text-[#065F46]"
                             : "border-border text-muted-fg hover:border-gray-300"
                         )}
                       >
@@ -378,7 +378,7 @@ function AddAccountModal({
                     onChange={(e) => setNotes(e.target.value)}
                     rows={3}
                     placeholder="Context, relationship notes, what they care about…"
-                    className="flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm placeholder:text-muted-fg resize-none focus:outline-none focus:ring-2 focus:ring-[#1a3d36] focus:border-transparent"
+                    className="flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm placeholder:text-muted-fg resize-none focus:outline-none focus:ring-2 focus:ring-[#065F46] focus:border-transparent"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -414,7 +414,7 @@ function AddAccountModal({
                 <Button
                   type="submit"
                   disabled={saving || !name.trim() || !deskType.trim()}
-                  className="bg-[#1a3d36] hover:bg-[#153229] text-white border-0"
+                  className="bg-[#065F46] hover:bg-[#047857] text-white border-0"
                 >
                   {saving ? "Saving…" : "Add account"}
                 </Button>
@@ -543,7 +543,7 @@ export function AccountIntelligenceSection({ userTier }: { userTier: string }) {
               type="button"
               size="sm"
               onClick={() => setAddOpen(true)}
-              className="bg-[#1a3d36] hover:bg-[#153229] text-white border-0 gap-1.5"
+              className="bg-[#065F46] hover:bg-[#047857] text-white border-0 gap-1.5"
             >
               <Plus className="w-4 h-4" />
               Add a New Account
@@ -570,7 +570,7 @@ export function AccountIntelligenceSection({ userTier }: { userTier: string }) {
               type="button"
               size="sm"
               onClick={() => setAddOpen(true)}
-              className="bg-[#1a3d36] hover:bg-[#153229] text-white border-0 gap-1.5"
+              className="bg-[#065F46] hover:bg-[#047857] text-white border-0 gap-1.5"
             >
               <Plus className="w-4 h-4" />
               Add a New Account

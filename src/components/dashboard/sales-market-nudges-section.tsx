@@ -16,8 +16,6 @@ import {
 } from "@/data/sales-market-nudges";
 import { BookmarkUnderAccountModal } from "@/components/dashboard/bookmark-under-account-modal";
 import { cn } from "@/lib/utils";
-
-const FOREST = "#1a3d36";
 const ROYAL = "#1a4fd6";
 const CTA_BLUE = "#3280ff";
 
@@ -41,7 +39,7 @@ function MonthYearFilterBar({
       "rounded-lg text-left text-xs font-medium transition-colors",
       orientation === "vertical" ? "w-full px-3 py-2" : "shrink-0 px-3 py-1.5",
       active
-        ? "bg-[#1a3d36]/10 text-[#1a3d36]"
+        ? "bg-[#065F46]/10 text-[#065F46]"
         : "text-muted-fg hover:bg-secondary hover:text-gray-900"
     );
 
@@ -108,7 +106,7 @@ function IntelligenceBriefCard({ brief }: { brief: IntelligenceBrief }) {
   return (
     <article className="rounded-xl border border-border bg-white p-5 sm:p-6 shadow-sm flex flex-col h-full">
       <div className="flex items-start justify-between gap-3 mb-3">
-        <h3 className="font-semibold text-base" style={{ color: FOREST }}>
+        <h3 className="font-semibold text-base text-[#065F46]">
           {brief.title}
         </h3>
         {brief.updatedLabel && (
@@ -207,7 +205,7 @@ export function SalesMarketNudgesSection({
       <Reveal>
         <div className="relative rounded-xl border border-border bg-white overflow-hidden">
           <div className="blur-sm pointer-events-none select-none p-6 space-y-6" aria-hidden>
-            <div className="rounded-xl p-6 text-white" style={{ backgroundColor: FOREST }}>
+            <div className="rounded-xl p-6 text-white bg-[#065F46]">
               <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">
                 This Week — Market Nudges
               </p>
@@ -237,7 +235,7 @@ export function SalesMarketNudgesSection({
   return (
     <Reveal className="space-y-8">
       <header className="space-y-4">
-        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: FOREST }}>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#065F46]">
           {content.eyebrow}
         </p>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">{content.title}</h1>
@@ -245,8 +243,7 @@ export function SalesMarketNudgesSection({
       </header>
 
       <section
-        className="rounded-xl p-5 sm:p-6 space-y-4"
-        style={{ backgroundColor: FOREST }}
+        className="rounded-xl p-5 sm:p-6 space-y-4 bg-[#065F46]"
         aria-labelledby="weekly-nudges-heading"
       >
         <h2
@@ -306,7 +303,7 @@ export function SalesMarketNudgesSection({
             value={monthYearFilter}
             onChange={setMonthYearFilter}
             orientation="vertical"
-            className="hidden lg:block lg:w-44 shrink-0 lg:sticky lg:top-24 lg:self-start rounded-xl border border-emerald-100 bg-emerald-50/40 p-3"
+            className="hidden lg:block lg:w-44 shrink-0 lg:sticky lg:top-24 lg:self-start rounded-xl border border-teal-100 bg-teal-50/40 p-3"
           />
 
           <div className="flex-1 min-w-0">

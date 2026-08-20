@@ -1,6 +1,8 @@
 import type { AccountStatus, BookmarkSource } from "@prisma/client";
 
-export const FOREST_GREEN = "#1a3d36";
+import { SALES_HERO_GREEN } from "@/lib/sales-brand-colors";
+
+export { SALES_HERO_GREEN as FOREST_GREEN };
 
 export interface TrackedAccountRecord {
   id: string;
