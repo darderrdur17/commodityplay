@@ -319,6 +319,35 @@ function TopicCard({
   );
 }
 
+/** Bottom CTA — links prep topics to Account Intelligence (Elite). */
+function SalesAccountIntelligenceBanner({ userTier }: { userTier: string }) {
+  const hasElite = hasAccess(userTier, "ELITE");
+  const href = hasElite ? "/dashboard" : SALES_PLAN_HREF("elite");
+  const buttonLabel = hasElite ? "Open Account Intelligence" : "Unlock Account Intelligence";
+
+  return (
+    <div className="rounded-xl bg-[#1a4fd6] px-6 py-5 sm:px-8 sm:py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+      <div className="space-y-1.5 min-w-0">
+        <h2 className="text-base sm:text-lg font-bold text-white leading-snug">
+          Link Topics to an Account?
+        </h2>
+        <p className="text-sm text-white/90 max-w-xl leading-relaxed">
+          Attach a saved topic from your Prep Library to any account you&apos;re tracking — so
+          it&apos;s ready right where you need it.
+        </p>
+      </div>
+      <Link href={href} className="shrink-0 self-start sm:self-center">
+        <Button
+          size="sm"
+          className="bg-[#3280ff] hover:bg-[#2870e8] text-white border-0 rounded-lg h-10 px-5 text-sm font-semibold"
+        >
+          {buttonLabel} →
+        </Button>
+      </Link>
+    </div>
+  );
+}
+
 /** Sales track topic card — matches Frances mockup layout. */
 function SalesTopicCard({
   topic,
@@ -940,6 +969,14 @@ export function PrepLibraryBody({
                   </div>
                 </div>
               ) : null}
+
+              <SalesAccountIntelligenceBanner userTier={userTier} />
+            </div>
+          )}
+
+          {!unlocked && (
+            <div className="mt-8">
+              <SalesAccountIntelligenceBanner userTier={userTier} />
             </div>
           )}
         </section>
