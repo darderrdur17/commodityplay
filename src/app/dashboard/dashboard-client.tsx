@@ -621,7 +621,7 @@ export function DashboardClient({
                     pendingLabel,
                   })}
                   {/* Insert Prep Library card immediately after Industry Guide for Sales */}
-                  {card.slug === "industry-guide-for-sales" && (isAdminUser || !isCareerTrack) && (
+                  {card.slug === "industry-guide-for-sales" && !isCareerTrack && (
                     <PrepLibraryCard
                       track="SALES"
                       userTier={user.tier}
@@ -633,7 +633,7 @@ export function DashboardClient({
             })}
 
           {/* Career track: Prep Library card in Pro position */}
-          {(isAdminUser || isCareerTrack) && (
+          {isCareerTrack && (
             <PrepLibraryCard
               track="CAREER"
               userTier={user.tier}

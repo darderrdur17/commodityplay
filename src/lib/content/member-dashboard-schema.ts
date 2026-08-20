@@ -95,7 +95,7 @@ function mergeSalesResourceCards(
       title: saved.title?.trim() || def.title,
       description: saved.description?.trim() || def.description,
       href: saved.href?.trim() || def.href,
-      requiredTier: saved.requiredTier ?? def.requiredTier,
+      requiredTier: def.requiredTier,
       deliverableKey: saved.deliverableKey ?? def.deliverableKey,
     };
   });
