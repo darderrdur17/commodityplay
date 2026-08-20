@@ -28,6 +28,7 @@ import {
   type MentorCreditUsage,
 } from "@/lib/mentor-credits";
 import { PrepLibraryCard } from "@/components/dashboard/prep-library-section";
+import { ModuleTrackBadge, type ModuleTrack } from "@/components/dashboard/module-track-badge";
 
 interface Props {
   contentTiers?: Record<string, string>;
@@ -66,6 +67,7 @@ const CONTENT_CARDS = [
     href: "/playbook",
     requiredTier: "PRO",
     color: "#3280ff",
+    track: "Both",
   },
   {
     slug: "resume-templates",
@@ -74,6 +76,7 @@ const CONTENT_CARDS = [
     href: "/resume-templates",
     requiredTier: "PRO",
     color: "#3280ff",
+    track: "Career",
   },
   {
     slug: "career-roadmap",
@@ -82,6 +85,7 @@ const CONTENT_CARDS = [
     href: "/career-roadmap",
     requiredTier: "PRO",
     color: "#3280ff",
+    track: "Career",
   },
   {
     slug: "interview-questions",
@@ -90,6 +94,7 @@ const CONTENT_CARDS = [
     href: "/interview-questions",
     requiredTier: "PRO",
     color: "#3280ff",
+    track: "Career",
   },
   {
     slug: "knowledge-test",
@@ -98,6 +103,7 @@ const CONTENT_CARDS = [
     href: "/knowledge-test",
     requiredTier: "PRO",
     color: "#3280ff",
+    track: "Both",
   },
   {
     slug: "case-studies",
@@ -106,6 +112,7 @@ const CONTENT_CARDS = [
     href: "/case-studies",
     requiredTier: "ELITE",
     color: "#B45309",
+    track: "Both",
   },
   {
     slug: "desk-channel",
@@ -114,6 +121,7 @@ const CONTENT_CARDS = [
     href: "/desk-channel",
     requiredTier: "ELITE",
     color: "#B45309",
+    track: "Both",
   },
   {
     slug: "mentor-connect",
@@ -122,6 +130,7 @@ const CONTENT_CARDS = [
     href: "/mentor-connect",
     requiredTier: "ELITE",
     color: "#B45309",
+    track: "Both",
   },
   {
     slug: "job-openings",
@@ -130,8 +139,17 @@ const CONTENT_CARDS = [
     href: "/job-openings",
     requiredTier: "ELITE",
     color: "#B45309",
+    track: "Both",
   },
-] as const;
+] as const satisfies ReadonlyArray<{
+  slug: string;
+  icon: typeof BookOpen;
+  title: string;
+  href: string;
+  requiredTier: "PRO" | "ELITE";
+  color: string;
+  track: ModuleTrack;
+}>;
 
 const SALES_CARD_ICONS: Record<string, typeof FileText> = {
   "sales-market-nudges": ScrollText,
@@ -213,6 +231,7 @@ export function DashboardClient({
     delay = 0,
     pendingLabel,
     accessLabel,
+    trackLabel,
   }: {
     title: string;
     description: string;
@@ -224,8 +243,25 @@ export function DashboardClient({
     delay?: number;
     pendingLabel?: string;
     accessLabel?: string;
+    trackLabel?: ModuleTrack;
   }) {
     const locked = !unlocked;
+    const tierBadge = (
+      <Badge
+        variant={accessLabel ? "outline" : tier === "ELITE" ? "elite" : "pro"}
+        size="sm"
+        className={accessLabel ? "border-amber-200 text-amber-800 bg-amber-50" : undefined}
+      >
+        {accessLabel ?? (tier === "ELITE" ? "Elite" : "Pro")}
+      </Badge>
+    );
+    const tierBadges = (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {tierBadge}
+        {isAdminUser && trackLabel && <ModuleTrackBadge track={trackLabel} />}
+      </div>
+    );
+
     return (
       <Reveal delay={delay}>
         <div
@@ -249,29 +285,19 @@ export function DashboardClient({
           <div className="flex items-center justify-between">
             {unlocked ? (
               <>
-                <Badge
-                  variant={accessLabel ? "outline" : tier === "ELITE" ? "elite" : "pro"}
-                  size="sm"
-                  className={accessLabel ? "border-amber-200 text-amber-800 bg-amber-50" : undefined}
-                >
-                  {accessLabel ?? (tier === "ELITE" ? "Elite" : "Pro")}
-                </Badge>
+                {tierBadges}
                 <Link href={href} className="text-xs text-primary-400 font-medium hover:text-primary-500 flex items-center gap-0.5">
                   Open <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
               </>
             ) : pendingLabel ? (
               <>
-                <Badge variant={tier === "ELITE" ? "elite" : "pro"} size="sm">
-                  {tier === "ELITE" ? "Elite" : "Pro"}
-                </Badge>
+                {tierBadges}
                 <span className="text-xs text-muted-fg">{pendingLabel}</span>
               </>
             ) : (
               <>
-                <Badge variant={tier === "ELITE" ? "elite" : "pro"} size="sm">
-                  {tier === "ELITE" ? "Elite" : "Pro"}
-                </Badge>
+                {tierBadges}
                 <Link
                   href={planHref(tier === "ELITE" ? "elite" : "pro")}
                   className="text-xs font-medium text-primary-400 hover:text-primary-500 flex items-center gap-0.5"
@@ -489,7 +515,10 @@ export function DashboardClient({
                     <Compass className="w-5 h-5 text-primary-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <Badge variant="pro" size="sm" className="mb-2">Pro Pack</Badge>
+                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                      <Badge variant="pro" size="sm">Pro Pack</Badge>
+                      {isAdminUser && <ModuleTrackBadge track="Career" />}
+                    </div>
                     <h2 className="font-serif text-lg font-bold text-gray-900 mb-1">
                       {navigationGuides.career.label}
                     </h2>
@@ -515,7 +544,10 @@ export function DashboardClient({
                     <Compass className="w-5 h-5 text-primary-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <Badge variant="pro" size="sm" className="mb-2">Pro Pack</Badge>
+                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                      <Badge variant="pro" size="sm">Pro Pack</Badge>
+                      {isAdminUser && <ModuleTrackBadge track="Sales" />}
+                    </div>
                     <h2 className="font-serif text-lg font-bold text-gray-900 mb-1">
                       {navigationGuides.sales.label}
                     </h2>
@@ -560,7 +592,10 @@ export function DashboardClient({
                   </div>
                   <div>
                     <p className="font-semibold text-sm text-gray-900">{link.label}</p>
-                    <Badge variant="starter" size="sm" className="mt-1">Free</Badge>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      <Badge variant="starter" size="sm">Free</Badge>
+                      {isAdminUser && <ModuleTrackBadge track="Both" />}
+                    </div>
                   </div>
                 </div>
               </Link>
@@ -584,6 +619,7 @@ export function DashboardClient({
               unlocked,
               href: card.href,
               delay: i * 0.05,
+              trackLabel: card.track,
             });
           })}
 
@@ -619,6 +655,7 @@ export function DashboardClient({
                     href,
                     delay: (CONTENT_CARDS.length + i) * 0.05,
                     pendingLabel,
+                    trackLabel: "Sales",
                   })}
                   {/* Insert Prep Library card immediately after Industry Guide for Sales */}
                   {card.slug === "industry-guide-for-sales" && !isCareerTrack && (
@@ -626,6 +663,7 @@ export function DashboardClient({
                       track="SALES"
                       userTier={user.tier}
                       topicCount={salesTopicCount}
+                      showTrackBadge={isAdminUser}
                     />
                   )}
                 </React.Fragment>
@@ -638,6 +676,7 @@ export function DashboardClient({
               track="CAREER"
               userTier={user.tier}
               topicCount={careerTopicCount}
+              showTrackBadge={isAdminUser}
             />
           )}
 

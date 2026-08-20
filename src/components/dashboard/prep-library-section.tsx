@@ -21,6 +21,7 @@ import {
   type PrepLibraryTrack,
 } from "@/data/prep-library";
 import { cn } from "@/lib/utils";
+import { ModuleTrackBadge } from "@/components/dashboard/module-track-badge";
 
 // ─── Shared types ────────────────────────────────────────────────────────────
 
@@ -194,10 +195,13 @@ export function PrepLibraryCard({
   track,
   userTier,
   topicCount,
+  showTrackBadge = false,
 }: {
   track: PrepLibraryTrack;
   userTier: string;
   topicCount: number;
+  /** When true, show Career/Sales track pill for admin preview. */
+  showTrackBadge?: boolean;
 }) {
   const segment = PREP_LIBRARY_SEGMENTS[track];
   const theme = TRACK_THEMES[track];
@@ -228,10 +232,13 @@ export function PrepLibraryCard({
         <p className="text-xs text-muted-fg mb-3 leading-relaxed">{segment.cardDescription}</p>
 
         <div className="flex items-center justify-between">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant="pro" size="sm">
               Pro
             </Badge>
+            {showTrackBadge && (
+              <ModuleTrackBadge track={track === "CAREER" ? "Career" : "Sales"} />
+            )}
             <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-fg">
               {topicCount} saved
             </span>
