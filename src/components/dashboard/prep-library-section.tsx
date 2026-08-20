@@ -51,7 +51,7 @@ interface TrackTheme {
   seedTopics: TalkingPoint[];
 }
 
-// ─── Track themes ─────────────────────────────────────────────────────────────
+/** Frances mockup — forest green sales palette (see TRACK_THEMES.SALES) */
 
 const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
   CAREER: {
@@ -82,19 +82,19 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
   },
   SALES: {
     formHeader: "Add a talking point",
-    iconWrapClass: "w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center",
-    iconClass: "w-4 h-4 text-teal-700",
+    iconWrapClass: "w-8 h-8 rounded-lg bg-[#1a3d36]/10 flex items-center justify-center",
+    iconClass: "w-4 h-4 text-[#1a3d36]",
     categoryBadgeClass:
-      "inline-flex shrink-0 rounded-full bg-teal-100 px-2.5 py-1 text-[11px] font-semibold text-teal-800",
-    linkedTextClass: "text-xs font-semibold text-teal-800",
-    labelColorClass: "text-teal-800/70",
-    textareaFocusClass: "focus:ring-teal-600",
-    saveButtonClass: "bg-teal-800 hover:bg-teal-700 text-white border-0",
+      "inline-flex shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-[#1a3d36]",
+    linkedTextClass: "text-xs font-semibold text-[#1a3d36]",
+    labelColorClass: "text-[#1a3d36]/70",
+    textareaFocusClass: "focus:ring-[#1a3d36]",
+    saveButtonClass: "bg-[#1a3d36] hover:bg-[#153229] text-white border-0",
     placeholders: {
       title: "e.g. Framing this week's spread move",
       keyPoints: "Add up to 4 short bullets",
       source: "e.g. Chapter 4 · Weekly Market Update",
-      category: "e.g. current event, market mechanics, role movement etc",
+      category: "Current event",
       canUseFor: "e.g. Meridian Energy",
       usedInNote: "e.g. Referenced this in my Meridian client meeting",
     },
@@ -195,22 +195,27 @@ function MonthYearFilterBar({
   onChange,
   className,
   orientation = "vertical",
+  accent = "career",
 }: {
   groups: { label: string; topics: TalkingPoint[] }[];
   value: string;
   onChange: (value: string) => void;
   className?: string;
   orientation?: "vertical" | "horizontal";
+  accent?: "career" | "sales";
 }) {
   if (groups.length === 0) return null;
+
+  const activeClass =
+    accent === "sales"
+      ? "bg-[#1a3d36]/10 text-[#1a3d36]"
+      : "bg-primary-400/10 text-primary-400";
 
   const buttonClass = (active: boolean) =>
     cn(
       "rounded-lg text-left text-xs font-medium transition-colors",
       orientation === "vertical" ? "w-full px-3 py-2" : "shrink-0 px-3 py-1.5",
-      active
-        ? "bg-primary-400/10 text-primary-400"
-        : "text-muted-fg hover:bg-secondary hover:text-gray-900"
+      active ? activeClass : "text-muted-fg hover:bg-secondary hover:text-gray-900"
     );
 
   return (
@@ -331,7 +336,7 @@ function SalesTopicCard({
           <h3 className="font-semibold text-gray-900 text-sm sm:text-base leading-snug">
             {topic.title}
           </h3>
-          <span className="inline-flex shrink-0 rounded-full bg-teal-100 px-2.5 py-0.5 text-[11px] font-semibold text-teal-800">
+          <span className="inline-flex shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-[#1a3d36]">
             {topic.category}
           </span>
         </div>
@@ -368,7 +373,7 @@ function SalesTopicCard({
       <div className="pt-3 border-t border-border/60 flex flex-wrap items-center gap-2">
         {usedWithAccount ? (
           <>
-            <span className="inline-flex rounded-full bg-teal-800 px-2.5 py-1 text-[11px] font-semibold text-white">
+            <span className="inline-flex rounded-full bg-[#1a3d36] px-2.5 py-1 text-[11px] font-semibold text-white">
               Used in: {topic.canUseFor}
             </span>
             {topic.usedInNote && (
@@ -626,7 +631,88 @@ export function PrepLibraryBody({
     }
   }, [topicGroups, monthYearFilter]);
 
-  const addTopicForm = (
+  const salesAddTopicForm = (
+    <form onSubmit={handleSave} className="space-y-5">
+      <div className="flex items-center gap-2">
+        <div className={theme.iconWrapClass}>
+          <BarChart3 className={theme.iconClass} />
+        </div>
+        <h3 className="font-semibold text-gray-900">{theme.formHeader}</h3>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="space-y-1.5">
+          <label htmlFor="prep-topic-title-SALES" className={labelClass}>
+            Topic title
+          </label>
+          <Input
+            id="prep-topic-title-SALES"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={theme.placeholders.title}
+            className="h-10"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="prep-key-points-SALES" className={labelClass}>
+            Key points
+          </label>
+          <textarea
+            id="prep-key-points-SALES"
+            value={keyPointsRaw}
+            onChange={(e) => setKeyPointsRaw(e.target.value)}
+            placeholder={theme.placeholders.keyPoints}
+            rows={2}
+            className={cn(
+              "flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm min-h-[40px]",
+              "placeholder:text-muted-fg resize-none",
+              "focus:outline-none focus:ring-2 focus:border-transparent",
+              theme.textareaFocusClass,
+              "transition-all duration-200"
+            )}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="prep-category-SALES" className={labelClass}>
+            Category
+          </label>
+          <Input
+            id="prep-category-SALES"
+            value={categoryInput}
+            onChange={(e) => setCategoryInput(e.target.value)}
+            placeholder={theme.placeholders.category}
+            className="h-10"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="prep-can-use-for-SALES" className={labelClass}>
+            Can use for
+          </label>
+          <Input
+            id="prep-can-use-for-SALES"
+            value={canUseFor}
+            onChange={(e) => setCanUseFor(e.target.value)}
+            placeholder={theme.placeholders.canUseFor}
+            className="h-10"
+          />
+        </div>
+      </div>
+
+      <Button
+        type="submit"
+        disabled={!title.trim() || !keyPointsRaw.trim()}
+        className={cn("gap-1.5", theme.saveButtonClass)}
+      >
+        <Plus className="w-4 h-4" />
+        {theme.saveButtonLabel}
+      </Button>
+    </form>
+  );
+
+  const careerAddTopicForm = (
     <form onSubmit={handleSave} className="space-y-4">
       <div className="flex items-center gap-2">
         <div className={theme.iconWrapClass}>
@@ -692,21 +778,6 @@ export function PrepLibraryBody({
               value={source}
               onChange={(e) => setSource(e.target.value)}
               placeholder={theme.placeholders.source}
-              className="h-10"
-            />
-          </div>
-        )}
-
-        {track === "SALES" && (
-          <div className="space-y-1.5">
-            <label htmlFor={`prep-can-use-for-${track}`} className={labelClass}>
-              Can use for
-            </label>
-            <Input
-              id={`prep-can-use-for-${track}`}
-              value={canUseFor}
-              onChange={(e) => setCanUseFor(e.target.value)}
-              placeholder={theme.placeholders.canUseFor}
               className="h-10"
             />
           </div>
@@ -791,9 +862,9 @@ export function PrepLibraryBody({
             </div>
           ) : (
             <div className="space-y-8">
-              {/* Hero */}
+              {/* Hero — forest green mockup */}
               <div className="space-y-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-teal-700">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a3d36]">
                   {segment.eyebrow}
                 </p>
                 <h1
@@ -805,38 +876,68 @@ export function PrepLibraryBody({
                 <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">
                   {segment.pageDescription}
                 </p>
-                <div className="inline-flex flex-col rounded-xl border border-teal-200 bg-teal-50/60 px-5 py-3 min-w-[120px]">
-                  <span className="text-3xl font-bold text-teal-800 leading-none">
+                <div className="inline-flex flex-col rounded-xl border border-border bg-white px-5 py-3 min-w-[120px] shadow-sm">
+                  <span className="text-3xl font-bold text-[#1a3d36] leading-none">
                     {loading ? "…" : topics.length}
                   </span>
-                  <span className="text-xs font-medium text-teal-700 mt-1">Topics saved</span>
+                  <span className="text-xs font-medium text-muted-fg mt-1">Topics saved</span>
                 </div>
               </div>
 
-              {/* Add form card */}
-              <div className="rounded-xl border border-border bg-white p-5 sm:p-6 shadow-sm">
-                {addTopicForm}
+              {/* Add form — mint dotted border */}
+              <div className="rounded-xl border-2 border-dashed border-emerald-200 bg-white p-5 sm:p-6 shadow-sm">
+                {salesAddTopicForm}
               </div>
 
-              {/* Topics grouped by month/year */}
+              {/* Topics with month/year filter sidebar */}
               {loading ? (
                 <p className="text-xs text-muted-fg">Loading your topics…</p>
               ) : topics.length > 0 ? (
-                <div className="space-y-8">
-                  {topicGroups.map((group) => (
-                    <div key={group.label} className="space-y-4">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
-                        {group.label}
-                      </p>
-                      <div className="space-y-4">
-                        {group.topics.map((topic, i) => (
-                          <Reveal key={topic.id} delay={i * 0.03}>
-                            <SalesTopicCard topic={topic} onDelete={handleDelete} />
-                          </Reveal>
-                        ))}
-                      </div>
+                <div className="space-y-4">
+                  <MonthYearFilterBar
+                    groups={topicGroups}
+                    value={monthYearFilter}
+                    onChange={setMonthYearFilter}
+                    orientation="horizontal"
+                    accent="sales"
+                    className="lg:hidden -mx-1 px-1"
+                  />
+
+                  <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+                    <MonthYearFilterBar
+                      groups={topicGroups}
+                      value={monthYearFilter}
+                      onChange={setMonthYearFilter}
+                      orientation="vertical"
+                      accent="sales"
+                      className="hidden lg:block lg:w-44 shrink-0 lg:sticky lg:top-24 lg:self-start rounded-xl border border-emerald-100 bg-emerald-50/40 p-3"
+                    />
+
+                    <div className="flex-1 min-w-0 space-y-8">
+                      {filteredTopicGroups.length > 0 ? (
+                        filteredTopicGroups.map((group) => (
+                          <div
+                            key={group.label}
+                            id={`prep-sales-month-${group.label.replace(/\s+/g, "-")}`}
+                            className="space-y-4"
+                          >
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
+                              {group.label}
+                            </p>
+                            <div className="space-y-4">
+                              {group.topics.map((topic, i) => (
+                                <Reveal key={topic.id} delay={i * 0.03}>
+                                  <SalesTopicCard topic={topic} onDelete={handleDelete} />
+                                </Reveal>
+                              ))}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-fg">No topics in this period.</p>
+                      )}
                     </div>
-                  ))}
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -894,7 +995,7 @@ export function PrepLibraryBody({
         ) : (
           /* Unlocked: form + saved topics */
           <div className="px-5 sm:px-6 py-5 space-y-6">
-            {addTopicForm}
+            {careerAddTopicForm}
 
             {loading ? (
               <p className="text-xs text-muted-fg">Loading your topics…</p>

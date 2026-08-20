@@ -156,7 +156,7 @@ export const SALES_PREP_LIBRARY_SEED_TOPICS: TalkingPoint[] = [
     title: "Framing a Spread Move in a Client Conversation",
     category: "Current event",
     keyPoints: [
-      "JKM-TTF has compressed 3 weeks straight — good opener with LNG-exposed accounts",
+      "JKM–TTF has compressed 3 weeks straight – good opener with LNG-exposed accounts",
       "Ask how they're adjusting hedge coverage, don't just report the number",
     ],
     source: "From this week's Market Update",
@@ -171,13 +171,12 @@ export const SALES_PREP_LIBRARY_SEED_TOPICS: TalkingPoint[] = [
     title: "Talking About Freight Costs Without Sounding Like a Pitch",
     category: "Logistics",
     keyPoints: [
-      "Freight cost is a real input to their cargo economics — frame it as their P&L problem, not your data point",
-      "Reference a recent route or basin where rates moved, not your firm's offering",
-      "Good line: \"I noticed VLCC rates on this route moved X% — how is that affecting your freight budget?\"",
+      "Freight cost is a real input to their cargo economics – frame it as their P&L problem, not your data point",
+      "Tie a rate spike to a specific decision they're likely facing this week",
     ],
     source: "From Chapter B",
     canUseFor: "Solace Trade Finance",
-    usedInNote: "client asked for a follow-up",
+    usedInNote: "used to re-open a stalled conversation",
     prepStatus: "Used it",
   },
   {
@@ -187,13 +186,12 @@ export const SALES_PREP_LIBRARY_SEED_TOPICS: TalkingPoint[] = [
     title: "Reading Desk Priorities From Recent Market Stress",
     category: "Risk & pricing",
     keyPoints: [
-      "When spreads blow out, desks prioritise risk management over new business — read that before you pitch",
-      "Ask what changed in their risk limits or credit lines, not what they want to buy",
-      "Good line: \"With the move last week, are you rebalancing exposure or holding through?\"",
+      "Desks lean harder on external intelligence when signals disagree, not when they agree",
+      "A volatile week is the moment to ask what's keeping them up at night, not to pitch a feature",
     ],
     source: "From Chapter D",
     canUseFor: "Halcyon Resources",
-    usedInNote: "landed well in a tense market week",
+    usedInNote: "used during initial scoping call",
     prepStatus: "Used it",
   },
   {
@@ -203,9 +201,8 @@ export const SALES_PREP_LIBRARY_SEED_TOPICS: TalkingPoint[] = [
     title: "Positioning Coverage Depth as an Edge, Not a Feature List",
     category: "Other",
     keyPoints: [
-      "Don't lead with product breadth — lead with one insight only your coverage could produce",
-      "Reference a specific data point or relationship your desk has that a generalist wouldn't",
-      "Good line: \"We noticed something in the [product] curve this week that most generalists wouldn't flag\"",
+      "Don't list what you cover – describe a decision your coverage has helped a desk make",
+      "Specificity beats breadth in this conversation every time",
     ],
     prepStatus: "Learning it",
   },
@@ -216,12 +213,11 @@ export const SALES_PREP_LIBRARY_SEED_TOPICS: TalkingPoint[] = [
     title: "Why Vendor Data Matters More at Turning Points",
     category: "Market mechanics",
     keyPoints: [
-      "At inflection points, desks need faster, cleaner data — not more of it",
-      "Frame your value as reducing decision latency, not adding another screen",
-      "Good line: \"When the curve moves this fast, the question isn't what happened — it's what happened first\"",
+      "Position the data around the decision it enables, not the coverage volume",
+      "Turning points are when your relevance is highest – worth timing outreach around them",
     ],
     canUseFor: "Northbridge Gas",
-    usedInNote: "referenced in a follow-up email",
+    usedInNote: "helped explain timing of outreach",
     prepStatus: "Used it",
   },
 ];
@@ -280,7 +276,7 @@ export const PREP_LIBRARY_SEGMENTS: Record<
       "Market topics you can bring into client conversations — ready before your next meeting.",
     pageDescription:
       "A private, growing set of market topics you can bring into a client conversation with confidence. Built from what you read here — ready to pull up before your next meeting.",
-    color: "#0f766e",
+    color: "#1a3d36",
     requiredTier: "PRO",
   },
 };
