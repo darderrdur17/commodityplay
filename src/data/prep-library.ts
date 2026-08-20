@@ -237,8 +237,6 @@ export const CAREER_PREP_LIBRARY_EXAMPLE_TOPICS: TalkingPoint[] = [
       "The spread has to cover freight cost and demurrage risk, not just the price gap",
       "Desk speed depends on how fast the pricing window is expected to close",
     ],
-    canUseFor: "Meridian Energy interview",
-    usedInNote: "landed well",
     prepStatus: "Interview-ready",
   },
   {
@@ -252,7 +250,6 @@ export const CAREER_PREP_LIBRARY_EXAMPLE_TOPICS: TalkingPoint[] = [
       "Forward curve often signals the move before flat price reacts",
       "Desks position ahead of the compression, not after it's visible",
     ],
-    canUseFor: "Anchorpoint Trading",
     prepStatus: "Learning it",
   },
 ];
@@ -269,9 +266,7 @@ export const SALES_PREP_LIBRARY_EXAMPLE_TOPICS: TalkingPoint[] = [
       "Signals you track the market daily, not just when there's something to sell",
       "Good line: reference a number that moved this week before you mention your firm",
     ],
-    canUseFor: "Meridian Energy",
-    usedInNote: "opened the conversation well",
-    prepStatus: "Used it",
+    prepStatus: "Learning it",
   },
   {
     id: "example-sales-spread-framing",
@@ -284,9 +279,7 @@ export const SALES_PREP_LIBRARY_EXAMPLE_TOPICS: TalkingPoint[] = [
       "Ask how they're adjusting hedge coverage, don't just report the number",
     ],
     source: "From this week's Market Update",
-    canUseFor: "Northbridge Gas",
-    usedInNote: "used to explain the hedge angle",
-    prepStatus: "Used it",
+    prepStatus: "Learning it",
   },
   {
     id: "example-sales-freight-costs",
@@ -299,9 +292,7 @@ export const SALES_PREP_LIBRARY_EXAMPLE_TOPICS: TalkingPoint[] = [
       "Tie a rate spike to a specific decision they're likely facing this week",
     ],
     source: "From Chapter B",
-    canUseFor: "Solace Trade Finance",
-    usedInNote: "used to re-open a stalled conversation",
-    prepStatus: "Used it",
+    prepStatus: "Learning it",
   },
 ];
 

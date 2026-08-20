@@ -74,8 +74,8 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
       keyPoints: "Add up to 4 short bullets",
       source: "e.g. Chapter 4 · Weekly Market Update",
       category: "e.g. current event, market mechanics, role movement etc",
-      canUseFor: "e.g. Meridian Energy interview",
-      usedInNote: "e.g. Referenced this in my Meridian interview",
+      canUseFor: "e.g. ABC Energy interview",
+      usedInNote: "e.g. Referenced this in my ABC Energy interview",
     },
     defaultCategory: "Market mechanics",
     saveButtonLabel: "Save topic",
@@ -100,8 +100,8 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
       keyPoints: "Add up to 4 short bullets",
       source: "e.g. Chapter 4 · Weekly Market Update",
       category: "Current event",
-      canUseFor: "e.g. Meridian Energy",
-      usedInNote: "e.g. Referenced this in my Meridian client meeting",
+      canUseFor: "e.g. ABC Energy",
+      usedInNote: "e.g. Referenced this in my ABC Energy meeting",
     },
     defaultCategory: "Current event",
     saveButtonLabel: "Save topic",
@@ -283,6 +283,31 @@ function ExampleBadge() {
     <span className="inline-flex shrink-0 rounded-full border border-border bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-muted-fg">
       Example
     </span>
+  );
+}
+
+function StarterExamplesHint({ track }: { track: PrepLibraryTrack }) {
+  const isSales = track === "SALES";
+  return (
+    <div className="rounded-xl border border-dashed border-border bg-secondary/30 px-4 py-3 text-sm text-muted-fg leading-relaxed">
+      <p className="font-medium text-gray-800 mb-1">Getting started with examples</p>
+      <p>
+        {isSales ? (
+          <>
+            These sample topics are not linked to any account yet. Create desks like{" "}
+            <span className="font-medium text-gray-800">ABC Energy</span> or{" "}
+            <span className="font-medium text-gray-800">XYZ Energy</span> in Account Intelligence,
+            then use <span className="font-medium text-gray-800">Link to account</span> on each
+            topic. Delete the examples whenever you&apos;re ready to work from your own list.
+          </>
+        ) : (
+          <>
+            These sample topics show how a prep entry looks. Add your own topics below, then delete
+            the examples when you&apos;re ready to start fresh.
+          </>
+        )}
+      </p>
+    </div>
   );
 }
 
@@ -739,6 +764,7 @@ export function PrepLibraryBody({
     monthYearFilter === "all"
       ? topicGroups
       : topicGroups.filter((group) => group.label === monthYearFilter);
+  const hasStarterExamples = topics.some((t) => t.isStarterExample);
 
   // Reset month filter if the selected period no longer exists (e.g. after delete)
   useEffect(() => {
@@ -1014,6 +1040,7 @@ export function PrepLibraryBody({
                 <p className="text-xs text-muted-fg">Loading your topics…</p>
               ) : topics.length > 0 ? (
                 <div className="space-y-4">
+                  {hasStarterExamples && <StarterExamplesHint track="SALES" />}
                   <MonthYearFilterBar
                     groups={topicGroups}
                     value={monthYearFilter}
@@ -1134,6 +1161,7 @@ export function PrepLibraryBody({
               <p className="text-xs text-muted-fg">Loading your topics…</p>
             ) : topics.length > 0 ? (
               <div className="space-y-4">
+                {hasStarterExamples && <StarterExamplesHint track="CAREER" />}
                 <MonthYearFilterBar
                   groups={topicGroups}
                   value={monthYearFilter}
