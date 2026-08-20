@@ -101,12 +101,6 @@ enum Role {
   ADMIN
 }
 
-enum PrepStatus {
-  LEARNING_IT
-  INTERVIEW_READY
-  USED_IT
-}
-
 enum PrepCategory {
   MARKET_MECHANICS
   CURRENT_EVENT
@@ -283,7 +277,7 @@ model TalkingPoint {
   category   PrepCategory
   keyPoints  String[]
   source     String?
-  prepStatus PrepStatus  @default(LEARNING_IT)
+  prepStatus String      @default("Learning it")
   usedInNote String?     @db.Text
   canUseFor  String?
 

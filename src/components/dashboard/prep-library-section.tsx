@@ -14,6 +14,7 @@ import {
   CAREER_PREP_LIBRARY_SEED_TOPICS,
   PREP_LIBRARY_CATEGORIES,
   PREP_LIBRARY_SEGMENTS,
+  PREP_STATUS_PRESETS,
   SALES_PREP_LIBRARY_SEED_TOPICS,
   type PrepCategoryEnum,
   type PrepStatusEnum,
@@ -159,7 +160,10 @@ function groupTopicsByMonthYear(
   }));
 }
 
-const PREP_STATUS_STYLES: Record<PrepStatusEnum, { badge: string; label: string }> = {
+const PREP_STATUS_STYLES: Record<
+  (typeof PREP_STATUS_PRESETS)[number],
+  { badge: string; label: string }
+> = {
   "Learning it": {
     badge: "inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600",
     label: "Learning it",
@@ -173,6 +177,75 @@ const PREP_STATUS_STYLES: Record<PrepStatusEnum, { badge: string; label: string 
     label: "Used it",
   },
 };
+
+function getPrepStatusBadge(status: string): { badge: string; label: string } {
+  const preset = PREP_STATUS_STYLES[status as (typeof PREP_STATUS_PRESETS)[number]];
+  if (preset) return preset;
+  return {
+    badge:
+      "inline-flex rounded-full bg-primary-400/10 px-2.5 py-1 text-[11px] font-semibold text-primary-400",
+    label: status,
+  };
+}
+
+/** Sticky sidebar / mobile chips to filter topics by month/year. */
+function MonthYearFilterBar({
+  groups,
+  value,
+  onChange,
+  className,
+  orientation = "vertical",
+}: {
+  groups: { label: string; topics: TalkingPoint[] }[];
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+  orientation?: "vertical" | "horizontal";
+}) {
+  if (groups.length === 0) return null;
+
+  const buttonClass = (active: boolean) =>
+    cn(
+      "rounded-lg text-left text-xs font-medium transition-colors",
+      orientation === "vertical" ? "w-full px-3 py-2" : "shrink-0 px-3 py-1.5",
+      active
+        ? "bg-primary-400/10 text-primary-400"
+        : "text-muted-fg hover:bg-secondary hover:text-gray-900"
+    );
+
+  return (
+    <nav
+      aria-label="Filter topics by month"
+      className={cn(
+        orientation === "vertical" ? "space-y-1" : "flex gap-2 overflow-x-auto pb-1",
+        className
+      )}
+    >
+      <p
+        className={cn(
+          "text-[10px] font-bold uppercase tracking-widest text-muted-fg",
+          orientation === "horizontal" ? "sr-only" : "mb-2 px-1"
+        )}
+      >
+        Filter by date
+      </p>
+      <button type="button" onClick={() => onChange("all")} className={buttonClass(value === "all")}>
+        All topics
+      </button>
+      {groups.map((group) => (
+        <button
+          key={group.label}
+          type="button"
+          onClick={() => onChange(group.label)}
+          className={buttonClass(value === group.label)}
+        >
+          {group.label}
+          <span className="ml-1 text-[10px] font-normal opacity-70">({group.topics.length})</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
 
 // ─── Topic card ───────────────────────────────────────────────────────────────
 
@@ -188,7 +261,7 @@ function TopicCard({
   /** Sales-only: can use for / notes. Hidden on career track. */
   showLinkedFields?: boolean;
 }) {
-  const statusStyle = PREP_STATUS_STYLES[topic.prepStatus] ?? PREP_STATUS_STYLES["Learning it"];
+  const statusStyle = getPrepStatusBadge(topic.prepStatus);
 
   return (
     <article className="rounded-xl border border-border bg-secondary/30 p-4 sm:p-5">
@@ -412,6 +485,8 @@ export function PrepLibraryBody({
   const [categoryInput, setCategoryInput] = useState("");
   const [source, setSource] = useState("");
   const [prepStatus, setPrepStatus] = useState<PrepStatusEnum>("Learning it");
+  const [customPrepStatus, setCustomPrepStatus] = useState("");
+  const [monthYearFilter, setMonthYearFilter] = useState<string>("all");
   const [usedInNote, setUsedInNote] = useState("");
   const [canUseFor, setCanUseFor] = useState("");
 
@@ -449,13 +524,16 @@ export function PrepLibraryBody({
       if (keyPoints.length === 0) return;
 
       const resolvedCategory = normalizeCategoryInput(categoryInput, theme.defaultCategory);
+      const resolvedPrepStatus = (
+        track === "CAREER" ? customPrepStatus.trim() || prepStatus : prepStatus
+      ).slice(0, 50);
       const body = {
         track,
         title: trimmedTitle,
         category: resolvedCategory,
         keyPoints,
         source: source.trim() || undefined,
-        prepStatus,
+        prepStatus: resolvedPrepStatus,
         ...(track === "SALES"
           ? {
               usedInNote: usedInNote.trim() || undefined,
@@ -482,7 +560,7 @@ export function PrepLibraryBody({
           id: `user-${Date.now()}`,
           createdAt: new Date(),
           ...body,
-          prepStatus,
+          prepStatus: resolvedPrepStatus,
         };
         const newTopics = [optimistic, ...topics];
         setTopics(newTopics);
@@ -494,6 +572,7 @@ export function PrepLibraryBody({
       setCategoryInput("");
       setSource("");
       setPrepStatus("Learning it");
+      setCustomPrepStatus("");
       setUsedInNote("");
       setCanUseFor("");
     },
@@ -503,6 +582,7 @@ export function PrepLibraryBody({
       categoryInput,
       source,
       prepStatus,
+      customPrepStatus,
       usedInNote,
       canUseFor,
       track,
@@ -534,6 +614,17 @@ export function PrepLibraryBody({
   );
 
   const topicGroups = groupTopicsByMonthYear(topics);
+  const filteredTopicGroups =
+    monthYearFilter === "all"
+      ? topicGroups
+      : topicGroups.filter((group) => group.label === monthYearFilter);
+
+  // Reset month filter if the selected period no longer exists (e.g. after delete)
+  useEffect(() => {
+    if (monthYearFilter !== "all" && !topicGroups.some((g) => g.label === monthYearFilter)) {
+      setMonthYearFilter("all");
+    }
+  }, [topicGroups, monthYearFilter]);
 
   const addTopicForm = (
     <form onSubmit={handleSave} className="space-y-4">
@@ -623,30 +714,44 @@ export function PrepLibraryBody({
 
         {track === "CAREER" && (
           <>
-            <div className="sm:col-span-2 space-y-1.5">
+            <div className="sm:col-span-2 space-y-3">
               <span className={labelClass}>Prep status</span>
               <div className="flex gap-2 flex-wrap">
-                {(["Learning it", "Interview-ready", "Used it"] as PrepStatusEnum[]).map(
-                  (status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => setPrepStatus(status)}
-                      className={cn(
-                        "px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150",
-                        prepStatus === status
-                          ? status === "Learning it"
-                            ? "bg-gray-200 border-gray-300 text-gray-700"
-                            : status === "Interview-ready"
-                            ? "bg-amber-100 border-amber-300 text-amber-700"
-                            : "bg-green-100 border-green-300 text-green-700"
-                          : "bg-white border-border text-muted-fg hover:border-gray-300"
-                      )}
-                    >
-                      {status}
-                    </button>
-                  )
-                )}
+                {PREP_STATUS_PRESETS.map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => {
+                      setPrepStatus(status);
+                      setCustomPrepStatus("");
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150",
+                      prepStatus === status && !customPrepStatus.trim()
+                        ? status === "Learning it"
+                          ? "bg-gray-200 border-gray-300 text-gray-700"
+                          : status === "Interview-ready"
+                          ? "bg-amber-100 border-amber-300 text-amber-700"
+                          : "bg-green-100 border-green-300 text-green-700"
+                        : "bg-white border-border text-muted-fg hover:border-gray-300"
+                    )}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor={`prep-custom-status-${track}`} className={labelClass}>
+                  Or name your own
+                </label>
+                <Input
+                  id={`prep-custom-status-${track}`}
+                  value={customPrepStatus}
+                  onChange={(e) => setCustomPrepStatus(e.target.value)}
+                  placeholder="e.g. Revisit before final round"
+                  className="h-10"
+                  maxLength={50}
+                />
               </div>
             </div>
           </>
@@ -794,26 +899,52 @@ export function PrepLibraryBody({
             {loading ? (
               <p className="text-xs text-muted-fg">Loading your topics…</p>
             ) : topics.length > 0 ? (
-              <div className="space-y-6">
-                {topicGroups.map((group) => (
-                  <div key={group.label} className="space-y-3">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
-                      {group.label}
-                    </p>
-                    <div className="space-y-3">
-                      {group.topics.map((topic, i) => (
-                        <Reveal key={topic.id} delay={i * 0.03}>
-                          <TopicCard
-                            topic={topic}
-                            theme={theme}
-                            onDelete={handleDelete}
-                            showLinkedFields={false}
-                          />
-                        </Reveal>
-                      ))}
-                    </div>
+              <div className="space-y-4">
+                {/* Mobile: horizontal month/year filter */}
+                <MonthYearFilterBar
+                  groups={topicGroups}
+                  value={monthYearFilter}
+                  onChange={setMonthYearFilter}
+                  orientation="horizontal"
+                  className="lg:hidden -mx-1 px-1"
+                />
+
+                <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+                  {/* Desktop: sticky side filter */}
+                  <MonthYearFilterBar
+                    groups={topicGroups}
+                    value={monthYearFilter}
+                    onChange={setMonthYearFilter}
+                    orientation="vertical"
+                    className="hidden lg:block lg:w-44 shrink-0 lg:sticky lg:top-24 lg:self-start rounded-xl border border-border bg-secondary/20 p-3"
+                  />
+
+                  <div className="flex-1 min-w-0 space-y-6">
+                    {filteredTopicGroups.length > 0 ? (
+                      filteredTopicGroups.map((group) => (
+                        <div key={group.label} id={`prep-month-${group.label.replace(/\s+/g, "-")}`} className="space-y-3">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
+                            {group.label}
+                          </p>
+                          <div className="space-y-3">
+                            {group.topics.map((topic, i) => (
+                              <Reveal key={topic.id} delay={i * 0.03}>
+                                <TopicCard
+                                  topic={topic}
+                                  theme={theme}
+                                  onDelete={handleDelete}
+                                  showLinkedFields={false}
+                                />
+                              </Reveal>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-fg">No topics in this period.</p>
+                    )}
                   </div>
-                ))}
+                </div>
               </div>
             ) : null}
           </div>

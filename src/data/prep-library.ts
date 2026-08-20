@@ -1,6 +1,11 @@
 export type PrepLibraryTrack = "CAREER" | "SALES";
 
-export type PrepStatusEnum = "Learning it" | "Interview-ready" | "Used it";
+export const PREP_STATUS_PRESETS = ["Learning it", "Interview-ready", "Used it"] as const;
+
+export type PrepStatusPreset = (typeof PREP_STATUS_PRESETS)[number];
+
+/** Preset or user-defined label (career track). */
+export type PrepStatusEnum = PrepStatusPreset | (string & {});
 
 export type PrepCategoryEnum =
   | "Market mechanics"

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import type { Prisma, PrepCategory, PrepStatus, Track } from "@prisma/client";
+import type { Prisma, PrepCategory, Track } from "@prisma/client";
 
 // ─── Category / Status maps ───────────────────────────────────────────────────
 
@@ -22,18 +22,6 @@ const CATEGORY_FROM_PRISMA: Record<PrepCategory, string> = {
   OTHER: "Other",
 };
 
-const STATUS_TO_PRISMA: Record<string, PrepStatus> = {
-  "Learning it": "LEARNING_IT",
-  "Interview-ready": "INTERVIEW_READY",
-  "Used it": "USED_IT",
-};
-
-const STATUS_FROM_PRISMA: Record<PrepStatus, string> = {
-  LEARNING_IT: "Learning it",
-  INTERVIEW_READY: "Interview-ready",
-  USED_IT: "Used it",
-};
-
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const createSchema = z.object({
@@ -48,7 +36,7 @@ const createSchema = z.object({
   ]),
   keyPoints: z.array(z.string()).min(1).max(4),
   source: z.string().max(200).optional(),
-  prepStatus: z.enum(["Learning it", "Interview-ready", "Used it"]).default("Learning it"),
+  prepStatus: z.string().min(1).max(50).default("Learning it"),
   usedInNote: z.string().max(500).optional(),
   canUseFor: z.string().max(200).optional(),
 });
@@ -81,7 +69,7 @@ export async function GET(req: NextRequest) {
     category: CATEGORY_FROM_PRISMA[r.category],
     keyPoints: r.keyPoints,
     source: r.source ?? undefined,
-    prepStatus: STATUS_FROM_PRISMA[r.prepStatus],
+    prepStatus: r.prepStatus,
     usedInNote: r.usedInNote ?? undefined,
     canUseFor: r.canUseFor ?? undefined,
   }));
@@ -114,7 +102,7 @@ export async function POST(req: NextRequest) {
       category: CATEGORY_TO_PRISMA[category],
       keyPoints,
       source: source ?? null,
-      prepStatus: STATUS_TO_PRISMA[prepStatus],
+      prepStatus,
       usedInNote: usedInNote ?? null,
       canUseFor: canUseFor ?? null,
     },
@@ -129,7 +117,7 @@ export async function POST(req: NextRequest) {
     category: CATEGORY_FROM_PRISMA[row.category],
     keyPoints: row.keyPoints,
     source: row.source ?? undefined,
-    prepStatus: STATUS_FROM_PRISMA[row.prepStatus],
+    prepStatus: row.prepStatus,
     usedInNote: row.usedInNote ?? undefined,
     canUseFor: row.canUseFor ?? undefined,
   });
