@@ -116,6 +116,220 @@ const DEMO_ACCOUNTS = [
   },
 ];
 
+async function seedAccountIntelligenceForUser(userId: string) {
+  const talkingPointSpecs = [
+    {
+      id: "opening-with-observation",
+      title: "Opening a Meeting with a Market Observation, Not a Pitch",
+      category: "OTHER" as const,
+      keyPoints: [
+        "Lead with something specific from your coverage beat, not your product",
+        "Signals you track the market daily, not just when there's something to sell",
+        "Good line: reference a number that moved this week before you mention your firm",
+      ],
+      canUseFor: "Meridian Energy",
+      usedInNote: "opened the conversation well",
+      prepStatus: "Used it",
+      createdAt: new Date("2026-08-15"),
+    },
+    {
+      id: "spread-move-framing",
+      title: "Framing a Spread Move in a Client Conversation",
+      category: "CURRENT_EVENT" as const,
+      keyPoints: [
+        "JKM–TTF has compressed 3 weeks straight – good opener with LNG-exposed accounts",
+        "Ask how they're adjusting hedge coverage, don't just report the number",
+      ],
+      source: "From this week's Market Update",
+      canUseFor: "Northbridge Gas",
+      usedInNote: "used to explain the hedge angle",
+      prepStatus: "Used it",
+      createdAt: new Date("2026-08-10"),
+    },
+    {
+      id: "freight-costs-conversation",
+      title: "Talking About Freight Costs Without Sounding Like a Pitch",
+      category: "LOGISTICS" as const,
+      keyPoints: [
+        "Freight cost is a real input to their cargo economics – frame it as their P&L problem, not your data point",
+        "Tie a rate spike to a specific decision they're likely facing this week",
+      ],
+      source: "From Chapter B",
+      canUseFor: "Solace Trade Finance",
+      usedInNote: "used to re-open a stalled conversation",
+      prepStatus: "Used it",
+      createdAt: new Date("2026-07-22"),
+    },
+    {
+      id: "desk-priorities-stress",
+      title: "Reading Desk Priorities From Recent Market Stress",
+      category: "RISK_PRICING" as const,
+      keyPoints: [
+        "Desks lean harder on external intelligence when signals disagree, not when they agree",
+        "A volatile week is the moment to ask what's keeping them up at night, not to pitch a feature",
+      ],
+      source: "From Chapter D",
+      canUseFor: "Halcyon Resources",
+      usedInNote: "used during initial scoping call",
+      prepStatus: "Used it",
+      createdAt: new Date("2026-07-08"),
+    },
+    {
+      id: "vendor-data-turning-points",
+      title: "Why Vendor Data Matters More at Turning Points",
+      category: "OTHER" as const,
+      keyPoints: [
+        "Don't list what you cover – describe a decision your coverage has helped a desk make",
+        "Specificity beats breadth in this conversation every time",
+      ],
+      canUseFor: "Northbridge Gas",
+      usedInNote: "helped explain timing of outreach",
+      prepStatus: "Used it",
+      createdAt: new Date("2026-06-04"),
+    },
+  ];
+
+  for (const topic of talkingPointSpecs) {
+    await prisma.talkingPoint.upsert({
+      where: { id: topic.id },
+      update: {
+        userId,
+        track: "SALES",
+        title: topic.title,
+        category: topic.category,
+        keyPoints: topic.keyPoints,
+        source: topic.source ?? null,
+        prepStatus: topic.prepStatus,
+        usedInNote: topic.usedInNote ?? null,
+        canUseFor: topic.canUseFor ?? null,
+        createdAt: topic.createdAt,
+      },
+      create: {
+        id: topic.id,
+        userId,
+        track: "SALES",
+        title: topic.title,
+        category: topic.category,
+        keyPoints: topic.keyPoints,
+        source: topic.source ?? null,
+        prepStatus: topic.prepStatus,
+        usedInNote: topic.usedInNote ?? null,
+        canUseFor: topic.canUseFor ?? null,
+        createdAt: topic.createdAt,
+      },
+    });
+  }
+
+  const accountSpecs = [
+    {
+      name: "Meridian Energy",
+      deskType: "LNG · Trading desk",
+      status: "ACTIVE_DISCUSSION" as const,
+      notes:
+        "Strong interest in JKM coverage — wants to see how we frame spread moves before their Q3 hedge review.",
+      lastTouch: "2 weeks ago",
+      nextStep: "Follow-up call Thu",
+      bookmarks: [
+        { sourceType: "PREP_LIBRARY" as const, sourceId: "opening-with-observation", sourceTitle: "Opening a Meeting with a Market Observation, Not a Pitch" },
+        { sourceType: "MARKET_NUDGE" as const, sourceId: "jkm-ttf-spread", sourceTitle: "JKM—TTF spread compressed sharply this week" },
+      ],
+    },
+    {
+      name: "Northbridge Gas",
+      deskType: "Gas · Physical trading",
+      status: "FIRST_CONTACT" as const,
+      notes:
+        "Intro call went well — desk lead asked for something specific on European storage before next meeting.",
+      lastTouch: "1 week ago",
+      nextStep: "Send storage brief",
+      bookmarks: [
+        { sourceType: "PREP_LIBRARY" as const, sourceId: "spread-move-framing", sourceTitle: "Framing a Spread Move in a Client Conversation" },
+        { sourceType: "PREP_LIBRARY" as const, sourceId: "vendor-data-turning-points", sourceTitle: "Why Vendor Data Matters More at Turning Points" },
+        { sourceType: "MARKET_NUDGE" as const, sourceId: "jkm-ttf-spread", sourceTitle: "JKM—TTF spread compressed sharply this week" },
+      ],
+    },
+    {
+      name: "Solace Trade Finance",
+      deskType: "Trade finance · Credit desk",
+      status: "STALLED" as const,
+      notes:
+        "Conversation paused after credit committee review — freight economics is the angle to reopen.",
+      lastTouch: "3 weeks ago",
+      nextStep: "Re-engage with VLCC note",
+      bookmarks: [
+        { sourceType: "PREP_LIBRARY" as const, sourceId: "freight-costs-conversation", sourceTitle: "Talking About Freight Costs Without Sounding Like a Pitch" },
+        { sourceType: "MARKET_NUDGE" as const, sourceId: "vlcc-rates-spike", sourceTitle: "Gulf Coast VLCC rates spiked on an unplanned outage" },
+      ],
+    },
+    {
+      name: "Halcyon Resources",
+      deskType: "Base metals · Procurement",
+      status: "RESEARCHING" as const,
+      notes:
+        "Early scoping — procurement team mapping vendor landscape before any formal RFP.",
+      lastTouch: "5 days ago",
+      nextStep: "Desk priorities follow-up",
+      bookmarks: [
+        { sourceType: "PREP_LIBRARY" as const, sourceId: "desk-priorities-stress", sourceTitle: "Reading Desk Priorities From Recent Market Stress" },
+      ],
+    },
+  ];
+
+  for (const spec of accountSpecs) {
+    const existing = await prisma.trackedAccount.findFirst({
+      where: { userId, name: spec.name },
+    });
+
+    const account =
+      existing ??
+      (await prisma.trackedAccount.create({
+        data: {
+          userId,
+          name: spec.name,
+          deskType: spec.deskType,
+          status: spec.status,
+          notes: spec.notes,
+          lastTouch: spec.lastTouch,
+          nextStep: spec.nextStep,
+        },
+      }));
+
+    if (existing) {
+      await prisma.trackedAccount.update({
+        where: { id: existing.id },
+        data: {
+          deskType: spec.deskType,
+          status: spec.status,
+          notes: spec.notes,
+          lastTouch: spec.lastTouch,
+          nextStep: spec.nextStep,
+        },
+      });
+    }
+
+    for (const bookmark of spec.bookmarks) {
+      await prisma.accountBookmark.upsert({
+        where: {
+          userId_accountId_sourceType_sourceId: {
+            userId,
+            accountId: account.id,
+            sourceType: bookmark.sourceType,
+            sourceId: bookmark.sourceId,
+          },
+        },
+        update: { sourceTitle: bookmark.sourceTitle },
+        create: {
+          userId,
+          accountId: account.id,
+          sourceType: bookmark.sourceType,
+          sourceId: bookmark.sourceId,
+          sourceTitle: bookmark.sourceTitle,
+        },
+      });
+    }
+  }
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
 
@@ -313,6 +527,12 @@ async function main() {
   console.log(
     `  ✓ Content assets: ${assetResult.created} created, ${assetResult.skipped} existing (${assetResult.total} expected)`
   );
+
+  const eliteVendor = await prisma.user.findUnique({ where: { email: "elite.vendor@demo.com" } });
+  if (eliteVendor) {
+    await seedAccountIntelligenceForUser(eliteVendor.id);
+    console.log("  ✓ Account Intelligence demo data seeded for elite.vendor@demo.com");
+  }
 
   console.log(`\n✅ Done! All accounts use password: ${DEMO_PASSWORD}`);
   console.log("   Try them at http://localhost:3000/demo\n");

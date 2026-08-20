@@ -126,7 +126,7 @@ export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardC
     title: "Account Intelligence",
     description: "Company and contact intelligence to help you understand who you're selling to and what they care about.",
     requiredTier: "ELITE",
-    href: "#",
+    href: "/dashboard/account-intelligence",
   },
 ];
 

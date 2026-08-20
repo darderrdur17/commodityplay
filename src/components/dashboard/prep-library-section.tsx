@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BarChart3, ChevronRight, ExternalLink, Lock, Plus, Trash2 } from "lucide-react";
+import { BarChart3, Bookmark, ChevronRight, ExternalLink, Lock, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
 } from "@/data/prep-library";
 import { cn } from "@/lib/utils";
 import { ModuleTrackBadge } from "@/components/dashboard/module-track-badge";
+import { BookmarkUnderAccountModal } from "@/components/dashboard/bookmark-under-account-modal";
 
 // ─── Shared types ────────────────────────────────────────────────────────────
 
@@ -322,7 +323,7 @@ function TopicCard({
 /** Bottom CTA — links prep topics to Account Intelligence (Elite). */
 function SalesAccountIntelligenceBanner({ userTier }: { userTier: string }) {
   const hasElite = hasAccess(userTier, "ELITE");
-  const href = hasElite ? "/dashboard" : SALES_PLAN_HREF("elite");
+  const href = hasElite ? "/dashboard/account-intelligence" : SALES_PLAN_HREF("elite");
   const buttonLabel = hasElite ? "Open Account Intelligence" : "Unlock Account Intelligence";
 
   return (
@@ -352,9 +353,13 @@ function SalesAccountIntelligenceBanner({ userTier }: { userTier: string }) {
 function SalesTopicCard({
   topic,
   onDelete,
+  onBookmark,
+  showBookmark = false,
 }: {
   topic: TalkingPoint;
   onDelete?: (id: string) => void;
+  onBookmark?: (topic: TalkingPoint) => void;
+  showBookmark?: boolean;
 }) {
   const usedWithAccount = Boolean(topic.canUseFor?.trim()) && topic.prepStatus === "Used it";
 
@@ -413,6 +418,18 @@ function SalesTopicCard({
           <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-500">
             Not yet used with an account
           </span>
+        )}
+        {showBookmark && onBookmark && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onBookmark(topic)}
+            className="ml-auto gap-1.5 h-8 text-xs border-[#1a3d36]/20 text-[#1a3d36] hover:bg-emerald-50"
+          >
+            <Bookmark className="w-3.5 h-3.5" />
+            Bookmark under account
+          </Button>
         )}
       </div>
     </article>
@@ -523,6 +540,9 @@ export function PrepLibraryBody({
   const [monthYearFilter, setMonthYearFilter] = useState<string>("all");
   const [usedInNote, setUsedInNote] = useState("");
   const [canUseFor, setCanUseFor] = useState("");
+  const [bookmarkTopic, setBookmarkTopic] = useState<TalkingPoint | null>(null);
+
+  const hasElite = hasAccess(userTier, "ELITE");
 
   // Load from API on mount
   useEffect(() => {
@@ -956,7 +976,12 @@ export function PrepLibraryBody({
                             <div className="space-y-4">
                               {group.topics.map((topic, i) => (
                                 <Reveal key={topic.id} delay={i * 0.03}>
-                                  <SalesTopicCard topic={topic} onDelete={handleDelete} />
+                                  <SalesTopicCard
+                                    topic={topic}
+                                    onDelete={handleDelete}
+                                    showBookmark={hasElite}
+                                    onBookmark={setBookmarkTopic}
+                                  />
                                 </Reveal>
                               ))}
                             </div>
@@ -971,6 +996,14 @@ export function PrepLibraryBody({
               ) : null}
 
               <SalesAccountIntelligenceBanner userTier={userTier} />
+
+              <BookmarkUnderAccountModal
+                open={Boolean(bookmarkTopic)}
+                onClose={() => setBookmarkTopic(null)}
+                sourceType="PREP_LIBRARY"
+                sourceId={bookmarkTopic?.id ?? ""}
+                sourceTitle={bookmarkTopic?.title ?? ""}
+              />
             </div>
           )}
 

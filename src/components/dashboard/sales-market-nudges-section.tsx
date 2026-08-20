@@ -14,6 +14,7 @@ import {
   type MarketNudgeItem,
   type SalesMarketNudgesContent,
 } from "@/data/sales-market-nudges";
+import { BookmarkUnderAccountModal } from "@/components/dashboard/bookmark-under-account-modal";
 import { cn } from "@/lib/utils";
 
 const FOREST = "#1a3d36";
@@ -132,9 +133,15 @@ function IntelligenceBriefCard({ brief }: { brief: IntelligenceBrief }) {
   );
 }
 
+function getNudgeBookmarkTitle(nudge: MarketNudgeItem) {
+  const trimmed = nudge.text.trim();
+  const dashSplit = trimmed.split(" — ")[0]?.trim();
+  return dashSplit || trimmed;
+}
+
 function AccountIntelligenceBanner({ userTier }: { userTier: string }) {
   const hasElite = hasAccess(userTier, "ELITE");
-  const href = hasElite ? "/dashboard" : SALES_PLAN_HREF("elite");
+  const href = hasElite ? "/dashboard/account-intelligence" : SALES_PLAN_HREF("elite");
   const buttonLabel = hasElite ? "Open Account Intelligence" : "Unlock Account Intelligence";
 
   return (
@@ -174,6 +181,8 @@ export function SalesMarketNudgesSection({
   requiredTier?: "PRO" | "ELITE";
 }) {
   const unlocked = hasAccess(userTier, requiredTier);
+  const hasElite = hasAccess(userTier, "ELITE");
+  const [bookmarkNudge, setBookmarkNudge] = useState<MarketNudgeItem | null>(null);
   const briefGroups = useMemo(
     () => groupBriefsByMonthYear(content.intelligenceBriefs),
     [content.intelligenceBriefs]
@@ -255,15 +264,18 @@ export function SalesMarketNudgesSection({
               <p className="text-sm text-white/95 leading-relaxed flex-1">
                 <NudgeText nudge={nudge} />
               </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="shrink-0 border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white gap-1.5"
-              >
-                <Bookmark className="w-3.5 h-3.5" />
-                Bookmark under account
-              </Button>
+              {hasElite && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBookmarkNudge(nudge)}
+                  className="shrink-0 border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white gap-1.5"
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                  Bookmark under account
+                </Button>
+              )}
             </li>
           ))}
         </ul>
@@ -314,6 +326,14 @@ export function SalesMarketNudgesSection({
       </section>
 
       <AccountIntelligenceBanner userTier={userTier} />
+
+      <BookmarkUnderAccountModal
+        open={Boolean(bookmarkNudge)}
+        onClose={() => setBookmarkNudge(null)}
+        sourceType="MARKET_NUDGE"
+        sourceId={bookmarkNudge?.id ?? ""}
+        sourceTitle={bookmarkNudge ? getNudgeBookmarkTitle(bookmarkNudge) : ""}
+      />
     </Reveal>
   );
 }

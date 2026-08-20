@@ -90,6 +90,8 @@ model User {
   contentRevisions   ContentModuleRevision[] @relation("ContentRevisionUpdates")
   assetUploads       ContentAsset[]   @relation("AssetUploads")
   talkingPoints      TalkingPoint[]
+  trackedAccounts    TrackedAccount[]
+  accountBookmarks   AccountBookmark[]
 
   @@index([email])
   @@index([stripeCustomerId])
@@ -126,6 +128,18 @@ enum Persona {
   INSIDER
   ANALYST_TRADER
   VENDOR
+}
+
+enum AccountStatus {
+  ACTIVE_DISCUSSION
+  FIRST_CONTACT
+  STALLED
+  RESEARCHING
+}
+
+enum BookmarkSource {
+  PREP_LIBRARY
+  MARKET_NUDGE
 }
 
 // ── Content Progress ─────────────────────────────────────────────────
@@ -285,6 +299,42 @@ model TalkingPoint {
 
   @@index([userId])
   @@index([userId, track])
+}
+
+// ── Account Intelligence ─────────────────────────────────────────────
+model TrackedAccount {
+  id        String        @id @default(uuid())
+  userId    String
+  name      String
+  deskType  String
+  status    AccountStatus
+  notes     String?       @db.Text
+  lastTouch String?
+  nextStep  String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookmarks AccountBookmark[]
+
+  @@index([userId])
+}
+
+model AccountBookmark {
+  id          String         @id @default(uuid())
+  userId      String
+  accountId   String
+  sourceType  BookmarkSource
+  sourceId    String
+  sourceTitle String
+  createdAt   DateTime       @default(now())
+
+  account TrackedAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, accountId, sourceType, sourceId])
+  @@index([userId])
+  @@index([accountId])
 }
 
 // ── Demo email log (Mentor Connect notifications preview) ───────────
