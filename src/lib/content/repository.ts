@@ -5,7 +5,7 @@ import { GLOSSARY_TERMS } from "@/data/glossary";
 import { getDefaultPayload, getAllDefaultPayloads } from "./defaults";
 import { deepMerge } from "./merge";
 import { resolveAdminModulePayload } from "./admin-payload";
-import { applyPrismaSchema } from "@/lib/setup-database";
+import { applyCmsSchemaSql } from "@/lib/setup-database";
 
 const MAX_REVISIONS = 20;
 
@@ -20,7 +20,7 @@ export async function ensureContentInfrastructure() {
   } catch {
     // Table missing — create CMS schema
   }
-  await applyPrismaSchema();
+  await applyCmsSchemaSql();
   await prisma.contentModule.findFirst({ take: 1 });
   cmsTablesReady = true;
 }
