@@ -28,6 +28,8 @@ import {
 } from "@/lib/sales-brand-colors";
 import { ModuleTrackBadge } from "@/components/dashboard/module-track-badge";
 import { LinkToAccountDropdown } from "@/components/dashboard/link-to-account-dropdown";
+import { BOOKMARK_HIGHLIGHT_RING, prepTopicElementId } from "@/lib/bookmark-navigation";
+import { useBookmarkHighlight } from "@/hooks/use-bookmark-highlight";
 
 // ─── Shared types ────────────────────────────────────────────────────────────
 
@@ -331,18 +333,26 @@ function TopicCard({
   theme,
   onDelete,
   showLinkedFields = true,
+  highlighted = false,
 }: {
   topic: TalkingPoint;
   theme: TrackTheme;
   onDelete?: (id: string) => void;
   /** Sales-only: can use for / notes. Hidden on career track. */
   showLinkedFields?: boolean;
+  highlighted?: boolean;
 }) {
   const statusStyle = getPrepStatusBadge(topic.prepStatus);
   const showExampleBadge = Boolean(topic.isStarterExample);
 
   return (
-    <article className="rounded-xl border border-border bg-secondary/30 p-4 sm:p-5">
+    <article
+      id={prepTopicElementId(topic.id)}
+      className={cn(
+        "rounded-xl border border-border bg-secondary/30 p-4 sm:p-5 scroll-mt-28",
+        highlighted && BOOKMARK_HIGHLIGHT_RING
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
         <h3 className="font-semibold text-gray-900 text-sm leading-snug flex-1">{topic.title}</h3>
         <div className="flex items-center gap-2 shrink-0">
@@ -428,17 +438,25 @@ function SalesTopicCard({
   onDelete,
   onLinkedToAccount,
   showLinkToAccount = false,
+  highlighted = false,
 }: {
   topic: TalkingPoint;
   onDelete?: (id: string) => void;
   onLinkedToAccount?: (topicId: string, accountName: string) => void;
   showLinkToAccount?: boolean;
+  highlighted?: boolean;
 }) {
   const usedWithAccount = Boolean(topic.canUseFor?.trim());
   const showExampleBadge = Boolean(topic.isStarterExample);
 
   return (
-    <article className="rounded-xl border border-border bg-white p-5 sm:p-6 shadow-sm">
+    <article
+      id={prepTopicElementId(topic.id)}
+      className={cn(
+        "rounded-xl border border-border bg-white p-5 sm:p-6 shadow-sm scroll-mt-28",
+        highlighted && BOOKMARK_HIGHLIGHT_RING
+      )}
+    >
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900 text-sm sm:text-base leading-snug">
@@ -624,6 +642,7 @@ export function PrepLibraryBody({
   const [saveError, setSaveError] = useState("");
 
   const hasElite = hasAccess(userTier, "ELITE");
+  const { highlightId, isHighlighted } = useBookmarkHighlight(!loading);
 
   // Load from API on mount
   useEffect(() => {
@@ -772,6 +791,17 @@ export function PrepLibraryBody({
       setMonthYearFilter("all");
     }
   }, [topicGroups, monthYearFilter]);
+
+  // Ensure highlighted topic is visible when month filter would hide it
+  useEffect(() => {
+    if (!highlightId?.startsWith("prep-topic-")) return;
+
+    const sourceId = highlightId.slice("prep-topic-".length);
+    const group = topicGroups.find((g) => g.topics.some((t) => t.id === sourceId));
+    if (group && monthYearFilter !== "all" && monthYearFilter !== group.label) {
+      setMonthYearFilter(group.label);
+    }
+  }, [highlightId, topicGroups, monthYearFilter]);
 
   const salesAddTopicForm = (
     <form onSubmit={handleSave} className="space-y-5">
@@ -1079,6 +1109,7 @@ export function PrepLibraryBody({
                                     onDelete={handleDelete}
                                     showLinkToAccount={hasElite}
                                     onLinkedToAccount={handleBookmarked}
+                                    highlighted={isHighlighted(prepTopicElementId(topic.id))}
                                   />
                                 </Reveal>
                               ))}
@@ -1198,6 +1229,7 @@ export function PrepLibraryBody({
                                   theme={theme}
                                   onDelete={handleDelete}
                                   showLinkedFields={false}
+                                  highlighted={isHighlighted(prepTopicElementId(topic.id))}
                                 />
                               </Reveal>
                             ))}

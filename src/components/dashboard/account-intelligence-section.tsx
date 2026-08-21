@@ -14,8 +14,14 @@ import {
   ACCOUNT_STATUS_OPTIONS,
   FOREST_GREEN,
   getAccountStatusMeta,
+  type AccountBookmarkRecord,
   type TrackedAccountRecord,
 } from "@/lib/account-intelligence";
+import {
+  getBookmarkHref,
+  PREP_LIBRARY_SALES_HREF,
+  SALES_MARKET_NUDGES_HREF,
+} from "@/lib/bookmark-navigation";
 import type { AccountStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
 
@@ -138,23 +144,55 @@ const PREVIEW_ACCOUNTS: TrackedAccountRecord[] = [
   },
 ];
 
-function BookmarkChip({
-  title,
-  variant,
-}: {
-  title: string;
-  variant: "prep" | "nudge";
-}) {
+function BookmarkChip({ bookmark }: { bookmark: AccountBookmarkRecord }) {
+  const isPrep = bookmark.sourceType === "PREP_LIBRARY";
+  const href = getBookmarkHref(bookmark.sourceType, bookmark.sourceId);
+
   return (
-    <span
+    <Link
+      href={href}
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium leading-snug",
-        variant === "prep" ? "bg-sky-50 text-sky-800" : "bg-amber-50 text-amber-800"
+        "transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#3280ff]",
+        isPrep
+          ? "bg-teal-50 text-teal-800 hover:bg-teal-100"
+          : "bg-amber-50 text-amber-800 hover:bg-amber-100"
       )}
     >
       <Pin className="w-3 h-3 shrink-0" aria-hidden />
-      {title}
-    </span>
+      {bookmark.sourceTitle}
+    </Link>
+  );
+}
+
+function ContinueWhereYouLeftOff() {
+  return (
+    <section
+      className="rounded-xl bg-primary-800 px-6 py-8 sm:px-10 sm:py-10"
+      aria-labelledby="continue-where-you-left-off"
+    >
+      <h2 id="continue-where-you-left-off" className="text-lg sm:text-xl font-bold text-white mb-5">
+        Continue where you left off
+      </h2>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Link href={PREP_LIBRARY_SALES_HREF} className="w-full sm:w-auto">
+          <Button
+            size="sm"
+            className="w-full sm:w-auto text-white border-0 rounded-lg h-10 px-5 text-sm font-semibold hover:opacity-90 bg-[#3280ff] hover:bg-[#2870e8]"
+          >
+            ← Back to Sales Prep Library
+          </Button>
+        </Link>
+        <Link href={SALES_MARKET_NUDGES_HREF} className="w-full sm:w-auto">
+          <Button
+            size="sm"
+            className="w-full sm:w-auto text-white border-0 rounded-lg h-10 px-5 text-sm font-semibold hover:opacity-90 bg-[#3280ff] hover:bg-[#2870e8]"
+          >
+            ← Back to Sales Market Nudges
+          </Button>
+        </Link>
+      </div>
+    </section>
   );
 }
 
@@ -231,10 +269,10 @@ function AccountCard({
         </p>
         <div className="flex flex-wrap gap-2">
           {prepBookmarks.map((bookmark) => (
-            <BookmarkChip key={bookmark.id} title={bookmark.sourceTitle} variant="prep" />
+            <BookmarkChip key={bookmark.id} bookmark={bookmark} />
           ))}
           {nudgeBookmarks.map((bookmark) => (
-            <BookmarkChip key={bookmark.id} title={bookmark.sourceTitle} variant="nudge" />
+            <BookmarkChip key={bookmark.id} bookmark={bookmark} />
           ))}
         </div>
         {nudgeBookmarks.length === 0 && (
@@ -626,6 +664,8 @@ export function AccountIntelligenceSection({ userTier }: { userTier: string }) {
           </div>
         )}
       </section>
+
+      <ContinueWhereYouLeftOff />
 
       <AddAccountModal
         open={addOpen}

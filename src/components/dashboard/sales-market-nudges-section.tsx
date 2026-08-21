@@ -16,6 +16,11 @@ import {
 } from "@/data/sales-market-nudges";
 import { LinkToAccountDropdown } from "@/components/dashboard/link-to-account-dropdown";
 import { cn } from "@/lib/utils";
+import {
+  BOOKMARK_HIGHLIGHT_RING,
+  marketNudgeElementId,
+} from "@/lib/bookmark-navigation";
+import { useBookmarkHighlight } from "@/hooks/use-bookmark-highlight";
 const ROYAL = "#1a4fd6";
 const CTA_BLUE = "#3280ff";
 
@@ -105,12 +110,20 @@ function NudgeText({ nudge }: { nudge: MarketNudgeItem }) {
 function IntelligenceBriefCard({
   brief,
   showLinkToAccount = false,
+  highlighted = false,
 }: {
   brief: IntelligenceBrief;
   showLinkToAccount?: boolean;
+  highlighted?: boolean;
 }) {
   return (
-    <article className="rounded-xl border border-border bg-white p-5 sm:p-6 shadow-sm flex flex-col h-full">
+    <article
+      id={marketNudgeElementId(brief.id)}
+      className={cn(
+        "rounded-xl border border-border bg-white p-5 sm:p-6 shadow-sm flex flex-col h-full scroll-mt-28",
+        highlighted && BOOKMARK_HIGHLIGHT_RING
+      )}
+    >
       <div className="flex items-start justify-between gap-3 mb-3">
         <h3 className="font-semibold text-base text-[#065F46]">
           {brief.title}
@@ -203,12 +216,26 @@ export function SalesMarketNudgesSection({
   const [monthYearFilter, setMonthYearFilter] = useState<string>(
     briefGroups[0]?.label ?? ""
   );
+  const { highlightId, isHighlighted } = useBookmarkHighlight(true);
 
   useEffect(() => {
     if (!briefGroups.some((g) => g.label === monthYearFilter)) {
       setMonthYearFilter(briefGroups[0]?.label ?? "");
     }
   }, [briefGroups, monthYearFilter]);
+
+  useEffect(() => {
+    if (!highlightId?.startsWith("market-nudge-")) return;
+
+    const sourceId = highlightId.slice("market-nudge-".length);
+    const inWeekly = content.weeklyNudges.some((nudge) => nudge.id === sourceId);
+    if (inWeekly) return;
+
+    const group = briefGroups.find((g) => g.briefs.some((brief) => brief.id === sourceId));
+    if (group && monthYearFilter !== group.label) {
+      setMonthYearFilter(group.label);
+    }
+  }, [highlightId, content.weeklyNudges, briefGroups, monthYearFilter]);
 
   const activeBriefs =
     briefGroups.find((g) => g.label === monthYearFilter)?.briefs ??
@@ -271,7 +298,11 @@ export function SalesMarketNudgesSection({
           {content.weeklyNudges.map((nudge) => (
             <li
               key={nudge.id}
-              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg bg-white/10 px-4 py-3"
+              id={marketNudgeElementId(nudge.id)}
+              className={cn(
+                "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg bg-white/10 px-4 py-3 scroll-mt-28",
+                isHighlighted(marketNudgeElementId(nudge.id)) && BOOKMARK_HIGHLIGHT_RING
+              )}
             >
               <p className="text-sm text-white/95 leading-relaxed flex-1">
                 <NudgeText nudge={nudge} />
@@ -326,6 +357,7 @@ export function SalesMarketNudgesSection({
                     <IntelligenceBriefCard
                       brief={brief}
                       showLinkToAccount={hasElite}
+                      highlighted={isHighlighted(marketNudgeElementId(brief.id))}
                     />
                   </Reveal>
                 ))}

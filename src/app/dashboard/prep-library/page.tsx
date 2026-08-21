@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { PrepLibraryPageClient } from "./prep-library-page-client";
 
@@ -28,11 +29,13 @@ export default async function PrepLibraryPage() {
 
   return (
     <div className="page-container py-8 sm:py-10">
-      <PrepLibraryPageClient
-        userTier={user.tier}
-        userTrack={userTrack}
-        isAdmin={isAdmin}
-      />
+      <Suspense fallback={<p className="text-sm text-muted-fg">Loading prep library…</p>}>
+        <PrepLibraryPageClient
+          userTier={user.tier}
+          userTrack={userTrack}
+          isAdmin={isAdmin}
+        />
+      </Suspense>
     </div>
   );
 }

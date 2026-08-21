@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { getSalesMarketNudgesContent, getContentTierForSlug } from "@/lib/content/accessors";
 import { SalesMarketNudgesSection } from "@/components/dashboard/sales-market-nudges-section";
@@ -38,11 +39,13 @@ export default async function SalesMarketNudgesPage() {
 
   return (
     <div className="page-container py-8 sm:py-10">
-      <SalesMarketNudgesSection
-        content={content}
-        userTier={user.tier}
-        requiredTier={requiredTier as "PRO" | "ELITE"}
-      />
+      <Suspense fallback={<p className="text-sm text-muted-fg">Loading market nudges…</p>}>
+        <SalesMarketNudgesSection
+          content={content}
+          userTier={user.tier}
+          requiredTier={requiredTier as "PRO" | "ELITE"}
+        />
+      </Suspense>
     </div>
   );
 }
