@@ -114,7 +114,8 @@ Open **https://commodity-playbook-app.vercel.app/demo**
 |---|---|---|
 | `admin@demo.com` | Admin / Elite | Admin panel `/admin` |
 | `starter.fresh@demo.com` | Starter | Free tier |
-| `pro.switcher@demo.com` | Pro | Pro content |
+| `pro.switcher@demo.com` | Pro | Pro content (Career track) |
+| `pro.vendor@demo.com` | Pro | Pro Sales — Prep Library, Market Nudges, industry guide |
 | `elite.insider@demo.com` | Elite | Desk Channel, Mentor Connect, Jobs |
 | `elite.mentor@demo.com` | Elite | **Mentor Connect** — opens `/mentor-connect` with 5 credits + sample Q&A |
 

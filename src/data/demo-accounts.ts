@@ -87,6 +87,20 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     redirectTo: "/dashboard",
   },
   {
+    email: "pro.vendor@demo.com",
+    name: "Jamie Chen (Pro – Sales)",
+    role: "USER",
+    tier: "PRO",
+    track: "SALES",
+    persona: "VENDOR",
+    mentorCredits: 0,
+    resumeCredits: 2,
+    description:
+      "Pro sales track — Sales Prep Library, Sales Market Nudges, and industry guide. Account Intelligence is Elite-only.",
+    emoji: "📈",
+    redirectTo: "/dashboard",
+  },
+  {
     email: "elite.insider@demo.com",
     name: "Priya Sharma (Elite)",
     role: "USER",

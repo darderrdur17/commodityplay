@@ -45,6 +45,7 @@ const DEMO_ACCOUNTS = [
     persona: "VENDOR" as const,
     mentorCredits: 0,
     resumeCredits: 2,
+    progress: [{ chapterId: "a", progress: 100, completed: true }],
   },
   {
     email: "pro.switcher@demo.com",
@@ -115,6 +116,81 @@ const DEMO_ACCOUNTS = [
     ],
   },
 ];
+
+async function seedSalesPrepLibraryForUser(userId: string) {
+  const userCreatedTopics = [
+    {
+      id: "pro-sales-jkm-outreach",
+      title: "Timing Outreach Around JKM–TTF Spread Compression",
+      category: "CURRENT_EVENT" as const,
+      keyPoints: [
+        "Three weeks of compression usually means desks are re-evaluating hedge coverage — not just watching",
+        "Ask what changed in their cargo optionality before mentioning your coverage",
+        "Good opener: reference the move, then ask how they're adjusting nominations",
+      ],
+      source: "From this week's Market Update",
+      prepStatus: "Used it",
+      usedInNote: "reopened a cold LNG desk thread",
+      createdAt: new Date("2026-08-12"),
+    },
+    {
+      id: "pro-sales-storage-brief",
+      title: "European Storage Levels as a Conversation Hook",
+      category: "MARKET_MECHANICS" as const,
+      keyPoints: [
+        "Storage draw pace matters more than the absolute level when desks plan winter coverage",
+        "Frame the data around a decision they're likely facing this week, not your product breadth",
+        "Pair the number with one follow-up question about their book exposure",
+      ],
+      source: "From Chapter B",
+      prepStatus: "Learning it",
+      createdAt: new Date("2026-07-28"),
+    },
+    {
+      id: "pro-sales-credit-desk",
+      title: "Re-engaging a Stalled Credit Desk Conversation",
+      category: "LOGISTICS" as const,
+      keyPoints: [
+        "Freight economics is often the angle credit teams care about when physical flow slows",
+        "Lead with a specific rate move tied to their corridor, not a generic market recap",
+        "Ask what changed in their committee review before pitching anything new",
+      ],
+      prepStatus: "Ready to use",
+      createdAt: new Date("2026-07-05"),
+    },
+  ];
+
+  for (const topic of userCreatedTopics) {
+    await prisma.talkingPoint.upsert({
+      where: { id: topic.id },
+      update: {
+        userId,
+        track: "SALES",
+        title: topic.title,
+        category: topic.category,
+        keyPoints: topic.keyPoints,
+        source: topic.source ?? null,
+        prepStatus: topic.prepStatus,
+        usedInNote: topic.usedInNote ?? null,
+        canUseFor: null,
+        createdAt: topic.createdAt,
+      },
+      create: {
+        id: topic.id,
+        userId,
+        track: "SALES",
+        title: topic.title,
+        category: topic.category,
+        keyPoints: topic.keyPoints,
+        source: topic.source ?? null,
+        prepStatus: topic.prepStatus,
+        usedInNote: topic.usedInNote ?? null,
+        canUseFor: null,
+        createdAt: topic.createdAt,
+      },
+    });
+  }
+}
 
 async function seedAccountIntelligenceForUser(userId: string) {
   const talkingPointSpecs = [
@@ -527,6 +603,12 @@ async function main() {
   console.log(
     `  ✓ Content assets: ${assetResult.created} created, ${assetResult.skipped} existing (${assetResult.total} expected)`
   );
+
+  const proVendor = await prisma.user.findUnique({ where: { email: "pro.vendor@demo.com" } });
+  if (proVendor) {
+    await seedSalesPrepLibraryForUser(proVendor.id);
+    console.log("  ✓ Sales Prep Library demo data seeded for pro.vendor@demo.com");
+  }
 
   const eliteVendor = await prisma.user.findUnique({ where: { email: "elite.vendor@demo.com" } });
   if (eliteVendor) {

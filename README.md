@@ -83,6 +83,7 @@ npm run db:seed
 | `starter.vendor@demo.com` | User | Starter | Vendor | Sales |
 | `pro.switcher@demo.com` | User | Pro | Career Switcher | Career |
 | `pro.analyst@demo.com` | User | Pro | Analyst / Trader | Career |
+| `pro.vendor@demo.com` | User | Pro | Vendor | Sales |
 | `elite.insider@demo.com` | User | Elite | Insider | Career |
 | `elite.vendor@demo.com` | User | Elite | Vendor | Sales |
 
