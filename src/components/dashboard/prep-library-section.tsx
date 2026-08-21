@@ -482,8 +482,8 @@ function SalesTopicCard({
         </ul>
       )}
 
-      <div className="pt-3 border-t border-border/60 flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3">
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+      <div className="pt-3 border-t border-border/60 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
           {usedWithAccount ? (
             <>
               <span
@@ -502,13 +502,13 @@ function SalesTopicCard({
             </span>
           )}
         </div>
-        {showLinkToAccount && !topic.isStarterExample && (
+        {showLinkToAccount && (
           <LinkToAccountDropdown
             sourceType="PREP_LIBRARY"
             sourceId={topic.id}
             sourceTitle={topic.title}
             variant="compact"
-            className="sm:ml-auto sm:min-w-[200px]"
+            className="w-full sm:max-w-[240px]"
             onLinked={(accountName) => onLinkedToAccount?.(topic.id, accountName)}
           />
         )}

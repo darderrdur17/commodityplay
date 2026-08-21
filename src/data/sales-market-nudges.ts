@@ -3,6 +3,8 @@ export interface MarketNudgeItem {
   /** Plain text; account names listed separately for bold rendering. */
   text: string;
   accountNames: string[];
+  /** Hidden from member page when true; still editable in admin. */
+  archived?: boolean;
 }
 
 export interface IntelligenceBrief {
@@ -14,6 +16,8 @@ export interface IntelligenceBrief {
   description: string;
   discoveryQuestions: string[];
   updatedLabel?: string;
+  /** Hidden from member page when true; still editable in admin. */
+  archived?: boolean;
 }
 
 export interface SalesMarketNudgesContent {

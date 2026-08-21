@@ -10,6 +10,7 @@ const marketNudgeSchema = z.object({
   id: z.string().min(1).max(80),
   text: z.string().min(1).max(500),
   accountNames: z.array(z.string().min(1).max(120)).default([]),
+  archived: z.boolean().optional().default(false),
 });
 
 const intelligenceBriefSchema = z.object({
@@ -21,6 +22,7 @@ const intelligenceBriefSchema = z.object({
   description: z.string().min(1).max(1000),
   discoveryQuestions: z.array(z.string().min(1).max(300)).min(1).max(6),
   updatedLabel: z.string().max(40).optional(),
+  archived: z.boolean().optional().default(false),
 });
 
 export const salesMarketNudgesSchema = z.object({
@@ -55,6 +57,10 @@ function mergeBriefs(cms?: IntelligenceBrief[]): IntelligenceBrief[] {
   return cms;
 }
 
+function withArchivedDefaults<T extends { archived?: boolean }>(items: T[]): T[] {
+  return items.map((item) => ({ ...item, archived: item.archived ?? false }));
+}
+
 export function normalizeSalesMarketNudgesPayload(payload: unknown): SalesMarketNudgesContent {
   const parsed = parseSalesMarketNudgesPayload(payload);
   if (parsed.success) {
@@ -62,8 +68,8 @@ export function normalizeSalesMarketNudgesPayload(payload: unknown): SalesMarket
       eyebrow: parsed.data.eyebrow.trim(),
       title: parsed.data.title.trim(),
       description: parsed.data.description.trim(),
-      weeklyNudges: mergeNudges(parsed.data.weeklyNudges),
-      intelligenceBriefs: mergeBriefs(parsed.data.intelligenceBriefs),
+      weeklyNudges: withArchivedDefaults(mergeNudges(parsed.data.weeklyNudges)),
+      intelligenceBriefs: withArchivedDefaults(mergeBriefs(parsed.data.intelligenceBriefs)),
     };
   }
 
@@ -72,7 +78,18 @@ export function normalizeSalesMarketNudgesPayload(payload: unknown): SalesMarket
     eyebrow: partial.eyebrow?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.eyebrow,
     title: partial.title?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.title,
     description: partial.description?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.description,
-    weeklyNudges: mergeNudges(partial.weeklyNudges),
-    intelligenceBriefs: mergeBriefs(partial.intelligenceBriefs),
+    weeklyNudges: withArchivedDefaults(mergeNudges(partial.weeklyNudges)),
+    intelligenceBriefs: withArchivedDefaults(mergeBriefs(partial.intelligenceBriefs)),
+  };
+}
+
+/** Member-facing content — excludes archived nudges and briefs. */
+export function filterActiveSalesMarketNudgesContent(
+  content: SalesMarketNudgesContent
+): SalesMarketNudgesContent {
+  return {
+    ...content,
+    weeklyNudges: content.weeklyNudges.filter((nudge) => !nudge.archived),
+    intelligenceBriefs: content.intelligenceBriefs.filter((brief) => !brief.archived),
   };
 }

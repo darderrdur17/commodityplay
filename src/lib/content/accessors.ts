@@ -20,7 +20,10 @@ import {
   DEFAULT_SALES_MARKET_NUDGES_CONTENT,
   type SalesMarketNudgesContent,
 } from "@/data/sales-market-nudges";
-import { normalizeSalesMarketNudgesPayload } from "@/lib/content/sales-market-nudges-schema";
+import {
+  filterActiveSalesMarketNudgesContent,
+  normalizeSalesMarketNudgesPayload,
+} from "@/lib/content/sales-market-nudges-schema";
 import {
   DEFAULT_MENTOR_CONNECT_CONTENT,
   type MentorConnectHero,
@@ -122,9 +125,9 @@ export async function getMemberDashboardContent(): Promise<MemberDashboardConten
 export async function getSalesMarketNudgesContent(): Promise<SalesMarketNudgesContent> {
   const cms = await tryReadPublishedPayload<Partial<SalesMarketNudgesContent>>("sales-market-nudges");
   if (cms === null) {
-    return DEFAULT_SALES_MARKET_NUDGES_CONTENT;
+    return filterActiveSalesMarketNudgesContent(DEFAULT_SALES_MARKET_NUDGES_CONTENT);
   }
-  return normalizeSalesMarketNudgesPayload(cms);
+  return filterActiveSalesMarketNudgesContent(normalizeSalesMarketNudgesPayload(cms));
 }
 
 export async function getFaqContent(): Promise<FaqContent> {
