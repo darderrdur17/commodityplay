@@ -16,6 +16,7 @@ const badgeVariants = cva(
         starter: "bg-green-50 text-green-700 border border-green-200",
         pro: "bg-blue-50 text-blue-700 border border-blue-200",
         elite: "bg-amber-50 text-amber-700 border border-amber-200",
+        mentor: "bg-violet-50 text-violet-700 border border-violet-200",
         dark: "bg-white/10 text-white border border-white/20",
       },
       size: {

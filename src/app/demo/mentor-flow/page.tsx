@@ -50,13 +50,8 @@ export default function MentorFlowDemoPage() {
               Member → Mentor → Admin
             </h1>
             <p className="text-white/65 text-lg max-w-2xl mb-6">
-              Walk through the full notification loop: members ask questions, mentors answer (synced to member pages + email), and admins can monitor or nudge mentors.
+              Walk through the full notification loop: members ask questions, mentors answer (synced to member pages + email), and admins can monitor or nudge mentors. Sign in as admin to preview logged emails in the Email Log tab.
             </p>
-            <Link href="/demo/emails">
-              <Button variant="primary-dark" size="sm">
-                <Mail className="w-4 h-4" /> View demo email inbox
-              </Button>
-            </Link>
           </Reveal>
         </div>
       </section>
@@ -72,8 +67,8 @@ export default function MentorFlowDemoPage() {
             <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" /> Sign in as <strong>Member</strong> — check pending &amp; answered questions</li>
             <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" /> Sign in as <strong>Mentor</strong> — answer a pending request</li>
             <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" /> Sign in as <strong>Member</strong> again — answer appears under My Questions</li>
-            <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" /> Open <Link href="/demo/emails" className="text-primary-400 hover:underline">demo email inbox</Link> — see the notification that would be sent</li>
-            <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" /> Sign in as <strong>Admin</strong> → Mentor tab → notify mentor on any pending item</li>
+            <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" /> Sign in as <strong>Admin</strong> → Q&amp;A tab → notify mentor on any pending item</li>
+            <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" /> Open the <strong>Email Log</strong> tab in the Admin Panel — see the notification that would be sent</li>
           </ol>
         </div>
 
@@ -114,12 +109,12 @@ export default function MentorFlowDemoPage() {
         <Reveal className="mt-8">
           <div className="rounded-xl border border-primary-line bg-primary-soft p-5 text-center">
             <Mail className="w-8 h-8 text-primary-800 mx-auto mb-2" />
-            <p className="font-serif font-bold text-gray-900 mb-1">Demo email inbox</p>
+            <p className="font-serif font-bold text-gray-900 mb-1">Demo email log</p>
             <p className="text-sm text-muted-fg mb-4">
-              All mentor/member notification emails are captured here — no Resend API key required for demos.
+              All mentor/member notification emails are captured here — no Resend API key required for demos. Sign in as admin and open the Email Log tab.
             </p>
-            <Link href="/demo/emails">
-              <Button variant="outline">Open email preview</Button>
+            <Link href="/admin?tab=emails">
+              <Button variant="outline">Open Admin Panel</Button>
             </Link>
           </div>
         </Reveal>

@@ -47,7 +47,9 @@ export function Nav() {
     email?: string | null;
     tier?: string;
     role?: string;
+    isMentor?: boolean;
   } | undefined;
+  const myProgressHref = user?.isMentor ? "/mentor-connect/inbox" : "/dashboard";
 
   const handleTrackParamChange = useCallback((track: string | null) => {
     setActiveTrackParam(track);
@@ -192,7 +194,7 @@ export function Nav() {
                         My Account
                       </Link>
                       <Link
-                        href="/dashboard"
+                        href={myProgressHref}
                         onClick={closeMenus}
                         className="block px-3.5 py-2.5 text-[13.5px] font-medium text-[#4a5568] rounded-[7px] hover:bg-[#f0f6ff] hover:text-[#3280ff] transition-colors"
                       >
@@ -293,7 +295,7 @@ export function Nav() {
                     My Account
                   </Link>
                   <Link
-                    href="/dashboard"
+                    href={myProgressHref}
                     className="px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-[#f4f5f7] min-h-[44px] flex items-center"
                   >
                     My Progress

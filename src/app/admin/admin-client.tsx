@@ -85,11 +85,22 @@ interface MentorSegmentRow {
   }[];
 }
 
+interface DemoEmail {
+  id: string;
+  kind: string;
+  kindLabel: string;
+  to: string;
+  subject: string;
+  bodyText: string;
+  delivered: boolean;
+  createdAt: string;
+}
+
 const CHAPTERS = ["a", "b", "c", "d", "e"];
 
-type AdminTab = "users" | "content" | "mentor" | "waitlist" | "progress" | "mentors" | "billing";
+type AdminTab = "users" | "content" | "mentor" | "waitlist" | "progress" | "mentors" | "billing" | "emails";
 
-const VALID_TABS: AdminTab[] = ["users", "content", "mentor", "waitlist", "progress", "mentors", "billing"];
+const VALID_TABS: AdminTab[] = ["users", "content", "mentor", "waitlist", "progress", "mentors", "billing", "emails"];
 
 export function AdminClient({
   adminName,
@@ -111,6 +122,9 @@ export function AdminClient({
   const [progressData, setProgressData] = useState<ChapterProgressRow[]>([]);
   const [mentorSegments, setMentorSegments] = useState<MentorSegmentRow[]>([]);
   const [pendingMentorApps, setPendingMentorApps] = useState(0);
+  const [demoEmails, setDemoEmails] = useState<DemoEmail[]>([]);
+  const [emailsLoading, setEmailsLoading] = useState(false);
+  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<AdminTab>(
     initialTab && VALID_TABS.includes(initialTab as AdminTab) ? (initialTab as AdminTab) : "users"
@@ -168,9 +182,28 @@ export function AdminClient({
     if (res.ok) setMentorQs(await res.json());
   }
 
+  async function loadDemoEmails() {
+    setEmailsLoading(true);
+    try {
+      const res = await fetch("/api/admin/emails");
+      if (res.ok) {
+        const data = await res.json();
+        setDemoEmails(data);
+        if (!selectedEmailId && data.length > 0) setSelectedEmailId(data[0].id);
+      }
+    } finally {
+      setEmailsLoading(false);
+    }
+  }
+
   useEffect(() => {
     loadAll();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "emails") loadDemoEmails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   async function submitAnswer(id: string) {
     const answer = answerDraft[id];
@@ -241,6 +274,8 @@ export function AdminClient({
     ? mentorSegments.reduce((n, s) => n + s.mentors.length, 0)
     : MENTOR_COUNT;
 
+  const selectedDemoEmail = demoEmails.find((e) => e.id === selectedEmailId);
+
   // Segment choices for the "reassign segment" dropdown — real segments plus the
   // synthetic "Unassigned" bucket (only ever present once a new application exists).
   const mentorSegmentOptions: MentorSegmentOption[] = [
@@ -307,6 +342,7 @@ export function AdminClient({
             ["mentor", `Q&A (${pendingCount} pending)`, MessageSquare],
             ["billing", "Billing & Invoice", CreditCard],
             ["waitlist", `Waitlist (${waitlist.length})`, Mail],
+            ["emails", "Email Log", Mail],
             ["content", "Content CMS", FileJson],
           ] as const).map(([tab, label, Icon]) => (
             <button
@@ -661,9 +697,13 @@ export function AdminClient({
             {actionMsg && (
               <div className="rounded-lg border border-primary-line bg-primary-soft px-4 py-3 text-sm text-primary-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <span>{actionMsg}</span>
-                <Link href="/demo/emails" className="text-primary-400 hover:underline text-xs font-semibold whitespace-nowrap">
-                  View demo email inbox →
-                </Link>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("emails")}
+                  className="text-primary-400 hover:underline text-xs font-semibold whitespace-nowrap"
+                >
+                  View email log →
+                </button>
               </div>
             )}
             {mentorQs.length === 0 ? (
@@ -834,6 +874,90 @@ export function AdminClient({
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* ── Email Log tab ── */}
+        {activeTab === "emails" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-sm text-muted-fg">
+                Every Mentor Connect email is logged here for demo — member answer notifications, mentor reminders, and new question alerts. Works even without Resend configured.
+              </p>
+              <Button variant="outline" size="sm" onClick={loadDemoEmails} loading={emailsLoading}>
+                <RefreshCw className="w-4 h-4" /> Refresh
+              </Button>
+            </div>
+
+            {demoEmails.length === 0 && !emailsLoading ? (
+              <div className="bg-white rounded-xl border border-border p-10 text-center">
+                <Mail className="w-10 h-10 text-muted-fg mx-auto mb-3" />
+                <p className="text-gray-800 font-medium mb-1">No demo emails yet</p>
+                <p className="text-sm text-muted-fg">
+                  Answer a mentor question or send an admin reminder from the Q&amp;A tab to generate emails.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+                <div className="lg:col-span-2 space-y-2">
+                  {demoEmails.map((email) => (
+                    <button
+                      key={email.id}
+                      type="button"
+                      onClick={() => setSelectedEmailId(email.id)}
+                      className={cn(
+                        "w-full text-left rounded-xl border bg-white p-4 transition-all",
+                        selectedEmailId === email.id
+                          ? "border-primary-400 ring-2 ring-primary-400/20"
+                          : "border-border hover:border-primary-line"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <Badge variant={email.delivered ? "success" : "secondary"} size="sm">
+                          {email.delivered ? "Sent" : "Demo log"}
+                        </Badge>
+                        <span className="text-[10px] text-muted-fg">{formatDate(email.createdAt)}</span>
+                      </div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-primary-800 mb-1">
+                        {email.kindLabel}
+                      </p>
+                      <p className="text-sm font-semibold text-gray-900 line-clamp-1">{email.subject}</p>
+                      <p className="text-xs text-muted-fg mt-1">To: {email.to}</p>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="lg:col-span-3">
+                  {selectedDemoEmail ? (
+                    <div className="bg-white rounded-xl border border-border overflow-hidden">
+                      <div className="px-5 py-4 border-b border-border bg-secondary/40">
+                        <p className="text-sm font-semibold text-gray-900">{selectedDemoEmail.subject}</p>
+                        <p className="text-xs text-muted-fg mt-1">
+                          To: {selectedDemoEmail.to} · {formatDate(selectedDemoEmail.createdAt)}
+                        </p>
+                      </div>
+                      <div className="px-5 py-5">
+                        <pre className="text-sm text-gray-800 whitespace-pre-wrap font-sans leading-relaxed">
+                          {selectedDemoEmail.bodyText}
+                        </pre>
+                      </div>
+                      {!selectedDemoEmail.delivered && (
+                        <div className="px-5 py-3 bg-amber-50 border-t border-amber-100 text-xs text-amber-800 flex items-center gap-2">
+                          <Clock className="w-3.5 h-3.5 shrink-0" />
+                          Logged for demo — configure RESEND_API_KEY to deliver real emails.
+                        </div>
+                      )}
+                      {selectedDemoEmail.delivered && (
+                        <div className="px-5 py-3 bg-green-50 border-t border-green-100 text-xs text-green-800 flex items-center gap-2">
+                          <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                          Delivered via Resend.
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

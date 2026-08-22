@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Inbox, Clock, CheckCircle, MessageSquare, Send, User, Filter, Mail, Eye, EyeOff,
+  Inbox, Clock, CheckCircle, MessageSquare, Send, User, Filter, Eye, EyeOff, Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,10 +44,17 @@ interface Props {
   initialStats: InboxStats;
 }
 
-export function MentorInboxClient({ mentorName, initialRequests, initialStats }: Props) {
+const ALL_TIME_KEY = "all";
+
+function monthKeyOf(dateIso: string): string {
+  const d = new Date(dateIso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function MentorInboxClient({ mentorName, initialRequests }: Props) {
   const [requests, setRequests] = useState(initialRequests);
-  const [stats, setStats] = useState(initialStats);
   const [filter, setFilter] = useState<FilterTab>("pending");
+  const [selectedMonth, setSelectedMonth] = useState<string>(ALL_TIME_KEY);
   const [selectedId, setSelectedId] = useState<string | null>(
     initialRequests.find((r) => !r.isAnswered)?.id ?? initialRequests[0]?.id ?? null
   );
@@ -57,11 +64,55 @@ export function MentorInboxClient({ mentorName, initialRequests, initialStats }:
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
+  // Distinct months present in the mentor's request history, newest first —
+  // powers the archive filter sidebar so the list stays manageable as
+  // requests accumulate over time.
+  const monthOptions = useMemo(() => {
+    const byKey = new Map<string, { key: string; label: string; count: number }>();
+    for (const r of requests) {
+      const key = monthKeyOf(r.createdAt);
+      const existing = byKey.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        byKey.set(key, {
+          key,
+          label: new Date(r.createdAt).toLocaleDateString("en-US", {
+            month: "long",
+            year: "numeric",
+          }),
+          count: 1,
+        });
+      }
+    }
+    return Array.from(byKey.values()).sort((a, b) => (a.key < b.key ? 1 : -1));
+  }, [requests]);
+
+  const monthFiltered = useMemo(() => {
+    if (selectedMonth === ALL_TIME_KEY) return requests;
+    return requests.filter((r) => monthKeyOf(r.createdAt) === selectedMonth);
+  }, [requests, selectedMonth]);
+
+  // Stat cards reflect the selected month's archive, not the all-time totals,
+  // so the hero grid stays in sync with whichever period is being reviewed.
+  const stats = useMemo(() => {
+    const pending = monthFiltered.filter((r) => !r.isAnswered).length;
+    const answered = monthFiltered.filter((r) => r.isAnswered).length;
+    return { pending, answered, total: monthFiltered.length };
+  }, [monthFiltered]);
+
   const filtered = useMemo(() => {
-    if (filter === "pending") return requests.filter((r) => !r.isAnswered);
-    if (filter === "answered") return requests.filter((r) => r.isAnswered);
-    return requests;
-  }, [requests, filter]);
+    if (filter === "pending") return monthFiltered.filter((r) => !r.isAnswered);
+    if (filter === "answered") return monthFiltered.filter((r) => r.isAnswered);
+    return monthFiltered;
+  }, [monthFiltered, filter]);
+
+  useEffect(() => {
+    if (!filtered.find((r) => r.id === selectedId)) {
+      setSelectedId(filtered[0]?.id ?? null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered]);
 
   const selected = requests.find((r) => r.id === selectedId) ?? null;
 
@@ -97,17 +148,12 @@ export function MentorInboxClient({ mentorName, initialRequests, initialStats }:
             : r
         )
       );
-      setStats((s) => ({
-        ...s,
-        pending: Math.max(0, s.pending - 1),
-        answered: s.answered + 1,
-      }));
       setAnswer("");
       setIsPublic(false);
       if (data.menteeEmail?.sent) {
         setSuccessMsg("Answer saved — member notified by email and synced to their Mentor Connect page.");
       } else if (data.menteeEmail?.skipped) {
-        setSuccessMsg("Answer saved and synced. Email logged in demo inbox — open /demo/emails to preview.");
+        setSuccessMsg("Answer saved and synced. Email logged for demo — ask an admin to check the Email Log.");
       } else {
         setSuccessMsg("Answer saved and synced to member page.");
       }
@@ -148,12 +194,6 @@ export function MentorInboxClient({ mentorName, initialRequests, initialStats }:
             </div>
             <div className="flex flex-col items-end gap-2 shrink-0">
               <Link
-                href="/demo/emails"
-                className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors"
-              >
-                <Mail className="w-4 h-4" /> Demo email inbox
-              </Link>
-              <Link
                 href="/mentor-connect"
                 className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors"
               >
@@ -178,6 +218,25 @@ export function MentorInboxClient({ mentorName, initialRequests, initialStats }:
           </div>
         </Reveal>
       </section>
+
+      {/* Mobile / narrow archive selector */}
+      <div className="lg:hidden mb-4">
+        <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-fg mb-1.5">
+          <Archive className="w-3.5 h-3.5" /> Archive
+        </label>
+        <select
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="w-full px-3 py-2.5 rounded-lg border border-border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+        >
+          <option value={ALL_TIME_KEY}>All time ({requests.length})</option>
+          {monthOptions.map((m) => (
+            <option key={m.key} value={m.key}>
+              {m.label} ({m.count})
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <Filter className="w-4 h-4 text-muted-fg" />
@@ -204,7 +263,45 @@ export function MentorInboxClient({ mentorName, initialRequests, initialStats }:
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-6 gap-6 items-start">
+        {/* Month/year archive filter sidebar */}
+        <div className="hidden lg:block lg:col-span-1">
+          <div className="bg-white rounded-xl border border-border p-3 sticky top-24">
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-fg px-2 pb-2">
+              <Archive className="w-3 h-3" /> Archive
+            </p>
+            <div className="flex flex-col gap-0.5 max-h-[480px] overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => setSelectedMonth(ALL_TIME_KEY)}
+                className={`flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                  selectedMonth === ALL_TIME_KEY
+                    ? "bg-primary-800 text-white"
+                    : "text-gray-600 hover:bg-secondary"
+                }`}
+              >
+                All time
+                <span className="opacity-70">{requests.length}</span>
+              </button>
+              {monthOptions.map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setSelectedMonth(m.key)}
+                  className={`flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+                    selectedMonth === m.key
+                      ? "bg-primary-800 text-white"
+                      : "text-gray-600 hover:bg-secondary"
+                  }`}
+                >
+                  {m.label}
+                  <span className="opacity-70">{m.count}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Request list */}
         <div className="lg:col-span-2 space-y-3">
           {filtered.length === 0 ? (

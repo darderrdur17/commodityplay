@@ -57,6 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           track: user.track,
           persona: user.persona,
           onboardingDone: user.onboardingDone,
+          isMentor: user.isMentor,
         };
       },
     }),
@@ -70,6 +71,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.track = user.track;
         token.persona = user.persona;
         token.onboardingDone = user.onboardingDone;
+        token.isMentor = user.isMentor;
       }
 
       if (trigger === "update" && token.id) {
@@ -81,6 +83,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             track: true,
             persona: true,
             onboardingDone: true,
+            isMentor: true,
           },
         });
         if (dbUser) {
@@ -89,6 +92,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.track = dbUser.track;
           token.persona = dbUser.persona;
           token.onboardingDone = dbUser.onboardingDone;
+          token.isMentor = dbUser.isMentor;
         }
       }
 
@@ -102,6 +106,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.track = token.track as "CAREER" | "SALES";
         session.user.persona = (token.persona as string | null | undefined) ?? null;
         session.user.onboardingDone = Boolean(token.onboardingDone);
+        session.user.isMentor = Boolean(token.isMentor);
       }
       return session;
     },

@@ -9,6 +9,7 @@ declare module "next-auth" {
       track: "CAREER" | "SALES";
       persona: string | null;
       onboardingDone: boolean;
+      isMentor: boolean;
     } & DefaultSession["user"];
   }
 
@@ -18,6 +19,7 @@ declare module "next-auth" {
     track?: "CAREER" | "SALES";
     persona?: string | null;
     onboardingDone?: boolean;
+    isMentor?: boolean;
   }
 }
 
@@ -29,5 +31,6 @@ declare module "next-auth/jwt" {
     track?: "CAREER" | "SALES";
     persona?: string | null;
     onboardingDone?: boolean;
+    isMentor?: boolean;
   }
 }

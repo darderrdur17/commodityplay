@@ -10,7 +10,8 @@ import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
 import { formatMentorCreditsUsedLabel } from "@/lib/mentor-credits";
-import { User, Mail, CreditCard, Sparkles, ArrowRight } from "lucide-react";
+import { isMentorDemoUser } from "@/lib/mentor-demo";
+import { User, Mail, CreditCard, Sparkles, ArrowRight, Inbox, CheckCircle, Clock } from "lucide-react";
 
 export const metadata = { title: "Account" };
 
@@ -35,7 +36,22 @@ export default async function AccountPage() {
   });
   if (!user) redirect("/login");
 
-  const mentorCreditUsage = await getMentorCreditUsageForUser(user.id, user.tier);
+  const isMentorUser = isMentorDemoUser(user.email);
+
+  const mentorCreditUsage = isMentorUser
+    ? null
+    : await getMentorCreditUsageForUser(user.id, user.tier);
+
+  let mentorStats: { total: number; answered: number; pending: number } | null = null;
+  if (isMentorUser) {
+    // Mirrors the query used in mentor-connect/inbox/page.tsx: all member
+    // questions not asked by the mentor themselves.
+    const [total, answered] = await Promise.all([
+      prisma.mentorQuestion.count({ where: { userId: { not: user.id } } }),
+      prisma.mentorQuestion.count({ where: { userId: { not: user.id }, isAnswered: true } }),
+    ]);
+    mentorStats = { total, answered, pending: total - answered };
+  }
 
   const tierInfo = TIER_LABELS[user.tier] || TIER_LABELS.STARTER;
   const personaInfo = user.persona ? PERSONA_LABELS[user.persona] : null;
@@ -55,13 +71,25 @@ export default async function AccountPage() {
               <p className="font-semibold text-gray-900">{user.name || "Member"}</p>
               <p className="text-sm text-muted-fg">{user.email}</p>
             </div>
-            <Badge variant={user.tier === "ELITE" ? "elite" : user.tier === "PRO" ? "pro" : "starter"} className="ml-auto">
-              {tierInfo.label}
+            <Badge
+              variant={isMentorUser ? "mentor" : user.tier === "ELITE" ? "elite" : user.tier === "PRO" ? "pro" : "starter"}
+              className="ml-auto"
+            >
+              {isMentorUser ? "Mentor" : tierInfo.label}
             </Badge>
           </div>
 
           <div className="divide-y divide-border">
-            {[
+            {(isMentorUser
+              ? [
+                  { icon: User, label: "Track", value: user.track === "CAREER" ? "Build a Career" : "Sell Into Firms" },
+                  { icon: Sparkles, label: "Persona", value: personaInfo?.label || "Not set — complete onboarding" },
+                  { icon: Inbox, label: "Total requests received", value: String(mentorStats?.total ?? 0) },
+                  { icon: CheckCircle, label: "Requests answered", value: String(mentorStats?.answered ?? 0) },
+                  { icon: Clock, label: "Pending requests", value: String(mentorStats?.pending ?? 0) },
+                  { icon: Mail, label: "Date joined", value: formatDate(user.createdAt) },
+                ]
+              : [
               { icon: User, label: "Track", value: user.track === "CAREER" ? "Build a Career" : "Sell Into Firms" },
               { icon: Sparkles, label: "Persona", value: personaInfo?.label || "Not set — complete onboarding" },
               {
@@ -72,7 +100,7 @@ export default async function AccountPage() {
                   : "Elite only",
               },
               { icon: Mail, label: "Member since", value: formatDate(user.createdAt) },
-            ].map((row) => (
+            ]).map((row) => (
               <div key={row.label} className="flex items-center gap-3 px-6 py-4">
                 <row.icon className="w-4 h-4 text-muted-fg" />
                 <span className="text-sm text-muted-fg flex-1">{row.label}</span>
@@ -82,7 +110,7 @@ export default async function AccountPage() {
           </div>
         </div>
 
-        {user.tier !== "ELITE" && (
+        {!isMentorUser && user.tier !== "ELITE" && (
           <div className="bg-primary-800 rounded-2xl p-6 text-white mb-6">
             <p className="font-serif font-bold text-lg mb-2">
               {user.tier === "STARTER" ? "Upgrade to Pro" : "Upgrade to Elite"}
@@ -100,7 +128,7 @@ export default async function AccountPage() {
           </div>
         )}
 
-        {user.tier === "ELITE" && user.stripeCurrentPeriodEnd && (
+        {!isMentorUser && user.tier === "ELITE" && user.stripeCurrentPeriodEnd && (
           <p className="text-xs text-muted-fg text-center">
             Elite subscription renews {formatDate(user.stripeCurrentPeriodEnd)}
           </p>

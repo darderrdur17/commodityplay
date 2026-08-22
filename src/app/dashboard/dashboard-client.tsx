@@ -7,11 +7,12 @@ import {
   BookOpen, Map, FileText, MessageSquare, BarChart3, Briefcase,
   Users, Lock, ArrowRight, TrendingUp, Award, ChevronRight,
   CheckCircle, Shield, ExternalLink, Eye, Compass, NotebookPen, ScrollText,
+  Calendar, Inbox, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AnimatedProgress, Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
-import { PERSONA_LABELS, TIER_LABELS, hasAccess } from "@/lib/utils";
+import { PERSONA_LABELS, TIER_LABELS, hasAccess, formatDate } from "@/lib/utils";
 import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import { attachmentHref } from "@/lib/content/attachments";
@@ -57,6 +58,13 @@ interface Props {
   mentorCreditUsage?: MentorCreditUsage | null;
   salesDeliverables?: SalesDashboardDeliverables;
   isAdmin?: boolean;
+  isMentorUser?: boolean;
+  mentorStats?: {
+    dateJoined: string;
+    totalRequests: number;
+    answered: number;
+    pending: number;
+  } | null;
 }
 
 const CONTENT_CARDS = [
@@ -181,6 +189,8 @@ export function DashboardClient({
   mentorCreditUsage = null,
   salesDeliverables = DEFAULT_MEMBER_DASHBOARD_CONTENT.salesDeliverables,
   isAdmin: isAdminUser = false,
+  isMentorUser = false,
+  mentorStats = null,
 }: Props) {
   const tierInfo = TIER_LABELS[user.tier] || TIER_LABELS.STARTER;
   const personaInfo = user.persona ? PERSONA_LABELS[user.persona] : null;
@@ -348,14 +358,14 @@ export function DashboardClient({
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <Badge variant={user.tier.toLowerCase() as any} size="lg">
-              {tierInfo.label} Member
+            <Badge variant={isMentorUser ? "mentor" : (user.tier.toLowerCase() as any)} size="lg">
+              {isMentorUser ? "Mentor" : `${tierInfo.label} Member`}
             </Badge>
           </div>
         </div>
       </Reveal>
 
-      {isAdminUser && (
+      {isAdminUser && !isMentorUser && (
         <Link
           href="/admin?tab=content&slug=member-dashboard"
           className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-gray-900 text-white text-sm font-semibold px-4 py-2.5 shadow-xl hover:bg-gray-800 transition-colors"
@@ -364,7 +374,7 @@ export function DashboardClient({
         </Link>
       )}
 
-      {isAdminUser && (
+      {isAdminUser && !isMentorUser && (
         <Reveal className="mb-8">
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
             <div className="flex items-start gap-3 mb-3">
@@ -401,7 +411,34 @@ export function DashboardClient({
 
       {/* ── STAT CARDS ── */}
       <StaggerChildren className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        {[
+        {(isMentorUser
+          ? [
+              {
+                label: "Date Joined",
+                value: mentorStats ? formatDate(mentorStats.dateJoined) : "—",
+                icon: Calendar,
+                color: "#3280ff",
+              },
+              {
+                label: "Total Requests Received",
+                value: String(mentorStats?.totalRequests ?? 0),
+                icon: Inbox,
+                color: "#5B21B6",
+              },
+              {
+                label: "Requests Answered",
+                value: String(mentorStats?.answered ?? 0),
+                icon: CheckCircle,
+                color: "#16a34a",
+              },
+              {
+                label: "Pending Requests",
+                value: String(mentorStats?.pending ?? 0),
+                icon: Clock,
+                color: "#B45309",
+              },
+            ]
+          : [
           {
             label: isAdminUser ? "Track preview" : "Track",
             value: isAdminUser ? "Career & Sales" : user.track === "CAREER" ? "Career" : "Sales",
@@ -431,7 +468,7 @@ export function DashboardClient({
             icon: BookOpen,
             color: "#16a34a",
           },
-        ].map((stat) => (
+        ]).map((stat) => (
           <StaggerItem key={stat.label}>
             <div className="bg-white rounded-xl border border-border p-4 sm:p-5">
               <div className="flex items-center justify-between mb-3">
@@ -456,6 +493,8 @@ export function DashboardClient({
         ))}
       </StaggerChildren>
 
+      {!isMentorUser && (
+      <>
       {/* ── STARTER PACK DOWNLOADS ── */}
       {user.tier === "STARTER" && (
         <Reveal className="mb-10">
@@ -747,6 +786,8 @@ export function DashboardClient({
             </div>
           </div>
         </Reveal>
+      )}
+      </>
       )}
     </div>
   );

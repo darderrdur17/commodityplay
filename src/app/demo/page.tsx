@@ -116,11 +116,8 @@ export default function DemoPage() {
               <MessageSquare className="w-5 h-5 text-amber-600" /> Mentor Connect + notifications
             </h2>
             <p className="text-sm text-muted-fg mb-4">
-              Full walkthrough: member questions → mentor answers → email sync → admin reminders. Includes a{" "}
-              <Link href="/demo/emails" className="text-primary-400 hover:underline font-medium">
-                demo email inbox
-              </Link>{" "}
-              so you can preview notifications without Resend.
+              Full walkthrough: member questions → mentor answers → email sync → admin reminders. Sign in as
+              admin to preview notifications in the Email Log tab without Resend configured.
             </p>
             <Link href="/demo/mentor-flow" className="block mb-4">
               <Button variant="outline" className="w-full sm:w-auto">

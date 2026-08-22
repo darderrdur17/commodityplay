@@ -7,6 +7,7 @@ import {
   getContentStats,
 } from "@/lib/content/content-stats";
 import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
+import { isMentorDemoUser } from "@/lib/mentor-demo";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { DashboardClient } from "./dashboard-client";
@@ -31,8 +32,32 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
+  const isMentorUser = isMentorDemoUser(session.user.email);
+
   const completedChapters = user.progress.filter((p) => p.completed).length;
   const mentorCreditUsage = await getMentorCreditUsageForUser(user.id, user.tier);
+
+  let mentorStats: {
+    dateJoined: string;
+    totalRequests: number;
+    answered: number;
+    pending: number;
+  } | null = null;
+
+  if (isMentorUser) {
+    // Mirrors the query used in mentor-connect/inbox/page.tsx: all member
+    // questions not asked by the mentor themselves.
+    const [totalRequests, answered] = await Promise.all([
+      prisma.mentorQuestion.count({ where: { userId: { not: user.id } } }),
+      prisma.mentorQuestion.count({ where: { userId: { not: user.id }, isAnswered: true } }),
+    ]);
+    mentorStats = {
+      dateJoined: user.createdAt.toISOString(),
+      totalRequests,
+      answered,
+      pending: totalRequests - answered,
+    };
+  }
 
   const [contentTiers, navigationGuides, dashboardContentRaw, contentStats] = await Promise.all([
     getContentTiersMap(),
@@ -75,6 +100,8 @@ export default async function DashboardPage() {
       mentorCreditUsage={mentorCreditUsage}
       salesDeliverables={dashboardContent.salesDeliverables}
       isAdmin={session.user.role === "ADMIN"}
+      isMentorUser={isMentorUser}
+      mentorStats={mentorStats}
     />
   );
 }
