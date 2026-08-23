@@ -199,6 +199,7 @@ export function DashboardClient({
   const planHref = (tier: "pro" | "elite") =>
     isCareerTrack ? CAREER_PLAN_HREF(tier) : SALES_PLAN_HREF(tier);
   const showSalesTrackCards = isAdminUser || !isCareerTrack;
+  const isStarter = user.tier === "STARTER";
   const isElite = hasAccess(user.tier, "ELITE");
   const showCareerNavGuide =
     hasAccess(user.tier, "PRO") &&
@@ -243,6 +244,10 @@ export function DashboardClient({
     window.addEventListener(PREP_LIBRARY_COUNT_EVENT, onPrepLibraryCount);
     return () => window.removeEventListener(PREP_LIBRARY_COUNT_EVENT, onPrepLibraryCount);
   }, [user.tier]);
+
+  const firstEliteContentCardIndex = CONTENT_CARDS.findIndex(
+    (card) => (contentTiers[card.slug] || card.requiredTier) === "ELITE"
+  );
 
   function resolveSalesCardHref(card: DashboardSalesResourceCardCopy): string | null {
     if (card.deliverableKey) {
@@ -447,24 +452,28 @@ export function DashboardClient({
           },
           {
             label: "Persona",
-            value: personaInfo?.label || "Not set",
+            value: isStarter ? "--" : personaInfo?.label || "Not set",
             icon: Award,
             color: personaInfo?.color || "#677184",
           },
           {
             label: "Mentor Credits",
-            value: isElite && mentorCreditUsage
-              ? formatMentorCreditsUsedLabel(mentorCreditUsage)
-              : isElite
-                ? "0/15 used"
-                : "Elite only",
+            value: isStarter
+              ? "--"
+              : isElite && mentorCreditUsage
+                ? formatMentorCreditsUsedLabel(mentorCreditUsage)
+                : isElite
+                  ? "0/15 used"
+                  : "Elite only",
             eyebrow: isElite && mentorCreditUsage ? mentorCreditUsage.monthLabel : undefined,
             icon: Users,
             color: "#B45309",
           },
           {
             label: "Chapters Done",
-            value: `${stats.completedChapters}/${contentStats.chapterCount}`,
+            value: isStarter
+              ? "3 free sections"
+              : `${stats.completedChapters}/${contentStats.chapterCount}`,
             icon: BookOpen,
             color: "#16a34a",
           },
@@ -665,7 +674,7 @@ export function DashboardClient({
             </Reveal>
           ))}
 
-          {/* Tiered content */}
+          {/* Tiered content — career Prep Library slots in after Pro cards, before Elite */}
           {CONTENT_CARDS.map((card, i) => {
             const tier = (contentTiers[card.slug] || card.requiredTier) as "PRO" | "ELITE";
             const unlocked = hasAccess(user.tier, tier);
@@ -673,18 +682,41 @@ export function DashboardClient({
               resourceCopyBySlug[card.slug] ??
               DEFAULT_MEMBER_DASHBOARD_CONTENT.resourceCards.find((c) => c.slug === card.slug)?.description ??
               "";
-            return renderResourceCard({
-              title: card.title,
-              description,
-              icon: card.icon,
-              color: card.color,
-              tier,
-              unlocked,
-              href: card.href,
-              delay: i * 0.05,
-              trackLabel: card.track,
-            });
+            const showCareerPrepLibrary =
+              isCareerTrack && i === firstEliteContentCardIndex;
+
+            return (
+              <React.Fragment key={card.slug}>
+                {showCareerPrepLibrary && (
+                  <PrepLibraryCard
+                    track="CAREER"
+                    userTier={user.tier}
+                    topicCount={careerTopicCount}
+                    showTrackBadge={isAdminUser}
+                  />
+                )}
+                {renderResourceCard({
+                  title: card.title,
+                  description,
+                  icon: card.icon,
+                  color: card.color,
+                  tier,
+                  unlocked,
+                  href: card.href,
+                  delay: i * 0.05,
+                  trackLabel: card.track,
+                })}
+              </React.Fragment>
+            );
           })}
+          {isCareerTrack && firstEliteContentCardIndex === -1 && (
+            <PrepLibraryCard
+              track="CAREER"
+              userTier={user.tier}
+              topicCount={careerTopicCount}
+              showTrackBadge={isAdminUser}
+            />
+          )}
 
           {/* Sales track only */}
           {showSalesTrackCards &&
@@ -735,16 +767,6 @@ export function DashboardClient({
                 </React.Fragment>
               );
             })}
-
-          {/* Career track: Prep Library card in Pro position */}
-          {isCareerTrack && (
-            <PrepLibraryCard
-              track="CAREER"
-              userTier={user.tier}
-              topicCount={careerTopicCount}
-              showTrackBadge={isAdminUser}
-            />
-          )}
 
         </div>
       </div>
