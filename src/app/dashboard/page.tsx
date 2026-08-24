@@ -16,7 +16,12 @@ export const metadata = {
   title: "Dashboard",
 };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ previewTrack?: string; previewTier?: string }>;
+}) {
+  const { previewTrack, previewTier } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login?callbackUrl=/dashboard");
@@ -101,6 +106,8 @@ export default async function DashboardPage() {
       salesDeliverables={dashboardContent.salesDeliverables}
       isAdmin={session.user.role === "ADMIN"}
       isMentorUser={isMentorUser}
+      previewTrack={previewTrack}
+      previewTier={previewTier}
       mentorStats={mentorStats}
     />
   );

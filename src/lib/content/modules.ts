@@ -18,7 +18,8 @@ export type ContentSlug =
   | "library"
   | "footer-guides"
   | "member-dashboard"
-  | "sales-market-nudges";
+  | "sales-market-nudges"
+  | "account-intelligence";
 
 export interface ContentModuleMeta {
   slug: ContentSlug;
@@ -129,6 +130,12 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
     title: "Sales Market Nudges",
     description: "Weekly market nudges and intelligence briefs for Sales track members",
     requiredTier: "PRO",
+  },
+  {
+    slug: "account-intelligence",
+    title: "Account Intelligence",
+    description: "Elite Sales track page copy — hero, accounts section, and continue CTAs",
+    requiredTier: "ELITE",
   },
   {
     slug: "mentors",

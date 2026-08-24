@@ -25,6 +25,7 @@ import { defaultCareerEdgeNote, defaultSalesEdgeNote } from "@/lib/content/edge-
 import { DEFAULT_FAQ_CONTENT } from "@/data/faq";
 import { DEFAULT_MEMBER_DASHBOARD_CONTENT } from "@/data/member-dashboard";
 import { DEFAULT_SALES_MARKET_NUDGES_CONTENT } from "@/data/sales-market-nudges";
+import { DEFAULT_ACCOUNT_INTELLIGENCE_CONTENT } from "@/data/account-intelligence-content";
 import { DEFAULT_MENTOR_CONNECT_CONTENT } from "@/data/mentor-connect-content";
 import {
   STARTER_INFOGRAPHICS,
@@ -96,6 +97,8 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
       return DEFAULT_MEMBER_DASHBOARD_CONTENT;
     case "sales-market-nudges":
       return DEFAULT_SALES_MARKET_NUDGES_CONTENT;
+    case "account-intelligence":
+      return DEFAULT_ACCOUNT_INTELLIGENCE_CONTENT;
     case "mentors":
       return { overrides: [] };
     default:
@@ -122,6 +125,7 @@ export function getAllDefaultPayloads(): Record<ContentSlug, unknown> {
     "footer-guides": getDefaultPayload("footer-guides"),
     "member-dashboard": getDefaultPayload("member-dashboard"),
     "sales-market-nudges": getDefaultPayload("sales-market-nudges"),
+    "account-intelligence": getDefaultPayload("account-intelligence"),
     mentors: getDefaultPayload("mentors"),
   };
 }

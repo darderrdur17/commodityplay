@@ -96,6 +96,11 @@ export interface LandingMentorConnect {
   title: string;
 }
 
+export interface MembersStripContent {
+  label: string;
+  companies: string[];
+}
+
 export interface LandingContent {
   career: {
     eyebrow: string;
@@ -167,10 +172,10 @@ export interface LandingContent {
     /** Feature Comparison table shown on the Career Track landing page (Starter vs Pro vs Elite). */
     comparison: FeatureComparisonTable;
   };
-  membersStrip: {
-    label: string;
-    companies: string[];
-  };
+  careerMembersStrip: MembersStripContent;
+  salesMembersStrip: MembersStripContent;
+  /** @deprecated Legacy shared strip — migrated to career/sales fields on read */
+  membersStrip?: MembersStripContent;
   testimonials: LandingTestimonials;
   mentorConnect: LandingMentorConnect;
   footerTagline: string;
@@ -514,9 +519,13 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
     tiers: CAREER_PRICING_TIERS_DEFAULT,
     comparison: buildCareerComparison(CAREER_PRICING_TIERS_DEFAULT),
   },
-  membersStrip: {
+  careerMembersStrip: {
     label: "Trusted professional moving to",
     companies: ["Vitol", "Glencore", "S&P Global", "Bloomberg", "Shell"],
+  },
+  salesMembersStrip: {
+    label: "Trusted by sales teams at",
+    companies: ["Vitol", "Trafigura", "Gunvor", "Mercuria", "Kpler"],
   },
   testimonials: {
     title: "Used by practitioners who mean it.",

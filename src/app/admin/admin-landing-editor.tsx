@@ -476,6 +476,136 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
         </div>
       </Section>
 
+      <Section
+        title="Case Studies"
+        description="Preview cards below What We Cover on the Career Track landing page (links to full case studies)"
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Section eyebrow">
+            <TextInput
+              value={content.caseStudySample.eyebrow}
+              onChange={(v) => patch("caseStudySample", { ...content.caseStudySample, eyebrow: v })}
+            />
+          </Field>
+          <Field label="Title accent (italic)">
+            <TextInput
+              value={content.caseStudySample.titleAccent}
+              onChange={(v) => patch("caseStudySample", { ...content.caseStudySample, titleAccent: v })}
+            />
+          </Field>
+          <Field label="Section title">
+            <TextInput
+              value={content.caseStudySample.title}
+              onChange={(v) => patch("caseStudySample", { ...content.caseStudySample, title: v })}
+            />
+          </Field>
+          <Field label="View more link" hint="Defaults to /case-studies">
+            <TextInput
+              value={content.caseStudySample.viewMoreHref ?? ""}
+              onChange={(v) =>
+                patch("caseStudySample", {
+                  ...content.caseStudySample,
+                  viewMoreHref: v.trim() ? v : undefined,
+                })
+              }
+            />
+          </Field>
+        </div>
+        <Field label="Section description">
+          <TextInput
+            value={content.caseStudySample.description}
+            onChange={(v) => patch("caseStudySample", { ...content.caseStudySample, description: v })}
+            multiline
+            rows={4}
+          />
+        </Field>
+        <Field label="Category tags" hint="One per line — shown below the View more button">
+          <FeaturesList
+            value={content.caseStudySample.categoryTags}
+            onChange={(categoryTags) =>
+              patch("caseStudySample", { ...content.caseStudySample, categoryTags })
+            }
+          />
+        </Field>
+        <Field label="Disclaimer">
+          <TextInput
+            value={content.caseStudySample.disclaimer}
+            onChange={(v) => patch("caseStudySample", { ...content.caseStudySample, disclaimer: v })}
+            multiline
+            rows={3}
+          />
+        </Field>
+        <div className="space-y-4">
+          {content.caseStudySample.cards.map((card, i) => (
+            <div key={card.slug} className="p-3 rounded-lg border border-border space-y-2">
+              <p className="text-xs font-bold text-muted-fg uppercase">
+                Preview card {i + 1}
+                <span className="font-normal normal-case text-muted-fg/80 ml-2">({card.slug})</span>
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Field label="Category">
+                  <TextInput
+                    value={card.category}
+                    onChange={(v) => {
+                      const cards = [...content.caseStudySample.cards];
+                      cards[i] = { ...card, category: v };
+                      patch("caseStudySample", { ...content.caseStudySample, cards });
+                    }}
+                  />
+                </Field>
+                <Field label="Read time (minutes)">
+                  <input
+                    type="number"
+                    min={1}
+                    value={card.readMinutes}
+                    onChange={(e) => {
+                      const cards = [...content.caseStudySample.cards];
+                      cards[i] = { ...card, readMinutes: Number(e.target.value) || 1 };
+                      patch("caseStudySample", { ...content.caseStudySample, cards });
+                    }}
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+              <Field label="Title">
+                <TextInput
+                  value={card.title}
+                  onChange={(v) => {
+                    const cards = [...content.caseStudySample.cards];
+                    cards[i] = { ...card, title: v };
+                    patch("caseStudySample", { ...content.caseStudySample, cards });
+                  }}
+                />
+              </Field>
+              <Field label="Catch line (italic quote)">
+                <TextInput
+                  value={card.catchLine}
+                  onChange={(v) => {
+                    const cards = [...content.caseStudySample.cards];
+                    cards[i] = { ...card, catchLine: v };
+                    patch("caseStudySample", { ...content.caseStudySample, cards });
+                  }}
+                  multiline
+                  rows={2}
+                />
+              </Field>
+              <Field label="Excerpt">
+                <TextInput
+                  value={card.excerpt}
+                  onChange={(v) => {
+                    const cards = [...content.caseStudySample.cards];
+                    cards[i] = { ...card, excerpt: v };
+                    patch("caseStudySample", { ...content.caseStudySample, cards });
+                  }}
+                  multiline
+                  rows={3}
+                />
+              </Field>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       <Section title="Career Pricing" description="Track 1 pricing band">
         <Field label="Section title">
           <TextInput
@@ -942,19 +1072,52 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
       </>
       )}
 
-      <Section title="Members Strip" description="Trusted-by company names in hero">
-        <Field label="Label">
-          <TextInput
-            value={content.membersStrip.label}
-            onChange={(v) => patch("membersStrip", { ...content.membersStrip, label: v })}
-          />
-        </Field>
-        <Field label="Companies" hint="One company name per line">
-          <FeaturesList
-            value={content.membersStrip.companies}
-            onChange={(companies) => patch("membersStrip", { ...content.membersStrip, companies })}
-          />
-        </Field>
+      <Section
+        title={showCareer && showSales ? "Members Strip (shared)" : showCareer ? "Career Members Strip" : "Sales Members Strip"}
+        description="Trusted-by company names in hero"
+      >
+        {showCareer && (
+          <>
+            {showSales && <p className="text-xs font-semibold text-gray-700 mb-2">Career track</p>}
+            <Field label="Label">
+              <TextInput
+                value={content.careerMembersStrip.label}
+                onChange={(v) =>
+                  patch("careerMembersStrip", { ...content.careerMembersStrip, label: v })
+                }
+              />
+            </Field>
+            <Field label="Companies" hint="One company name per line">
+              <FeaturesList
+                value={content.careerMembersStrip.companies}
+                onChange={(companies) =>
+                  patch("careerMembersStrip", { ...content.careerMembersStrip, companies })
+                }
+              />
+            </Field>
+          </>
+        )}
+        {showSales && (
+          <>
+            {showCareer && <p className="text-xs font-semibold text-gray-700 mt-4 mb-2">Sales track</p>}
+            <Field label="Label">
+              <TextInput
+                value={content.salesMembersStrip.label}
+                onChange={(v) =>
+                  patch("salesMembersStrip", { ...content.salesMembersStrip, label: v })
+                }
+              />
+            </Field>
+            <Field label="Companies" hint="One company name per line">
+              <FeaturesList
+                value={content.salesMembersStrip.companies}
+                onChange={(companies) =>
+                  patch("salesMembersStrip", { ...content.salesMembersStrip, companies })
+                }
+              />
+            </Field>
+          </>
+        )}
       </Section>
 
       <Section title="Footer Tagline" description="Reserved for footer copy">

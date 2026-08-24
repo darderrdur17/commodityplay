@@ -24,6 +24,7 @@ import { FooterGuidesEditor } from "./editors/footer-guides-editor";
 import { MemberDashboardEditor } from "./editors/member-dashboard-editor";
 import { SalesNavigationGuideEditor } from "./editors/sales-navigation-guide-editor";
 import { SalesMarketNudgesEditor } from "./editors/sales-market-nudges-editor";
+import { AccountIntelligenceEditor } from "./editors/account-intelligence-editor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,6 +100,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { slug: "mentor-connect", label: "Mentor Connect", track: "Both", tier: "ELITE" },
       { slug: "job-openings", label: "Market Role Openings", track: "Both", tier: "ELITE" },
       { slug: "library", label: "Library Resources", track: "Both", tier: "ELITE" },
+      { slug: "account-intelligence", label: "Account Intelligence", track: "Sales", tier: "ELITE" },
     ],
   },
 ];
@@ -235,6 +237,8 @@ function ModuleEditor({
         return <MemberDashboardEditor {...editorProps} />;
       case "sales-market-nudges":
         return <SalesMarketNudgesEditor {...editorProps} />;
+      case "account-intelligence":
+        return <AccountIntelligenceEditor payload={payload} onChange={setPayload} />;
       default:
         return (
           <div className="p-6 text-center text-muted-fg text-sm">

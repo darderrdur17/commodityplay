@@ -20,6 +20,10 @@ import {
   formatSalesMarketNudgesValidationErrors,
 } from "@/lib/content/sales-market-nudges-schema";
 import {
+  parseAccountIntelligencePayload,
+  formatAccountIntelligenceValidationErrors,
+} from "@/lib/content/account-intelligence-schema";
+import {
   parseMentorConnectPayload,
   formatMentorConnectValidationErrors,
 } from "@/lib/content/mentor-connect-schema";
@@ -173,6 +177,20 @@ export async function PUT(
       parsed.data.payload = nudgesValidation.data;
     }
 
+    if (slug === "account-intelligence") {
+      const aiValidation = parseAccountIntelligencePayload(parsed.data.payload);
+      if (!aiValidation.success) {
+        return NextResponse.json(
+          {
+            error: "Invalid account intelligence content",
+            details: formatAccountIntelligenceValidationErrors(aiValidation),
+          },
+          { status: 400 }
+        );
+      }
+      parsed.data.payload = aiValidation.data;
+    }
+
     if (slug === "mentor-connect") {
       const mentorValidation = parseMentorConnectPayload(parsed.data.payload);
       if (!mentorValidation.success) {
@@ -206,6 +224,9 @@ export async function PUT(
   }
   if (slug === "member-dashboard") {
     revalidatePath("/dashboard", "page");
+  }
+  if (slug === "account-intelligence") {
+    revalidatePath("/dashboard/account-intelligence", "page");
   }
   if (slug === "mentor-connect") {
     revalidatePath("/mentor-connect", "page");

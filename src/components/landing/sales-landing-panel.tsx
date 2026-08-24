@@ -159,7 +159,7 @@ function LearnAccordion() {
 
 interface Props {
   content: LandingContent["sales"];
-  membersStrip: LandingContent["membersStrip"];
+  membersStrip: LandingContent["careerMembersStrip"];
   edgeNote: WeeklyEdgeNote;
   onOpenModal: () => void;
   onOpenContactModal: () => void;

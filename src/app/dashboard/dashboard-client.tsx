@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   BookOpen, Map, FileText, MessageSquare, BarChart3, Briefcase,
@@ -60,6 +61,8 @@ interface Props {
   salesDeliverables?: SalesDashboardDeliverables;
   isAdmin?: boolean;
   isMentorUser?: boolean;
+  previewTrack?: string;
+  previewTier?: string;
   mentorStats?: {
     dateJoined: string;
     totalRequests: number;
@@ -180,6 +183,25 @@ const QUICK_LINKS = [
   { label: "Job Board Waitlist", href: "/waitlist", free: true },
 ];
 
+const MEMBER_PREVIEW_OPTIONS = [
+  { track: "career", tier: "starter", label: "Career · Starter" },
+  { track: "career", tier: "pro", label: "Career · Pro" },
+  { track: "career", tier: "elite", label: "Career · Elite" },
+  { track: "sales", tier: "starter", label: "Sales · Starter" },
+  { track: "sales", tier: "pro", label: "Sales · Pro" },
+  { track: "sales", tier: "elite", label: "Sales · Elite" },
+] as const;
+
+function normalizePreviewTrack(value?: string) {
+  const track = value?.toUpperCase();
+  return track === "CAREER" || track === "SALES" ? track : null;
+}
+
+function normalizePreviewTier(value?: string) {
+  const tier = value?.toUpperCase();
+  return tier === "STARTER" || tier === "PRO" || tier === "ELITE" ? tier : null;
+}
+
 export function DashboardClient({
   contentTiers = {},
   navigationGuides = { career: null, sales: null },
@@ -191,25 +213,41 @@ export function DashboardClient({
   salesDeliverables = DEFAULT_MEMBER_DASHBOARD_CONTENT.salesDeliverables,
   isAdmin: isAdminUser = false,
   isMentorUser = false,
+  previewTrack,
+  previewTier,
   mentorStats = null,
 }: Props) {
-  const tierInfo = TIER_LABELS[user.tier] || TIER_LABELS.STARTER;
+  const router = useRouter();
+  const previewTrackValue = normalizePreviewTrack(previewTrack);
+  const previewTierValue = normalizePreviewTier(previewTier);
+  const isPreviewActive =
+    isAdminUser &&
+    !isMentorUser &&
+    previewTrackValue !== null &&
+    previewTierValue !== null;
+
+  const effectiveTier = isPreviewActive ? previewTierValue : user.tier;
+  const effectiveTrack = isPreviewActive ? previewTrackValue : user.track;
+
+  const tierInfo = TIER_LABELS[effectiveTier] || TIER_LABELS.STARTER;
   const personaInfo = user.persona ? PERSONA_LABELS[user.persona] : null;
   const greeting = user.name?.split(" ")[0] || "there";
-  const isCareerTrack = user.track === "CAREER";
+  const isCareerTrack = effectiveTrack === "CAREER";
   const planHref = (tier: "pro" | "elite") =>
     isCareerTrack ? CAREER_PLAN_HREF(tier) : SALES_PLAN_HREF(tier);
-  const showSalesTrackCards = isAdminUser || !isCareerTrack;
-  const isStarter = user.tier === "STARTER";
-  const isElite = hasAccess(user.tier, "ELITE");
+  const showSalesTrackCards = isPreviewActive
+    ? effectiveTrack === "SALES"
+    : isAdminUser || !isCareerTrack;
+  const isStarter = effectiveTier === "STARTER";
+  const isElite = hasAccess(effectiveTier, "ELITE");
   const showCareerNavGuide =
-    hasAccess(user.tier, "PRO") &&
+    hasAccess(effectiveTier, "PRO") &&
     navigationGuides.career?.assetId &&
-    (isAdminUser || isCareerTrack);
+    (isPreviewActive ? isCareerTrack : isAdminUser || isCareerTrack);
   const showSalesNavGuide =
-    hasAccess(user.tier, "PRO") &&
+    hasAccess(effectiveTier, "PRO") &&
     navigationGuides.sales?.assetId &&
-    (isAdminUser || !isCareerTrack);
+    (isPreviewActive ? !isCareerTrack : isAdminUser || !isCareerTrack);
 
   const resourceCopyBySlug = Object.fromEntries(
     dashboardContent.resourceCards.map((c) => [c.slug, c.description])
@@ -222,7 +260,7 @@ export function DashboardClient({
   const [salesTopicCount, setSalesTopicCount] = useState(0);
 
   useEffect(() => {
-    if (!hasAccess(user.tier, "PRO")) return;
+    if (!hasAccess(effectiveTier, "PRO")) return;
 
     function loadCounts() {
       void Promise.all([
@@ -244,7 +282,7 @@ export function DashboardClient({
 
     window.addEventListener(PREP_LIBRARY_COUNT_EVENT, onPrepLibraryCount);
     return () => window.removeEventListener(PREP_LIBRARY_COUNT_EVENT, onPrepLibraryCount);
-  }, [user.tier]);
+  }, [effectiveTier]);
 
   const firstEliteContentCardIndex = CONTENT_CARDS.findIndex(
     (card) => (contentTiers[card.slug] || card.requiredTier) === "ELITE"
@@ -364,8 +402,10 @@ export function DashboardClient({
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <Badge variant={isMentorUser ? "mentor" : (user.tier.toLowerCase() as any)} size="lg">
-              {isMentorUser ? "Mentor" : `${tierInfo.label} Member`}
+            <Badge variant={isMentorUser ? "mentor" : (effectiveTier.toLowerCase() as any)} size="lg">
+              {isMentorUser
+                ? "Mentor"
+                : `${tierInfo.label} Member${isPreviewActive ? " · Preview" : ""}`}
             </Badge>
           </div>
         </div>
@@ -394,7 +434,43 @@ export function DashboardClient({
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 pl-8">
+            <div className="flex flex-wrap items-center gap-2 pl-8">
+              <label className="inline-flex items-center gap-2 text-sm text-amber-950/90">
+                <span className="font-semibold whitespace-nowrap">Member view:</span>
+                <select
+                  value={
+                    isPreviewActive
+                      ? `${previewTrackValue.toLowerCase()}:${previewTierValue.toLowerCase()}`
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (!value) {
+                      router.push("/dashboard");
+                      return;
+                    }
+                    const [track, tier] = value.split(":");
+                    router.push(`/dashboard?previewTrack=${track}&previewTier=${tier}`);
+                  }}
+                  className="h-9 min-w-[200px] rounded-lg border border-amber-200 bg-white px-3 text-sm text-gray-900"
+                >
+                  <option value="">All tracks (admin view)</option>
+                  <optgroup label="Career">
+                    {MEMBER_PREVIEW_OPTIONS.filter((option) => option.track === "career").map((option) => (
+                      <option key={option.label} value={`${option.track}:${option.tier}`}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Sales">
+                    {MEMBER_PREVIEW_OPTIONS.filter((option) => option.track === "sales").map((option) => (
+                      <option key={option.label} value={`${option.track}:${option.tier}`}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </label>
               <Link href="/admin">
                 <Button size="sm" variant="outline" className="bg-white border-amber-200 hover:bg-amber-100/50">
                   Admin Panel
@@ -446,8 +522,14 @@ export function DashboardClient({
             ]
           : [
           {
-            label: isAdminUser ? "Track preview" : "Track",
-            value: isAdminUser ? "Career & Sales" : user.track === "CAREER" ? "Career" : "Sales",
+            label: isPreviewActive ? "Preview" : isAdminUser ? "Track preview" : "Track",
+            value: isPreviewActive
+              ? `${isCareerTrack ? "Career" : "Sales"} · ${tierInfo.label}`
+              : isAdminUser
+                ? "Career & Sales"
+                : user.track === "CAREER"
+                  ? "Career"
+                  : "Sales",
             icon: TrendingUp,
             color: "#3280ff",
           },
@@ -506,7 +588,7 @@ export function DashboardClient({
       {!isMentorUser && (
       <>
       {/* ── STARTER PACK DOWNLOADS ── */}
-      {user.tier === "STARTER" && (
+      {effectiveTier === "STARTER" && (
         <Reveal className="mb-10">
           <div className="rounded-2xl border border-primary-line bg-primary-soft p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -533,7 +615,7 @@ export function DashboardClient({
       )}
 
       {/* ── PLAYBOOK PROGRESS (Pro+) ── */}
-      {hasAccess(user.tier, "PRO") && (
+      {hasAccess(effectiveTier, "PRO") && (
         <Reveal className="mb-10">
           <div className="bg-white rounded-xl border border-border p-6">
             <div className="flex items-center justify-between mb-4">
@@ -647,7 +729,7 @@ export function DashboardClient({
       <div className="mb-10">
         <Reveal className="flex items-center justify-between mb-5">
           <h2 className="font-serif text-xl font-bold text-gray-900">Your Content</h2>
-          {!hasAccess(user.tier, "PRO") && (
+          {!hasAccess(effectiveTier, "PRO") && (
             <Link href={planHref("pro")}>
               <Button size="sm" variant="default">{UPGRADE_TO_ACCESS}</Button>
             </Link>
@@ -678,7 +760,7 @@ export function DashboardClient({
           {/* Tiered content — career Prep Library slots in after Pro cards, before Elite */}
           {CONTENT_CARDS.map((card, i) => {
             const tier = (contentTiers[card.slug] || card.requiredTier) as "PRO" | "ELITE";
-            const unlocked = hasAccess(user.tier, tier);
+            const unlocked = hasAccess(effectiveTier, tier);
             const description =
               resourceCopyBySlug[card.slug] ??
               DEFAULT_MEMBER_DASHBOARD_CONTENT.resourceCards.find((c) => c.slug === card.slug)?.description ??
@@ -691,7 +773,7 @@ export function DashboardClient({
                 {showCareerPrepLibrary && (
                   <PrepLibraryCard
                     track="CAREER"
-                    userTier={user.tier}
+                    userTier={effectiveTier}
                     topicCount={careerTopicCount}
                     showTrackBadge={isAdminUser}
                   />
@@ -713,7 +795,7 @@ export function DashboardClient({
           {isCareerTrack && firstEliteContentCardIndex === -1 && (
             <PrepLibraryCard
               track="CAREER"
-              userTier={user.tier}
+              userTier={effectiveTier}
               topicCount={careerTopicCount}
               showTrackBadge={isAdminUser}
             />
@@ -731,7 +813,7 @@ export function DashboardClient({
               const href = resolveSalesCardHref(card) ?? card.href;
               const Icon = SALES_CARD_ICONS[card.slug] ?? FileText;
               const color = SALES_CARD_COLORS[card.slug] ?? "#3280ff";
-              const tierUnlocked = hasAccess(user.tier, tier);
+              const tierUnlocked = hasAccess(effectiveTier, tier);
               const fileReady = card.deliverableKey
                 ? Boolean(salesDeliverables[card.deliverableKey]?.assetId)
                 : true;
@@ -744,7 +826,7 @@ export function DashboardClient({
                   <PrepLibraryCard
                     key={card.slug}
                     track="SALES"
-                    userTier={user.tier}
+                    userTier={effectiveTier}
                     topicCount={salesTopicCount}
                     showTrackBadge={isAdminUser}
                   />
@@ -773,14 +855,14 @@ export function DashboardClient({
       </div>
 
       {/* ── UPGRADE CTA (if not Elite) ── */}
-      {user.tier !== "ELITE" && (
+      {effectiveTier !== "ELITE" && (
         <Reveal>
           <div className="rounded-2xl bg-primary-800 p-6 sm:p-8 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3280ff 0%, transparent 70%)", filter: "blur(40px)" }} />
             <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               {(() => {
                 const promo =
-                  user.tier === "STARTER"
+                  effectiveTier === "STARTER"
                     ? dashboardContent.upgradeToPro
                     : dashboardContent.upgradeToElite;
                 return (
@@ -795,7 +877,7 @@ export function DashboardClient({
                       <p className="text-white/60 text-sm">{promo.description}</p>
                     </div>
                     <Link
-                      href={user.tier === "STARTER" ? planHref("pro") : planHref("elite")}
+                      href={effectiveTier === "STARTER" ? planHref("pro") : planHref("elite")}
                       className="flex-shrink-0 w-full sm:w-auto"
                     >
                       <Button size="lg" variant="primary-dark" className="whitespace-nowrap w-full sm:w-auto">

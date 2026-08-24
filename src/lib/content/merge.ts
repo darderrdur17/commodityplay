@@ -401,5 +401,11 @@ export function mergeLandingContent(
       : defaults.sales.whoCards,
   };
 
+  const legacyStrip = cms.membersStrip;
+  merged.careerMembersStrip =
+    cms.careerMembersStrip ?? legacyStrip ?? defaults.careerMembersStrip;
+  merged.salesMembersStrip =
+    cms.salesMembersStrip ?? legacyStrip ?? defaults.salesMembersStrip;
+
   return merged;
 }

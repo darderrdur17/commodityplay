@@ -105,7 +105,7 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
       {activeTrack === "sales" ? (
         <SalesLandingPanel
           content={sales}
-          membersStrip={content.membersStrip}
+          membersStrip={content.salesMembersStrip}
           edgeNote={edgeNotes.sales}
           onOpenModal={() => setModalOpen(true)}
           onOpenContactModal={() => setContactOpen(true)}
@@ -175,7 +175,7 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
             </div>
           </section>
 
-          <MembersStrip label={content.membersStrip.label} companies={content.membersStrip.companies} variant="light" />
+          <MembersStrip label={content.careerMembersStrip.label} companies={content.careerMembersStrip.companies} variant="light" />
 
           {/* What's Inside */}
           <section className="py-16 sm:py-24 page-container">

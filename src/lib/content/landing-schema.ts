@@ -81,6 +81,11 @@ const whoCardSchema = z.object({
   outcome: z.string(),
 });
 
+const membersStripSchema = z.object({
+  label: z.string().min(1),
+  companies: z.array(z.string().min(1)).min(1),
+});
+
 export const landingContentSchema = z.object({
   career: z.object({
     eyebrow: z.string().min(1),
@@ -159,10 +164,9 @@ export const landingContentSchema = z.object({
     tiers: z.array(landingTierSchema).min(1),
     comparison: featureComparisonTableSchema.default(() => DEFAULT_LANDING_CONTENT.pricing.comparison),
   }),
-  membersStrip: z.object({
-    label: z.string().min(1),
-    companies: z.array(z.string().min(1)).min(1),
-  }),
+  careerMembersStrip: membersStripSchema.optional(),
+  salesMembersStrip: membersStripSchema.optional(),
+  membersStrip: membersStripSchema.optional(),
   testimonials: z.object({
     eyebrow: z.string().min(1).optional(),
     title: z.string().min(1),
@@ -184,6 +188,15 @@ export const landingContentSchema = z.object({
     title: z.string().min(1),
   }),
   footerTagline: z.string().min(1),
+}).transform((data) => {
+  const legacy = data.membersStrip;
+  const careerFallback = legacy ?? DEFAULT_LANDING_CONTENT.careerMembersStrip;
+  const salesFallback = legacy ?? DEFAULT_LANDING_CONTENT.salesMembersStrip;
+  return {
+    ...data,
+    careerMembersStrip: data.careerMembersStrip ?? careerFallback,
+    salesMembersStrip: data.salesMembersStrip ?? salesFallback,
+  };
 });
 
 export function parseLandingContentPayload(payload: unknown) {

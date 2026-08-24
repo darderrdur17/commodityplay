@@ -25,6 +25,11 @@ import {
   normalizeSalesMarketNudgesPayload,
 } from "@/lib/content/sales-market-nudges-schema";
 import {
+  DEFAULT_ACCOUNT_INTELLIGENCE_CONTENT,
+  type AccountIntelligenceContent,
+} from "@/data/account-intelligence-content";
+import { normalizeAccountIntelligencePayload } from "@/lib/content/account-intelligence-schema";
+import {
   DEFAULT_MENTOR_CONNECT_CONTENT,
   type MentorConnectHero,
   type MentorConnectHowItWorks,
@@ -128,6 +133,14 @@ export async function getSalesMarketNudgesContent(): Promise<SalesMarketNudgesCo
     return filterActiveSalesMarketNudgesContent(DEFAULT_SALES_MARKET_NUDGES_CONTENT);
   }
   return filterActiveSalesMarketNudgesContent(normalizeSalesMarketNudgesPayload(cms));
+}
+
+export async function getAccountIntelligenceContent(): Promise<AccountIntelligenceContent> {
+  const cms = await tryReadPublishedPayload<Partial<AccountIntelligenceContent>>("account-intelligence");
+  if (cms === null) {
+    return DEFAULT_ACCOUNT_INTELLIGENCE_CONTENT;
+  }
+  return normalizeAccountIntelligencePayload(cms);
 }
 
 export async function getFaqContent(): Promise<FaqContent> {

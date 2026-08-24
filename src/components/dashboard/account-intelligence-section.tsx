@@ -24,6 +24,8 @@ import {
 } from "@/lib/bookmark-navigation";
 import type { AccountStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import type { AccountIntelligenceContent } from "@/data/account-intelligence-content";
+import { DEFAULT_ACCOUNT_INTELLIGENCE_CONTENT } from "@/data/account-intelligence-content";
 
 const PREVIEW_ACCOUNTS: TrackedAccountRecord[] = [
   {
@@ -165,14 +167,14 @@ function BookmarkChip({ bookmark }: { bookmark: AccountBookmarkRecord }) {
   );
 }
 
-function ContinueWhereYouLeftOff() {
+function ContinueWhereYouLeftOff({ content }: { content: AccountIntelligenceContent["continueSection"] }) {
   return (
     <section
       className="rounded-xl bg-primary-800 px-6 py-8 sm:px-10 sm:py-10"
       aria-labelledby="continue-where-you-left-off"
     >
       <h2 id="continue-where-you-left-off" className="text-lg sm:text-xl font-bold text-white mb-5">
-        Continue where you left off
+        {content.heading}
       </h2>
       <div className="flex flex-col sm:flex-row gap-3">
         <Link href={PREP_LIBRARY_SALES_HREF} className="w-full sm:w-auto">
@@ -180,7 +182,7 @@ function ContinueWhereYouLeftOff() {
             size="sm"
             className="w-full sm:w-auto text-white border-0 rounded-lg h-10 px-5 text-sm font-semibold hover:opacity-90 bg-[#3280ff] hover:bg-[#2870e8]"
           >
-            ← Back to Sales Prep Library
+            {content.prepLibraryButton}
           </Button>
         </Link>
         <Link href={SALES_MARKET_NUDGES_HREF} className="w-full sm:w-auto">
@@ -188,7 +190,7 @@ function ContinueWhereYouLeftOff() {
             size="sm"
             className="w-full sm:w-auto text-white border-0 rounded-lg h-10 px-5 text-sm font-semibold hover:opacity-90 bg-[#3280ff] hover:bg-[#2870e8]"
           >
-            ← Back to Sales Market Nudges
+            {content.marketNudgesButton}
           </Button>
         </Link>
       </div>
@@ -486,7 +488,13 @@ function AddAccountModal({
   );
 }
 
-export function AccountIntelligenceSection({ userTier }: { userTier: string }) {
+export function AccountIntelligenceSection({
+  userTier,
+  content = DEFAULT_ACCOUNT_INTELLIGENCE_CONTENT,
+}: {
+  userTier: string;
+  content?: AccountIntelligenceContent;
+}) {
   const unlocked = hasAccess(userTier, "ELITE");
   const [accounts, setAccounts] = useState<TrackedAccountRecord[]>([]);
   const [loading, setLoading] = useState(unlocked);
@@ -573,14 +581,13 @@ export function AccountIntelligenceSection({ userTier }: { userTier: string }) {
     <Reveal className="space-y-8">
       <header className="space-y-4">
         <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: FOREST_GREEN }}>
-          Account Intelligence
+          {content.eyebrow}
         </p>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">
-          Your Desks. Your Edge.
+          {content.title}
         </h1>
         <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">
-          Track the desks you&apos;re engaging, and see the Prep Library topics and Market Nudges
-          you&apos;ve bookmarked to each one — all in one place.
+          {content.description}
         </p>
       </header>
 
@@ -588,7 +595,7 @@ export function AccountIntelligenceSection({ userTier }: { userTier: string }) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
             <ClipboardList className="w-4 h-4" style={{ color: FOREST_GREEN }} />
-            My Accounts
+            {content.myAccountsHeading}
           </h2>
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             {accountOptions.length > 0 && (
@@ -646,7 +653,7 @@ export function AccountIntelligenceSection({ userTier }: { userTier: string }) {
         ) : (
           <div className="rounded-xl border border-dashed border-border bg-secondary/20 px-6 py-10 text-center">
             <p className="text-sm text-muted-fg mb-4">
-              No accounts yet. Add your first desk to start bookmarking prep topics and market nudges.
+              {content.emptyStateMessage}
             </p>
             <Button
               type="button"
@@ -661,7 +668,7 @@ export function AccountIntelligenceSection({ userTier }: { userTier: string }) {
         )}
       </section>
 
-      <ContinueWhereYouLeftOff />
+      <ContinueWhereYouLeftOff content={content.continueSection} />
 
       <AddAccountModal
         open={addOpen}
