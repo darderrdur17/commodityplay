@@ -3,15 +3,13 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/animations";
 import { TIER_LABELS, PERSONA_LABELS, formatDate } from "@/lib/utils";
-import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
-import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
+import { AccountBillingSection } from "@/components/account/account-billing-section";
 import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
 import { formatMentorCreditsUsedLabel } from "@/lib/mentor-credits";
 import { isMentorDemoUser } from "@/lib/mentor-demo";
-import { User, Mail, CreditCard, Sparkles, ArrowRight, Inbox, CheckCircle, Clock } from "lucide-react";
+import { User, Mail, CreditCard, Sparkles, Inbox, CheckCircle, Clock } from "lucide-react";
 
 export const metadata = { title: "Account" };
 
@@ -31,6 +29,8 @@ export default async function AccountPage() {
       mentorCredits: true,
       resumeCredits: true,
       stripeCurrentPeriodEnd: true,
+      stripeStatus: true,
+      stripeCustomerId: true,
       createdAt: true,
     },
   });
@@ -110,28 +110,14 @@ export default async function AccountPage() {
           </div>
         </div>
 
-        {!isMentorUser && user.tier !== "ELITE" && (
-          <div className="bg-primary-800 rounded-2xl p-6 text-white mb-6">
-            <p className="font-serif font-bold text-lg mb-2">
-              {user.tier === "STARTER" ? "Upgrade to Pro" : "Upgrade to Elite"}
-            </p>
-            <p className="text-white/65 text-sm mb-4">
-              {user.tier === "STARTER"
-                ? "Unlock the full playbook, resume templates, and career roadmap."
-                : "Get Desk Channel, Mentor Connect, and job openings."}
-            </p>
-            <Link href={user.tier === "STARTER" ? CAREER_PLAN_HREF("pro") : CAREER_PLAN_HREF("elite")}>
-              <Button variant="primary-dark" size="sm">
-                {UPGRADE_TO_ACCESS} <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-        )}
-
-        {!isMentorUser && user.tier === "ELITE" && user.stripeCurrentPeriodEnd && (
-          <p className="text-xs text-muted-fg text-center">
-            Elite subscription renews {formatDate(user.stripeCurrentPeriodEnd)}
-          </p>
+        {!isMentorUser && (
+          <AccountBillingSection
+            tier={user.tier}
+            track={user.track}
+            stripeStatus={user.stripeStatus}
+            stripeCurrentPeriodEnd={user.stripeCurrentPeriodEnd}
+            hasStripeCustomer={Boolean(user.stripeCustomerId)}
+          />
         )}
 
         {!user.persona && (
