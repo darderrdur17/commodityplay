@@ -27,6 +27,8 @@ export default async function DashboardPage({
     redirect("/login?callbackUrl=/dashboard");
   }
 
+  const isAdmin = session.user.role === "ADMIN";
+
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
@@ -104,10 +106,10 @@ export default async function DashboardPage({
       }}
       mentorCreditUsage={mentorCreditUsage}
       salesDeliverables={dashboardContent.salesDeliverables}
-      isAdmin={session.user.role === "ADMIN"}
+      isAdmin={isAdmin}
       isMentorUser={isMentorUser}
-      previewTrack={previewTrack}
-      previewTier={previewTier}
+      previewTrack={isAdmin ? previewTrack : undefined}
+      previewTier={isAdmin ? previewTier : undefined}
       mentorStats={mentorStats}
     />
   );
