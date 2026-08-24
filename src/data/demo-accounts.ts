@@ -56,7 +56,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     persona: "VENDOR",
     mentorCredits: 0,
     resumeCredits: 0,
-    description: "Sales track Starter — exploring desk language before upgrading.",
+    description: "Sales track Starter — Chapter A preview (3 of 8 sections), sales dashboard, digest.",
     emoji: "🤝",
     redirectTo: "/dashboard",
   },
