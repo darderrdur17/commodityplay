@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { AnimatedProgress, Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
 import { PERSONA_LABELS, TIER_LABELS, hasAccess, formatDate } from "@/lib/utils";
 import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
-import { starterChapterPreviewLabel } from "@/data/starter-pack";
+import { STARTER_CHAPTER_PREVIEW, starterChapterPreviewLabel } from "@/data/starter-pack";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import { attachmentHref } from "@/lib/content/attachments";
 import type { NavigationGuideAttachment } from "@/lib/content/accessors";

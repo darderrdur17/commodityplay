@@ -8,6 +8,7 @@ import { CHAPTERS } from "@/data/playbook";
 import type { ContentStats } from "@/lib/content/content-stats";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
+import { starterChapterPreviewLabel } from "@/data/starter-pack";
 
 type Chapter = (typeof CHAPTERS)[number];
 import { Badge } from "@/components/ui/badge";
