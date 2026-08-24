@@ -148,6 +148,7 @@ export function mergeStarterUpgradeCta(
 export const STARTER_CHAPTER_PREVIEW = {
   label: "Chapter A · Free Preview",
   title: "Industry Foundations",
+  /** Chapter A sections unlocked for Starter (first N sections). */
   freeSections: 3,
   totalSections: 8,
   sections: [
@@ -161,3 +162,20 @@ export const STARTER_CHAPTER_PREVIEW = {
     { id: "a8", number: "A.8", title: "Risk Management on the Desk", free: false },
   ],
 };
+
+/** Starter playbook access — first 3 sections of Chapter A only. */
+export function isStarterPlaybookSectionUnlocked(
+  chapterId: string,
+  sectionIndex: number,
+  hasPlaybookAccess: boolean,
+  chapterPreview = false
+): boolean {
+  if (hasPlaybookAccess) return true;
+  if (chapterId === "a") return sectionIndex < STARTER_CHAPTER_PREVIEW.freeSections;
+  return chapterPreview;
+}
+
+export function starterChapterPreviewLabel(sectionCount?: number): string {
+  const total = sectionCount ?? STARTER_CHAPTER_PREVIEW.totalSections;
+  return `${STARTER_CHAPTER_PREVIEW.freeSections} of ${total} sections free`;
+}

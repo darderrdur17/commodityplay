@@ -55,7 +55,7 @@ export function PlaybookHubClient({
           <p className="text-white/65 text-lg max-w-xl mb-6">
             {isPro
               ? `${chapterCount} Chapters. ${sectionCount} sections. Industry foundations through commercial decision-making — sourced from the Pro Pack playbook.`
-              : "The ground-level understanding every serious learner of commodity trading needs before anything else."}
+              : `Chapter A preview — ${starterChapterPreviewLabel()}. The ground-level understanding every serious learner of commodity trading needs before anything else.`}
           </p>
           {isPro && (
             <div className="flex items-center gap-4 flex-wrap">
@@ -114,7 +114,9 @@ export function PlaybookHubClient({
                     <div className="flex items-start justify-between gap-4 mb-1">
                       <div>
                         {chapter.preview && !isPro && (
-                          <Badge variant="starter" size="sm" className="mb-2">Free Preview</Badge>
+                          <Badge variant="starter" size="sm" className="mb-2">
+                            {starterChapterPreviewLabel(chapter.sections.length)}
+                          </Badge>
                         )}
                         <h2 className="font-serif font-bold text-gray-900 text-lg">
                           {chapter.title}

@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { authApi, contentApi } from "../../lib/api";
-import { hasTierAccess } from "../../lib/tiers";
+import { hasTierAccess, tierAccessLabel } from "../../lib/tiers";
 
 const { width } = Dimensions.get("window");
 const NAVY = "#0830a0";
@@ -103,7 +103,7 @@ export default function DashboardTab() {
                 style={[styles.tile, isLocked && styles.tileLocked]}
                 onPress={() => {
                   if (isLocked) {
-                    Alert.alert("Upgrade Required", `This content requires ${requiredTier} membership.`);
+                    Alert.alert(tierAccessLabel(requiredTier), "Upgrade your membership to access this feature.");
                     return;
                   }
                   router.push(tile.route as any);

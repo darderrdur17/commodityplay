@@ -113,7 +113,8 @@ Open **https://commodity-playbook-app.vercel.app/demo**
 | Email | Tier | Use for |
 |---|---|---|
 | `admin@demo.com` | Admin / Elite | Admin panel `/admin` |
-| `starter.fresh@demo.com` | Starter | Free tier |
+| `starter.fresh@demo.com` | Starter (Career) | Free tier — Chapter A preview (3 of 8 sections) |
+| `starter.vendor@demo.com` | Starter (Sales) | Sales track Starter — dashboard, glossary, digest |
 | `pro.switcher@demo.com` | Pro | Pro content (Career track) |
 | `pro.vendor@demo.com` | Pro | Pro Sales — Prep Library, Market Nudges, industry guide |
 | `elite.insider@demo.com` | Elite | Desk Channel, Mentor Connect, Jobs |

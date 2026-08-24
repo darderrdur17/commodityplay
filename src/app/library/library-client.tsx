@@ -10,7 +10,7 @@ import { PAGE_HERO_TOP } from "@/lib/layout-constants";
 import { attachmentHref } from "@/lib/content/attachments";
 import type { LibraryFilePublic } from "@/lib/content/accessors";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
-import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
+import { FOR_ELITE_ACCESS } from "@/data/pricing-shared";
 
 function LibraryFileCard({ file, locked }: { file: LibraryFilePublic; locked?: boolean }) {
   const url = `/api/content/assets/${file.assetId}`;
@@ -34,7 +34,7 @@ function LibraryFileCard({ file, locked }: { file: LibraryFilePublic; locked?: b
         <div className="mt-auto">
           {locked ? (
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-muted-fg">
-              <Lock className="w-4 h-4" /> Elite required
+              <Lock className="w-4 h-4" /> {FOR_ELITE_ACCESS}
             </span>
           ) : (
             <a
@@ -124,10 +124,7 @@ export function LibraryClient({
                 {!hasEliteAccess ? (
                   <Reveal className="max-w-lg mx-auto text-center rounded-2xl border border-border bg-secondary/40 p-8 mb-6">
                     <Lock className="w-8 h-8 text-muted-fg mx-auto mb-4" />
-                    <h3 className="font-serif text-lg font-bold text-gray-900 mb-2">Elite access required</h3>
-                    <p className="text-sm text-muted-fg mb-6">
-                      {UPGRADE_TO_ACCESS} to view and download Elite library resources.
-                    </p>
+                    <h3 className="font-serif text-lg font-bold text-gray-900 mb-6">{FOR_ELITE_ACCESS}</h3>
                     <Link href={CAREER_PLAN_HREF("elite")}>
                       <Button size="lg">View Elite plans</Button>
                     </Link>

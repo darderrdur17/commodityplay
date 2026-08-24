@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
         ? "Database already seeded — demo accounts and glossary refreshed."
         : "Database schema applied and demo accounts seeded.",
       demo: {
+        starterSales: { email: "starter.vendor@demo.com", password: "Demo1234!" },
         proSales: { email: "pro.vendor@demo.com", password: "Demo1234!" },
         eliteSales: { email: "elite.vendor@demo.com", password: "Demo1234!" },
       },

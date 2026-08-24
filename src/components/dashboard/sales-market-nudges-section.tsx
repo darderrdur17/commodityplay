@@ -6,7 +6,7 @@ import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/animations";
 import { hasAccess } from "@/lib/utils";
-import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
+import { FOR_PRO_ACCESS, UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   groupBriefsByMonthYear,
@@ -261,10 +261,7 @@ export function SalesMarketNudgesSection({
           </div>
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center py-10">
             <Lock className="w-5 h-5 text-muted-fg mb-2" />
-            <p className="text-sm font-semibold text-gray-700 mb-1">Pro Pack required</p>
-            <p className="text-xs text-muted-fg mb-4 max-w-xs">
-              Weekly market nudges and intelligence briefs unlock with Pro.
-            </p>
+            <p className="text-sm font-semibold text-gray-700 mb-4">{FOR_PRO_ACCESS}</p>
             <Link href={SALES_PLAN_HREF("pro")}>
               <Button size="sm">{UPGRADE_TO_ACCESS}</Button>
             </Link>

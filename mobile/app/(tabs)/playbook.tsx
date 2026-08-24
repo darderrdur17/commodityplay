@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { playbookMetaApi, getToken } from "../../lib/api";
+import { tierAccessLabel } from "../../lib/tiers";
 
 const NAVY = "#0830a0";
 const PRIMARY = "#3280ff";
@@ -72,7 +73,7 @@ export default function PlaybookTab() {
             style={[styles.chapterCard, !chapter.unlocked && styles.chapterLocked]}
             onPress={() => {
               if (!chapter.unlocked) {
-                Alert.alert("Upgrade Required", "Upgrade to Pro to access this chapter.");
+                Alert.alert(tierAccessLabel("PRO"), "Upgrade your membership to access this feature.");
                 return;
               }
               router.push(`/playbook/${chapter.id}` as any);

@@ -11,6 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AnimatedProgress } from "@/components/animations";
 import { CHAPTERS, type PlaybookSection } from "@/data/playbook";
+import {
+  isStarterPlaybookSectionUnlocked,
+  starterChapterPreviewLabel,
+} from "@/data/starter-pack";
 import type { ContentAttachment } from "@/lib/content/attachments";
 import { attachmentHref, resolveAttachmentUrl } from "@/lib/content/attachments";
 import { PlaybookText } from "@/components/playbook/playbook-text";
@@ -24,8 +28,6 @@ interface Props {
   assetUrls?: Record<string, string>;
   sectionAssetsMap?: Record<string, ContentAttachment[]>;
 }
-
-const FREE_CHAPTER_A_SECTIONS = 3;
 
 const ASSET_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Infographic: Image,
@@ -94,9 +96,12 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
   const totalAssets = sections.reduce((n, s) => n + (sectionAssetsMap[s.id]?.length ?? 0), 0);
 
   function isSectionUnlocked(sectionIndex: number) {
-    if (hasPlaybookAccess) return true;
-    if (chapter.id === "a") return sectionIndex < FREE_CHAPTER_A_SECTIONS;
-    return chapter.preview;
+    return isStarterPlaybookSectionUnlocked(
+      chapter.id,
+      sectionIndex,
+      hasPlaybookAccess,
+      chapter.preview
+    );
   }
 
   function scrollToSection(sectionId: string, sectionIndex: number) {
@@ -152,12 +157,18 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
               <p className="text-white/70 text-sm mb-4 max-w-xl">{chapter.subtitle}</p>
               {isChapterAPreview && (
                 <p className="text-white/80 text-sm bg-white/10 rounded-lg px-4 py-3 border border-white/20 max-w-xl">
-                  The ground-level understanding every serious learner of commodity trading needs before anything else.
+                  Starter includes {starterChapterPreviewLabel(sections.length)} in this chapter.
+                  Upgrade to Pro for all {sections.length} sections and the full playbook.
                 </p>
               )}
             </div>
             <div className="flex flex-wrap gap-4 text-white/60 text-sm">
-              <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> {sections.length} sections</span>
+              <span className="flex items-center gap-1.5">
+                <BookOpen className="w-4 h-4" />
+                {isChapterAPreview
+                  ? starterChapterPreviewLabel(sections.length)
+                  : `${sections.length} sections`}
+              </span>
               <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {chapter.readTime}</span>
               {totalAssets > 0 && (
                 <span className="flex items-center gap-1.5"><Download className="w-4 h-4" /> {totalAssets} assets</span>
@@ -183,7 +194,10 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
           {/* Sidebar */}
           <aside className="hidden lg:block sticky top-32">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-800 mb-3">
-              Chapter {chapter.letter} — {sections.length} Sections
+              Chapter {chapter.letter} —{" "}
+              {isChapterAPreview
+                ? starterChapterPreviewLabel(sections.length)
+                : `${sections.length} Sections`}
             </p>
             <nav className="space-y-0.5">
               {sections.map((section, sectionIndex) => {

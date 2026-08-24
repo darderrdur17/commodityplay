@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Reveal } from "@/components/animations";
 import { hasAccess } from "@/lib/utils";
-import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
+import { FOR_ELITE_ACCESS, UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   ACCOUNT_STATUS_OPTIONS,
@@ -559,11 +559,7 @@ export function AccountIntelligenceSection({ userTier }: { userTier: string }) {
           </div>
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center py-10">
             <Lock className="w-5 h-5 text-muted-fg mb-2" />
-            <p className="text-sm font-semibold text-gray-700 mb-1">Elite Pack required</p>
-            <p className="text-xs text-muted-fg mb-4 max-w-sm">
-              Track the desks you&apos;re engaging and see Prep Library topics and Market Nudges
-              bookmarked to each one — all in one place.
-            </p>
+            <p className="text-sm font-semibold text-gray-700 mb-4">{FOR_ELITE_ACCESS}</p>
             <Link href={SALES_PLAN_HREF("elite")}>
               <Button size="sm">{UPGRADE_TO_ACCESS}</Button>
             </Link>

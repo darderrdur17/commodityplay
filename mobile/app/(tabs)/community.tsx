@@ -6,6 +6,7 @@ import {
 import { router } from "expo-router";
 import { MessageSquare, Briefcase, Bell, Users, ChevronRight, Lock, BookOpen } from "lucide-react-native";
 import { authApi, getToken } from "../../lib/api";
+import { tierAccessLabel } from "../../lib/tiers";
 
 const NAVY = "#0830a0";
 const PRIMARY = "#3280ff";
@@ -105,7 +106,7 @@ export default function CommunityTab() {
               activeOpacity={0.7}
               onPress={() => {
                 if (locked) {
-                  Alert.alert("Elite Required", "Upgrade to Elite to access this feature.");
+                  Alert.alert(tierAccessLabel(item.tier), "Upgrade your membership to access this feature.");
                   return;
                 }
                 router.push(item.route as any);

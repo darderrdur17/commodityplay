@@ -43,7 +43,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     persona: "FRESH_GRAD",
     mentorCredits: 0,
     resumeCredits: 0,
-    description: "Free Starter tier — Chapter A preview, glossary, weekly digest.",
+    description: "Free Starter tier — Chapter A preview (3 of 8 sections), glossary, weekly digest.",
     emoji: "🎓",
     redirectTo: "/dashboard",
   },

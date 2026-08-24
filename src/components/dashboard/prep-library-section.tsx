@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Reveal } from "@/components/animations";
 import { hasAccess } from "@/lib/utils";
-import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
+import { FOR_PRO_ACCESS, UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   CAREER_PREP_LIBRARY_SEED_TOPICS,
@@ -1027,8 +1027,7 @@ export function PrepLibraryBody({
               </div>
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center py-10">
                 <Lock className="w-5 h-5 text-muted-fg mb-2" />
-                <p className="text-sm font-semibold text-gray-700 mb-1">Pro Pack required</p>
-                <p className="text-xs text-muted-fg mb-4 max-w-xs">{theme.upgradeDescription}</p>
+                <p className="text-sm font-semibold text-gray-700 mb-4">{FOR_PRO_ACCESS}</p>
                 <Link href={theme.upgradeHref}>
                   <Button size="sm">{UPGRADE_TO_ACCESS}</Button>
                 </Link>
@@ -1155,8 +1154,7 @@ export function PrepLibraryBody({
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center py-10">
               <Lock className="w-5 h-5 text-muted-fg mb-2" />
-              <p className="text-sm font-semibold text-gray-700 mb-1">Pro Pack required</p>
-              <p className="text-xs text-muted-fg mb-4 max-w-xs">{theme.upgradeDescription}</p>
+              <p className="text-sm font-semibold text-gray-700 mb-4">{FOR_PRO_ACCESS}</p>
               <Link href={theme.upgradeHref}>
                 <Button size="sm">{UPGRADE_TO_ACCESS}</Button>
               </Link>

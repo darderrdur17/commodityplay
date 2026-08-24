@@ -1,6 +1,13 @@
 /** Career track subscription copy — landing, in-app gates, and upgrade prompts */
 export const UPGRADE_TO_ACCESS = "Unlock" as const;
 
+export const FOR_PRO_ACCESS = "For Pro access" as const;
+export const FOR_ELITE_ACCESS = "For Elite access" as const;
+
+export function tierAccessLabel(requiredTier: "PRO" | "ELITE"): string {
+  return requiredTier === "PRO" ? FOR_PRO_ACCESS : FOR_ELITE_ACCESS;
+}
+
 export const PRO_SUBSCRIPTION = {
   price: "SGD 59",
   period: "per month",

@@ -6,21 +6,17 @@ import { Lock, ArrowRight, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
+import { UPGRADE_TO_ACCESS, tierAccessLabel } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 
 const TIER_UPGRADE = {
   STARTER: {
-    label: "Pro",
     href: CAREER_PLAN_HREF("pro"),
     color: "#3280ff",
-    description: "Unlock the full playbook, resume templates, career roadmap, and more.",
   },
   PRO: {
-    label: "Elite",
     href: CAREER_PLAN_HREF("elite"),
     color: "#B45309",
-    description: "Unlock case studies, the Desk Channel, Mentor Connect, and job openings.",
   },
 };
 
@@ -47,6 +43,7 @@ export function TierGate({
     return <>{children}</>;
   }
 
+  const accessLabel = tierAccessLabel(requiredTier);
   const upgrade = requiredTier === "PRO" ? TIER_UPGRADE.STARTER : TIER_UPGRADE.PRO;
 
   if (compact) {
@@ -57,7 +54,7 @@ export function TierGate({
         </div>
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm rounded-xl">
           <Lock className="w-5 h-5 text-muted-fg mb-2" />
-          <p className="text-xs font-semibold text-gray-600 mb-2">{upgrade.label} required</p>
+          <p className="text-xs font-semibold text-gray-600 mb-2">{accessLabel}</p>
           <Link href={upgrade.href}>
             <Button size="sm" variant="default">{UPGRADE_TO_ACCESS}</Button>
           </Link>
@@ -84,13 +81,12 @@ export function TierGate({
         </div>
       </div>
       <div
-        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4"
+        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-6"
         style={{ background: `${upgrade.color}12`, color: upgrade.color }}
       >
         <Sparkles className="w-3 h-3" />
-        {upgrade.label} Members Only
+        {accessLabel}
       </div>
-      <p className="text-muted-fg text-sm mb-6 max-w-xs mx-auto">{upgrade.description}</p>
       <Link href={upgrade.href}>
         <Button className="group" style={{ background: upgrade.color }}>
           {UPGRADE_TO_ACCESS}
