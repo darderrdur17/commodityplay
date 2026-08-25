@@ -13,9 +13,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AnimatedProgress, Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
-import { PERSONA_LABELS, TIER_LABELS, hasAccess, formatDate } from "@/lib/utils";
+import { TIER_LABELS, hasAccess, formatDate } from "@/lib/utils";
+import { resolveMemberPersonaLabel } from "@/lib/persona-display";
 import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
-import { STARTER_CHAPTER_PREVIEW, starterChapterPreviewLabel } from "@/data/starter-pack";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import { attachmentHref } from "@/lib/content/attachments";
 import type { NavigationGuideAttachment } from "@/lib/content/accessors";
@@ -48,6 +48,7 @@ interface Props {
     tier: string;
     track: string;
     persona: string | null;
+    resumePersonaDone: boolean;
     mentorCredits: number;
     resumeCredits: number;
     stripeCurrentPeriodEnd?: string;
@@ -230,7 +231,11 @@ export function DashboardClient({
   const effectiveTrack = isPreviewActive ? previewTrackValue : user.track;
 
   const tierInfo = TIER_LABELS[effectiveTier] || TIER_LABELS.STARTER;
-  const personaInfo = user.persona ? PERSONA_LABELS[user.persona] : null;
+  const personaLabel = resolveMemberPersonaLabel(
+    effectiveTrack,
+    user.persona,
+    user.resumePersonaDone
+  );
   const greeting = user.name?.split(" ")[0] || "there";
   const isCareerTrack = effectiveTrack === "CAREER";
   const planHref = (tier: "pro" | "elite") =>
@@ -535,9 +540,9 @@ export function DashboardClient({
           },
           {
             label: "Persona",
-            value: isStarter ? "--" : personaInfo?.label || "Not set",
+            value: isStarter && !personaLabel ? "—" : personaLabel ?? "Take resume quiz",
             icon: Award,
-            color: personaInfo?.color || "#677184",
+            color: "#677184",
           },
           {
             label: "Mentor Credits",
@@ -553,9 +558,9 @@ export function DashboardClient({
             color: "#B45309",
           },
           {
-            label: isStarter ? "Chapter A Preview" : "Chapters Done",
+            label: isStarter ? "Chapters" : "Chapters Done",
             value: isStarter
-              ? starterChapterPreviewLabel()
+              ? `Chapter A · ${contentStats.chapterCount} total`
               : `${stats.completedChapters}/${contentStats.chapterCount}`,
             icon: BookOpen,
             color: "#16a34a",
@@ -579,7 +584,7 @@ export function DashboardClient({
                   {stat.eyebrow}
                 </p>
               )}
-              <p className="font-serif text-xl sm:text-2xl font-bold text-gray-900 truncate">{stat.value}</p>
+              <p className="text-sm font-semibold text-gray-800 truncate">{stat.value}</p>
             </div>
           </StaggerItem>
         ))}

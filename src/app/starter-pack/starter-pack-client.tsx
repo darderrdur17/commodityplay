@@ -95,12 +95,27 @@ export function StarterPackClient({
               { title: info.title, fileKey: info.fileKey, assetId: info.assetId },
               assetUrls
             );
+            const thumbUrl = resolveAttachmentUrl(
+              { title: info.title, fileKey: info.thumbKey, assetId: info.thumbAssetId },
+              assetUrls
+            );
             const delivery = info.delivery ?? "download";
             return (
             <StaggerItem key={info.id}>
               <div className="rounded-xl border border-border bg-white overflow-hidden card-hover h-full flex flex-col">
-                <div className={`h-32 bg-gradient-to-br ${info.thumbClass} flex items-center justify-center`}>
-                  <span className="font-serif text-4xl font-bold text-white/30">{info.num}</span>
+                <div className="h-40 bg-secondary relative overflow-hidden">
+                  {thumbUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={thumbUrl}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover object-top"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-fg">
+                      Preview image
+                    </div>
+                  )}
                 </div>
                 <div className="p-5 flex-1 flex flex-col">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-primary-800 mb-1">{info.num}</p>

@@ -420,6 +420,9 @@ async function main() {
     const isMentor = userData.isMentor ?? false;
     const company = userData.company ?? null;
 
+    const resumePersonaDone =
+      userData.track === "CAREER" && userData.tier !== "STARTER";
+
     const user = await prisma.user.upsert({
       where: { email: userData.email },
       update: {
@@ -429,6 +432,7 @@ async function main() {
         tier: userData.tier,
         track: userData.track,
         persona: userData.persona,
+        resumePersonaDone,
         onboardingDone: true,
         mentorCredits: userData.mentorCredits,
         resumeCredits: userData.resumeCredits,
@@ -444,6 +448,7 @@ async function main() {
         tier: userData.tier,
         track: userData.track,
         persona: userData.persona,
+        resumePersonaDone,
         onboardingDone: true,
         mentorCredits: userData.mentorCredits,
         resumeCredits: userData.resumeCredits,

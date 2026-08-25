@@ -95,6 +95,7 @@ export default async function DashboardPage({
         tier: user.tier,
         track: user.track,
         persona: user.persona,
+        resumePersonaDone: user.resumePersonaDone,
         mentorCredits: user.mentorCredits,
         resumeCredits: user.resumeCredits,
         stripeCurrentPeriodEnd: user.stripeCurrentPeriodEnd?.toISOString(),

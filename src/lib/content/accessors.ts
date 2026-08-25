@@ -213,7 +213,7 @@ function mergeStarterInfographics(
       ...def,
       ...edited,
       fileKey: edited.fileKey || def.fileKey,
-      thumbClass: edited.thumbClass || def.thumbClass,
+      thumbKey: edited.thumbKey || def.thumbKey,
     };
   });
 }
@@ -589,6 +589,9 @@ export async function getStarterPackAssetUrls() {
   const content = await getStarterPackContent();
   for (const info of content.infographics) {
     if (info.assetId) map[info.fileKey] = `/api/content/assets/${info.assetId}`;
+    if (info.thumbAssetId && info.thumbKey) {
+      map[info.thumbKey] = `/api/content/assets/${info.thumbAssetId}`;
+    }
   }
   return map;
 }

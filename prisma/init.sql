@@ -58,6 +58,7 @@ CREATE TABLE "User" (
     "track" "Track" NOT NULL DEFAULT 'CAREER',
     "persona" "Persona",
     "onboardingDone" BOOLEAN NOT NULL DEFAULT false,
+    "resumePersonaDone" BOOLEAN NOT NULL DEFAULT false,
     "stripeCustomerId" TEXT,
     "stripeSubscriptionId" TEXT,
     "stripePriceId" TEXT,

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   mergeStarterEmailDigest,
   mergeStarterUpgradeCta,
+  starterInfographicThumbKey,
   type StarterEmailDigest,
   type StarterInfographic,
   type StarterUpgradeCta,
@@ -42,7 +43,7 @@ function newInfographic(idx: number): StarterInfographic {
     num: String(idx + 1).padStart(2, "0"),
     title: "",
     description: "",
-    thumbClass: "from-gray-100 to-gray-300",
+    thumbKey: starterInfographicThumbKey(id),
     fileKey: `starter-pack/${id}.pdf`,
     delivery: "download",
   };
@@ -94,6 +95,23 @@ function FreeInfographicsTab({
     });
   }
 
+  async function handleThumbUpload(i: number, file: File, item: StarterInfographic) {
+    const key = item.thumbKey?.trim() || starterInfographicThumbKey(item.id);
+    setUploadingId(`${item.id}-thumb`);
+    const result = await uploadContentAssetFile({ file, moduleSlug, requiredTier, assetKey: key });
+    setUploadingId(null);
+    if ("error" in result) {
+      alert(result.error);
+      return;
+    }
+    patch(i, {
+      ...item,
+      thumbKey: key,
+      thumbAssetId: result.id,
+      thumbFileName: result.fileName,
+    });
+  }
+
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-fg">
@@ -133,21 +151,36 @@ function FreeInfographicsTab({
                   <option value="view-only">View only</option>
                 </select>
               </EditorField>
-              <EditorField label="Thumb class" hint="Tailwind gradient classes">
-                <input className={inputClass} value={item.thumbClass} onChange={(e) => patch(i, { ...item, thumbClass: e.target.value })} />
+              <EditorField label="Thumb key" hint="Preview image path, e.g. starter-pack/thumbs/ecosystem-map.png">
+                <input className={inputClass} value={item.thumbKey} onChange={(e) => patch(i, { ...item, thumbKey: e.target.value })} />
               </EditorField>
             </div>
             <EditorField label="Description">
               <textarea className={textareaClass} value={item.description} onChange={(e) => patch(i, { ...item, description: e.target.value })} />
             </EditorField>
-            <InlineFileUpload
-              moduleSlug={moduleSlug}
-              requiredTier={requiredTier}
-              assetKey={item.fileKey || `starter-pack/${item.id}.pdf`}
-              fileName={item.fileName}
-              uploading={uploadingId === item.id}
-              onPickFile={(file) => handleUpload(i, file, item)}
-            />
+            <EditorField label="Preview image" hint="Shown on the card. PNG or JPG recommended.">
+              <InlineFileUpload
+                moduleSlug={moduleSlug}
+                requiredTier={requiredTier}
+                assetKey={item.thumbKey || starterInfographicThumbKey(item.id)}
+                fileName={item.thumbFileName}
+                uploading={uploadingId === `${item.id}-thumb`}
+                accept=".jpg,.jpeg,.png,.webp,.gif,image/*"
+                pickLabel="Upload preview"
+                replaceLabel="Replace preview"
+                onPickFile={(file) => handleThumbUpload(i, file, item)}
+              />
+            </EditorField>
+            <EditorField label="Download file" hint="PDF or document members download.">
+              <InlineFileUpload
+                moduleSlug={moduleSlug}
+                requiredTier={requiredTier}
+                assetKey={item.fileKey || `starter-pack/${item.id}.pdf`}
+                fileName={item.fileName}
+                uploading={uploadingId === item.id}
+                onPickFile={(file) => handleUpload(i, file, item)}
+              />
+            </EditorField>
           </EditorRow>
         ))}
         {items.length === 0 && (

@@ -1,4 +1,4 @@
-import { CHAPTERS, type PlaybookSection } from "@/data/playbook";
+import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS, type PlaybookSection } from "@/data/playbook";
 import { CASE_STUDIES } from "@/data/case-studies";
 import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
 import { GLOSSARY_TERMS } from "@/data/glossary";
@@ -51,7 +51,7 @@ async function resolvePlaybookCounts(): Promise<{ chapterCount: number; sectionC
   const sections = data.sections ?? playbookSections;
   const chapterIds = chapters.map((c) => c.id);
   return {
-    chapterCount: chapters.length,
+    chapterCount: Math.max(chapters.length, PLAYBOOK_TOTAL_CHAPTERS),
     sectionCount: countPlaybookSections(chapterIds, sections),
   };
 }

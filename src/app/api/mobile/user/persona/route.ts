@@ -4,8 +4,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 
 const schema = z.object({
-  persona: z.enum(["FRESH_GRAD", "CAREER_SWITCHER", "INSIDER", "ANALYST_TRADER", "VENDOR"]),
+  persona: z.enum(["FRESH_GRAD", "CAREER_SWITCHER", "INSIDER", "ANALYST_TRADER", "VENDOR"]).optional(),
   track: z.enum(["CAREER", "SALES"]).optional(),
+  source: z.enum(["resume", "onboarding"]).optional(),
 });
 
 async function getMobileUserId(req: NextRequest): Promise<string | null> {
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { persona: true, track: true, onboardingDone: true },
+    select: { persona: true, track: true, onboardingDone: true, resumePersonaDone: true },
   });
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -48,16 +49,33 @@ export async function POST(req: NextRequest) {
   });
   if (!existing) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { persona, track } = parsed.data;
+  const { persona, track, source } = parsed.data;
+  const resolvedTrack = track ?? existing.track ?? "CAREER";
+
+  if (source === "resume") {
+    if (!persona) {
+      return NextResponse.json({ error: "Persona required" }, { status: 400 });
+    }
+    await prisma.user.update({
+      where: { id: userId },
+      data: { persona, track: resolvedTrack, onboardingDone: true, resumePersonaDone: true },
+    });
+    return NextResponse.json({ success: true, persona, track: resolvedTrack, resumePersonaDone: true });
+  }
+
+  if (resolvedTrack === "SALES") {
+    const salesPersona = persona ?? "VENDOR";
+    await prisma.user.update({
+      where: { id: userId },
+      data: { persona: salesPersona, track: resolvedTrack, onboardingDone: true },
+    });
+    return NextResponse.json({ success: true, persona: salesPersona, track: resolvedTrack });
+  }
 
   await prisma.user.update({
     where: { id: userId },
-    data: {
-      persona,
-      track: track ?? existing.track ?? "CAREER",
-      onboardingDone: true,
-    },
+    data: { track: resolvedTrack, onboardingDone: true },
   });
 
-  return NextResponse.json({ success: true, persona, track: track ?? existing.track ?? "CAREER" });
+  return NextResponse.json({ success: true, track: resolvedTrack });
 }

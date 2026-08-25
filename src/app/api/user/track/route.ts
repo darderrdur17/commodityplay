@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const schema = z.object({
   track: z.enum(["CAREER", "SALES"]),
+  completeOnboarding: z.boolean().optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -19,11 +20,14 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Invalid data" }, { status: 400 });
   }
 
-  const { track } = parsed.data;
+  const { track, completeOnboarding } = parsed.data;
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { track },
+    data: {
+      track,
+      ...(completeOnboarding ? { onboardingDone: true } : {}),
+    },
   });
 
   return NextResponse.json({ success: true, track });

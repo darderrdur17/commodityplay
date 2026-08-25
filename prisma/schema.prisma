@@ -61,6 +61,7 @@ model User {
   tier           Tier      @default(STARTER)
   track          Track     @default(CAREER)
   persona        Persona?
+  resumePersonaDone Boolean @default(false)
   onboardingDone Boolean   @default(false)
   /// True for mentor-identity demo/seed accounts — excluded from the Customers tab (see Mentors tab instead).
   isMentor       Boolean   @default(false)

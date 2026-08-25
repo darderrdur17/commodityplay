@@ -4,12 +4,14 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/animations";
-import { TIER_LABELS, PERSONA_LABELS, formatDate } from "@/lib/utils";
+import { TIER_LABELS, formatDate } from "@/lib/utils";
+import { resolveMemberPersonaLabel } from "@/lib/persona-display";
+import { getContentStats } from "@/lib/content/content-stats";
 import { AccountBillingSection } from "@/components/account/account-billing-section";
 import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
 import { formatMentorCreditsUsedLabel } from "@/lib/mentor-credits";
 import { isMentorDemoUser } from "@/lib/mentor-demo";
-import { User, Mail, CreditCard, Sparkles, Inbox, CheckCircle, Clock } from "lucide-react";
+import { User, Mail, CreditCard, Sparkles, Inbox, CheckCircle, Clock, BookOpen } from "lucide-react";
 
 export const metadata = { title: "Account" };
 
@@ -26,15 +28,20 @@ export default async function AccountPage() {
       tier: true,
       track: true,
       persona: true,
+      resumePersonaDone: true,
       mentorCredits: true,
       resumeCredits: true,
       stripeCurrentPeriodEnd: true,
       stripeStatus: true,
       stripeCustomerId: true,
       createdAt: true,
+      progress: { select: { completed: true } },
     },
   });
   if (!user) redirect("/login");
+
+  const contentStats = await getContentStats();
+  const completedChapters = user.progress.filter((p) => p.completed).length;
 
   const isMentorUser = isMentorDemoUser(user.email);
 
@@ -54,7 +61,11 @@ export default async function AccountPage() {
   }
 
   const tierInfo = TIER_LABELS[user.tier] || TIER_LABELS.STARTER;
-  const personaInfo = user.persona ? PERSONA_LABELS[user.persona] : null;
+  const personaLabel = resolveMemberPersonaLabel(user.track, user.persona, user.resumePersonaDone);
+  const chaptersLabel =
+    user.tier === "STARTER"
+      ? `Chapter A preview · ${contentStats.chapterCount} total`
+      : `${completedChapters}/${contentStats.chapterCount} completed`;
 
   return (
     <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8 sm:py-10">
@@ -83,7 +94,7 @@ export default async function AccountPage() {
             {(isMentorUser
               ? [
                   { icon: User, label: "Track", value: user.track === "CAREER" ? "Build a Career" : "Sell Into Firms" },
-                  { icon: Sparkles, label: "Persona", value: personaInfo?.label || "Not set — complete onboarding" },
+                  { icon: Sparkles, label: "Persona", value: personaLabel ?? "Not set" },
                   { icon: Inbox, label: "Total requests received", value: String(mentorStats?.total ?? 0) },
                   { icon: CheckCircle, label: "Requests answered", value: String(mentorStats?.answered ?? 0) },
                   { icon: Clock, label: "Pending requests", value: String(mentorStats?.pending ?? 0) },
@@ -91,7 +102,14 @@ export default async function AccountPage() {
                 ]
               : [
               { icon: User, label: "Track", value: user.track === "CAREER" ? "Build a Career" : "Sell Into Firms" },
-              { icon: Sparkles, label: "Persona", value: personaInfo?.label || "Not set — complete onboarding" },
+              {
+                icon: Sparkles,
+                label: "Persona",
+                value:
+                  personaLabel ??
+                  (user.track === "SALES" ? "Vendor / Supplier" : "Not set — take resume quiz"),
+              },
+              { icon: BookOpen, label: "Chapters", value: chaptersLabel },
               {
                 icon: CreditCard,
                 label: "Mentor credits",
@@ -104,7 +122,7 @@ export default async function AccountPage() {
               <div key={row.label} className="flex items-center gap-3 px-6 py-4">
                 <row.icon className="w-4 h-4 text-muted-fg" />
                 <span className="text-sm text-muted-fg flex-1">{row.label}</span>
-                <span className="text-sm font-medium text-gray-800">{row.value}</span>
+                <span className="text-xs font-medium text-gray-700">{row.value}</span>
               </div>
             ))}
           </div>
@@ -120,10 +138,10 @@ export default async function AccountPage() {
           />
         )}
 
-        {!user.persona && (
+        {!personaLabel && user.track === "CAREER" && (
           <div className="text-center mt-4">
-            <Link href="/onboarding" className="text-sm text-primary-400 hover:underline">
-              Complete persona quiz →
+            <Link href="/resume-templates#quiz" className="text-sm text-primary-400 hover:underline">
+              Take the resume persona quiz →
             </Link>
           </div>
         )}

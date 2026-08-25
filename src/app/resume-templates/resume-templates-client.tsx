@@ -406,6 +406,7 @@ export function ResumeTemplatesClient({
           body: JSON.stringify({
             persona: personaIdToApi(personaToSave),
             track,
+            source: "resume",
           }),
         });
         if (!res.ok) throw new Error("Save failed");

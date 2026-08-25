@@ -16,7 +16,7 @@ export default async function StarterPackPage() {
   const session = await auth();
   const [content, assetUrls, contentStats] = await Promise.all([
     getStarterPackContent(),
-    session?.user ? getStarterPackAssetUrls() : Promise.resolve({}),
+    getStarterPackAssetUrls(),
     getContentStats(),
   ]);
 

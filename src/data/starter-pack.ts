@@ -61,11 +61,20 @@ export interface StarterInfographic {
   num: string;
   title: string;
   description: string;
-  thumbClass: string;
+  /** Preview image shown on the card (public). */
+  thumbKey: string;
+  thumbAssetId?: string;
+  thumbFileName?: string;
+  /** @deprecated Gradient fallback — use thumbKey upload instead. */
+  thumbClass?: string;
   fileKey: string;
   assetId?: string;
   fileName?: string;
   delivery?: "view-only" | "download";
+}
+
+export function starterInfographicThumbKey(id: string): string {
+  return `starter-pack/thumbs/${id}.png`;
 }
 
 export const STARTER_INFOGRAPHICS: StarterInfographic[] = [
@@ -74,7 +83,7 @@ export const STARTER_INFOGRAPHICS: StarterInfographic[] = [
     num: "01",
     title: "Commodity Trading Ecosystem Map",
     description: "Every player connected — from upstream producers to end consumers.",
-    thumbClass: "from-accent to-primary-300",
+    thumbKey: starterInfographicThumbKey("ecosystem-map"),
     fileKey: "starter-pack/ecosystem-map.pdf",
   },
   {
@@ -82,7 +91,7 @@ export const STARTER_INFOGRAPHICS: StarterInfographic[] = [
     num: "02",
     title: "LNG Cargo Flow Mechanics",
     description: "From liquefaction plant to regasification terminal — the full journey.",
-    thumbClass: "from-sky-100 to-sky-300",
+    thumbKey: starterInfographicThumbKey("lng-flow"),
     fileKey: "starter-pack/lng-flow.pdf",
   },
   {
@@ -90,7 +99,7 @@ export const STARTER_INFOGRAPHICS: StarterInfographic[] = [
     num: "03",
     title: "Crack Spread Guide",
     description: "The refinery margin signal — 3-2-1 formula, seasonal patterns, what it tells you.",
-    thumbClass: "from-violet-100 to-violet-300",
+    thumbKey: starterInfographicThumbKey("crack-spread"),
     fileKey: "starter-pack/crack-spread.pdf",
   },
   {
@@ -98,7 +107,7 @@ export const STARTER_INFOGRAPHICS: StarterInfographic[] = [
     num: "04",
     title: "Price Benchmarks 101",
     description: "Brent, WTI, Dubai, JKM, TTF — why each exists and who uses them.",
-    thumbClass: "from-amber-100 to-amber-300",
+    thumbKey: starterInfographicThumbKey("benchmarks"),
     fileKey: "starter-pack/benchmarks.pdf",
   },
   {
@@ -106,7 +115,7 @@ export const STARTER_INFOGRAPHICS: StarterInfographic[] = [
     num: "05",
     title: "Trade Finance Flow",
     description: "Letters of credit, tolling, pre-finance — how commodity deals get funded.",
-    thumbClass: "from-green-100 to-green-300",
+    thumbKey: starterInfographicThumbKey("trade-finance"),
     fileKey: "starter-pack/trade-finance.pdf",
   },
 ];

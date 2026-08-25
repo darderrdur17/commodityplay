@@ -20,10 +20,15 @@ export async function GET(
 
   const mode = req.nextUrl.searchParams.get("mode");
   const forceView = mode === "view";
+  const mimeType = resolveContentAssetMimeType(asset.fileName, asset.mimeType);
   const isPublicFooterGuide =
     asset.moduleSlug === "footer-guides" && forceView;
+  const isPublicStarterThumb =
+    asset.moduleSlug === "starter-pack" &&
+    !!asset.assetKey?.startsWith("starter-pack/thumbs/") &&
+    mimeType.startsWith("image/");
 
-  if (!tier && !isPublicFooterGuide) {
+  if (!tier && !isPublicFooterGuide && !isPublicStarterThumb) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -35,7 +40,6 @@ export async function GET(
     return NextResponse.json({ error: "Insufficient tier" }, { status: 403 });
   }
 
-  const mimeType = resolveContentAssetMimeType(asset.fileName, asset.mimeType);
   const forceDownload = mode === "download";
   const inline =
     forceView ||
@@ -45,7 +49,9 @@ export async function GET(
     headers: {
       "Content-Type": mimeType,
       "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${asset.fileName.replace(/"/g, "")}"`,
-      "Cache-Control": "no-store",
+      "Cache-Control": isPublicStarterThumb
+        ? "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+        : "no-store",
     },
   });
 }

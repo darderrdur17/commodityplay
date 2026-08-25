@@ -527,6 +527,9 @@ export function InlineFileUpload({
   assetKey,
   fileName,
   uploading,
+  accept = CONTENT_ASSET_ACCEPT,
+  pickLabel = "Upload file",
+  replaceLabel = "Replace file",
   onPickFile,
 }: {
   moduleSlug: string;
@@ -534,6 +537,9 @@ export function InlineFileUpload({
   assetKey: string;
   fileName?: string;
   uploading?: boolean;
+  accept?: string;
+  pickLabel?: string;
+  replaceLabel?: string;
   onPickFile: (file: File) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -544,7 +550,7 @@ export function InlineFileUpload({
         ref={fileRef}
         type="file"
         className="sr-only"
-        accept={CONTENT_ASSET_ACCEPT}
+        accept={accept}
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) onPickFile(f);
@@ -558,7 +564,7 @@ export function InlineFileUpload({
         className="inline-flex items-center gap-2 text-xs px-3 py-1.5 border border-dashed border-border rounded-lg hover:border-primary-400 hover:bg-secondary/40 transition-colors disabled:opacity-50"
       >
         <Upload className="w-3.5 h-3.5 text-primary-400" />
-        {uploading ? "Uploading..." : fileName ? "Replace file" : "Upload file"}
+        {uploading ? "Uploading..." : fileName ? replaceLabel : pickLabel}
       </button>
       {fileName && <span className="text-xs text-muted-fg truncate max-w-[200px]">{fileName}</span>}
       {assetKey && (
