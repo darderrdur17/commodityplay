@@ -28,11 +28,14 @@ export async function POST(req: NextRequest) {
     const { alreadySeeded } = await setupProductionDatabase();
     const { syncGlossaryFromDefaults } = await import("@/lib/content/repository");
     const glossarySync = await syncGlossaryFromDefaults();
+    const { getFeedbackDemoUserStatuses } = await import("@/lib/feedback-demo-users");
+    const feedbackUsers = await getFeedbackDemoUserStatuses(prisma);
 
     return NextResponse.json({
       success: true,
       alreadySeeded,
       glossaryTerms: glossarySync.termCount,
+      feedbackUsers,
       message: alreadySeeded
         ? "Database already seeded — demo accounts and glossary refreshed."
         : "Database schema applied and demo accounts seeded.",

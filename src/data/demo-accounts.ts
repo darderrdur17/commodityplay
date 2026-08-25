@@ -4,6 +4,8 @@
  * Run `npm run db:seed` after `npm run db:push` to create them.
  */
 
+import { resolveMemberPersonaInfo } from "@/lib/persona-display";
+
 export const DEMO_PASSWORD = "Demo1234!";
 
 export type DemoAccount = {
@@ -13,12 +15,28 @@ export type DemoAccount = {
   tier: "STARTER" | "PRO" | "ELITE";
   track: "CAREER" | "SALES";
   persona: "FRESH_GRAD" | "CAREER_SWITCHER" | "INSIDER" | "ANALYST_TRADER" | "VENDOR";
+  /** When set, overrides default career-pro = done rule for demo card persona badges. */
+  resumePersonaDone?: boolean;
   mentorCredits: number;
   resumeCredits: number;
   description: string;
   emoji: string;
   redirectTo: "/dashboard" | "/admin" | "/mentor-connect" | "/mentor-connect/inbox";
 };
+
+function demoResumePersonaDone(account: DemoAccount): boolean {
+  if (account.resumePersonaDone !== undefined) return account.resumePersonaDone;
+  return account.track === "CAREER" && account.tier !== "STARTER";
+}
+
+/** Persona badge on /demo cards — mirrors account/dashboard display rules. */
+export function getDemoAccountDisplayPersona(account: DemoAccount) {
+  return resolveMemberPersonaInfo(
+    account.track,
+    account.persona,
+    demoResumePersonaDone(account)
+  );
+}
 
 export const DEMO_ACCOUNTS: DemoAccount[] = [
   {
@@ -41,9 +59,11 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     tier: "STARTER",
     track: "CAREER",
     persona: "FRESH_GRAD",
+    resumePersonaDone: false,
     mentorCredits: 0,
     resumeCredits: 0,
-    description: "Free Starter tier — Chapter A preview (3 of 8 sections), glossary, weekly digest.",
+    description:
+      "Career Starter — Chapter A preview, glossary, digest. Persona unlocks after the resume quiz on Resume Templates.",
     emoji: "🎓",
     redirectTo: "/dashboard",
   },

@@ -9,9 +9,13 @@ import { ArrowRight, Copy, Check, Shield, LogIn, Mail, MessageSquare } from "luc
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
-import { DEMO_ACCOUNTS, DEMO_PASSWORD, MENTOR_FLOW_DEMO } from "@/data/demo-accounts";
+import {
+  DEMO_ACCOUNTS,
+  DEMO_PASSWORD,
+  MENTOR_FLOW_DEMO,
+  getDemoAccountDisplayPersona,
+} from "@/data/demo-accounts";
 import { PAGE_HERO_TOP } from "@/lib/layout-constants";
-import { PERSONA_LABELS } from "@/lib/utils";
 
 export default function DemoPage() {
   const router = useRouter();
@@ -214,7 +218,7 @@ function DemoCard({
 }) {
   const tierVariant =
     account.tier === "ELITE" ? "elite" : account.tier === "PRO" ? "pro" : "starter";
-  const persona = PERSONA_LABELS[account.persona];
+  const persona = getDemoAccountDisplayPersona(account);
   const highlightStyles =
     highlightVariant === "mentor"
       ? "border-amber-200 bg-amber-50/40"

@@ -621,6 +621,10 @@ async function main() {
     console.log("  ✓ Account Intelligence demo data seeded for elite.vendor@demo.com");
   }
 
+  const { ensureFeedbackDemoUsers } = await import("../src/lib/feedback-demo-users");
+  await ensureFeedbackDemoUsers(prisma);
+  console.log("  ✓ Feedback demo users patched (Maya, Chris, Jamie)");
+
   console.log(`\n✅ Done! All accounts use password: ${DEMO_PASSWORD}`);
   console.log("   Try them at http://localhost:3000/demo\n");
 }
