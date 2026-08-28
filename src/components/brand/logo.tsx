@@ -18,15 +18,13 @@ type LogoVariant =
   | "lockup-dark";
 
 const MARK = { src: "/brand/logo-mark.png", width: 184, height: 184 } as const;
-/** Primary blue pill lockup — header, auth, onboarding */
+/** Primary blue pill lockup (1_SVG.svg) — header, footer, auth, onboarding */
 const PRIMARY_LOCKUP = { src: "/brand/header-logo.svg", width: 2000, height: 344 } as const;
-/** Footer lockup — gradient pill (2_SVG.svg) */
-const FOOTER_LOCKUP = { src: "/brand/footer-logo.svg", width: 2000, height: 344 } as const;
 
 const SOURCES: Record<Exclude<LogoVariant, "lockup-dark">, { src: string; width: number; height: number }> = {
   horizontal: PRIMARY_LOCKUP,
   header: PRIMARY_LOCKUP,
-  footer: FOOTER_LOCKUP,
+  footer: PRIMARY_LOCKUP,
   login: PRIMARY_LOCKUP,
   mark: MARK,
   white: PRIMARY_LOCKUP,
