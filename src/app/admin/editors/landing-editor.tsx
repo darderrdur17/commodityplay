@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { AdminLandingEditor } from "../admin-landing-editor";
 import { EditorSection, UploadSection } from "./shared";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
-import { parseLandingContentPayload } from "@/lib/content/landing-schema";
 import { mergeLandingContent } from "@/lib/content/merge";
 import {
   defaultCareerEdgeNote,
@@ -17,25 +16,65 @@ import { CONTENT_STAT_PLACEHOLDER_HINT } from "@/lib/content/content-stat-placeh
 
 type TrackFilter = "career" | "sales" | "both";
 
+function coerceStatValue(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/** Editor display — always merge CMS over defaults (never strict-parse while typing). */
+export function resolveEditorLandingContent(payload: unknown): LandingContent {
+  const merged = mergeLandingContent(
+    DEFAULT_LANDING_CONTENT,
+    (payload && typeof payload === "object" ? payload : {}) as Partial<LandingContent>
+  );
+  return {
+    ...merged,
+    career: {
+      ...merged.career,
+      heroStats: merged.career.heroStats.map((stat) => ({
+        ...stat,
+        value: coerceStatValue(stat.value),
+        suffix: stat.suffix ?? "",
+      })),
+    },
+    sales: {
+      ...merged.sales,
+      stats: merged.sales.stats.map((stat) => ({
+        ...stat,
+        value: coerceStatValue(stat.value),
+        suffix: stat.suffix ?? "",
+      })),
+    },
+  };
+}
+
 export function LandingEditorWrapper({
   payload,
   onChange,
   moduleSlug,
   requiredTier,
   initialTrackFilter = "both",
+  contentVersion = 0,
 }: {
   payload: unknown;
   onChange: (p: unknown) => void;
   moduleSlug: string;
   requiredTier: string;
   initialTrackFilter?: TrackFilter;
+  /** Bumps after load / save / revert so editor re-syncs from server payload. */
+  contentVersion?: number;
 }) {
   const [track, setTrack] = useState<TrackFilter>(initialTrackFilter);
+  const [content, setContent] = useState<LandingContent>(() => resolveEditorLandingContent(payload));
 
-  const parsed = parseLandingContentPayload(payload);
-  const content: LandingContent = parsed.success
-    ? parsed.data
-    : mergeLandingContent(DEFAULT_LANDING_CONTENT, (payload ?? {}) as Partial<LandingContent>);
+  useEffect(() => {
+    if (payload == null) return;
+    setContent(resolveEditorLandingContent(payload));
+    // Re-sync only after load / save / revert — not on every local edit (payload changes each keystroke).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- payload read when contentVersion bumps
+  }, [contentVersion]);
+
   const rawPayload = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
   const careerEdgeNote = rawPayload.careerEdgeNote as WeeklyEdgeNote | undefined;
   const salesEdgeNote = rawPayload.salesEdgeNote as WeeklyEdgeNote | undefined;
@@ -44,6 +83,7 @@ export function LandingEditorWrapper({
   const showSalesNote = track === "both" || track === "sales";
 
   function handleLandingChange(next: LandingContent) {
+    setContent(next);
     onChange({ ...rawPayload, ...next });
   }
 
@@ -74,10 +114,19 @@ export function LandingEditorWrapper({
         ))}
       </div>
 
-      <p className="text-xs text-muted-fg px-1">
-        Count placeholders in pricing and feature copy auto-fill from live CMS on the public site:{" "}
-        <code className="text-[11px] bg-secondary px-1 rounded">{CONTENT_STAT_PLACEHOLDER_HINT}</code>
-      </p>
+      <details className="mx-1 rounded-lg border border-border bg-secondary/30 px-3 py-2 text-xs text-muted-fg">
+        <summary className="cursor-pointer font-medium text-gray-700 select-none">
+          Live count placeholders (optional in copy)
+        </summary>
+        <p className="mt-2 leading-relaxed">
+          In pricing or feature text you can use tokens like{" "}
+          <code className="rounded bg-white px-1 py-0.5 text-[11px]">{"{chapterCount}"}</code> — they
+          auto-fill from live CMS on the public site.
+        </p>
+        <p className="mt-2 font-mono text-[10px] leading-relaxed break-all text-muted-fg">
+          {CONTENT_STAT_PLACEHOLDER_HINT}
+        </p>
+      </details>
 
       <AdminLandingEditor
         content={content}

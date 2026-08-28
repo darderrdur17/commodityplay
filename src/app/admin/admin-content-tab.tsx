@@ -194,6 +194,7 @@ function ModuleEditor({
         return (
           <LandingEditorWrapper
             {...editorProps}
+            contentVersion={version}
             initialTrackFilter={track === "Career" ? "career" : track === "Sales" ? "sales" : "both"}
           />
         );

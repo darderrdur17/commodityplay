@@ -88,6 +88,69 @@ function normalizeFeatureLines(raw: string): string[] {
     .filter(Boolean);
 }
 
+/** Number stat field — keeps local text while focused so mobile typing is not overwritten. */
+function StatValueInput({
+  value,
+  onChange,
+  placeholder = "Value",
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  placeholder?: string;
+}) {
+  const [text, setText] = useState(() => String(value ?? ""));
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!focusedRef.current) {
+      setText(String(value ?? ""));
+    }
+  }, [value]);
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={text}
+      placeholder={placeholder}
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => {
+        focusedRef.current = false;
+        const parsed = Number(text);
+        const resolved = Number.isFinite(parsed) ? parsed : 0;
+        setText(String(resolved));
+        onChange(resolved);
+      }}
+      className={inputClass}
+    />
+  );
+}
+
+function HeroStatRow({
+  stat,
+  onChange,
+}: {
+  stat: { value: number; suffix: string; label: string };
+  onChange: (next: { value: number; suffix: string; label: string }) => void;
+}) {
+  return (
+    <div className="grid gap-3 p-3 rounded-lg bg-secondary/40 sm:grid-cols-3">
+      <Field label="Value">
+        <StatValueInput value={stat.value} onChange={(value) => onChange({ ...stat, value })} />
+      </Field>
+      <Field label="Suffix" hint='e.g. "+" or " min"'>
+        <TextInput value={stat.suffix} onChange={(suffix) => onChange({ ...stat, suffix })} />
+      </Field>
+      <Field label="Label">
+        <TextInput value={stat.label} onChange={(label) => onChange({ ...stat, label })} />
+      </Field>
+    </div>
+  );
+}
+
 function FeaturesList({
   value,
   onChange,
@@ -338,35 +401,15 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
         <div className="space-y-3">
           <p className="text-xs font-semibold text-gray-700">Hero stats</p>
           {content.career.heroStats.map((stat, i) => (
-            <div key={i} className="grid gap-2 sm:grid-cols-3 p-3 rounded-lg bg-secondary/40">
-              <input
-                type="number"
-                value={stat.value}
-                onChange={(e) => {
-                  const heroStats = [...content.career.heroStats];
-                  heroStats[i] = { ...stat, value: Number(e.target.value) };
-                  patch("career", { ...content.career, heroStats });
-                }}
-                className={inputClass}
-                placeholder="Value"
-              />
-              <TextInput
-                value={stat.suffix}
-                onChange={(v) => {
-                  const heroStats = [...content.career.heroStats];
-                  heroStats[i] = { ...stat, suffix: v };
-                  patch("career", { ...content.career, heroStats });
-                }}
-              />
-              <TextInput
-                value={stat.label}
-                onChange={(v) => {
-                  const heroStats = [...content.career.heroStats];
-                  heroStats[i] = { ...stat, label: v };
-                  patch("career", { ...content.career, heroStats });
-                }}
-              />
-            </div>
+            <HeroStatRow
+              key={`career-stat-${stat.label}-${i}`}
+              stat={stat}
+              onChange={(next) => {
+                const heroStats = [...content.career.heroStats];
+                heroStats[i] = next;
+                patch("career", { ...content.career, heroStats });
+              }}
+            />
           ))}
         </div>
       </Section>
@@ -893,35 +936,15 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
         <div className="space-y-3">
           <p className="text-xs font-semibold text-gray-700">Hero stats</p>
           {content.sales.stats.map((stat, i) => (
-            <div key={i} className="grid gap-2 sm:grid-cols-3 p-3 rounded-lg bg-secondary/40">
-              <input
-                type="number"
-                value={stat.value}
-                onChange={(e) => {
-                  const stats = [...content.sales.stats];
-                  stats[i] = { ...stat, value: Number(e.target.value) };
-                  patch("sales", { ...content.sales, stats });
-                }}
-                className={inputClass}
-                placeholder="Value"
-              />
-              <TextInput
-                value={stat.suffix}
-                onChange={(v) => {
-                  const stats = [...content.sales.stats];
-                  stats[i] = { ...stat, suffix: v };
-                  patch("sales", { ...content.sales, stats });
-                }}
-              />
-              <TextInput
-                value={stat.label}
-                onChange={(v) => {
-                  const stats = [...content.sales.stats];
-                  stats[i] = { ...stat, label: v };
-                  patch("sales", { ...content.sales, stats });
-                }}
-              />
-            </div>
+            <HeroStatRow
+              key={`sales-stat-${stat.label}-${i}`}
+              stat={stat}
+              onChange={(next) => {
+                const stats = [...content.sales.stats];
+                stats[i] = { ...stat, ...next };
+                patch("sales", { ...content.sales, stats });
+              }}
+            />
           ))}
         </div>
       </Section>
