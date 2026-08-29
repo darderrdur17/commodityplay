@@ -210,3 +210,108 @@ export function formatLandingValidationErrors(result: ReturnType<typeof parseLan
     .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
     .join("; ");
 }
+
+type PathSegment = string | number;
+
+/**
+ * Drop blank entries from "one per line" string lists. Textarea editors sync on every
+ * keystroke, so a trailing newline yields `[""]` — which would otherwise fail the
+ * `.min(1)` string rules and reject the whole landing payload.
+ *
+ * Scalar strings are deliberately left untouched: some are meaningfully padded
+ * (e.g. the stat suffix `" min"` renders as "2 min").
+ */
+function dropBlankListEntries(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    const items = value.map(dropBlankListEntries);
+    if (items.length > 0 && items.every((item) => typeof item === "string")) {
+      return (items as string[]).filter((item) => item.trim().length > 0);
+    }
+    return items;
+  }
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value)) {
+      out[key] = dropBlankListEntries(nested);
+    }
+    return out;
+  }
+  return value;
+}
+
+function getAtPath(root: unknown, path: PathSegment[]): unknown {
+  let current: unknown = root;
+  for (const segment of path) {
+    if (current == null || typeof current !== "object") return undefined;
+    current = (current as Record<PathSegment, unknown>)[segment];
+  }
+  return current;
+}
+
+function setAtPath(root: unknown, path: PathSegment[], value: unknown): boolean {
+  if (path.length === 0) return false;
+  let container: unknown = root;
+  for (const segment of path.slice(0, -1)) {
+    if (container == null || typeof container !== "object") return false;
+    container = (container as Record<PathSegment, unknown>)[segment];
+  }
+  if (container == null || typeof container !== "object") return false;
+  (container as Record<PathSegment, unknown>)[path[path.length - 1]] = value;
+  return true;
+}
+
+/**
+ * Repair the specific fields Zod rejected instead of failing the entire module save:
+ * a field the admin blanked out falls back to its bundled default, and numeric/string
+ * mismatches are coerced. Anything else still surfaces as a save error.
+ */
+function repairRejectedFields(candidate: unknown, issues: z.ZodIssue[]): boolean {
+  let changed = false;
+
+  for (const issue of issues) {
+    const path = issue.path as PathSegment[];
+    if (path.length === 0) continue;
+
+    if (issue.code === "invalid_type") {
+      const actual = getAtPath(candidate, path);
+      if (issue.expected === "number" && typeof actual === "string") {
+        const parsed = Number(actual);
+        if (Number.isFinite(parsed) && setAtPath(candidate, path, parsed)) {
+          changed = true;
+          continue;
+        }
+      }
+      if (issue.expected === "string" && typeof actual === "number") {
+        if (setAtPath(candidate, path, String(actual))) {
+          changed = true;
+          continue;
+        }
+      }
+    }
+
+    if (issue.code === "too_small" || issue.code === "invalid_type") {
+      const fallback = getAtPath(DEFAULT_LANDING_CONTENT, path);
+      if (fallback !== undefined && setAtPath(candidate, path, fallback)) {
+        changed = true;
+      }
+    }
+  }
+
+  return changed;
+}
+
+/** Normalize incidental empties, then validate for save. Mirrors prepareFaqContentForSave. */
+export function prepareLandingContentForSave(payload: unknown) {
+  let candidate = dropBlankListEntries(payload);
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const result = landingContentSchema.safeParse(candidate);
+    if (result.success) return result;
+
+    const repairable = JSON.parse(JSON.stringify(candidate));
+    if (!repairRejectedFields(repairable, result.error.issues)) return result;
+    candidate = repairable;
+  }
+
+  return landingContentSchema.safeParse(candidate);
+}

@@ -9,7 +9,7 @@ import {
   updateContentModule,
 } from "@/lib/content/repository";
 import { getModuleMeta } from "@/lib/content/modules";
-import { parseLandingContentPayload, formatLandingValidationErrors } from "@/lib/content/landing-schema";
+import { prepareLandingContentForSave, formatLandingValidationErrors } from "@/lib/content/landing-schema";
 import { prepareFaqContentForSave, formatFaqValidationErrors } from "@/lib/content/faq-schema";
 import {
   parseMemberDashboardPayload,
@@ -118,7 +118,7 @@ export async function PUT(
     }
 
     if (slug === "landing") {
-      const landingValidation = parseLandingContentPayload(parsed.data.payload);
+      const landingValidation = prepareLandingContentForSave(parsed.data.payload);
       if (!landingValidation.success) {
         return NextResponse.json(
           {

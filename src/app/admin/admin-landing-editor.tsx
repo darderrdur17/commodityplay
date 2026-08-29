@@ -182,8 +182,9 @@ function FeaturesList({
       onChange={(e) => {
         const next = e.target.value;
         setText(next);
-        // Keep parent in sync for Save without blur; raw lines only (no trim while typing).
-        onChange(next.split("\n"));
+        // Keep parent in sync for Save without blur. Blank lines are dropped here because
+        // an in-progress trailing newline would otherwise fail validation for the whole page.
+        onChange(normalizeFeatureLines(next));
       }}
       onBlur={(e) => {
         focusedRef.current = false;
