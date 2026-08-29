@@ -116,7 +116,13 @@ function StatValueInput({
       onFocus={() => {
         focusedRef.current = true;
       }}
-      onChange={(e) => setText(e.target.value)}
+      onChange={(e) => {
+        const next = e.target.value;
+        setText(next);
+        // Commit immediately so Save works without blurring first (matters on touch devices).
+        const parsed = Number(next);
+        if (next.trim() !== "" && Number.isFinite(parsed)) onChange(parsed);
+      }}
       onBlur={() => {
         focusedRef.current = false;
         const parsed = Number(text);

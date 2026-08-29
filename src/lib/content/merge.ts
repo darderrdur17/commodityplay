@@ -50,6 +50,15 @@ export function mergeByKey<T>(
   });
 }
 
+/**
+ * Fully CMS-owned list (stat rows, etc.). Once the admin saves rows, that array is the
+ * source of truth — renaming a label, reordering, adding, or removing rows all stick.
+ * Keyed merges must not be used here: they drop any row whose key the admin edited.
+ */
+export function resolveEditableList<T>(defaults: T[], cms?: T[]): T[] {
+  return cms && cms.length > 0 ? cms : defaults;
+}
+
 /** Same as mergeByKey but repo defaults win over CMS on conflicting fields. */
 export function mergeByKeyDefaultsWin<T>(
   defaults: T[],
@@ -106,8 +115,9 @@ export function resolveWhatsInside(
     titleLine1: cms?.titleLine1 ?? defaults.whatsInside.titleLine1,
     titleLine2: cms?.titleLine2 ?? defaults.whatsInside.titleLine2,
     description: cms?.description ?? defaults.whatsInside.description,
+    // Keyed on `icon` (stable, not admin-editable) so editing a card title still saves.
     features: cms?.features?.length
-      ? mergeByKey(defaults.whatsInside.features, cms.features, "title")
+      ? mergeByKey(defaults.whatsInside.features, cms.features, "icon")
       : defaults.whatsInside.features,
   };
 }
@@ -180,9 +190,7 @@ export function resolveSalesRoi(
     quote: cmsRoi?.quote ?? defaults.sales.roi.quote,
     quoteAuthor: cmsRoi?.quoteAuthor ?? defaults.sales.roi.quoteAuthor,
     quoteSubtitle: cmsRoi?.quoteSubtitle ?? defaults.sales.roi.quoteSubtitle,
-    stats: cmsRoi?.stats?.length
-      ? mergeByKey(defaults.sales.roi.stats, cmsRoi.stats, "label")
-      : defaults.sales.roi.stats,
+    stats: resolveEditableList(defaults.sales.roi.stats, cmsRoi?.stats),
   };
 }
 
@@ -203,9 +211,7 @@ export function resolveCareerContent(
     headline: cmsString(cms?.headline, defaults.career.headline),
     headlineAccent: cmsString(cms?.headlineAccent, defaults.career.headlineAccent),
     description: cmsString(cms?.description, defaults.career.description),
-    heroStats: cms?.heroStats?.length
-      ? mergeByKey(defaults.career.heroStats, cms.heroStats, "label")
-      : defaults.career.heroStats,
+    heroStats: resolveEditableList(defaults.career.heroStats, cms?.heroStats),
     ctaPrimary: cmsString(cms?.ctaPrimary, defaults.career.ctaPrimary),
     ctaSecondary: cmsString(cms?.ctaSecondary, defaults.career.ctaSecondary),
     ...resolveCareerFinalCta(defaults, cms),
@@ -248,9 +254,7 @@ export function resolveSalesContent(
     description: cmsString(cms?.description, defaults.sales.description),
     ctaPrimary: cmsString(cms?.ctaPrimary, defaults.sales.ctaPrimary),
     ctaSecondary: cmsString(cms?.ctaSecondary, defaults.sales.ctaSecondary),
-    stats: cms?.stats?.length
-      ? mergeByKey(defaults.sales.stats, cms.stats, "label")
-      : defaults.sales.stats,
+    stats: resolveEditableList(defaults.sales.stats, cms?.stats),
     pricing: resolveSalesPricing(defaults, cms),
     comparison: {
       groups: resolveComparisonGroups(defaults.sales.comparison.groups, cms?.comparison?.groups),
@@ -390,9 +394,7 @@ export function mergeLandingContent(
   merged.mentorConnect = resolveMentorConnect(defaults, cms.mentorConnect);
   merged.career = resolveCareerContent(defaults, cms.career);
 
-  if (cms.stats?.length) {
-    merged.stats = mergeByKey(defaults.stats, cms.stats, "label");
-  }
+  merged.stats = resolveEditableList(defaults.stats, cms.stats);
 
   merged.sales = {
     ...resolveSalesContent(defaults, cms.sales),

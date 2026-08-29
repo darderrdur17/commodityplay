@@ -162,7 +162,7 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8 mt-12 sm:mt-14 pt-10 border-t border-white/10 max-w-4xl">
                 {career.heroStats.map((stat, i) => (
-                  <Reveal key={stat.label} delay={0.2 + i * 0.08}>
+                  <Reveal key={`${stat.label}-${i}`} delay={0.2 + i * 0.08}>
                     <div className="text-left sm:text-center">
                       <p className="font-serif text-2xl sm:text-3xl font-bold text-white">
                         <AnimatedCounter value={stat.value} suffix={stat.suffix} />

@@ -241,7 +241,7 @@ export function SalesLandingPanel({ content, membersStrip, edgeNote, onOpenConta
 
           <div className="flex flex-wrap gap-6 sm:gap-10 mt-12 sm:mt-14 pt-8 sm:pt-10 border-t border-white/10">
             {content.stats.map((stat, i) => (
-              <Reveal key={stat.label} delay={i * 0.1}>
+              <Reveal key={`${stat.label}-${i}`} delay={i * 0.1}>
                 <div>
                   <p className="font-serif text-2xl sm:text-3xl font-bold text-white">
                     {stat.value}{stat.suffix}
@@ -350,7 +350,7 @@ export function SalesLandingPanel({ content, membersStrip, edgeNote, onOpenConta
               </Reveal>
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 {content.roi.stats.map((stat, i) => (
-                  <Reveal key={stat.label} delay={i * 0.08}>
+                  <Reveal key={`${stat.label}-${i}`} delay={i * 0.08}>
                     <div className="rounded-xl p-4 sm:p-5" style={{ background: "#dcfce7" }}>
                       <p className="font-serif text-xl sm:text-2xl font-bold text-gray-900 mb-1">{stat.value}</p>
                       <p className="text-xs sm:text-sm text-gray-700 leading-snug">{stat.label}</p>
