@@ -97,8 +97,8 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
   },
   {
     slug: "starter-pack",
-    title: "Starter Pack",
-    description: "Free infographics and starter downloads",
+    title: "Preview Content",
+    description: "Public /starter-pack page — hero, infographics, community email, and upgrade CTA",
     requiredTier: "STARTER",
   },
   {
