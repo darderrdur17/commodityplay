@@ -225,7 +225,7 @@ function ModuleEditor({
       case "case-studies":
         return <CaseStudiesEditor {...editorProps} />;
       case "starter-pack":
-        return <StarterPackEditor {...editorProps} />;
+        return <StarterPackEditor {...editorProps} contentVersion={version} />;
       case "resume-templates":
         return <ResumeEditor {...editorProps} />;
       case "mentor-connect":

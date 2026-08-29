@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  mergeStarterEmailDigest,
   mergeStarterPackHero,
   mergeStarterUpgradeCta,
+  resolveEditorStarterEmailDigest,
   starterInfographicThumbKey,
   type StarterEmailDigest,
   type StarterInfographic,
@@ -198,30 +198,40 @@ function FreeInfographicsTab({
 
 // ─── Email Digest ─────────────────────────────────────────────────────────────
 
-function EmailDigestTab({ data, onChange }: { data: StarterPayload; onChange: (d: StarterPayload) => void }) {
-  const rawDigest = data.emailDigest ?? (data.marketNote
-    ? {
-        ...data.marketNote,
-        confirmedText: data.marketNote.confirmedText ?? data.marketNote.subscribed,
-      }
-    : undefined);
-  const digest = mergeStarterEmailDigest(rawDigest);
+function EmailDigestTab({
+  data,
+  onChange,
+  contentVersion = 0,
+}: {
+  data: StarterPayload;
+  onChange: (d: StarterPayload) => void;
+  contentVersion?: number;
+}) {
+  const [digest, setDigest] = useState(() => resolveEditorStarterEmailDigest(data));
+
+  useEffect(() => {
+    setDigest(resolveEditorStarterEmailDigest(data));
+    // Re-sync only after load / save / revert — not on every local edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- data read when contentVersion bumps
+  }, [contentVersion]);
+
+  function commit(next: StarterEmailDigest) {
+    setDigest(next);
+    onChange({ ...data, emailDigest: next });
+  }
 
   function patch(updates: Partial<EmailDigest>) {
-    onChange({ ...data, emailDigest: { ...digest, ...updates } });
+    commit({ ...digest, ...updates });
   }
 
   function addTopic() {
-    patch({ topics: [...digest.topics, { title: "" }] });
+    patch({ topics: [...digest.topics, { tag: "", title: "" }] });
   }
 
-  function patchTopic(i: number, val: string) {
+  function patchTopicField(i: number, field: "tag" | "title", val: string) {
     const next = [...digest.topics];
-    const current = next[i];
-    next[i] =
-      typeof current === "string" || !current
-        ? { title: val }
-        : { ...current, title: val };
+    const current = next[i] ?? { title: "" };
+    next[i] = { ...current, [field]: val };
     patch({ topics: next });
   }
 
@@ -233,6 +243,7 @@ function EmailDigestTab({ data, onChange }: { data: StarterPayload; onChange: (d
     <div className="space-y-4">
       <p className="text-xs text-muted-fg">
         One community email for all Starter Pack members — shared headline, description, and topics.
+        Topic labels appear in blue bubbles on the public page; captions show as plain text beside them.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <EditorField label="Eyebrow">
@@ -262,16 +273,30 @@ function EmailDigestTab({ data, onChange }: { data: StarterPayload; onChange: (d
           <Button variant="outline" size="sm" onClick={addTopic}><Plus className="w-3.5 h-3.5" /> Add topic</Button>
         </div>
         {digest.topics.map((topic, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <input
-              className={inputClass}
-              value={topic.title}
-              onChange={(e) => patchTopic(i, e.target.value)}
-              placeholder={`Topic ${i + 1}`}
-            />
-            <button type="button" onClick={() => delTopic(i)} className="text-red-400 hover:text-red-600 p-1">
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+          <div key={i} className="rounded-lg border border-border p-3">
+            <div className="flex items-start gap-2">
+              <div className="flex-1 grid gap-3 sm:grid-cols-2">
+                <EditorField label="Topic label (blue bubble)">
+                  <input
+                    className={inputClass}
+                    value={topic.tag ?? ""}
+                    onChange={(e) => patchTopicField(i, "tag", e.target.value)}
+                    placeholder="e.g. Desk Truths"
+                  />
+                </EditorField>
+                <EditorField label="Caption">
+                  <input
+                    className={inputClass}
+                    value={topic.title}
+                    onChange={(e) => patchTopicField(i, "title", e.target.value)}
+                    placeholder="Description shown beside the label"
+                  />
+                </EditorField>
+              </div>
+              <button type="button" onClick={() => delTopic(i)} className="text-red-400 hover:text-red-600 p-1 mt-6">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         ))}
         {digest.topics.length === 0 && (
@@ -356,11 +381,13 @@ export function StarterPackEditor({
   onChange,
   moduleSlug,
   requiredTier,
+  contentVersion = 0,
 }: {
   payload: unknown;
   onChange: (p: unknown) => void;
   moduleSlug: string;
   requiredTier: string;
+  contentVersion?: number;
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("infographics");
   const data = (payload as StarterPayload) ?? {};
@@ -396,7 +423,11 @@ export function StarterPackEditor({
         </div>
       )}
       {activeTab === "digest" && (
-        <EmailDigestTab data={data} onChange={onChange as (d: StarterPayload) => void} />
+        <EmailDigestTab
+          data={data}
+          onChange={onChange as (d: StarterPayload) => void}
+          contentVersion={contentVersion}
+        />
       )}
       {activeTab === "upgrade" && (
         <UpgradeCtaTab data={data} onChange={onChange as (d: StarterPayload) => void} />

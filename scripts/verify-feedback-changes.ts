@@ -11,6 +11,7 @@ import { resolveMemberPersonaLabel } from "../src/lib/persona-display";
 import { getDemoAccountDisplayPersona } from "../src/data/demo-accounts";
 import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
 import { PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
+import { mergeStarterEmailDigest, splitLegacyDigestTopicLine } from "../src/data/starter-pack";
 
 let failed = 0;
 function ok(name: string, pass: boolean, detail?: string) {
@@ -154,6 +155,25 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     },
   });
   ok("Chapter Coverage save validates", save.success);
+}
+
+// ── Starter Pack digest topic normalization ─────────────────────────────────
+{
+  const split = splitLegacyDigestTopicLine('Desk Truths — "what nobody tells you" insider tips');
+  ok("Legacy topic line splits tag and caption", split.tag === "Desk Truths" && split.title.includes("insider"));
+  const merged = mergeStarterEmailDigest({
+    topics: ["Market Pulse — quick reads on live market dynamics"],
+  } as never);
+  ok(
+    "CMS legacy string topics normalize for public display",
+    merged.topics[0]?.tag === "Market Pulse" && merged.topics[0]?.title.includes("quick reads")
+  );
+  const corrupted = { "0": "D", "1": "e", "2": "s", "3": "k", "4": " ", "5": "T", "6": "r", "7": "u", "8": "t", "9": "h", "10": "s", "11": " ", "12": "—", "13": " ", "14": "c", "15": "a", "16": "p", "17": "t", "18": "i", "19": "o", "20": "n" };
+  const recovered = mergeStarterEmailDigest({ topics: [corrupted] } as never);
+  ok(
+    "Corrupted char-index CMS topics recover on read",
+    recovered.topics[0]?.tag === "Desk Truths" && recovered.topics[0]?.title === "caption"
+  );
 }
 
 console.log(failed === 0 ? "\n✅ All feedback/CMS checks passed." : `\n❌ ${failed} check(s) failed.`);

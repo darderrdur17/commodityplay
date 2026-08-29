@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Reveal } from "@/components/animations";
 import { Button } from "@/components/ui/button";
 
@@ -15,6 +16,8 @@ interface Props {
   accentColor?: string;
   /** Career/starter: simple bullet list. Sales: tagged rows. */
   variant?: "bullets" | "tags";
+  /** When "primary", topic labels use a unified blue bubble (captions stay plain). */
+  tagStyle?: "colored" | "primary";
   cta?: {
     label: string;
     onClick?: () => void;
@@ -32,6 +35,7 @@ export function MarketNoteStrip({
   topics,
   accentColor = "#3280ff",
   variant = "tags",
+  tagStyle = "colored",
   cta,
   subscribedNote,
 }: Props) {
@@ -109,13 +113,20 @@ export function MarketNoteStrip({
                     >
                       {topic.tag && (
                         <span
-                          className="inline-flex items-center justify-center min-w-[78px] px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide flex-shrink-0"
-                          style={{ color: topic.tagColor, backgroundColor: topic.tagBg }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[78px] px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide flex-shrink-0",
+                            tagStyle === "primary" && "bg-primary-100 text-primary-800"
+                          )}
+                          style={
+                            tagStyle === "primary"
+                              ? undefined
+                              : { color: topic.tagColor, backgroundColor: topic.tagBg }
+                          }
                         >
                           {topic.tag}
                         </span>
                       )}
-                      <p className="text-[13px] text-gray-800 leading-snug">{topic.title}</p>
+                      <p className="text-[13px] text-gray-800 leading-snug flex-1">{topic.title}</p>
                     </li>
                   ))}
                 </ul>

@@ -56,17 +56,59 @@ export const STARTER_EMAIL_DIGEST: StarterEmailDigest = {
   confirmedText: "You're subscribed. First note lands on the next weekly send.",
 };
 
+/** Split legacy one-line topics like `Desk Truths — caption text`. */
+export function splitLegacyDigestTopicLine(text: string): MarketNoteTopic {
+  const trimmed = text.trim();
+  if (!trimmed) return { title: "" };
+  const match = trimmed.match(/^(.+?)\s*[—–-]\s*(.+)$/);
+  if (match) {
+    return { tag: match[1].trim(), title: match[2].trim() };
+  }
+  return { title: trimmed };
+}
+
+function reconstructIndexedString(obj: Record<string, unknown>): string | null {
+  const chars: string[] = [];
+  for (let i = 0; ; i++) {
+    const ch = obj[String(i)];
+    if (typeof ch !== "string") break;
+    chars.push(ch);
+  }
+  return chars.length ? chars.join("") : null;
+}
+
 function normalizeDigestTopic(raw: unknown): MarketNoteTopic | null {
   if (typeof raw === "string") {
-    const title = raw.trim();
-    return title ? { title } : null;
+    const parsed = splitLegacyDigestTopicLine(raw);
+    return parsed.title || parsed.tag ? parsed : null;
   }
   if (!raw || typeof raw !== "object") return null;
   const obj = raw as Record<string, unknown>;
-  const title = typeof obj.title === "string" ? obj.title.trim() : "";
+
+  let tag = typeof obj.tag === "string" ? obj.tag.trim() : undefined;
+  let title = typeof obj.title === "string" ? obj.title.trim() : "";
+
+  if (!title) {
+    const reconstructed = reconstructIndexedString(obj);
+    if (reconstructed) {
+      const parsed = splitLegacyDigestTopicLine(reconstructed);
+      tag = tag || parsed.tag;
+      title = parsed.title;
+    }
+  }
+
+  if (!title && tag) {
+    const parsed = splitLegacyDigestTopicLine(tag);
+    if (parsed.title) {
+      tag = parsed.tag;
+      title = parsed.title;
+    }
+  }
+
   if (!title) return null;
+
   return {
-    tag: typeof obj.tag === "string" ? obj.tag : undefined,
+    tag: tag || undefined,
     tagColor: typeof obj.tagColor === "string" ? obj.tagColor : undefined,
     tagBg: typeof obj.tagBg === "string" ? obj.tagBg : undefined,
     title,
@@ -105,6 +147,26 @@ export function mergeStarterEmailDigest(
     topics: normalizeDigestTopics(raw.topics as unknown[] | undefined, defaults.topics),
     confirmedText: raw.confirmedText?.trim() || defaults.confirmedText,
   };
+}
+
+type StarterPayloadDigestSource = {
+  emailDigest?: Partial<StarterEmailDigest> | null;
+  marketNote?: Partial<StarterEmailDigest> & { subscribed?: string };
+};
+
+/** Admin editor display — merge CMS over defaults without re-parsing on every keystroke. */
+export function resolveEditorStarterEmailDigest(
+  payload: StarterPayloadDigestSource | null | undefined
+): StarterEmailDigest {
+  const rawDigest =
+    payload?.emailDigest ??
+    (payload?.marketNote
+      ? {
+          ...payload.marketNote,
+          confirmedText: payload.marketNote.confirmedText ?? payload.marketNote.subscribed,
+        }
+      : undefined);
+  return mergeStarterEmailDigest(rawDigest);
 }
 
 export function resolveStarterMarketNote(digest: StarterEmailDigest) {

@@ -176,6 +176,7 @@ export function StarterPackClient({
         description={marketNote.description}
         topics={marketNote.topics}
         variant="tags"
+        tagStyle="primary"
         subscribedNote={marketNote.subscribed}
         cta={{
           label: "Upgrade to Pro",
