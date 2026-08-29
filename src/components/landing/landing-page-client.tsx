@@ -221,8 +221,9 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
             <div className="page-container">
               <Reveal className="text-center mb-10 sm:mb-14 max-w-3xl mx-auto">
                 <SectionCategoryLabel>{chapterCoverage.eyebrow}</SectionCategoryLabel>
-                <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-bold tracking-tight text-gray-900 mb-4">
-                  {chapterCoverage.title}
+                <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-bold tracking-tight text-gray-900 mb-4 leading-[1.1]">
+                  {chapterCoverage.title}{" "}
+                  <span className="text-primary-400 italic">{chapterCoverage.titleAccent}</span>
                 </h2>
                 <p className="text-muted-fg text-base sm:text-lg leading-relaxed">
                   {chapterCoverage.description}

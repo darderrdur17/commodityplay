@@ -72,6 +72,33 @@ export function mergeByKeyDefaultsWin<T>(
   });
 }
 
+/** Split legacy single-line headings ("What We Cover. Entire Market Spectrum.") into title + accent. */
+export function normalizeChapterCoverageHeadline(input: {
+  title?: string;
+  titleAccent?: string;
+  defaultTitle: string;
+  defaultTitleAccent: string;
+}): { title: string; titleAccent: string } {
+  if (input.titleAccent?.trim()) {
+    return {
+      title: input.title?.trim() || input.defaultTitle,
+      titleAccent: input.titleAccent.trim(),
+    };
+  }
+
+  const title = input.title?.trim() || input.defaultTitle;
+  const split = title.match(/^(.+?\.\s+)(.+)$/);
+  if (split) {
+    const accent = split[2].trim();
+    return {
+      title: split[1].trim(),
+      titleAccent: accent.endsWith(".") ? accent : `${accent}.`,
+    };
+  }
+
+  return { title, titleAccent: input.defaultTitleAccent };
+}
+
 /** Case study sample — CMS copy wins; repo defaults fill structure and new cards. */
 export function resolveCaseStudySample(
   defaults: LandingContent,
@@ -96,9 +123,16 @@ export function resolveChapterCoverage(
   defaults: LandingContent,
   cms?: Partial<LandingContent["chapterCoverage"]>
 ): LandingContent["chapterCoverage"] {
+  const headline = normalizeChapterCoverageHeadline({
+    title: cms?.title,
+    titleAccent: cms?.titleAccent,
+    defaultTitle: defaults.chapterCoverage.title,
+    defaultTitleAccent: defaults.chapterCoverage.titleAccent,
+  });
   return {
     eyebrow: cms?.eyebrow ?? defaults.chapterCoverage.eyebrow,
-    title: cms?.title ?? defaults.chapterCoverage.title,
+    title: headline.title,
+    titleAccent: headline.titleAccent,
     description: cms?.description ?? defaults.chapterCoverage.description,
     chapters: cms?.chapters?.length
       ? mergeByKey(defaults.chapterCoverage.chapters, cms.chapters, "letter")

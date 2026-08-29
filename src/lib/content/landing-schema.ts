@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DEFAULT_LANDING_CONTENT } from "@/data/landing-content";
+import { normalizeChapterCoverageHeadline } from "./merge";
 
 const heroStatSchema = z.object({
   value: z.number(),
@@ -130,6 +131,7 @@ export const landingContentSchema = z.object({
   chapterCoverage: z.object({
     eyebrow: z.string().min(1),
     title: z.string().min(1),
+    titleAccent: z.string().min(1),
     description: z.string().min(1),
     chapters: z.array(chapterSchema).min(1),
   }),
@@ -300,9 +302,30 @@ function repairRejectedFields(candidate: unknown, issues: z.ZodIssue[]): boolean
   return changed;
 }
 
+/** Normalize legacy chapter-coverage headings before validation. */
+function normalizeChapterCoverageForSave(payload: unknown): unknown {
+  if (!payload || typeof payload !== "object") return payload;
+  const root = payload as Record<string, unknown>;
+  const chapterCoverage = root.chapterCoverage;
+  if (!chapterCoverage || typeof chapterCoverage !== "object") return payload;
+
+  const cc = chapterCoverage as Record<string, unknown>;
+  const headline = normalizeChapterCoverageHeadline({
+    title: typeof cc.title === "string" ? cc.title : undefined,
+    titleAccent: typeof cc.titleAccent === "string" ? cc.titleAccent : undefined,
+    defaultTitle: DEFAULT_LANDING_CONTENT.chapterCoverage.title,
+    defaultTitleAccent: DEFAULT_LANDING_CONTENT.chapterCoverage.titleAccent,
+  });
+
+  return {
+    ...root,
+    chapterCoverage: { ...cc, ...headline },
+  };
+}
+
 /** Normalize incidental empties, then validate for save. Mirrors prepareFaqContentForSave. */
 export function prepareLandingContentForSave(payload: unknown) {
-  let candidate = dropBlankListEntries(payload);
+  let candidate = normalizeChapterCoverageForSave(dropBlankListEntries(payload));
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const result = landingContentSchema.safeParse(candidate);

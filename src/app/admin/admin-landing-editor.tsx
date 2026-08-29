@@ -487,6 +487,12 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
               onChange={(v) => patch("chapterCoverage", { ...content.chapterCoverage, title: v })}
             />
           </Field>
+          <Field label="Title accent (italic)" hint='e.g. "Entire Market Spectrum." — matches Case Studies heading style'>
+            <TextInput
+              value={content.chapterCoverage.titleAccent}
+              onChange={(v) => patch("chapterCoverage", { ...content.chapterCoverage, titleAccent: v })}
+            />
+          </Field>
         </div>
         <Field label="Section description">
           <TextInput

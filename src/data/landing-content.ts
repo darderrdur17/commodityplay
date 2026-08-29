@@ -146,6 +146,7 @@ export interface LandingContent {
   chapterCoverage: {
     eyebrow: string;
     title: string;
+    titleAccent: string;
     description: string;
     chapters: ChapterCoverage[];
   };
@@ -414,6 +415,7 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
   chapterCoverage: {
     eyebrow: "The Playbook",
     title: "What We Cover.",
+    titleAccent: "Entire Market Spectrum.",
     description:
       "Most people learn commodity markets from textbooks and headlines. This Playbook starts where the desk starts — cargoes, freight, arbitrage windows, and the commercial decisions that determine whether a trade makes money.",
     chapters: [
