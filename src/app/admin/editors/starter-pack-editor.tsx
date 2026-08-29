@@ -228,24 +228,25 @@ function EmailDigestTab({ data, onChange }: { data: StarterPayload; onChange: (d
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-fg">
-        Shared headline and topics for both tracks. Career and Sales members receive different digest descriptions.
+        One community email for all Starter Pack members — shared headline, description, and topics.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <EditorField label="Eyebrow">
           <input className={inputClass} value={digest.eyebrow} onChange={(e) => patch({ eyebrow: e.target.value })} />
         </EditorField>
         <EditorField label="Frequency">
-          <input className={inputClass} value={digest.frequency} onChange={(e) => patch({ frequency: e.target.value })} placeholder="e.g. Biweekly" />
+          <input className={inputClass} value={digest.frequency} onChange={(e) => patch({ frequency: e.target.value })} placeholder="e.g. Weekly" />
         </EditorField>
       </div>
       <EditorField label="Title">
         <input className={inputClass} value={digest.title} onChange={(e) => patch({ title: e.target.value })} />
       </EditorField>
-      <EditorField label="Career track description">
-        <textarea className={textareaClass} value={digest.careerDescription} onChange={(e) => patch({ careerDescription: e.target.value })} />
-      </EditorField>
-      <EditorField label="Sales track description">
-        <textarea className={textareaClass} value={digest.salesDescription} onChange={(e) => patch({ salesDescription: e.target.value })} />
+      <EditorField label="Community email description">
+        <textarea
+          className={textareaClass}
+          value={digest.communityDescription}
+          onChange={(e) => patch({ communityDescription: e.target.value })}
+        />
       </EditorField>
       <EditorField label="Subscription confirmed text">
         <input className={inputClass} value={digest.confirmedText} onChange={(e) => patch({ confirmedText: e.target.value })} />
@@ -340,7 +341,7 @@ const TABS = [
   { id: "hero", label: "Hero" },
   { id: "infographics", label: "Free Infographics" },
   { id: "glossary", label: "Desk Glossary" },
-  { id: "digest", label: "Email Digest" },
+  { id: "digest", label: "Community email" },
   { id: "upgrade", label: "Upgrade CTA" },
 ] as const;
 

@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: `Starter Pack — ${BRAND_NAME}`,
-  description: "Free starter pack — 5 infographics, biweekly email digest, Chapter A preview, and Desk Glossary.",
+  description: "Free starter pack — 5 infographics, weekly community email, Chapter A preview, and Desk Glossary.",
 };
 
 export default async function StarterPackPage() {
@@ -20,7 +20,7 @@ export default async function StarterPackPage() {
     getContentStats(),
   ]);
 
-  const marketNote = resolveStarterMarketNote(content.emailDigest, session?.user?.track);
+  const marketNote = resolveStarterMarketNote(content.emailDigest);
   const upgradeCta = {
     ...content.upgradeCta,
     description: formatContentPlaceholders(content.upgradeCta.description, contentStats),

@@ -15,6 +15,8 @@ import { startCheckout } from "@/lib/start-checkout";
 import { PAGE_HERO_TOP, PAGE_HERO_BOTTOM, PAGE_CTA_PY } from "@/lib/layout-constants";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 
+const STARTER_PACK_HREF = "/starter-pack";
+
 export function StarterPackClient({
   hero,
   infographics,
@@ -40,6 +42,16 @@ export function StarterPackClient({
   const [loadingPro, setLoadingPro] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
+
+  function handleDownloadGate() {
+    if (!isLoggedIn) {
+      router.push(
+        `/signup?plan=starter&callbackUrl=${encodeURIComponent(STARTER_PACK_HREF)}`
+      );
+      return;
+    }
+    setModalOpen(true);
+  }
 
   async function handleUpgradePro() {
     if (!session?.user) {
@@ -78,7 +90,7 @@ export function StarterPackClient({
             <p className="text-white/65 text-lg max-w-xl mb-8 leading-relaxed">
               {hero.description}
             </p>
-            <Button size="xl" variant="primary-dark" onClick={() => setModalOpen(true)}>
+            <Button size="xl" variant="primary-dark" onClick={handleDownloadGate}>
               {hero.ctaLabel} <ArrowRight className="w-5 h-5" />
             </Button>
           </Reveal>
@@ -144,7 +156,7 @@ export function StarterPackClient({
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setModalOpen(true)}
+                      onClick={handleDownloadGate}
                       className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-400 hover:text-primary-800 transition-colors"
                     >
                       <Download className="w-4 h-4" /> {isLoggedIn ? "Get Starter Pack" : "Download free"}
@@ -214,7 +226,14 @@ export function StarterPackClient({
               <Button variant="outline">Browse Glossary ({glossaryCount} terms)</Button>
             </Link>
           ) : (
-            <Button variant="outline" onClick={() => setModalOpen(true)}>
+            <Button
+              variant="outline"
+              onClick={() =>
+                router.push(
+                  `/signup?plan=starter&callbackUrl=${encodeURIComponent("/glossary")}`
+                )
+              }
+            >
               Browse Glossary ({glossaryCount} terms)
             </Button>
           )}

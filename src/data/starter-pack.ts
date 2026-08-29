@@ -1,11 +1,14 @@
-import { CAREER_MARKET_NOTE, SALES_MARKET_NOTE, type MarketNoteTopic } from "@/data/market-notes";
+import type { MarketNoteTopic } from "@/data/market-notes";
 
 export interface StarterEmailDigest {
   eyebrow: string;
   title: string;
-  careerDescription: string;
-  salesDescription: string;
-  /** Legacy single description — migrated to both track fields on read */
+  communityDescription: string;
+  /** @deprecated Migrated into communityDescription on read */
+  careerDescription?: string;
+  /** @deprecated Migrated into communityDescription on read */
+  salesDescription?: string;
+  /** @deprecated Migrated into communityDescription on read */
   description?: string;
   frequency: string;
   topics: MarketNoteTopic[];
@@ -13,16 +16,45 @@ export interface StarterEmailDigest {
 }
 
 export const STARTER_EMAIL_DIGEST: StarterEmailDigest = {
-  eyebrow: "Live · Biweekly Edition",
-  title: "The Email Digest for Starter Members.",
-  careerDescription: CAREER_MARKET_NOTE.description,
-  salesDescription: SALES_MARKET_NOTE.description,
-  frequency: "Biweekly",
-  topics: CAREER_MARKET_NOTE.topics,
-  confirmedText: "You're subscribed. First note lands on the next biweekly send.",
+  eyebrow: "Weekly · Community Digest",
+  title: "Market Note That Builds Your Professional Desk Credibility",
+  communityDescription:
+    "Not just a market digest — a community briefing for Starter members. Each note breaks down what's moving markets and how the desk would explain it, so you walk into any conversation sounding like you're rooted to the same space.",
+  frequency: "Weekly",
+  topics: [
+    {
+      tag: "Desk Truths",
+      tagColor: "#15803d",
+      tagBg: "#dcfce7",
+      title: "How a physical trader sizes a position — the logic behind the number",
+    },
+    {
+      tag: "Market Pulse",
+      tagColor: "#2563eb",
+      tagBg: "#dbeafe",
+      title: "Why the EIA draw didn't move flat price — and how to explain that on the desk",
+    },
+    {
+      tag: "Desk Tactics",
+      tagColor: "#b45309",
+      tagBg: "#fef3c7",
+      title: 'What "commercial awareness" actually means in a commodity conversation',
+    },
+    {
+      tag: "Interview",
+      tagColor: "#7c3aed",
+      tagBg: "#ede9fe",
+      title: "Five questions every commodity trading interview asks — and what they're testing",
+    },
+    {
+      tag: "Position",
+      tagColor: "#991b1b",
+      tagBg: "#fee2e2",
+      title: "How to position a non-commodity background as commercial experience",
+    },
+  ],
+  confirmedText: "You're subscribed. First note lands on the next weekly send.",
 };
-
-export type StarterUserTrack = "CAREER" | "SALES" | null | undefined;
 
 export function mergeStarterEmailDigest(
   cms: Partial<StarterEmailDigest> | null | undefined,
@@ -30,27 +62,28 @@ export function mergeStarterEmailDigest(
 ): StarterEmailDigest {
   const raw = cms ?? {};
   const legacyDesc = raw.description?.trim();
-  const careerDescription =
-    raw.careerDescription?.trim() || legacyDesc || defaults.careerDescription;
-  const salesDescription =
-    raw.salesDescription?.trim() || legacyDesc || defaults.salesDescription;
+  const communityDescription =
+    raw.communityDescription?.trim() ||
+    legacyDesc ||
+    raw.careerDescription?.trim() ||
+    raw.salesDescription?.trim() ||
+    defaults.communityDescription;
 
   return {
     eyebrow: raw.eyebrow?.trim() || defaults.eyebrow,
     title: raw.title?.trim() || defaults.title,
-    careerDescription,
-    salesDescription,
+    communityDescription,
     frequency: raw.frequency?.trim() || defaults.frequency,
     topics: raw.topics?.length ? raw.topics : defaults.topics,
     confirmedText: raw.confirmedText?.trim() || defaults.confirmedText,
   };
 }
 
-export function resolveStarterMarketNote(digest: StarterEmailDigest, track?: StarterUserTrack) {
+export function resolveStarterMarketNote(digest: StarterEmailDigest) {
   return {
     eyebrow: digest.eyebrow,
     title: digest.title,
-    description: track === "SALES" ? digest.salesDescription : digest.careerDescription,
+    description: digest.communityDescription,
     topics: digest.topics,
     subscribed: digest.confirmedText,
   };
@@ -124,7 +157,7 @@ export const STARTER_INFOGRAPHICS: StarterInfographic[] = [
 export const STARTER_MARKET_NOTE = {
   eyebrow: STARTER_EMAIL_DIGEST.eyebrow,
   title: STARTER_EMAIL_DIGEST.title,
-  description: STARTER_EMAIL_DIGEST.careerDescription,
+  description: STARTER_EMAIL_DIGEST.communityDescription,
   topics: STARTER_EMAIL_DIGEST.topics,
   subscribed: STARTER_EMAIL_DIGEST.confirmedText,
 };
@@ -140,7 +173,7 @@ export const STARTER_PACK_HERO: StarterPackHero = {
   eyebrow: "Free · Starter Pack",
   title: "Your desk-ready starter resources.",
   description:
-    "Five infographics, a biweekly email digest, Chapter A preview, and the full Desk Glossary — free, forever.",
+    "Five infographics, a weekly community email, Chapter A preview, and the full Desk Glossary — free, forever.",
   ctaLabel: "Get the Starter Pack",
 };
 
