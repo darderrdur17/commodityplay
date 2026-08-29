@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   mergeStarterEmailDigest,
+  mergeStarterPackHero,
   mergeStarterUpgradeCta,
   starterInfographicThumbKey,
   type StarterEmailDigest,
   type StarterInfographic,
+  type StarterPackHero,
   type StarterUpgradeCta,
 } from "@/data/starter-pack";
 import { CONTENT_STAT_PLACEHOLDER_HINT } from "@/lib/content/content-stat-placeholders";
@@ -26,6 +28,7 @@ import {
 interface EmailDigest extends StarterEmailDigest {}
 
 interface StarterPayload {
+  hero?: Partial<StarterPackHero>;
   infographics?: StarterInfographic[];
   emailDigest?: Partial<EmailDigest>;
   /** Legacy CMS key — read-only migration source */
@@ -274,6 +277,36 @@ function EmailDigestTab({ data, onChange }: { data: StarterPayload; onChange: (d
   );
 }
 
+// ─── Hero ─────────────────────────────────────────────────────────────────────
+
+function HeroTab({ data, onChange }: { data: StarterPayload; onChange: (d: StarterPayload) => void }) {
+  const hero = mergeStarterPackHero(data.hero);
+
+  function patch(updates: Partial<StarterPackHero>) {
+    onChange({ ...data, hero: { ...hero, ...updates } });
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-fg">
+        Top hero on <strong>/starter-pack</strong> — eyebrow pill, headline, description, and primary CTA button.
+      </p>
+      <EditorField label="Eyebrow">
+        <input className={inputClass} value={hero.eyebrow} onChange={(e) => patch({ eyebrow: e.target.value })} />
+      </EditorField>
+      <EditorField label="Headline">
+        <input className={inputClass} value={hero.title} onChange={(e) => patch({ title: e.target.value })} />
+      </EditorField>
+      <EditorField label="Description">
+        <textarea className={textareaClass} value={hero.description} onChange={(e) => patch({ description: e.target.value })} />
+      </EditorField>
+      <EditorField label="CTA button label">
+        <input className={inputClass} value={hero.ctaLabel} onChange={(e) => patch({ ctaLabel: e.target.value })} />
+      </EditorField>
+    </div>
+  );
+}
+
 // ─── Upgrade CTA ──────────────────────────────────────────────────────────────
 
 function UpgradeCtaTab({ data, onChange }: { data: StarterPayload; onChange: (d: StarterPayload) => void }) {
@@ -304,6 +337,7 @@ function UpgradeCtaTab({ data, onChange }: { data: StarterPayload; onChange: (d:
 // ─── Main editor ─────────────────────────────────────────────────────────────
 
 const TABS = [
+  { id: "hero", label: "Hero" },
   { id: "infographics", label: "Free Infographics" },
   { id: "glossary", label: "Desk Glossary" },
   { id: "digest", label: "Email Digest" },
@@ -344,6 +378,9 @@ export function StarterPackEditor({
         ))}
       </div>
 
+      {activeTab === "hero" && (
+        <HeroTab data={data} onChange={onChange as (d: StarterPayload) => void} />
+      )}
       {activeTab === "infographics" && (
         <FreeInfographicsTab data={data} onChange={onChange as (d: StarterPayload) => void} moduleSlug={moduleSlug} requiredTier={requiredTier} />
       )}

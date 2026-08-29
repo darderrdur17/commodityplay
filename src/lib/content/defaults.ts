@@ -30,6 +30,7 @@ import { DEFAULT_MENTOR_CONNECT_CONTENT } from "@/data/mentor-connect-content";
 import {
   STARTER_INFOGRAPHICS,
   STARTER_EMAIL_DIGEST,
+  STARTER_PACK_HERO,
   STARTER_UPGRADE_CTA,
   STARTER_CHAPTER_PREVIEW,
 } from "@/data/starter-pack";
@@ -82,6 +83,7 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
       };
     case "starter-pack":
       return {
+        hero: STARTER_PACK_HERO,
         infographics: STARTER_INFOGRAPHICS,
         emailDigest: STARTER_EMAIL_DIGEST,
         chapterPreview: STARTER_CHAPTER_PREVIEW,

@@ -8,7 +8,7 @@ import { ArrowRight, Download, Lock, BookOpen, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
 import { MarketNoteStrip } from "@/components/landing/market-note-strip";
-import type { StarterInfographic, StarterUpgradeCta } from "@/data/starter-pack";
+import type { StarterInfographic, StarterPackHero, StarterUpgradeCta } from "@/data/starter-pack";
 import { attachmentHref, resolveAttachmentUrl } from "@/lib/content/attachments";
 import { StarterPackModal } from "@/components/landing/starter-pack-modal";
 import { startCheckout } from "@/lib/start-checkout";
@@ -16,6 +16,7 @@ import { PAGE_HERO_TOP, PAGE_HERO_BOTTOM, PAGE_CTA_PY } from "@/lib/layout-const
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 
 export function StarterPackClient({
+  hero,
   infographics,
   marketNote,
   chapterPreview,
@@ -25,6 +26,7 @@ export function StarterPackClient({
   chapterCount,
   upgradeCta,
 }: {
+  hero: StarterPackHero;
   infographics: StarterInfographic[];
   marketNote: typeof import("@/data/starter-pack").STARTER_MARKET_NOTE;
   chapterPreview: typeof import("@/data/starter-pack").STARTER_CHAPTER_PREVIEW;
@@ -68,16 +70,16 @@ export function StarterPackClient({
           <Reveal>
             <div className="pill pill-dark mb-4">
               <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-              Free · Starter Pack
+              {hero.eyebrow}
             </div>
             <h1 className="font-serif text-[clamp(32px,5vw,56px)] font-bold text-white mb-4 max-w-2xl leading-tight">
-              Your desk-ready starter resources.
+              {hero.title}
             </h1>
             <p className="text-white/65 text-lg max-w-xl mb-8 leading-relaxed">
-              Five infographics, a biweekly email digest, Chapter A preview, and the full Desk Glossary — free, forever.
+              {hero.description}
             </p>
             <Button size="xl" variant="primary-dark" onClick={() => setModalOpen(true)}>
-              Get the Starter Pack <ArrowRight className="w-5 h-5" />
+              {hero.ctaLabel} <ArrowRight className="w-5 h-5" />
             </Button>
           </Reveal>
         </div>

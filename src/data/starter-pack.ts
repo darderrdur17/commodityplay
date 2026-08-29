@@ -129,6 +129,34 @@ export const STARTER_MARKET_NOTE = {
   subscribed: STARTER_EMAIL_DIGEST.confirmedText,
 };
 
+export interface StarterPackHero {
+  eyebrow: string;
+  title: string;
+  description: string;
+  ctaLabel: string;
+}
+
+export const STARTER_PACK_HERO: StarterPackHero = {
+  eyebrow: "Free · Starter Pack",
+  title: "Your desk-ready starter resources.",
+  description:
+    "Five infographics, a biweekly email digest, Chapter A preview, and the full Desk Glossary — free, forever.",
+  ctaLabel: "Get the Starter Pack",
+};
+
+export function mergeStarterPackHero(
+  cms: Partial<StarterPackHero> | null | undefined,
+  defaults: StarterPackHero = STARTER_PACK_HERO
+): StarterPackHero {
+  const raw = cms ?? {};
+  return {
+    eyebrow: raw.eyebrow?.trim() || defaults.eyebrow,
+    title: raw.title?.trim() || defaults.title,
+    description: raw.description?.trim() || defaults.description,
+    ctaLabel: raw.ctaLabel?.trim() || defaults.ctaLabel,
+  };
+}
+
 export interface StarterUpgradeCta {
   title: string;
   description: string;

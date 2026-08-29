@@ -28,6 +28,7 @@ export default async function StarterPackPage() {
 
   return (
     <StarterPackClient
+      hero={content.hero}
       infographics={content.infographics}
       marketNote={marketNote}
       chapterPreview={content.chapterPreview}

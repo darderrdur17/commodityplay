@@ -41,8 +41,10 @@ import {
   STARTER_INFOGRAPHICS,
   type StarterInfographic,
   mergeStarterEmailDigest,
+  mergeStarterPackHero,
   mergeStarterUpgradeCta,
   type StarterEmailDigest,
+  type StarterPackHero,
   type StarterUpgradeCta,
 } from "@/data/starter-pack";
 import { getSectionAssets } from "@/data/playbook-assets";
@@ -245,6 +247,7 @@ function mergeIndustryMap<T extends { zone: string }>(defaults: T[], cms?: T[]):
 
 export async function getStarterPackContent() {
   const data = await getPublishedPayload<{
+    hero?: Partial<StarterPackHero>;
     infographics?: StarterInfographic[];
     emailDigest?: Partial<StarterEmailDigest>;
     marketNote?: Partial<StarterEmailDigest> & { subscribed?: string };
@@ -255,6 +258,7 @@ export async function getStarterPackContent() {
   const { STARTER_CHAPTER_PREVIEW } = await import("@/data/starter-pack");
 
   return {
+    hero: mergeStarterPackHero(data.hero),
     infographics: mergeStarterInfographics(STARTER_INFOGRAPHICS, data.infographics),
     emailDigest: mergeStarterEmailDigest(normalizeStarterDigestCms(data)),
     chapterPreview: data.chapterPreview ?? STARTER_CHAPTER_PREVIEW,
