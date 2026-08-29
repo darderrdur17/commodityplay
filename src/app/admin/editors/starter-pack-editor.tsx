@@ -217,7 +217,11 @@ function EmailDigestTab({ data, onChange }: { data: StarterPayload; onChange: (d
 
   function patchTopic(i: number, val: string) {
     const next = [...digest.topics];
-    next[i] = { ...next[i], title: val };
+    const current = next[i];
+    next[i] =
+      typeof current === "string" || !current
+        ? { title: val }
+        : { ...current, title: val };
     patch({ topics: next });
   }
 

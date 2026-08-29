@@ -56,6 +56,34 @@ export const STARTER_EMAIL_DIGEST: StarterEmailDigest = {
   confirmedText: "You're subscribed. First note lands on the next weekly send.",
 };
 
+function normalizeDigestTopic(raw: unknown): MarketNoteTopic | null {
+  if (typeof raw === "string") {
+    const title = raw.trim();
+    return title ? { title } : null;
+  }
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  const title = typeof obj.title === "string" ? obj.title.trim() : "";
+  if (!title) return null;
+  return {
+    tag: typeof obj.tag === "string" ? obj.tag : undefined,
+    tagColor: typeof obj.tagColor === "string" ? obj.tagColor : undefined,
+    tagBg: typeof obj.tagBg === "string" ? obj.tagBg : undefined,
+    title,
+  };
+}
+
+function normalizeDigestTopics(
+  topics: unknown[] | undefined,
+  defaults: MarketNoteTopic[]
+): MarketNoteTopic[] {
+  if (!topics?.length) return defaults;
+  const normalized = topics
+    .map(normalizeDigestTopic)
+    .filter((topic): topic is MarketNoteTopic => topic !== null);
+  return normalized.length ? normalized : defaults;
+}
+
 export function mergeStarterEmailDigest(
   cms: Partial<StarterEmailDigest> | null | undefined,
   defaults: StarterEmailDigest = STARTER_EMAIL_DIGEST
@@ -74,7 +102,7 @@ export function mergeStarterEmailDigest(
     title: raw.title?.trim() || defaults.title,
     communityDescription,
     frequency: raw.frequency?.trim() || defaults.frequency,
-    topics: raw.topics?.length ? raw.topics : defaults.topics,
+    topics: normalizeDigestTopics(raw.topics as unknown[] | undefined, defaults.topics),
     confirmedText: raw.confirmedText?.trim() || defaults.confirmedText,
   };
 }
