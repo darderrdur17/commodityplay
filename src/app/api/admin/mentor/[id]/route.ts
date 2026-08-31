@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 const schema = z.object({
   answer: z.string().min(10).max(2000),
-  isPublic: z.boolean().optional().default(false),
+  mentorShareOptIn: z.boolean().optional().default(false),
 });
 
 export async function PATCH(
@@ -29,7 +29,7 @@ export async function PATCH(
     const result = await answerMentorQuestion({
       questionId: id,
       answer: parsed.data.answer,
-      isPublic: parsed.data.isPublic,
+      mentorShareOptIn: parsed.data.mentorShareOptIn,
       answeredByEmail: session.user.email,
     });
 

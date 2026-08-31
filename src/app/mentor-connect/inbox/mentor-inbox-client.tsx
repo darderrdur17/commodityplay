@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/animations";
 import { formatDate, PERSONA_LABELS } from "@/lib/utils";
 import { MENTOR_SEGMENT_LABELS } from "@/lib/mentor-demo";
+import { isDeskChannelShareCandidate } from "@/lib/mentor-share-consent";
 
 type FilterTab = "all" | "pending" | "answered";
 
@@ -25,7 +26,8 @@ interface MentorRequest {
   question: string;
   answer: string | null;
   isAnswered: boolean;
-  isPublic: boolean;
+  memberShareOptIn: boolean;
+  mentorShareOptIn: boolean;
   createdAt: string;
   answeredAt: string | null;
   member: MemberInfo;
@@ -53,28 +55,30 @@ function monthKeyOf(dateIso: string): string {
 interface RequestDetailPanelProps {
   req: MentorRequest;
   answer: string;
-  isPublic: boolean;
+  mentorShareOptIn: boolean;
   submitting: boolean;
   error: string;
   successMsg: string;
   selectedId: string | null;
   onAnswerChange: (value: string) => void;
-  onIsPublicChange: (value: boolean) => void;
+  onMentorShareOptInChange: (value: boolean) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
 
 function RequestDetailPanel({
   req,
   answer,
-  isPublic,
+  mentorShareOptIn,
   submitting,
   error,
   successMsg,
   selectedId,
   onAnswerChange,
-  onIsPublicChange,
+  onMentorShareOptInChange,
   onSubmit,
 }: RequestDetailPanelProps) {
+  const shareCandidate = isDeskChannelShareCandidate(req.memberShareOptIn, req.mentorShareOptIn);
+
   return (
     <div className="bg-white rounded-b-xl border border-t-0 border-primary-400 ring-2 ring-primary-400/20 overflow-hidden -mt-px">
       <div className="px-5 sm:px-6 py-4 border-b border-border bg-secondary/40">
@@ -121,13 +125,13 @@ function RequestDetailPanel({
         <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-2">Member query</p>
         <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{req.question}</p>
         <div className="flex items-center gap-2 mt-3 text-xs text-muted-fg">
-          {req.isPublic ? (
+          {req.memberShareOptIn ? (
             <>
-              <Eye className="w-3.5 h-3.5" /> Member opted in to anonymous sharing
+              <Eye className="w-3.5 h-3.5" /> Member opted in to anonymous Desk Channel sharing
             </>
           ) : (
             <>
-              <EyeOff className="w-3.5 h-3.5" /> Private — not shared publicly
+              <EyeOff className="w-3.5 h-3.5" /> Member did not opt in to Desk Channel sharing
             </>
           )}
         </div>
@@ -139,6 +143,11 @@ function RequestDetailPanel({
           <p className="text-sm text-primary-900 leading-relaxed whitespace-pre-wrap">{req.answer}</p>
           {req.answeredAt && (
             <p className="text-xs text-muted-fg mt-3">Sent {formatDate(req.answeredAt)}</p>
+          )}
+          {shareCandidate && (
+            <p className="text-xs text-primary-800 mt-3 bg-primary-soft/60 border border-primary-line rounded-lg px-3 py-2">
+              Both parties consented to anonymous sharing. An admin will review before anything appears on Desk Channel.
+            </p>
           )}
         </div>
       ) : (
@@ -155,15 +164,27 @@ function RequestDetailPanel({
           <p className={`text-xs mb-3 ${answer.length >= 10 ? "text-green-600" : "text-muted-fg"}`}>
             {answer.length}/2000 characters
           </p>
-          <label className="flex items-center gap-2.5 cursor-pointer mb-4">
+          <label className="flex items-start gap-2.5 cursor-pointer mb-2">
             <input
               type="checkbox"
-              checked={isPublic}
-              onChange={(e) => onIsPublicChange(e.target.checked)}
-              className="rounded accent-primary-400"
+              checked={mentorShareOptIn}
+              onChange={(e) => onMentorShareOptInChange(e.target.checked)}
+              className="rounded accent-primary-400 mt-0.5"
             />
-            <span className="text-sm text-gray-700">Allow anonymous sharing in Desk Channel library</span>
+            <span className="text-sm text-gray-700">
+              I consent to anonymous sharing of this answer on Desk Channel (member must also have opted in)
+            </span>
           </label>
+          {!req.memberShareOptIn && mentorShareOptIn && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+              The member did not opt in — this Q&amp;A will stay private even if you check the box above.
+            </p>
+          )}
+          {req.memberShareOptIn && mentorShareOptIn && (
+            <p className="text-xs text-muted-fg mb-4">
+              If both consents are checked when you send, this will be flagged for admin review before Desk Channel publication.
+            </p>
+          )}
           {error && (
             <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg p-3 mb-3">{error}</p>
           )}
@@ -189,7 +210,7 @@ export function MentorInboxClient({ mentorName, initialRequests }: Props) {
     initialRequests.find((r) => !r.isAnswered)?.id ?? initialRequests[0]?.id ?? null
   );
   const [answer, setAnswer] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
+  const [mentorShareOptIn, setMentorShareOptIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -258,7 +279,7 @@ export function MentorInboxClient({ mentorName, initialRequests }: Props) {
       const res = await fetch(`/api/mentor-connect/inbox/${selected.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answer, isPublic }),
+        body: JSON.stringify({ answer, mentorShareOptIn }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -273,14 +294,15 @@ export function MentorInboxClient({ mentorName, initialRequests }: Props) {
                 ...r,
                 answer: data.answer,
                 isAnswered: true,
-                isPublic: data.isPublic,
+                memberShareOptIn: r.memberShareOptIn,
+                mentorShareOptIn: data.mentorShareOptIn,
                 answeredAt: data.answeredAt,
               }
             : r
         )
       );
       setAnswer("");
-      setIsPublic(false);
+      setMentorShareOptIn(false);
       if (data.menteeEmail?.sent) {
         setSuccessMsg("Answer saved — member notified by email and synced to their Mentor Connect page.");
       } else if (data.menteeEmail?.skipped) {
@@ -308,7 +330,7 @@ export function MentorInboxClient({ mentorName, initialRequests }: Props) {
     setAnswer("");
     setError("");
     setSuccessMsg("");
-    setIsPublic(false);
+    setMentorShareOptIn(false);
   }
 
   return (
@@ -500,13 +522,13 @@ export function MentorInboxClient({ mentorName, initialRequests }: Props) {
                     <RequestDetailPanel
                       req={req}
                       answer={answer}
-                      isPublic={isPublic}
+                      mentorShareOptIn={mentorShareOptIn}
                       submitting={submitting}
                       error={error}
                       successMsg={successMsg}
                       selectedId={selectedId}
                       onAnswerChange={setAnswer}
-                      onIsPublicChange={setIsPublic}
+                      onMentorShareOptInChange={setMentorShareOptIn}
                       onSubmit={handleAnswer}
                     />
                   )}

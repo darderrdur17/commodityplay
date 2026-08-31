@@ -484,7 +484,8 @@ async function main() {
     question: string;
     answer: string | null;
     isAnswered: boolean;
-    isPublic: boolean;
+    memberShareOptIn: boolean;
+    mentorShareOptIn: boolean;
   }[] = [
     {
       memberEmail: "elite.insider@demo.com",
@@ -493,7 +494,8 @@ async function main() {
         "What's the most realistic path to break into physical crude trading from a mid-office role? What skills should I prioritize in the next 6 months?",
       answer: null,
       isAnswered: false,
-      isPublic: false,
+      memberShareOptIn: false,
+      mentorShareOptIn: false,
     },
     {
       memberEmail: "pro.switcher@demo.com",
@@ -503,7 +505,8 @@ async function main() {
       answer:
         "Anchor every risk example to a real limit breach or near-miss you saw in banking — then map it to how a desk uses limits intraday. Hiring managers want judgment under constraint, not model recitation.",
       isAnswered: true,
-      isPublic: true,
+      memberShareOptIn: true,
+      mentorShareOptIn: true,
     },
     {
       memberEmail: "pro.analyst@demo.com",
@@ -512,7 +515,8 @@ async function main() {
         "What's the best way to show market views on a resume when my current role is purely quantitative research with no P&L ownership?",
       answer: null,
       isAnswered: false,
-      isPublic: false,
+      memberShareOptIn: false,
+      mentorShareOptIn: false,
     },
     {
       memberEmail: "elite.vendor@demo.com",
@@ -522,7 +526,8 @@ async function main() {
       answer:
         "Open with one workflow question tied to their book — e.g. how they reconcile AIS arrivals vs. nominations — and listen for the pain in handoffs. Credibility comes from naming the operational step, not the product feature.",
       isAnswered: true,
-      isPublic: true,
+      memberShareOptIn: true,
+      mentorShareOptIn: false,
     },
     {
       memberEmail: "pro.switcher@demo.com",
@@ -531,7 +536,8 @@ async function main() {
         "Moving from logistics coordinator to scheduling analyst — what does 'good' look like in the first 90 days on a refined products desk?",
       answer: null,
       isAnswered: false,
-      isPublic: false,
+      memberShareOptIn: true,
+      mentorShareOptIn: false,
     },
     {
       memberEmail: "elite.insider@demo.com",
@@ -541,7 +547,8 @@ async function main() {
       answer:
         "Own one recurring report the traders actually read — then propose one commercial insight per month tied to cargo optionality or netback. You're not asking for a seat; you're already doing 30% of the job.",
       isAnswered: true,
-      isPublic: false,
+      memberShareOptIn: false,
+      mentorShareOptIn: false,
     },
   ];
 
@@ -560,7 +567,8 @@ async function main() {
           question: sample.question,
           answer: sample.answer,
           isAnswered: sample.isAnswered,
-          isPublic: sample.isPublic,
+          memberShareOptIn: sample.memberShareOptIn,
+          mentorShareOptIn: sample.mentorShareOptIn,
           ...(sample.isAnswered && { answeredAt: new Date() }),
         },
       });

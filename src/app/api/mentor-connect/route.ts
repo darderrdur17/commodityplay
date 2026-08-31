@@ -5,6 +5,7 @@ import { z } from "zod";
 import { notifyMentorPoolNewQuestion } from "@/lib/mentor-questions";
 import { assertMentorCreditAvailable } from "@/lib/mentor-credits-server";
 import { apiSegmentAllowedForTrack } from "@/lib/mentor-segments";
+import { parseMemberShareOptIn } from "@/lib/mentor-share-consent";
 
 const schema = z.object({
   segment: z.enum([
@@ -16,7 +17,8 @@ const schema = z.object({
     "sales-advisory",
   ]),
   question: z.string().min(20, "Question must be at least 20 characters").max(500),
-  isPublic: z.boolean().optional().default(false),
+  memberShareOptIn: z.boolean().optional(),
+  isPublic: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       segment: parsed.data.segment,
       question: parsed.data.question,
-      isPublic: parsed.data.isPublic,
+      memberShareOptIn: parseMemberShareOptIn(parsed.data),
     },
   });
 

@@ -17,7 +17,8 @@ export type AnswerMentorQuestionResult = {
     id: string;
     answer: string | null;
     isAnswered: boolean;
-    isPublic: boolean;
+    memberShareOptIn: boolean;
+    mentorShareOptIn: boolean;
     answeredAt: Date | null;
     answeredByEmail: string | null;
     menteeNotifiedAt: Date | null;
@@ -28,7 +29,7 @@ export type AnswerMentorQuestionResult = {
 export async function answerMentorQuestion(params: {
   questionId: string;
   answer: string;
-  isPublic?: boolean;
+  mentorShareOptIn?: boolean;
   answeredByEmail: string;
 }): Promise<AnswerMentorQuestionResult> {
   const existing = await prisma.mentorQuestion.findUnique({
@@ -52,7 +53,7 @@ export async function answerMentorQuestion(params: {
     data: {
       answer: params.answer,
       isAnswered: true,
-      isPublic: params.isPublic ?? existing.isPublic,
+      mentorShareOptIn: params.mentorShareOptIn ?? false,
       answeredAt,
       answeredByEmail: params.answeredByEmail,
     },
@@ -85,7 +86,8 @@ export async function answerMentorQuestion(params: {
       id: question.id,
       answer: question.answer,
       isAnswered: question.isAnswered,
-      isPublic: question.isPublic,
+      memberShareOptIn: question.memberShareOptIn,
+      mentorShareOptIn: question.mentorShareOptIn,
       answeredAt: question.answeredAt,
       answeredByEmail: question.answeredByEmail,
       menteeNotifiedAt,

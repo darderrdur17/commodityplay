@@ -78,6 +78,7 @@ export function MentorConnectClient({
   const focusSegment = searchParams.get("segment");
   const [segment, setSegment] = useState("");
   const [question, setQuestion] = useState("");
+  const [memberShareOptIn, setMemberShareOptIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -112,6 +113,7 @@ export function MentorConnectClient({
     setSelectedMentor(null);
     setSegment("");
     setQuestion("");
+    setMemberShareOptIn(false);
     setSubmitted(false);
     setError("");
   }
@@ -126,7 +128,7 @@ export function MentorConnectClient({
       const res = await fetch("/api/mentor-connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ segment, question }),
+        body: JSON.stringify({ segment, question, memberShareOptIn }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -134,6 +136,7 @@ export function MentorConnectClient({
       } else {
         setSubmitted(true);
         setQuestion("");
+        setMemberShareOptIn(false);
         setSegment("");
         router.refresh();
       }
@@ -249,11 +252,13 @@ export function MentorConnectClient({
                           key={selectedMentor.id}
                           mentor={selectedMentor}
                           question={question}
+                          memberShareOptIn={memberShareOptIn}
                           submitting={submitting}
                           submitted={submitted}
                           error={error}
                           mentorCredits={creditsRemaining}
                           onQuestionChange={setQuestion}
+                          onMemberShareOptInChange={setMemberShareOptIn}
                           onClose={clearMentorSelection}
                           onSubmit={handleSubmit}
                           onAskAnother={() => {

@@ -167,7 +167,8 @@ model MentorQuestion {
   question   String   @db.Text
   answer     String?  @db.Text
   isAnswered Boolean  @default(false)
-  isPublic   Boolean  @default(false)
+  memberShareOptIn Boolean @default(false) @map("isPublic")
+  mentorShareOptIn Boolean @default(false)
   createdAt  DateTime @default(now())
   answeredAt DateTime?
   answeredByEmail      String?

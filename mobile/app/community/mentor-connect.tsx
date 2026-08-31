@@ -13,7 +13,7 @@ export default function MentorConnectScreen() {
   const [loading, setLoading] = useState(true);
   const [segment, setSegment] = useState("Energy");
   const [question, setQuestion] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
+  const [memberShareOptIn, setMemberShareOptIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const segments = ["Energy", "Metals", "Agriculture", "Freight", "General"];
@@ -38,7 +38,7 @@ export default function MentorConnectScreen() {
     }
     setSubmitting(true);
     try {
-      await mentorApi.submitQuestion(segment, question.trim(), isPublic);
+      await mentorApi.submitQuestion(segment, question.trim(), memberShareOptIn);
       setQuestion("");
       Alert.alert("Submitted", "Your question has been sent to a mentor.");
       await load();
@@ -82,8 +82,10 @@ export default function MentorConnectScreen() {
           placeholderTextColor="#9ca3af"
         />
         <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Share answer publicly on Desk Channel</Text>
-          <Switch value={isPublic} onValueChange={setIsPublic} trackColor={{ true: PRIMARY }} />
+          <Text style={styles.switchLabel}>
+            Consent to anonymous Desk Channel sharing (mentor must also agree; admin review before publication)
+          </Text>
+          <Switch value={memberShareOptIn} onValueChange={setMemberShareOptIn} trackColor={{ true: PRIMARY }} />
         </View>
         <TouchableOpacity style={styles.submitBtn} onPress={submit} disabled={submitting}>
           <Text style={styles.submitText}>{submitting ? "Sending..." : "Submit Question"}</Text>

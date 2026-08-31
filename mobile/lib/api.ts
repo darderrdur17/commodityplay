@@ -133,10 +133,10 @@ export const glossaryApi = {
 
 export const mentorApi = {
   getQuestions: () => request<any[]>("/api/mentor-connect"),
-  submitQuestion: (segment: string, question: string, isPublic: boolean) =>
+  submitQuestion: (segment: string, question: string, memberShareOptIn: boolean) =>
     request("/api/mentor-connect", {
       method: "POST",
-      body: JSON.stringify({ segment, question, isPublic }),
+      body: JSON.stringify({ segment, question, memberShareOptIn }),
     }),
 };
 

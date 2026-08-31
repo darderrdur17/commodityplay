@@ -14,11 +14,13 @@ interface SelectedMentor extends MentorProfile {
 interface Props {
   mentor: SelectedMentor;
   question: string;
+  memberShareOptIn: boolean;
   submitting: boolean;
   submitted: boolean;
   error: string;
   mentorCredits: number;
   onQuestionChange: (value: string) => void;
+  onMemberShareOptInChange: (value: boolean) => void;
   onClose: () => void;
   onSubmit: (e: FormEvent) => void;
   onAskAnother: () => void;
@@ -27,11 +29,13 @@ interface Props {
 export function MentorAskPanel({
   mentor,
   question,
+  memberShareOptIn,
   submitting,
   submitted,
   error,
   mentorCredits,
   onQuestionChange,
+  onMemberShareOptInChange,
   onClose,
   onSubmit,
   onAskAnother,
@@ -135,6 +139,18 @@ export function MentorAskPanel({
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 mt-4">{error}</p>
           )}
+
+          <label className="flex items-start gap-2.5 cursor-pointer mt-4 px-1">
+            <input
+              type="checkbox"
+              checked={memberShareOptIn}
+              onChange={(e) => onMemberShareOptInChange(e.target.checked)}
+              className="rounded accent-primary-400 mt-0.5"
+            />
+            <span className="text-sm text-gray-700 leading-snug">
+              I consent to anonymous sharing of this Q&amp;A on Desk Channel if my mentor also agrees (admin review before publication)
+            </span>
+          </label>
         </div>
 
         {/* Footer — mockup modal-foot */}

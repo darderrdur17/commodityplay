@@ -43,7 +43,8 @@ export async function GET() {
       question: q.question,
       answer: q.answer,
       isAnswered: q.isAnswered,
-      isPublic: q.isPublic,
+      memberShareOptIn: q.memberShareOptIn,
+      mentorShareOptIn: q.mentorShareOptIn,
       createdAt: q.createdAt.toISOString(),
       answeredAt: q.answeredAt?.toISOString() ?? null,
       member: {

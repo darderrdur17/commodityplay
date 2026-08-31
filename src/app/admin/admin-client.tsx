@@ -213,7 +213,7 @@ export function AdminClient({
     const res = await fetch(`/api/admin/mentor/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answer, isPublic: false }),
+      body: JSON.stringify({ answer, mentorShareOptIn: false }),
     });
     const data = res.ok ? await res.json() : null;
     setAnswerDraft((d) => ({ ...d, [id]: "" }));

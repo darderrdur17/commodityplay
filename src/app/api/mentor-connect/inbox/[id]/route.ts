@@ -7,7 +7,7 @@ import { answerMentorQuestion } from "@/lib/mentor-questions";
 
 const schema = z.object({
   answer: z.string().min(10).max(2000),
-  isPublic: z.boolean().optional().default(false),
+  mentorShareOptIn: z.boolean().optional().default(false),
 });
 
 export async function PATCH(
@@ -43,7 +43,7 @@ export async function PATCH(
     const result = await answerMentorQuestion({
       questionId: id,
       answer: parsed.data.answer,
-      isPublic: parsed.data.isPublic,
+      mentorShareOptIn: parsed.data.mentorShareOptIn,
       answeredByEmail: session.user.email!,
     });
 
@@ -51,7 +51,8 @@ export async function PATCH(
       id: result.question.id,
       answer: result.question.answer,
       isAnswered: result.question.isAnswered,
-      isPublic: result.question.isPublic,
+      memberShareOptIn: result.question.memberShareOptIn,
+      mentorShareOptIn: result.question.mentorShareOptIn,
       answeredAt: result.question.answeredAt?.toISOString() ?? null,
       menteeNotifiedAt: result.question.menteeNotifiedAt?.toISOString() ?? null,
       menteeEmail: result.email,
