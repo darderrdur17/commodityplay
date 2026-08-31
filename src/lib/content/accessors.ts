@@ -1,6 +1,9 @@
 import type { PlaybookSection } from "@/data/playbook";
 import type { CaseStudyCard, CaseStudySection } from "@/data/case-studies";
 import type { DeskQA } from "@/data/desk-channel";
+import { formatDeskChannelCopy } from "@/data/desk-channel-content";
+import { normalizeDeskChannelPageCopy } from "@/lib/content/desk-channel-schema";
+import { BRAND_NAME } from "@/lib/brand";
 import type { GlossaryTerm } from "@/data/glossary";
 import type { MentorOverridesPayload } from "@/data/mentors";
 import { getPublishedPayload, tryReadPublishedPayload, getContentModulePayload } from "./repository";
@@ -12,7 +15,7 @@ import { INTERVIEW_QUESTIONS, INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/dat
 import { getActiveKnowledgeTestQuestions, getActiveKnowledgeTestSet } from "@/lib/content/knowledge-test-payload";
 import { CAREER_ROLES } from "@/data/career-roadmap";
 import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-templates";
-import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
+import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS, type JobOpening } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
 import { DEFAULT_MEMBER_DASHBOARD_CONTENT, type MemberDashboardContent } from "@/data/member-dashboard";
 import { normalizeMemberDashboardPayload } from "@/lib/content/member-dashboard-schema";
@@ -47,7 +50,8 @@ import {
   type StarterPackHero,
   type StarterUpgradeCta,
 } from "@/data/starter-pack";
-import { getSectionAssets } from "@/data/playbook-assets";
+import { DEFAULT_SITE_FOOTER, type SiteFooterContent } from "@/data/footer-content";
+import { mergeSiteFooterContent } from "@/lib/content/footer-schema";
 import type { ContentAttachment } from "./attachments";
 import { mergeLandingContent, resolveMentorSegments } from "./merge";
 import {
@@ -182,7 +186,7 @@ export async function getPlaybookChapterAssets(chapterId: string): Promise<Recor
   const chapter = data.chapters?.find((c) => c.id === chapterId);
   const map: Record<string, ContentAttachment[]> = {};
 
-  const { PLAYBOOK_ASSETS } = await import("@/data/playbook-assets");
+  const { PLAYBOOK_ASSETS, getSectionAssets } = await import("@/data/playbook-assets");
   const defaultSectionIds = Object.keys(PLAYBOOK_ASSETS[chapterId] ?? {});
   const cmsSectionIds = chapter?.sections?.map((s) => s.id) ?? [];
   const allSectionIds = [...new Set([...defaultSectionIds, ...cmsSectionIds])];
@@ -290,6 +294,11 @@ export interface NavigationGuideAttachment {
   fileName: string;
   assetId: string;
   mimeType: string;
+}
+
+export async function getSiteFooterContent(): Promise<SiteFooterContent> {
+  const data = await getPublishedPayload<Partial<SiteFooterContent>>("site-footer");
+  return mergeSiteFooterContent(data);
 }
 
 export async function getFooterGuides(): Promise<{
@@ -432,10 +441,22 @@ export async function getDeskChannelData() {
   const data = await getPublishedPayload<{
     categories: typeof DESK_CATEGORIES;
     questions: DeskQA[];
+    pageCopy?: import("@/data/desk-channel-content").DeskChannelPageCopy;
   }>("desk-channel");
+
+  const categories = data.categories ?? DESK_CATEGORIES;
+  const questions = data.questions ?? DESK_QA;
+  const deskSegmentCount = categories.filter((c) => c.id !== "all").length;
+  const pageCopy = formatDeskChannelCopy(normalizeDeskChannelPageCopy(data.pageCopy), {
+    deskQaCount: questions.length,
+    deskSegmentCount,
+    brandName: BRAND_NAME,
+  });
+
   return {
-    categories: data.categories ?? DESK_CATEGORIES,
-    questions: data.questions ?? DESK_QA,
+    categories,
+    questions,
+    pageCopy,
   };
 }
 
@@ -532,19 +553,54 @@ export async function getResumeTemplatesData() {
   };
 }
 
-export async function getJobOpeningsData() {
-  const data = await getPublishedPayload<{
-    jobs: typeof JOB_OPENINGS;
-    regions: typeof JOB_REGIONS;
-    levels: typeof JOB_LEVELS;
-    segments: typeof JOB_SEGMENTS;
-  }>("job-openings");
+function jobHirerKey(job: Pick<JobOpening, "title" | "company">) {
+  return `${job.title.trim().toLowerCase()}::${job.company.trim().toLowerCase()}`;
+}
+
+function withHirerFallback(job: JobOpening, fallback?: JobOpening): JobOpening {
+  if (job.hirerEmail?.trim()) {
+    return {
+      ...job,
+      hirerName: job.hirerName?.trim() ? job.hirerName : fallback?.hirerName,
+    };
+  }
+  if (!fallback?.hirerEmail?.trim()) return job;
   return {
-    jobs: data.jobs ?? JOB_OPENINGS,
-    regions: data.regions ?? JOB_REGIONS,
-    levels: data.levels ?? JOB_LEVELS,
-    segments: data.segments ?? JOB_SEGMENTS,
+    ...job,
+    hirerEmail: fallback.hirerEmail,
+    hirerName: job.hirerName?.trim() ? job.hirerName : fallback.hirerName,
   };
+}
+
+export async function getJobOpeningsData() {
+  const raw = await getPublishedPayload<unknown>("job-openings");
+  let jobs = JOB_OPENINGS;
+  let regions = JOB_REGIONS;
+  let levels = JOB_LEVELS;
+  let segments = JOB_SEGMENTS;
+
+  if (Array.isArray(raw)) {
+    jobs = raw.length ? (raw as typeof JOB_OPENINGS) : JOB_OPENINGS;
+  } else if (raw && typeof raw === "object") {
+    const data = raw as {
+      jobs?: typeof JOB_OPENINGS;
+      regions?: typeof JOB_REGIONS;
+      levels?: typeof JOB_LEVELS;
+      segments?: typeof JOB_SEGMENTS;
+    };
+    jobs = data.jobs?.length ? data.jobs : JOB_OPENINGS;
+    regions = data.regions ?? JOB_REGIONS;
+    levels = data.levels ?? JOB_LEVELS;
+    segments = data.segments ?? JOB_SEGMENTS;
+  }
+
+  const defaultById = new Map(JOB_OPENINGS.map((job) => [job.id, job]));
+  const defaultByTitleCompany = new Map(JOB_OPENINGS.map((job) => [jobHirerKey(job), job]));
+  jobs = jobs.map((job) =>
+    withHirerFallback(job, defaultById.get(job.id) ?? defaultByTitleCompany.get(jobHirerKey(job)))
+  );
+
+  return { jobs, regions, levels, segments };
 }
 
 export async function getContentTierForSlug(slug: string) {

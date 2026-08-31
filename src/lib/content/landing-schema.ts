@@ -189,7 +189,6 @@ export const landingContentSchema = z.object({
     eyebrow: z.string().min(1),
     title: z.string().min(1),
   }),
-  footerTagline: z.string().min(1),
 }).transform((data) => {
   const legacy = data.membersStrip;
   const careerFallback = legacy ?? DEFAULT_LANDING_CONTENT.careerMembersStrip;

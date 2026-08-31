@@ -5,7 +5,13 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DESK_CATEGORIES } from "@/data/desk-channel";
-import { EditorField, EditorRow, TrackToggle, inputClass, textareaClass } from "./shared";
+import {
+  DEFAULT_DESK_CHANNEL_PAGE_COPY,
+  mergeDeskChannelPageCopy,
+  type DeskChannelPageCopy,
+} from "@/data/desk-channel-content";
+import { CONTENT_STAT_PLACEHOLDER_HINT } from "@/lib/content/content-stat-placeholders";
+import { EditorField, EditorRow, EditorSection, TrackToggle, inputClass, textareaClass } from "./shared";
 import { JsonImportSection } from "./json-import-section";
 
 type DeskCategory = "trading" | "ops" | "risk" | "tools" | "career";
@@ -30,6 +36,7 @@ interface DeskQA {
 interface DeskChannelPayload {
   categories?: typeof DESK_CATEGORIES;
   questions: DeskQA[];
+  pageCopy?: Partial<DeskChannelPageCopy>;
 }
 
 const DESK_IMPORT_EXAMPLE = JSON.stringify(
@@ -84,12 +91,17 @@ function newQA(): DeskQA {
 
 function readDeskChannelPayload(payload: unknown): DeskChannelPayload {
   if (Array.isArray(payload)) {
-    return { categories: DESK_CATEGORIES, questions: payload as DeskQA[] };
+    return {
+      categories: DESK_CATEGORIES,
+      questions: payload as DeskQA[],
+      pageCopy: DEFAULT_DESK_CHANNEL_PAGE_COPY,
+    };
   }
   const data = (payload ?? {}) as Partial<DeskChannelPayload>;
   return {
     categories: data.categories ?? DESK_CATEGORIES,
     questions: data.questions ?? [],
+    pageCopy: mergeDeskChannelPageCopy(data.pageCopy),
   };
 }
 
@@ -110,6 +122,10 @@ export function DeskChannelEditor({
 
   function patchQuestions(questions: DeskQA[]) {
     onChange({ ...data, questions });
+  }
+
+  function patchPageCopy(pageCopy: DeskChannelPageCopy) {
+    onChange({ ...data, pageCopy });
   }
 
   function patchItem(i: number, item: DeskQA) {
@@ -136,9 +152,220 @@ export function DeskChannelEditor({
   }
 
   const filtered = items.map((item, i) => ({ item, i })).filter(({ item }) => cat === "all" || item.category === cat);
+  const pageCopy: DeskChannelPageCopy = mergeDeskChannelPageCopy(data.pageCopy);
 
   return (
     <div className="space-y-4">
+      <p className="text-xs text-muted-fg bg-secondary/50 rounded-lg px-3 py-2">
+        Edit page copy on <code className="text-[11px]">/desk-channel</code>. With <strong>Published</strong> checked,
+        Save updates the live page. Hero description supports{" "}
+        <code className="text-[11px]">{`{deskQaCount}`}</code>,{" "}
+        <code className="text-[11px]">{`{deskSegmentCount}`}</code>, and{" "}
+        <code className="text-[11px]">{`{brandName}`}</code> for live counts and brand name.
+      </p>
+
+      <EditorSection
+        title="Top blue hero"
+        description="Badge, headline, description, and search placeholder"
+        defaultOpen
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <EditorField label="Badge (pill label)">
+            <input
+              className={inputClass}
+              value={pageCopy.hero.badge}
+              onChange={(e) =>
+                patchPageCopy({
+                  ...pageCopy,
+                  hero: { ...pageCopy.hero, badge: e.target.value },
+                })
+              }
+            />
+          </EditorField>
+          <EditorField label="Search placeholder">
+            <input
+              className={inputClass}
+              value={pageCopy.hero.searchPlaceholder}
+              onChange={(e) =>
+                patchPageCopy({
+                  ...pageCopy,
+                  hero: { ...pageCopy.hero, searchPlaceholder: e.target.value },
+                })
+              }
+            />
+          </EditorField>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <EditorField label="Headline">
+            <input
+              className={inputClass}
+              value={pageCopy.hero.headline}
+              onChange={(e) =>
+                patchPageCopy({
+                  ...pageCopy,
+                  hero: { ...pageCopy.hero, headline: e.target.value },
+                })
+              }
+            />
+          </EditorField>
+          <EditorField label="Headline accent (italic)">
+            <input
+              className={inputClass}
+              value={pageCopy.hero.headlineAccent}
+              onChange={(e) =>
+                patchPageCopy({
+                  ...pageCopy,
+                  hero: { ...pageCopy.hero, headlineAccent: e.target.value },
+                })
+              }
+            />
+          </EditorField>
+        </div>
+        <EditorField
+          label="Description"
+          hint={`Placeholders: ${CONTENT_STAT_PLACEHOLDER_HINT}, plus {brandName}.`}
+        >
+          <textarea
+            className={textareaClass}
+            value={pageCopy.hero.description}
+            onChange={(e) =>
+              patchPageCopy({
+                ...pageCopy,
+                hero: { ...pageCopy.hero, description: e.target.value },
+              })
+            }
+          />
+        </EditorField>
+      </EditorSection>
+
+      <EditorSection
+        title="Bottom blue section"
+        description="Submit-a-question CTA block at the bottom of the page"
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <EditorField label="Eyebrow">
+            <input
+              className={inputClass}
+              value={pageCopy.submit.eyebrow}
+              onChange={(e) =>
+                patchPageCopy({
+                  ...pageCopy,
+                  submit: { ...pageCopy.submit, eyebrow: e.target.value },
+                })
+              }
+            />
+          </EditorField>
+          <EditorField label="Form CTA href">
+            <input
+              className={inputClass}
+              value={pageCopy.submit.formHref}
+              onChange={(e) =>
+                patchPageCopy({
+                  ...pageCopy,
+                  submit: { ...pageCopy.submit, formHref: e.target.value },
+                })
+              }
+            />
+          </EditorField>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <EditorField label="Headline">
+            <input
+              className={inputClass}
+              value={pageCopy.submit.headline}
+              onChange={(e) =>
+                patchPageCopy({
+                  ...pageCopy,
+                  submit: { ...pageCopy.submit, headline: e.target.value },
+                })
+              }
+            />
+          </EditorField>
+          <EditorField label="Headline accent (italic)">
+            <input
+              className={inputClass}
+              value={pageCopy.submit.headlineAccent}
+              onChange={(e) =>
+                patchPageCopy({
+                  ...pageCopy,
+                  submit: { ...pageCopy.submit, headlineAccent: e.target.value },
+                })
+              }
+            />
+          </EditorField>
+        </div>
+        <EditorField label="Description">
+          <textarea
+            className={textareaClass}
+            value={pageCopy.submit.description}
+            onChange={(e) =>
+              patchPageCopy({
+                ...pageCopy,
+                submit: { ...pageCopy.submit, description: e.target.value },
+              })
+            }
+          />
+        </EditorField>
+        <EditorField label="Bullet points" hint="One per line">
+          <textarea
+            className={textareaClass}
+            rows={3}
+            value={pageCopy.submit.bullets.join("\n")}
+            onChange={(e) =>
+              patchPageCopy({
+                ...pageCopy,
+                submit: {
+                  ...pageCopy.submit,
+                  bullets: e.target.value
+                    .split("\n")
+                    .map((line) => line.trim())
+                    .filter(Boolean),
+                },
+              })
+            }
+          />
+        </EditorField>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <EditorField label="Form title">
+            <input
+              className={inputClass}
+              value={pageCopy.submit.formTitle}
+              onChange={(e) =>
+                patchPageCopy({
+                  ...pageCopy,
+                  submit: { ...pageCopy.submit, formTitle: e.target.value },
+                })
+              }
+            />
+          </EditorField>
+          <EditorField label="Form subtitle">
+            <input
+              className={inputClass}
+              value={pageCopy.submit.formSubtitle}
+              onChange={(e) =>
+                patchPageCopy({
+                  ...pageCopy,
+                  submit: { ...pageCopy.submit, formSubtitle: e.target.value },
+                })
+              }
+            />
+          </EditorField>
+          <EditorField label="Form button label">
+            <input
+              className={inputClass}
+              value={pageCopy.submit.formButton}
+              onChange={(e) =>
+                patchPageCopy({
+                  ...pageCopy,
+                  submit: { ...pageCopy.submit, formButton: e.target.value },
+                })
+              }
+            />
+          </EditorField>
+        </div>
+      </EditorSection>
+
+      <EditorSection title="Q&A library" description="Practitioner questions and answers">
       <JsonImportSection
         description="Bulk-load Q&As from JSON (same shape as site defaults: { questions: [...] })."
         exampleJson={DESK_IMPORT_EXAMPLE}
@@ -227,11 +454,12 @@ export function DeskChannelEditor({
       <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3 text-xs text-muted-fg space-y-1">
         <p className="font-semibold text-gray-800">How content reaches the site</p>
         <p>
-          Edit questions here, or use <strong>Import JSON</strong> (download the template first). Click{" "}
+          Edit page copy and questions here, or use <strong>Import JSON</strong> (download the template first). Click{" "}
           <strong>Save</strong> to publish. Upload File is not used for Desk Channel — it does not parse PDFs or Word
           docs into Q&amp;As.
         </p>
       </div>
+      </EditorSection>
     </div>
   );
 }

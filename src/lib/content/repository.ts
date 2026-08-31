@@ -6,6 +6,8 @@ import { getDefaultPayload, getAllDefaultPayloads } from "./defaults";
 import { deepMerge } from "./merge";
 import { resolveAdminModulePayload } from "./admin-payload";
 import { applyCmsSchemaSql } from "@/lib/setup-database";
+import { mergeSiteFooterContent } from "./footer-schema";
+import type { SiteFooterContent } from "@/data/footer-content";
 
 const MAX_REVISIONS = 20;
 
@@ -102,6 +104,10 @@ function mergeModulePayloadOnDeploy(
   // back into the database on every build.
   if (slug === "landing") {
     return deepMerge(defaults as Record<string, unknown>, existing as Record<string, unknown>);
+  }
+
+  if (slug === "site-footer") {
+    return mergeSiteFooterContent(existing as Partial<SiteFooterContent>);
   }
 
   // CMS values win on conflicts; repo defaults fill missing keys/sections.
@@ -413,6 +419,10 @@ export async function listContentAssets(moduleSlug?: string) {
 
 export async function getContentAsset(id: string) {
   return prisma.contentAsset.findUnique({ where: { id } });
+}
+
+export async function getContentAssetByKey(assetKey: string) {
+  return prisma.contentAsset.findUnique({ where: { assetKey } });
 }
 
 export async function upsertContentAsset(input: {

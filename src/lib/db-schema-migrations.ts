@@ -207,4 +207,33 @@ DO $$ BEGIN
     FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+CREATE TABLE IF NOT EXISTS "JobChatThread" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "jobId" TEXT NOT NULL,
+    "jobTitle" TEXT NOT NULL,
+    "company" TEXT NOT NULL,
+    "hirerEmail" TEXT NOT NULL,
+    "hirerName" TEXT,
+    "hirerToken" TEXT NOT NULL,
+    "messages" JSONB NOT NULL DEFAULT '[]',
+    "exchangeCount" INTEGER NOT NULL DEFAULT 0,
+    "interviewOffered" BOOLEAN NOT NULL DEFAULT false,
+    "interviewOfferedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "JobChatThread_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "JobChatThread_hirerToken_key" ON "JobChatThread"("hirerToken");
+CREATE UNIQUE INDEX IF NOT EXISTS "JobChatThread_userId_jobId_key" ON "JobChatThread"("userId", "jobId");
+CREATE INDEX IF NOT EXISTS "JobChatThread_hirerToken_idx" ON "JobChatThread"("hirerToken");
+CREATE INDEX IF NOT EXISTS "JobChatThread_jobId_idx" ON "JobChatThread"("jobId");
+
+DO $$ BEGIN
+  ALTER TABLE "JobChatThread" ADD CONSTRAINT "JobChatThread_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 `;

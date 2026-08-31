@@ -62,20 +62,18 @@ export async function applyFeaturesSchemaSql(): Promise<void> {
   await runMigrationSql(FEATURES_MIGRATION_SQL);
 }
 
-let featuresTablesReady: boolean | null = null;
+let featuresTablesReady = false;
 
 /** Auto-create feature tables on first API use (mirrors CMS bootstrap). */
 export async function ensureFeaturesInfrastructure(): Promise<void> {
   if (featuresTablesReady) return;
-  try {
-    await prisma.talkingPoint.findFirst({ take: 1 });
-    featuresTablesReady = true;
-    return;
-  } catch {
-    // Tables missing — apply bundled SQL
-  }
   await applyFeaturesSchemaSql();
   featuresTablesReady = true;
+}
+
+
+export async function ensureJobChatInfrastructure(): Promise<void> {
+  await ensureFeaturesInfrastructure();
 }
 
 export async function isDatabaseSeeded(): Promise<boolean> {

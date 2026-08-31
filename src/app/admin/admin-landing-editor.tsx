@@ -1155,17 +1155,6 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
           </>
         )}
       </Section>
-
-      <Section title="Footer Tagline" description="Reserved for footer copy">
-        <Field label="Tagline">
-          <TextInput
-            value={content.footerTagline}
-            onChange={(v) => patch("footerTagline", v)}
-            multiline
-            rows={3}
-          />
-        </Field>
-      </Section>
     </div>
   );
 }

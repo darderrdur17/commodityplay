@@ -27,6 +27,10 @@ import {
   parseMentorConnectPayload,
   formatMentorConnectValidationErrors,
 } from "@/lib/content/mentor-connect-schema";
+import {
+  prepareSiteFooterForSave,
+  formatSiteFooterValidationErrors,
+} from "@/lib/content/footer-schema";
 import { z } from "zod";
 import type { Tier } from "@prisma/client";
 
@@ -204,6 +208,20 @@ export async function PUT(
       }
       parsed.data.payload = mentorValidation.data;
     }
+
+    if (slug === "site-footer") {
+      const footerValidation = prepareSiteFooterForSave(parsed.data.payload);
+      if (!footerValidation.success) {
+        return NextResponse.json(
+          {
+            error: "Invalid site footer content",
+            details: formatSiteFooterValidationErrors(footerValidation),
+          },
+          { status: 400 }
+        );
+      }
+      parsed.data.payload = footerValidation.data;
+    }
   }
 
   const row = await updateContentModule(
@@ -231,8 +249,21 @@ export async function PUT(
   if (slug === "mentor-connect") {
     revalidatePath("/mentor-connect", "page");
   }
+  if (slug === "site-footer") {
+    revalidatePath("/", "layout");
+  }
   if (slug === "desk-channel") {
     revalidatePath("/desk-channel", "page");
+  }
+  if (slug === "job-openings") {
+    revalidatePath("/job-openings", "page");
+  }
+  if (slug === "starter-pack") {
+    revalidatePath("/starter-pack", "page");
+    revalidatePath("/dashboard", "page");
+  }
+  if (slug === "playbook") {
+    revalidatePath("/playbook", "layout");
   }
   if (slug === "interview-questions") {
     revalidatePath("/interview-questions", "page");

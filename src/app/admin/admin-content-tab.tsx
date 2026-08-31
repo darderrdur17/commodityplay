@@ -21,6 +21,7 @@ import { ResumeEditor } from "./editors/resume-editor";
 import { MentorConnectEditor } from "./editors/mentor-connect-editor";
 import { LibraryEditor } from "./editors/library-editor";
 import { FooterGuidesEditor } from "./editors/footer-guides-editor";
+import { SiteFooterEditor } from "./editors/site-footer-editor";
 import { MemberDashboardEditor } from "./editors/member-dashboard-editor";
 import { SalesNavigationGuideEditor } from "./editors/sales-navigation-guide-editor";
 import { SalesMarketNudgesEditor } from "./editors/sales-market-nudges-editor";
@@ -64,6 +65,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { slug: "landing", label: "Career Track", track: "Career", tier: "STARTER" },
       { slug: "landing", label: "Sales Track", track: "Sales", tier: "STARTER" },
+      { slug: "site-footer", label: "Footer", track: "Both", tier: "STARTER" },
       { slug: "faq", label: "FAQ", track: "Both", tier: "STARTER" },
       { slug: "member-dashboard", label: "Member Dashboard", track: "Both", tier: "STARTER" },
     ],
@@ -232,6 +234,8 @@ function ModuleEditor({
         return <MentorConnectEditor payload={payload} onChange={setPayload} />;
       case "library":
         return <LibraryEditor {...editorProps} />;
+      case "site-footer":
+        return <SiteFooterEditor payload={payload} onChange={setPayload} />;
       case "footer-guides":
         return <FooterGuidesEditor payload={payload} onChange={setPayload} moduleSlug={slug} />;
       case "member-dashboard":

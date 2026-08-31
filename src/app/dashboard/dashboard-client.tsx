@@ -24,6 +24,7 @@ import {
   type DashboardSalesResourceCardCopy,
   type MemberDashboardContent,
 } from "@/data/member-dashboard";
+import type { StarterInfographic } from "@/data/starter-pack";
 import type { SalesDashboardDeliverables } from "@/lib/content/sales-dashboard-deliverables";
 import type { ContentStats } from "@/lib/content/content-stats";
 import {
@@ -70,6 +71,8 @@ interface Props {
     answered: number;
     pending: number;
   } | null;
+  starterPackInfographics?: StarterInfographic[];
+  starterPackAssetUrls?: Record<string, string>;
 }
 
 const CONTENT_CARDS = [
@@ -217,6 +220,8 @@ export function DashboardClient({
   previewTrack,
   previewTier,
   mentorStats = null,
+  starterPackInfographics: _starterPackInfographics = [],
+  starterPackAssetUrls: _starterPackAssetUrls = {},
 }: Props) {
   const router = useRouter();
   const previewTrackValue = normalizePreviewTrack(previewTrack);
@@ -263,6 +268,33 @@ export function DashboardClient({
 
   const [careerTopicCount, setCareerTopicCount] = useState(0);
   const [salesTopicCount, setSalesTopicCount] = useState(0);
+  const [downloadingStarterPack, setDownloadingStarterPack] = useState(false);
+
+  function handleDownloadStarterPack() {
+    setDownloadingStarterPack(true);
+    void (async () => {
+      try {
+        const res = await fetch("/api/starter-pack/bundle");
+        if (!res.ok) {
+          router.push("/starter-pack");
+          return;
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "CommodityPlay-Starter-Pack.zip";
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+      } catch {
+        router.push("/starter-pack");
+      } finally {
+        setDownloadingStarterPack(false);
+      }
+    })();
+  }
 
   useEffect(() => {
     if (!hasAccess(effectiveTier, "PRO")) return;
@@ -604,11 +636,13 @@ export function DashboardClient({
                   {dashboardContent.starterPack.description}
                 </p>
               </div>
-              <Link href="/signup" className="flex-shrink-0">
-                <Button>
-                  {dashboardContent.starterPack.cta} <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
+              <Button
+                className="flex-shrink-0"
+                onClick={handleDownloadStarterPack}
+                loading={downloadingStarterPack}
+              >
+                {dashboardContent.starterPack.cta} <ArrowRight className="w-4 h-4" />
+              </Button>
             </div>
             {dashboardContent.starterPack.footerNote && (
               <p className="text-xs text-muted-fg mt-4 pt-4 border-t border-primary-line">

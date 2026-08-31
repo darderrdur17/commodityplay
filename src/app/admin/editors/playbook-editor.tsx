@@ -12,7 +12,6 @@ import {
   EditorSection,
   InlineFileUpload,
   TrackToggle,
-  UploadSection,
   inputClass,
   textareaClass,
   uploadContentAssetFile,
@@ -47,11 +46,18 @@ interface PlaybookPayload {
   chapters: PlaybookChapter[];
 }
 
-function newAttachment(chapterId: string, sectionId: string, title = "New Asset"): ContentAttachment {
-  const slug = slugifyFileName(title) || "asset";
+const REFERENCE_ASSET_TYPES = ["Infographic", "Framework", "Worked Example"] as const;
+
+function defaultAttachment(
+  chapterId: string,
+  sectionId: string,
+  type: (typeof REFERENCE_ASSET_TYPES)[number],
+  title: string
+): ContentAttachment {
+  const slug = slugifyFileName(title) || type.toLowerCase().replace(/\s+/g, "-");
   return {
-    id: `att-${Date.now()}`,
-    type: "Infographic",
+    id: `${sectionId}-${slug}`,
+    type,
     title,
     description: "",
     fileKey: `playbook/${chapterId}/${sectionId}/${slug}.pdf`,
@@ -59,12 +65,37 @@ function newAttachment(chapterId: string, sectionId: string, title = "New Asset"
   };
 }
 
+function ensureSectionAssets(
+  chapterId: string,
+  sectionId: string,
+  sectionTitle: string,
+  assets: ContentAttachment[]
+): ContentAttachment[] {
+  const byType = new Map<string, ContentAttachment>();
+  for (const asset of assets) {
+    if (asset.type) byType.set(asset.type, asset);
+  }
+  for (const fallback of getSectionAssets(chapterId, sectionId)) {
+    if (fallback.type && !byType.has(fallback.type)) {
+      byType.set(fallback.type, { ...fallback, delivery: "download" as const });
+    }
+  }
+
+  return REFERENCE_ASSET_TYPES.map((type) => {
+    const existing = byType.get(type);
+    if (existing) return existing;
+    return defaultAttachment(chapterId, sectionId, type, `${sectionTitle} — ${type}`);
+  });
+}
+
 function sectionAssets(chapterId: string, sec: PlaybookSectionData): ContentAttachment[] {
-  if (sec.assets?.length) return sec.assets;
-  return getSectionAssets(chapterId, sec.id).map((a) => ({
-    ...a,
-    delivery: "download" as const,
-  }));
+  const raw = sec.assets?.length
+    ? sec.assets
+    : getSectionAssets(chapterId, sec.id).map((a) => ({
+        ...a,
+        delivery: "download" as const,
+      }));
+  return ensureSectionAssets(chapterId, sec.id, sec.title, raw);
 }
 
 function newSection(chapterId: string, idx: number): PlaybookSectionData {
@@ -87,6 +118,7 @@ function newChapter(idx: number): PlaybookChapter {
 function SectionAssetsEditor({
   chapterId,
   sectionId,
+  sectionTitle,
   assets,
   onChange,
   moduleSlug,
@@ -94,15 +126,17 @@ function SectionAssetsEditor({
 }: {
   chapterId: string;
   sectionId: string;
+  sectionTitle: string;
   assets: ContentAttachment[];
   onChange: (assets: ContentAttachment[]) => void;
   moduleSlug: string;
   requiredTier: string;
 }) {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const slots = ensureSectionAssets(chapterId, sectionId, sectionTitle, assets);
 
   function patchAsset(i: number, asset: ContentAttachment) {
-    const next = [...assets];
+    const next = [...slots];
     next[i] = asset;
     onChange(next);
   }
@@ -126,33 +160,24 @@ function SectionAssetsEditor({
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-border space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-muted-fg uppercase">Section attachments ({assets.length})</p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onChange([...assets, newAttachment(chapterId, sectionId)])}
-        >
-          <Plus className="w-3.5 h-3.5" /> Add attachment
-        </Button>
-      </div>
-      {assets.map((asset, i) => (
+    <div className="mt-4 pt-4 border-t border-border space-y-3">
+      <p className="text-xs font-bold text-muted-fg uppercase">Reference files (3 PDF slots)</p>
+      {slots.map((asset, i) => (
         <div key={asset.id ?? i} className="rounded-lg border border-border p-3 space-y-2 bg-secondary/20">
+          <p className="text-xs font-semibold text-primary-800">{asset.type}</p>
           <div className="grid gap-2 sm:grid-cols-2">
-            <EditorField label="Type">
-              <input
-                className={inputClass}
-                value={asset.type ?? ""}
-                onChange={(e) => patchAsset(i, { ...asset, type: e.target.value })}
-                placeholder="Infographic, Framework..."
-              />
-            </EditorField>
             <EditorField label="Title">
               <input
                 className={inputClass}
                 value={asset.title}
                 onChange={(e) => patchAsset(i, { ...asset, title: e.target.value })}
+              />
+            </EditorField>
+            <EditorField label="File key" hint="Auto-generated from chapter/section">
+              <input
+                className={inputClass}
+                value={asset.fileKey ?? ""}
+                onChange={(e) => patchAsset(i, { ...asset, fileKey: e.target.value })}
               />
             </EditorField>
           </div>
@@ -164,23 +189,6 @@ function SectionAssetsEditor({
               onChange={(e) => patchAsset(i, { ...asset, description: e.target.value })}
             />
           </EditorField>
-          <EditorField label="File key" hint="Auto-generated from chapter/section; must match uploaded file">
-            <input
-              className={inputClass}
-              value={asset.fileKey ?? ""}
-              onChange={(e) => patchAsset(i, { ...asset, fileKey: e.target.value })}
-            />
-          </EditorField>
-          <EditorField label="Delivery">
-            <select
-              className={inputClass}
-              value={asset.delivery ?? "download"}
-              onChange={(e) => patchAsset(i, { ...asset, delivery: e.target.value as "view-only" | "download" })}
-            >
-              <option value="download">Download</option>
-              <option value="view-only">View only</option>
-            </select>
-          </EditorField>
           <InlineFileUpload
             moduleSlug={moduleSlug}
             requiredTier={requiredTier}
@@ -188,14 +196,8 @@ function SectionAssetsEditor({
             fileName={asset.fileName}
             uploading={uploadingId === (asset.id ?? String(i))}
             onPickFile={(file) => handleUpload(i, file, asset)}
+            accept="application/pdf"
           />
-          <button
-            type="button"
-            onClick={() => onChange(assets.filter((_, j) => j !== i))}
-            className="text-xs text-red-500 hover:text-red-700"
-          >
-            Remove attachment
-          </button>
         </div>
       ))}
     </div>
@@ -313,6 +315,7 @@ export function PlaybookEditor({
                   <SectionAssetsEditor
                     chapterId={ch.id}
                     sectionId={sec.id}
+                    sectionTitle={sec.title}
                     assets={assets}
                     onChange={(nextAssets) => patchSection(ci, si, { ...sec, assets: nextAssets })}
                     moduleSlug={moduleSlug}
@@ -335,8 +338,6 @@ export function PlaybookEditor({
       <Button variant="outline" size="sm" onClick={addChapter}>
         <Plus className="w-3.5 h-3.5" /> Add chapter
       </Button>
-
-      <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} />
     </div>
   );
 }

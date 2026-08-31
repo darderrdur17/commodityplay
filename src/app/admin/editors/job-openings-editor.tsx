@@ -20,6 +20,28 @@ interface JobOpening {
   requirements: string[];
   salary?: string;
   featured?: boolean;
+  hirerEmail?: string;
+  hirerName?: string;
+}
+
+interface JobOpeningsPayload {
+  jobs: JobOpening[];
+  regions?: string[];
+  levels?: string[];
+  segments?: string[];
+}
+
+function readPayload(payload: unknown): JobOpeningsPayload {
+  if (Array.isArray(payload)) {
+    return { jobs: payload as JobOpening[] };
+  }
+  const data = (payload ?? {}) as Partial<JobOpeningsPayload>;
+  return {
+    jobs: data.jobs ?? [],
+    regions: data.regions,
+    levels: data.levels,
+    segments: data.segments,
+  };
 }
 
 function newJob(): JobOpening {
@@ -50,21 +72,26 @@ export function JobOpeningsEditor({
   moduleSlug: string;
   requiredTier: string;
 }) {
-  const items: JobOpening[] = Array.isArray(payload) ? (payload as JobOpening[]) : [];
+  const data = readPayload(payload);
+  const items = data.jobs;
+
+  function commitJobs(jobs: JobOpening[]) {
+    onChange({ ...data, jobs });
+  }
 
   function patchItem(i: number, item: JobOpening) {
     const next = [...items];
     next[i] = item;
-    onChange(next);
+    commitJobs(next);
   }
 
   function deleteItem(i: number) {
     if (!confirm("Delete this job?")) return;
-    onChange(items.filter((_, j) => j !== i));
+    commitJobs(items.filter((_, j) => j !== i));
   }
 
   function addItem() {
-    onChange([...items, newJob()]);
+    commitJobs([...items, newJob()]);
   }
 
   return (
@@ -127,6 +154,12 @@ export function JobOpeningsEditor({
               </EditorField>
               <EditorField label="Salary (optional)">
                 <input className={inputClass} value={item.salary ?? ""} onChange={(e) => patchItem(i, { ...item, salary: e.target.value })} />
+              </EditorField>
+              <EditorField label="Hirer email" hint="Required for Live Chat — receives question emails">
+                <input className={inputClass} value={item.hirerEmail ?? ""} onChange={(e) => patchItem(i, { ...item, hirerEmail: e.target.value })} />
+              </EditorField>
+              <EditorField label="Hirer name (optional)">
+                <input className={inputClass} value={item.hirerName ?? ""} onChange={(e) => patchItem(i, { ...item, hirerName: e.target.value })} />
               </EditorField>
             </div>
             <EditorField label="Description">

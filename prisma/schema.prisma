@@ -93,6 +93,7 @@ model User {
   talkingPoints      TalkingPoint[]
   trackedAccounts    TrackedAccount[]
   accountBookmarks   AccountBookmark[]
+  jobChatThreads     JobChatThread[]
 
   @@index([email])
   @@index([stripeCustomerId])
@@ -336,6 +337,30 @@ model AccountBookmark {
   @@unique([userId, accountId, sourceType, sourceId])
   @@index([userId])
   @@index([accountId])
+}
+
+// ── Job Board Live Chat ──────────────────────────────────────────────
+model JobChatThread {
+  id                 String   @id @default(cuid())
+  userId             String
+  jobId              String
+  jobTitle           String
+  company            String
+  hirerEmail         String
+  hirerName          String?
+  hirerToken         String   @unique @default(cuid())
+  messages           Json     @default("[]")
+  exchangeCount      Int      @default(0)
+  interviewOffered   Boolean  @default(false)
+  interviewOfferedAt DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([hirerToken])
+  @@index([jobId])
 }
 
 // ── Demo email log (Mentor Connect notifications preview) ───────────

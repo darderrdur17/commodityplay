@@ -1,11 +1,20 @@
 import { prisma } from "@/lib/prisma";
 
-export type DemoEmailKind = "mentee_answer" | "mentor_reminder" | "new_question";
+export type DemoEmailKind =
+  | "mentee_answer"
+  | "mentor_reminder"
+  | "new_question"
+  | "job_chat_question"
+  | "job_chat_answer"
+  | "job_interview_offer";
 
 const DEMO_EMAIL_KIND_LABELS: Record<DemoEmailKind, string> = {
   mentee_answer: "Answer sent to member",
   mentor_reminder: "Admin reminder to mentor",
   new_question: "New question for mentor pool",
+  job_chat_question: "Job chat question to hirer",
+  job_chat_answer: "Job chat answer to candidate",
+  job_interview_offer: "Interview offer to both parties",
 };
 
 export function demoEmailKindLabel(kind: string): string {

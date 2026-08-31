@@ -13,6 +13,8 @@ export interface JobOpening {
   requirements: string[];
   salary?: string;
   featured?: boolean;
+  hirerEmail?: string;
+  hirerName?: string;
 }
 
 export const JOB_OPENINGS: JobOpening[] = [
@@ -36,6 +38,8 @@ export const JOB_OPENINGS: JobOpening[] = [
       "Understanding of Brent/Dubai spreads and freight basics",
     ],
     salary: "SGD 70–95K + bonus",
+    hirerEmail: "hiring@meridiancommodities.demo",
+    hirerName: "Meridian Talent Team",
   },
   {
     id: "j2",
@@ -56,6 +60,8 @@ export const JOB_OPENINGS: JobOpening[] = [
       "Strong chartering and operations coordination skills",
     ],
     salary: "Competitive + profit share",
+    hirerEmail: "careers@atlanticenergy.demo",
+    hirerName: "Atlantic Energy HR",
   },
   {
     id: "j3",
@@ -75,6 +81,8 @@ export const JOB_OPENINGS: JobOpening[] = [
       "LME prompt date structure knowledge",
       "Client-facing communication skills",
     ],
+    hirerEmail: "research@horizonmarkets.demo",
+    hirerName: "Horizon Markets Recruiting",
   },
   {
     id: "j4",
@@ -95,6 +103,8 @@ export const JOB_OPENINGS: JobOpening[] = [
       "Experience with ETRM systems",
     ],
     salary: "USD 110–140K",
+    hirerEmail: "ops-careers@pacificrefining.demo",
+    hirerName: "Pacific Refining Talent",
   },
   {
     id: "j5",
@@ -115,6 +125,8 @@ export const JOB_OPENINGS: JobOpening[] = [
       "Strong academic record",
       "Genuine interest in physical commodity markets",
     ],
+    hirerEmail: "graduates@sterlingglobal.demo",
+    hirerName: "Sterling Global Programme",
   },
   {
     id: "j6",
@@ -134,6 +146,8 @@ export const JOB_OPENINGS: JobOpening[] = [
       "Deep understanding of European power markets",
       "Strong legal/commercial contract skills",
     ],
+    hirerEmail: "talent@nordicutilities.demo",
+    hirerName: "Nordic Utilities Talent",
   },
   {
     id: "j7",
@@ -154,6 +168,8 @@ export const JOB_OPENINGS: JobOpening[] = [
       "Existing network in Singapore trading community",
     ],
     salary: "SGD 120–180K OTE",
+    hirerEmail: "sales-hiring@flowscope.demo",
+    hirerName: "FlowScope People",
   },
   {
     id: "j8",
@@ -174,6 +190,8 @@ export const JOB_OPENINGS: JobOpening[] = [
       "Strong stakeholder management with traders",
     ],
     salary: "USD 180–250K",
+    hirerEmail: "commodities-risk@cibank.demo",
+    hirerName: "CIB Commodities HR",
   },
   {
     id: "j9",
@@ -193,6 +211,8 @@ export const JOB_OPENINGS: JobOpening[] = [
       "Black Sea logistics knowledge",
       "French or Russian language a plus",
     ],
+    hirerEmail: "careers@harvestcommodities.demo",
+    hirerName: "Harvest Commodities",
   },
   {
     id: "j10",
@@ -212,6 +232,8 @@ export const JOB_OPENINGS: JobOpening[] = [
       "Available June–August 2025",
       "Excel proficiency required",
     ],
+    hirerEmail: "hiring@meridiancommodities.demo",
+    hirerName: "Meridian Talent Team",
   },
 ];
 

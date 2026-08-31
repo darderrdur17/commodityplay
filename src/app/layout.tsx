@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import { Roboto } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/nav";
-import { Footer } from "@/components/footer";
+import { FooterWrapper } from "@/components/footer-wrapper";
 import { SessionProvider } from "@/components/session-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { NAV_OFFSET } from "@/lib/layout-constants";
@@ -94,7 +94,7 @@ export default async function RootLayout({
         <SessionProvider>
           <Nav />
           <main className="flex-1" style={{ paddingTop: NAV_OFFSET }}>{children}</main>
-          <Footer />
+          <FooterWrapper />
           <Toaster />
         </SessionProvider>
       </body>

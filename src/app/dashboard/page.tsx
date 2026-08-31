@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getContentTiersMap, getMemberDashboardContent, getNavigationGuides } from "@/lib/content/accessors";
+import { getContentTiersMap, getMemberDashboardContent, getNavigationGuides, getStarterPackAssetUrls, getStarterPackContent } from "@/lib/content/accessors";
 import {
   applyContentStatsToMemberDashboard,
   getContentStats,
@@ -66,11 +66,13 @@ export default async function DashboardPage({
     };
   }
 
-  const [contentTiers, navigationGuides, dashboardContentRaw, contentStats] = await Promise.all([
+  const [contentTiers, navigationGuides, dashboardContentRaw, contentStats, starterPackContent, starterPackAssetUrls] = await Promise.all([
     getContentTiersMap(),
     getNavigationGuides(),
     getMemberDashboardContent(),
     getContentStats(),
+    getStarterPackContent(),
+    getStarterPackAssetUrls(),
   ]);
 
   const dashboardContent = applyContentStatsToMemberDashboard(dashboardContentRaw, contentStats);
@@ -112,6 +114,8 @@ export default async function DashboardPage({
       previewTrack={isAdmin ? previewTrack : undefined}
       previewTier={isAdmin ? previewTier : undefined}
       mentorStats={mentorStats}
+      starterPackInfographics={starterPackContent.infographics}
+      starterPackAssetUrls={starterPackAssetUrls}
     />
   );
 }

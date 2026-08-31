@@ -179,7 +179,6 @@ export interface LandingContent {
   membersStrip?: MembersStripContent;
   testimonials: LandingTestimonials;
   mentorConnect: LandingMentorConnect;
-  footerTagline: string;
 }
 
 /** Career track pricing tiers (Starter / Pro / Elite) — used to seed defaults and the comparison table. */
@@ -562,6 +561,4 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
     eyebrow: "Elite Access",
     title: "Mentor Connect",
   },
-  footerTagline:
-    "The definitive Playbook guide to understanding commodity trading — how markets work, how revenue is made, and how to build a career or close a sale inside them. From first desk to senior coverage.",
 };

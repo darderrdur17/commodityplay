@@ -1,5 +1,7 @@
 import { DESK_QA } from "@/data/desk-channel";
 import { INTERVIEW_QUESTIONS } from "@/data/interview-questions";
+import { JOB_OPENINGS } from "@/data/job-openings";
+import { DEFAULT_DESK_CHANNEL_PAGE_COPY } from "@/data/desk-channel-content";
 import { getDefaultPayload } from "./defaults";
 import { deepMerge } from "./merge";
 import {
@@ -17,6 +19,7 @@ export function resolveAdminModulePayload(slug: ContentSlug, payload: unknown): 
       return {
         categories: defaults.categories,
         questions: payload.length ? payload : DESK_QA,
+        pageCopy: defaults.pageCopy ?? DEFAULT_DESK_CHANNEL_PAGE_COPY,
       };
     }
     const merged = deepMerge(defaults, (payload ?? {}) as Record<string, unknown>);
@@ -52,6 +55,23 @@ export function resolveAdminModulePayload(slug: ContentSlug, payload: unknown): 
     const stored = (payload as { terms?: unknown[] } | null)?.terms;
     if (!Array.isArray(stored) || stored.length === 0) {
       merged.terms = defaults.terms;
+    }
+    return merged;
+  }
+
+  if (slug === "job-openings") {
+    if (Array.isArray(payload)) {
+      return {
+        regions: defaults.regions,
+        levels: defaults.levels,
+        segments: defaults.segments,
+        jobs: payload.length ? payload : JOB_OPENINGS,
+      };
+    }
+    const merged = deepMerge(defaults, (payload ?? {}) as Record<string, unknown>);
+    const stored = (payload as { jobs?: unknown[] } | null)?.jobs;
+    if (!Array.isArray(stored) || stored.length === 0) {
+      merged.jobs = defaults.jobs ?? JOB_OPENINGS;
     }
     return merged;
   }

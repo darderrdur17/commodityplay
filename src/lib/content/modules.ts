@@ -17,6 +17,7 @@ export type ContentSlug =
   | "mentors"
   | "library"
   | "footer-guides"
+  | "site-footer"
   | "member-dashboard"
   | "sales-market-nudges"
   | "account-intelligence";
@@ -112,6 +113,12 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
     title: "Library Resources",
     description: "Elite bonus files and miscellaneous free resources in one library",
     requiredTier: "ELITE",
+  },
+  {
+    slug: "site-footer",
+    title: "Site Footer",
+    description: "Shared footer blurb and link columns for all pages",
+    requiredTier: "STARTER",
   },
   {
     slug: "footer-guides",

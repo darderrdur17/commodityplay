@@ -3,18 +3,22 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronUp, MessageSquare, ThumbsUp, Check, ArrowRight } from "lucide-react";
+import { ChevronDown, ChevronUp, ThumbsUp, Check, ArrowRight } from "lucide-react";
 import { BrandedSearchInput } from "@/components/brand/logo";
 import { DESK_CATEGORIES, DESK_QA, type DeskCategory, type DeskQA } from "@/data/desk-channel";
+import {
+  DEFAULT_DESK_CHANNEL_PAGE_COPY,
+  type DeskChannelPageCopy,
+} from "@/data/desk-channel-content";
 import { TierGate } from "@/components/tier-gate";
 import { Reveal } from "@/components/animations";
 import { Button } from "@/components/ui/button";
-import { BRAND_NAME } from "@/lib/brand";
 
 interface Props {
   userTier: string;
   categories?: typeof DESK_CATEGORIES;
   questions?: DeskQA[];
+  pageCopy?: DeskChannelPageCopy;
   requiredTier?: "PRO" | "ELITE";
 }
 
@@ -22,6 +26,7 @@ export function DeskChannelClient({
   userTier,
   categories = DESK_CATEGORIES,
   questions = DESK_QA,
+  pageCopy = DEFAULT_DESK_CHANNEL_PAGE_COPY,
   requiredTier = "ELITE",
 }: Props) {
   const [search, setSearch] = useState("");
@@ -40,34 +45,36 @@ export function DeskChannelClient({
     });
   }, [search, category, questions]);
 
-  const deskSegmentCount = categories.filter((c) => c.id !== "all").length;
-
-  const content = (
+  return (
     <div className="page-container py-8 sm:py-10">
-      {/* Hero */}
+      {/* Hero — always visible (Mentor Connect pattern) */}
       <section className="rounded-2xl bg-primary-800 px-6 sm:px-8 py-10 mb-8 relative overflow-hidden">
-        <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3280ff 0%, transparent 70%)" }} />
+        <div
+          className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-10"
+          style={{ background: "radial-gradient(circle, #3280ff 0%, transparent 70%)" }}
+        />
         <Reveal className="relative z-10">
           <div className="pill pill-dark mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            Elite · The Desk Channel
+            {pageCopy.hero.badge}
           </div>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-3">
-            Questions Answered by{" "}
-            <span className="text-accent italic">People Who&apos;ve Been There.</span>
+            {pageCopy.hero.headline}{" "}
+            {pageCopy.hero.headlineAccent ? (
+              <span className="text-accent italic">{pageCopy.hero.headlineAccent}</span>
+            ) : null}
           </h1>
-          <p className="text-white/65 text-base sm:text-lg max-w-xl mb-6">
-            {questions.length} questions across {deskSegmentCount} categories — answered by vetted practitioners and the {BRAND_NAME} editorial team. Search the library. Can&apos;t find yours? Submit it below.
-          </p>
+          <p className="text-white/65 text-base sm:text-lg max-w-xl mb-6">{pageCopy.hero.description}</p>
           <BrandedSearchInput
             variant="dark"
-            placeholder="Search — e.g. 'crack spread', 'JKM', 'demurrage', 'career switch'"
+            placeholder={pageCopy.hero.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </Reveal>
       </section>
 
+      <TierGate requiredTier={requiredTier} userTier={userTier}>
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar categories */}
         <aside className="lg:w-56 flex-shrink-0">
@@ -111,7 +118,13 @@ export function DeskChannelClient({
           {filtered.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-xl border border-dashed border-border">
               <p className="text-gray-600 font-medium">No questions match your search</p>
-              <button onClick={() => { setSearch(""); setCategory("all"); }} className="text-sm text-primary-400 mt-2">
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setCategory("all");
+                }}
+                className="text-sm text-primary-400 mt-2"
+              >
                 Clear filters
               </button>
             </div>
@@ -207,39 +220,40 @@ export function DeskChannelClient({
         </div>
       </div>
 
-      {/* Ask a Practitioner — bottom section */}
+      {/* Ask a Practitioner — bottom blue section */}
       <section id="ask-practitioner" className="mt-12 rounded-2xl bg-primary-800 p-8 relative overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-accent mb-3">Submit a Question</p>
-            <h2 className="font-serif text-2xl font-bold text-white mb-3">
-              Can&apos;t find what you&apos;re <span className="text-accent italic">looking for?</span>
-            </h2>
-            <p className="text-white/65 text-sm leading-relaxed mb-4">
-              Submit your question and a vetted practitioner or our editorial team will respond within 5 business days.
+            <p className="text-[10px] font-bold uppercase tracking-widest text-accent mb-3">
+              {pageCopy.submit.eyebrow}
             </p>
+            <h2 className="font-serif text-2xl font-bold text-white mb-3">
+              {pageCopy.submit.headline}{" "}
+              {pageCopy.submit.headlineAccent ? (
+                <span className="text-accent italic">{pageCopy.submit.headlineAccent}</span>
+              ) : null}
+            </h2>
+            <p className="text-white/65 text-sm leading-relaxed mb-4">{pageCopy.submit.description}</p>
             <ul className="space-y-2 text-sm text-white/70">
-              <li className="flex items-start gap-2"><Check className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" /> One question per submission — specific is better than broad</li>
-              <li className="flex items-start gap-2"><Check className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" /> Elite members · answered within 5 business days</li>
+              {pageCopy.submit.bullets.map((bullet) => (
+                <li key={bullet} className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" /> {bullet}
+                </li>
+              ))}
             </ul>
           </div>
           <div className="bg-white rounded-xl p-6">
-            <h3 className="font-serif font-bold text-gray-900 mb-1">Ask a Practitioner</h3>
-            <p className="text-xs text-muted-fg mb-4">Elite members · Answered within 5 business days</p>
-            <Link href="/mentor-connect">
+            <h3 className="font-serif font-bold text-gray-900 mb-1">{pageCopy.submit.formTitle}</h3>
+            <p className="text-xs text-muted-fg mb-4">{pageCopy.submit.formSubtitle}</p>
+            <Link href={pageCopy.submit.formHref}>
               <Button className="w-full" size="lg">
-                Go to Mentor Connect <ArrowRight className="w-4 h-4" />
+                {pageCopy.submit.formButton} <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
           </div>
         </div>
       </section>
+      </TierGate>
     </div>
-  );
-
-  return (
-    <TierGate requiredTier={requiredTier} userTier={userTier} compact>
-      {content}
-    </TierGate>
   );
 }

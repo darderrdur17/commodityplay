@@ -178,11 +178,6 @@ export function StarterPackClient({
         variant="tags"
         tagStyle="primary"
         subscribedNote={marketNote.subscribed}
-        cta={{
-          label: "Upgrade to Pro",
-          onClick: handleUpgradePro,
-          loading: loadingPro,
-        }}
       />
 
       {/* Chapter A preview */}

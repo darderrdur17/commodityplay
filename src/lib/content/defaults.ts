@@ -2,6 +2,7 @@ import { CHAPTERS } from "@/data/playbook";
 import playbookSections from "@/data/playbook-sections.json";
 import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
 import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
+import { DEFAULT_DESK_CHANNEL_PAGE_COPY } from "@/data/desk-channel-content";
 import { GLOSSARY_TERMS } from "@/data/glossary";
 import { INTERVIEW_QUESTIONS, INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/data/interview-questions";
 import { createDefaultKnowledgeTestPayload } from "@/lib/content/knowledge-test-payload";
@@ -34,6 +35,7 @@ import {
   STARTER_UPGRADE_CTA,
   STARTER_CHAPTER_PREVIEW,
 } from "@/data/starter-pack";
+import { DEFAULT_SITE_FOOTER } from "@/data/footer-content";
 import type { ContentSlug } from "./modules";
 
 export function getDefaultPayload(slug: ContentSlug): unknown {
@@ -53,7 +55,11 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
     case "case-studies":
       return { studies: CASE_STUDIES, details: CASE_STUDY_DETAILS };
     case "desk-channel":
-      return { categories: DESK_CATEGORIES, questions: DESK_QA };
+      return {
+        categories: DESK_CATEGORIES,
+        questions: DESK_QA,
+        pageCopy: DEFAULT_DESK_CHANNEL_PAGE_COPY,
+      };
     case "interview-questions":
       return { questions: INTERVIEW_QUESTIONS, categories: INTERVIEW_CATEGORIES, tabs: INTERVIEW_TABS };
     case "knowledge-test":
@@ -93,6 +99,8 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
       return DEFAULT_MENTOR_CONNECT_CONTENT;
     case "library":
       return { files: [] };
+    case "site-footer":
+      return DEFAULT_SITE_FOOTER;
     case "footer-guides":
       return { careerGuide: null, salesGuide: null };
     case "member-dashboard":
@@ -125,6 +133,7 @@ export function getAllDefaultPayloads(): Record<ContentSlug, unknown> {
     "mentor-connect": getDefaultPayload("mentor-connect"),
     "library": getDefaultPayload("library"),
     "footer-guides": getDefaultPayload("footer-guides"),
+    "site-footer": getDefaultPayload("site-footer"),
     "member-dashboard": getDefaultPayload("member-dashboard"),
     "sales-market-nudges": getDefaultPayload("sales-market-nudges"),
     "account-intelligence": getDefaultPayload("account-intelligence"),

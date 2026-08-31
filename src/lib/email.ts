@@ -1,6 +1,8 @@
 import { Resend } from "resend";
 import { logDemoEmail, type DemoEmailKind } from "@/lib/demo-email-log";
 import { BRAND_NAME, BRAND_SITE_URL, BRAND_TAGLINE } from "@/lib/brand";
+import { jobChatRespondUrl } from "@/lib/job-chat";
+import type { JobChatMessage } from "@/lib/job-chat";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -182,4 +184,130 @@ function escapeHtml(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+export async function sendJobChatQuestionToHirer(params: {
+  to: string;
+  hirerName: string | null;
+  jobTitle: string;
+  company: string;
+  candidateLabel: string;
+  message: string;
+  respondToken: string;
+  exchangeNumber: number;
+}) {
+  const link = jobChatRespondUrl(params.respondToken);
+  const greeting = params.hirerName?.split(" ")[0] || "there";
+  const text = `Hi ${greeting},\n\nAn Elite member asked about your ${params.jobTitle} role at ${params.company}.\n\nQuestion ${params.exchangeNumber} of 3:\n${params.message}\n\nReply here: ${link}`;
+  const html = `
+      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
+        <p style="color:#0830a0;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">Market Job Openings · Live Chat</p>
+        <h1 style="font-size:22px;margin:0 0 16px">New candidate question</h1>
+        <p>Hi ${escapeHtml(greeting)},</p>
+        <p>An Elite member is interested in <strong>${escapeHtml(params.jobTitle)}</strong> at ${escapeHtml(params.company)}.</p>
+        <div style="background:#f2f4f7;border-radius:8px;padding:16px;margin:16px 0">
+          <p style="font-size:11px;font-weight:700;color:#677184;margin:0 0 8px;text-transform:uppercase">Question ${params.exchangeNumber} of 3</p>
+          <p style="margin:0;font-size:14px;line-height:1.5">${escapeHtml(params.message)}</p>
+        </div>
+        <p style="font-size:13px;color:#677184">From: ${escapeHtml(params.candidateLabel)}</p>
+        <p><a href="${link}" style="display:inline-block;background:#0830a0;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Reply in Live Chat</a></p>
+        <p style="font-size:12px;color:#677184;margin-top:24px">${BRAND_NAME} · ${BRAND_TAGLINE}</p>
+      </div>
+    `;
+
+  return sendAndLog({
+    kind: "job_chat_question",
+    to: params.to,
+    subject: `[Live Chat] Question on ${params.jobTitle} — ${params.company}`,
+    text,
+    html,
+  });
+}
+
+export async function sendJobChatAnswerToCandidate(params: {
+  to: string;
+  candidateName: string | null;
+  jobTitle: string;
+  company: string;
+  answer: string;
+  exchangeCount: number;
+}) {
+  const name = params.candidateName?.split(" ")[0] || "there";
+  const link = `${appUrl()}/job-openings`;
+  const text = `Hi ${name},\n\nThe hirer replied to your question about ${params.jobTitle} at ${params.company}.\n\nAnswer:\n${params.answer}\n\nView chat: ${link}`;
+  const html = `
+      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
+        <p style="color:#0830a0;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">Market Job Openings · Live Chat</p>
+        <h1 style="font-size:22px;margin:0 0 16px">Hirer replied (${params.exchangeCount}/3)</h1>
+        <p>Hi ${escapeHtml(name)},</p>
+        <p>The hiring team for <strong>${escapeHtml(params.jobTitle)}</strong> at ${escapeHtml(params.company)} responded.</p>
+        <div style="background:#eeedfe;border-left:3px solid #3280ff;border-radius:8px;padding:16px;margin:16px 0">
+          <p style="margin:0;font-size:14px;line-height:1.6;color:#0830a0">${escapeHtml(params.answer)}</p>
+        </div>
+        <p><a href="${link}" style="display:inline-block;background:#0830a0;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Continue Live Chat</a></p>
+      </div>
+    `;
+
+  return sendAndLog({
+    kind: "job_chat_answer",
+    to: params.to,
+    subject: `Hirer replied — ${params.jobTitle}`,
+    text,
+    html,
+  });
+}
+
+export async function sendJobInterviewOfferEmails(params: {
+  candidateEmail: string;
+  candidateName: string | null;
+  hirerEmail: string;
+  hirerName: string | null;
+  jobTitle: string;
+  company: string;
+  messages: JobChatMessage[];
+}) {
+  const candidateFirst = params.candidateName?.split(" ")[0] || "there";
+  const hirerFirst = params.hirerName?.split(" ")[0] || "there";
+  const transcript = params.messages
+    .map((m) => `${m.role === "candidate" ? "Candidate" : "Hirer"}: ${m.text}`)
+    .join("\n\n");
+
+  const candidateText = `Hi ${candidateFirst},\n\nGreat news — ${params.company} would like to offer you an initial interview for ${params.jobTitle}.\n\nThey will follow up directly to schedule.\n\nYour Live Chat transcript:\n${transcript}`;
+  const candidateHtml = `
+      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto">
+        <h1 style="font-size:22px">Initial interview offered</h1>
+        <p>Hi ${escapeHtml(candidateFirst)},</p>
+        <p><strong>${escapeHtml(params.company)}</strong> would like to move forward with an initial interview for <strong>${escapeHtml(params.jobTitle)}</strong>.</p>
+        <p>Expect the hiring team to reach out directly to schedule next steps.</p>
+      </div>
+    `;
+
+  const hirerText = `Hi ${hirerFirst},\n\nYou offered an initial interview to a candidate for ${params.jobTitle}.\n\nCandidate: ${params.candidateEmail}\n\nTranscript:\n${transcript}`;
+  const hirerHtml = `
+      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto">
+        <h1 style="font-size:22px">Interview offer sent</h1>
+        <p>Hi ${escapeHtml(hirerFirst)},</p>
+        <p>Your interview offer for <strong>${escapeHtml(params.jobTitle)}</strong> was sent to the candidate (${escapeHtml(params.candidateEmail)}).</p>
+        <p>Please follow up directly to schedule the initial interview.</p>
+      </div>
+    `;
+
+  const [candidateResult, hirerResult] = await Promise.all([
+    sendAndLog({
+      kind: "job_interview_offer",
+      to: params.candidateEmail,
+      subject: `Interview offer — ${params.jobTitle} at ${params.company}`,
+      text: candidateText,
+      html: candidateHtml,
+    }),
+    sendAndLog({
+      kind: "job_interview_offer",
+      to: params.hirerEmail,
+      subject: `Interview offer confirmed — ${params.jobTitle}`,
+      text: hirerText,
+      html: hirerHtml,
+    }),
+  ]);
+
+  return { candidateResult, hirerResult };
 }
