@@ -6,6 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { getResolvedMentorSegments } from "@/lib/content/accessors";
 import { getContentModulePayload, updateContentModule } from "@/lib/content/repository";
 import type { MentorOverride, MentorOverridesPayload } from "@/data/mentors";
+import {
+  getMentorLiveContactsByEmail,
+  getMentorLiveContactsByProfileId,
+  linkMentorUserByEmail,
+  overlayMentorLiveContact,
+} from "@/lib/mentor-profile-sync";
 
 export async function GET() {
   const session = await requireAdmin();
@@ -24,6 +30,8 @@ export async function GET() {
   }
 
   const resolvedSegments = await getResolvedMentorSegments();
+  const liveByProfileId = await getMentorLiveContactsByProfileId();
+  const liveByEmail = await getMentorLiveContactsByEmail();
 
   // Surface pending applications first within each segment so admins spot them at a glance.
   const segments = resolvedSegments.map((seg) => ({
@@ -38,20 +46,27 @@ export async function GET() {
         const bPending = (b.status ?? "active") === "pending" ? 0 : 1;
         return aPending - bPending;
       })
-      .map((m) => ({
-        id: m.id,
-        years: m.years,
-        headline: m.headline,
-        bio: m.bio,
-        tags: m.tags,
-        name: m.name ?? null,
-        email: m.email ?? null,
-        company: m.company ?? null,
-        track: m.track ?? "both",
-        status: m.status ?? "active",
-        isNew: m.isNew ?? false,
-        segmentId: seg.id,
-      })),
+      .map((m) => {
+        const live = overlayMentorLiveContact(
+          { id: m.id, email: m.email ?? null, company: m.company ?? null },
+          liveByProfileId,
+          liveByEmail
+        );
+        return {
+          id: m.id,
+          years: m.years,
+          headline: m.headline,
+          bio: m.bio,
+          tags: m.tags,
+          name: m.name ?? null,
+          email: live.email,
+          company: live.company,
+          track: m.track ?? "both",
+          status: m.status ?? "active",
+          isNew: m.isNew ?? false,
+          segmentId: seg.id,
+        };
+      }),
   }));
 
   const pendingCount = segments.reduce(
@@ -135,6 +150,10 @@ export async function PATCH(req: NextRequest) {
     { payload: { overrides: nextOverrides }, published: true },
     session.user.id
   );
+
+  if (patch.email !== undefined) {
+    await linkMentorUserByEmail(id, patch.email);
+  }
 
   revalidatePath("/mentor-connect");
 

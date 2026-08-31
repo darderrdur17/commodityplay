@@ -110,6 +110,7 @@ const DEMO_ACCOUNTS = [
     resumeCredits: 4,
     isMentor: true,
     company: "Vitol",
+    mentorProfileId: "PT-01",
     progress: [
       { chapterId: "a", progress: 100, completed: true },
       { chapterId: "b", progress: 80, completed: false },
@@ -416,9 +417,11 @@ async function main() {
       progress?: { chapterId: string; progress: number; completed: boolean }[];
       isMentor?: boolean;
       company?: string | null;
+      mentorProfileId?: string | null;
     };
     const isMentor = userData.isMentor ?? false;
     const company = userData.company ?? null;
+    const mentorProfileId = userData.mentorProfileId ?? null;
 
     const resumePersonaDone =
       userData.track === "CAREER" && userData.tier !== "STARTER";
@@ -439,6 +442,7 @@ async function main() {
         stripeStatus: userData.tier === "STARTER" ? "inactive" : "active",
         isMentor,
         company,
+        mentorProfileId,
       },
       create: {
         email: userData.email,
@@ -455,6 +459,7 @@ async function main() {
         stripeStatus: userData.tier === "STARTER" ? "inactive" : "active",
         isMentor,
         company,
+        mentorProfileId,
       },
     });
 

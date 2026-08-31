@@ -57,6 +57,8 @@ ALTER TABLE "MentorQuestion" ADD COLUMN IF NOT EXISTS "menteeNotifiedAt" TIMESTA
 -- User mentor/customer separation (admin Mentors vs Customers tabs)
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "company" TEXT;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "isMentor" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "mentorProfileId" TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS "User_mentorProfileId_key" ON "User"("mentorProfileId") WHERE "mentorProfileId" IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS "DemoEmailLog" (
     "id" TEXT NOT NULL,

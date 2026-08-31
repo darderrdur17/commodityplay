@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isMentorAccount } from "@/lib/mentor-demo";
+import { syncUserContactToMentorProfile } from "@/lib/mentor-profile-sync";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email address").max(200),
@@ -17,7 +18,7 @@ export async function PATCH(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, email: true, isMentor: true, company: true },
+    select: { id: true, email: true, isMentor: true, company: true, mentorProfileId: true },
   });
   if (!user || !isMentorAccount(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -51,6 +52,8 @@ export async function PATCH(req: NextRequest) {
       },
       select: { email: true, company: true },
     });
+
+    await syncUserContactToMentorProfile(user.id, user.email, nextEmail, nextCompany);
 
     return NextResponse.json({
       email: updated.email,

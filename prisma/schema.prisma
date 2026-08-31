@@ -65,6 +65,8 @@ model User {
   onboardingDone Boolean   @default(false)
   /// True for mentor-identity demo/seed accounts — excluded from the Customers tab (see Mentors tab instead).
   isMentor       Boolean   @default(false)
+  /// Links a mentor login account to an anonymous Mentor Connect profile id (e.g. PT-01).
+  mentorProfileId String?
 
   // Stripe billing
   stripeCustomerId       String?   @unique
@@ -97,6 +99,7 @@ model User {
 
   @@index([email])
   @@index([stripeCustomerId])
+  @@unique([mentorProfileId])
 }
 
 // ── Enums ────────────────────────────────────────────────────────────
