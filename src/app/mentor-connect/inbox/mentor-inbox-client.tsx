@@ -1,21 +1,20 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  Inbox, Clock, CheckCircle, MessageSquare, Send, User, Filter, Eye, EyeOff, Archive,
+  Inbox, Clock, CheckCircle, Send, User, Filter, Eye, EyeOff, Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/animations";
-import { formatDate, PERSONA_LABELS, TIER_LABELS } from "@/lib/utils";
+import { formatDate, PERSONA_LABELS } from "@/lib/utils";
 import { MENTOR_SEGMENT_LABELS } from "@/lib/mentor-demo";
 
 type FilterTab = "all" | "pending" | "answered";
 
 interface MemberInfo {
   id: string;
-  tier: string;
   track: string;
   persona: string | null;
 }
@@ -51,6 +50,137 @@ function monthKeyOf(dateIso: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+interface RequestDetailPanelProps {
+  req: MentorRequest;
+  answer: string;
+  isPublic: boolean;
+  submitting: boolean;
+  error: string;
+  successMsg: string;
+  selectedId: string | null;
+  onAnswerChange: (value: string) => void;
+  onIsPublicChange: (value: boolean) => void;
+  onSubmit: (e: React.FormEvent) => void;
+}
+
+function RequestDetailPanel({
+  req,
+  answer,
+  isPublic,
+  submitting,
+  error,
+  successMsg,
+  selectedId,
+  onAnswerChange,
+  onIsPublicChange,
+  onSubmit,
+}: RequestDetailPanelProps) {
+  return (
+    <div className="bg-white rounded-b-xl border border-t-0 border-primary-400 ring-2 ring-primary-400/20 overflow-hidden -mt-px">
+      <div className="px-5 sm:px-6 py-4 border-b border-border bg-secondary/40">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-primary-800 mb-1">
+              {MENTOR_SEGMENT_LABELS[req.segment] ?? req.segment}
+            </p>
+            <h2 className="font-serif text-lg sm:text-xl font-bold text-gray-900">{req.member.id}</h2>
+          </div>
+          <Badge variant={req.isAnswered ? "success" : "warning"}>
+            {req.isAnswered ? "Answered" : "Awaiting response"}
+          </Badge>
+        </div>
+      </div>
+
+      <div className="px-5 sm:px-6 py-4 border-b border-border">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-3 flex items-center gap-1.5">
+          <User className="w-3.5 h-3.5" /> Member profile (anonymous)
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            {
+              label: "Persona",
+              value: req.member.persona ? PERSONA_LABELS[req.member.persona]?.label : "—",
+            },
+            {
+              label: "Track",
+              value: req.member.track === "CAREER" ? "Career" : "Sales",
+            },
+            { label: "Submitted", value: formatDate(req.createdAt) },
+          ].map((item) => (
+            <div key={item.label} className="rounded-lg border border-border bg-secondary/30 px-3 py-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-fg mb-0.5">
+                {item.label}
+              </p>
+              <p className="text-sm font-semibold text-gray-900">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-5 sm:px-6 py-4 border-b border-border">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-2">Member query</p>
+        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{req.question}</p>
+        <div className="flex items-center gap-2 mt-3 text-xs text-muted-fg">
+          {req.isPublic ? (
+            <>
+              <Eye className="w-3.5 h-3.5" /> Member opted in to anonymous sharing
+            </>
+          ) : (
+            <>
+              <EyeOff className="w-3.5 h-3.5" /> Private — not shared publicly
+            </>
+          )}
+        </div>
+      </div>
+
+      {req.isAnswered && req.answer ? (
+        <div className="px-5 sm:px-6 py-4 bg-primary-soft/50">
+          <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">Your answer</p>
+          <p className="text-sm text-primary-900 leading-relaxed whitespace-pre-wrap">{req.answer}</p>
+          {req.answeredAt && (
+            <p className="text-xs text-muted-fg mt-3">Sent {formatDate(req.answeredAt)}</p>
+          )}
+        </div>
+      ) : (
+        <form onSubmit={onSubmit} className="px-5 sm:px-6 py-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-2 flex items-center gap-1.5">
+            <Send className="w-3.5 h-3.5" /> Write your response
+          </p>
+          <textarea
+            value={answer}
+            onChange={(e) => onAnswerChange(e.target.value)}
+            placeholder="Give a direct, practitioner answer — specific enough that they can act on it this week."
+            className="w-full h-36 px-3 py-2.5 rounded-lg border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-400 mb-3"
+          />
+          <p className={`text-xs mb-3 ${answer.length >= 10 ? "text-green-600" : "text-muted-fg"}`}>
+            {answer.length}/2000 characters
+          </p>
+          <label className="flex items-center gap-2.5 cursor-pointer mb-4">
+            <input
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => onIsPublicChange(e.target.checked)}
+              className="rounded accent-primary-400"
+            />
+            <span className="text-sm text-gray-700">Allow anonymous sharing in Desk Channel library</span>
+          </label>
+          {error && (
+            <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg p-3 mb-3">{error}</p>
+          )}
+          {successMsg && (
+            <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+              {successMsg}
+            </p>
+          )}
+          <Button type="submit" loading={submitting} disabled={answer.length < 10 || selectedId !== req.id}>
+            <Send className="w-4 h-4" /> Send answer to member
+          </Button>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export function MentorInboxClient({ mentorName, initialRequests }: Props) {
   const [requests, setRequests] = useState(initialRequests);
   const [filter, setFilter] = useState<FilterTab>("pending");
@@ -63,6 +193,7 @@ export function MentorInboxClient({ mentorName, initialRequests }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // Distinct months present in the mentor's request history, newest first —
   // powers the archive filter sidebar so the list stays manageable as
@@ -165,9 +296,18 @@ export function MentorInboxClient({ mentorName, initialRequests }: Props) {
   }
 
   function selectRequest(id: string) {
-    setSelectedId(id);
+    setSelectedId((prev) => {
+      const next = prev === id ? null : id;
+      if (next) {
+        requestAnimationFrame(() => {
+          cardRefs.current.get(next)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+      }
+      return next;
+    });
     setAnswer("");
     setError("");
+    setSuccessMsg("");
     setIsPublic(false);
   }
 
@@ -189,7 +329,7 @@ export function MentorInboxClient({ mentorName, initialRequests }: Props) {
                 Member <span className="text-accent italic">Requests</span>
               </h1>
               <p className="text-white/65 text-base max-w-xl">
-                Signed in as {mentorName}. Review anonymous member queries, see persona and tier context, and respond from your practitioner perspective.
+                Signed in as {mentorName}. Review anonymous member queries, see persona context, and respond from your practitioner perspective.
               </p>
             </div>
             <div className="flex flex-col items-end gap-2 shrink-0">
@@ -302,8 +442,8 @@ export function MentorInboxClient({ mentorName, initialRequests }: Props) {
           </div>
         </div>
 
-        {/* Request list */}
-        <div className="lg:col-span-2 space-y-3">
+        {/* Request list — detail expands inline below the selected card */}
+        <div className="lg:col-span-5 space-y-3">
           {filtered.length === 0 ? (
             <div className="bg-white rounded-xl border border-border p-8 text-center">
               <Inbox className="w-8 h-8 text-muted-fg mx-auto mb-3" />
@@ -314,163 +454,65 @@ export function MentorInboxClient({ mentorName, initialRequests }: Props) {
               const persona = req.member.persona ? PERSONA_LABELS[req.member.persona] : null;
               const active = selectedId === req.id;
               return (
-                <button
+                <div
                   key={req.id}
-                  type="button"
-                  onClick={() => selectRequest(req.id)}
-                  className={`w-full text-left rounded-xl border bg-white p-4 transition-all ${
-                    active
-                      ? "border-primary-400 ring-2 ring-primary-400/20 shadow-sm"
-                      : "border-border hover:border-primary-line"
-                  }`}
+                  className="scroll-mt-24"
+                  ref={(el) => {
+                    if (el) cardRefs.current.set(req.id, el);
+                    else cardRefs.current.delete(req.id);
+                  }}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <Badge variant={req.isAnswered ? "success" : "warning"} size="sm">
-                      {req.isAnswered ? "Answered" : "Pending"}
-                    </Badge>
-                    <span className="text-[10px] text-muted-fg">{formatDate(req.createdAt)}</span>
-                  </div>
-                  <p className="text-xs font-bold text-primary-800 mb-1">{req.member.id}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-fg mb-2">
-                    {MENTOR_SEGMENT_LABELS[req.segment] ?? req.segment}
-                  </p>
-                  <p className="text-sm text-gray-700 line-clamp-2 mb-3">{req.question}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {persona && (
-                      <span
-                        className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-                        style={{ background: persona.bg, color: persona.color }}
-                      >
-                        {persona.label}
+                  <button
+                    type="button"
+                    onClick={() => selectRequest(req.id)}
+                    className={`w-full text-left rounded-xl border bg-white p-4 transition-all ${
+                      active
+                        ? "border-primary-400 ring-2 ring-primary-400/20 shadow-sm rounded-b-none"
+                        : "border-border hover:border-primary-line"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <Badge variant={req.isAnswered ? "success" : "warning"} size="sm">
+                        {req.isAnswered ? "Answered" : "Pending"}
+                      </Badge>
+                      <span className="text-[10px] text-muted-fg">{formatDate(req.createdAt)}</span>
+                    </div>
+                    <p className="text-xs font-bold text-primary-800 mb-1">{req.member.id}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-fg mb-2">
+                      {MENTOR_SEGMENT_LABELS[req.segment] ?? req.segment}
+                    </p>
+                    <p className="text-sm text-gray-700 line-clamp-2 mb-3">{req.question}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {persona && (
+                        <span
+                          className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                          style={{ background: persona.bg, color: persona.color }}
+                        >
+                          {persona.label}
+                        </span>
+                      )}
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-fg font-semibold capitalize">
+                        {req.member.track.toLowerCase()} track
                       </span>
-                    )}
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-fg font-semibold">
-                      {TIER_LABELS[req.member.tier]?.label ?? req.member.tier}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-fg font-semibold capitalize">
-                      {req.member.track.toLowerCase()} track
-                    </span>
-                  </div>
-                </button>
+                    </div>
+                  </button>
+                  {active && selected?.id === req.id && (
+                    <RequestDetailPanel
+                      req={req}
+                      answer={answer}
+                      isPublic={isPublic}
+                      submitting={submitting}
+                      error={error}
+                      successMsg={successMsg}
+                      selectedId={selectedId}
+                      onAnswerChange={setAnswer}
+                      onIsPublicChange={setIsPublic}
+                      onSubmit={handleAnswer}
+                    />
+                  )}
+                </div>
               );
             })
-          )}
-        </div>
-
-        {/* Detail panel */}
-        <div className="lg:col-span-3">
-          {!selected ? (
-            <div className="bg-white rounded-2xl border border-border p-10 text-center">
-              <MessageSquare className="w-10 h-10 text-muted-fg mx-auto mb-3" />
-              <p className="text-muted-fg text-sm">Select a member request to view details.</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl border border-border overflow-hidden">
-              <div className="px-6 py-5 border-b border-border bg-secondary/40">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-primary-800 mb-1">
-                      {MENTOR_SEGMENT_LABELS[selected.segment] ?? selected.segment}
-                    </p>
-                    <h2 className="font-serif text-xl font-bold text-gray-900">{selected.member.id}</h2>
-                  </div>
-                  <Badge variant={selected.isAnswered ? "success" : "warning"}>
-                    {selected.isAnswered ? "Answered" : "Awaiting response"}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="px-6 py-5 border-b border-border">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-3 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5" /> Member profile (anonymous)
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[
-                    {
-                      label: "Persona",
-                      value: selected.member.persona
-                        ? PERSONA_LABELS[selected.member.persona]?.label
-                        : "—",
-                    },
-                    {
-                      label: "Tier",
-                      value: TIER_LABELS[selected.member.tier]?.label ?? selected.member.tier,
-                    },
-                    {
-                      label: "Track",
-                      value: selected.member.track === "CAREER" ? "Career" : "Sales",
-                    },
-                    { label: "Submitted", value: formatDate(selected.createdAt) },
-                  ].map((item) => (
-                    <div key={item.label} className="rounded-lg border border-border bg-secondary/30 px-3 py-2.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-fg mb-0.5">
-                        {item.label}
-                      </p>
-                      <p className="text-sm font-semibold text-gray-900">{item.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="px-6 py-5 border-b border-border">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-2">Member query</p>
-                <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{selected.question}</p>
-                <div className="flex items-center gap-2 mt-3 text-xs text-muted-fg">
-                  {selected.isPublic ? (
-                    <>
-                      <Eye className="w-3.5 h-3.5" /> Member opted in to anonymous sharing
-                    </>
-                  ) : (
-                    <>
-                      <EyeOff className="w-3.5 h-3.5" /> Private — not shared publicly
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {selected.isAnswered && selected.answer ? (
-                <div className="px-6 py-5 bg-primary-soft/50">
-                  <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">Your answer</p>
-                  <p className="text-sm text-primary-900 leading-relaxed whitespace-pre-wrap">{selected.answer}</p>
-                  {selected.answeredAt && (
-                    <p className="text-xs text-muted-fg mt-3">Sent {formatDate(selected.answeredAt)}</p>
-                  )}
-                </div>
-              ) : (
-                <form onSubmit={handleAnswer} className="px-6 py-5">
-                  <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-2 flex items-center gap-1.5">
-                    <Send className="w-3.5 h-3.5" /> Write your response
-                  </p>
-                  <textarea
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    placeholder="Give a direct, practitioner answer — specific enough that they can act on it this week."
-                    className="w-full h-36 px-3 py-2.5 rounded-lg border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-400 mb-3"
-                  />
-                  <p className={`text-xs mb-3 ${answer.length >= 10 ? "text-green-600" : "text-muted-fg"}`}>
-                    {answer.length}/2000 characters
-                  </p>
-                  <label className="flex items-center gap-2.5 cursor-pointer mb-4">
-                    <input
-                      type="checkbox"
-                      checked={isPublic}
-                      onChange={(e) => setIsPublic(e.target.checked)}
-                      className="rounded accent-primary-400"
-                    />
-                    <span className="text-sm text-gray-700">Allow anonymous sharing in Desk Channel library</span>
-                  </label>
-                  {error && (
-                    <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg p-3 mb-3">{error}</p>
-                  )}
-                  {successMsg && (
-                    <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3 mb-3">{successMsg}</p>
-                  )}
-                  <Button type="submit" loading={submitting} disabled={answer.length < 10}>
-                    <Send className="w-4 h-4" /> Send answer to member
-                  </Button>
-                </form>
-              )}
-            </div>
           )}
         </div>
       </div>

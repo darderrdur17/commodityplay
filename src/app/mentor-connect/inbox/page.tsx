@@ -27,7 +27,7 @@ export default async function MentorInboxPage() {
     orderBy: [{ isAnswered: "asc" }, { createdAt: "desc" }],
     include: {
       user: {
-        select: { id: true, tier: true, track: true, persona: true },
+        select: { id: true, track: true, persona: true },
       },
     },
   });
@@ -50,7 +50,6 @@ export default async function MentorInboxPage() {
         answeredAt: q.answeredAt?.toISOString() ?? null,
         member: {
           id: memberDisplayId(q.user.id),
-          tier: q.user.tier,
           track: q.user.track,
           persona: q.user.persona,
         },
