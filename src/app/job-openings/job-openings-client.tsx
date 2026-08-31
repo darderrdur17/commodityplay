@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Briefcase, Clock, Building2, ExternalLink, Filter, MessageSquare } from "lucide-react";
+import { MapPin, Briefcase, Clock, Building2, Filter, MessageSquare } from "lucide-react";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { TierGate } from "@/components/tier-gate";
 import { hasAccess } from "@/lib/utils";
@@ -165,9 +165,6 @@ export function JobOpeningsClient({
                           {chatOpen ? "Close Live Chat" : "Live Chat"}
                         </Button>
                       )}
-                      <span className="inline-flex items-center gap-1 text-xs text-primary-400 font-medium">
-                        Apply via firm website <ExternalLink className="w-3 h-3" />
-                      </span>
                     </div>
                   </div>
                   <AnimatePresence mode="wait">

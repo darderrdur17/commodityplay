@@ -882,7 +882,7 @@ export function AdminClient({
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <p className="text-sm text-muted-fg">
-                Every Mentor Connect email is logged here for demo — member answer notifications, mentor reminders, and new question alerts. Works even without Resend configured.
+                Demo notification log for Mentor Connect and system emails. Live Chat messages between Elite members and hirers are private — logs show delivery metadata only, not conversation content.
               </p>
               <Button variant="outline" size="sm" onClick={loadDemoEmails} loading={emailsLoading}>
                 <RefreshCw className="w-4 h-4" /> Refresh

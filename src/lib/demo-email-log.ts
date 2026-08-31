@@ -26,6 +26,32 @@ function isDemoRecipient(to: string | string[]): boolean {
   return list.some((e) => e.endsWith("@demo.com") || e.includes("@example.com"));
 }
 
+const PRIVATE_LIVE_CHAT_KINDS = new Set<DemoEmailKind>([
+  "job_chat_question",
+  "job_chat_answer",
+  "job_interview_offer",
+]);
+
+/** Job Live Chat bodies are private — admin log keeps metadata (+ hirer link for demo testing only). */
+function redactPrivateLiveChatLog(
+  kind: DemoEmailKind,
+  text?: string,
+  html?: string
+): { text: string; html: string } {
+  const respondLink =
+    kind === "job_chat_question" ? text?.match(/https?:\/\/[^\s]+/)?.[0] : undefined;
+  const demoLinkNote = respondLink
+    ? `\n\nHirer reply link (demo testing only): ${respondLink}`
+    : "";
+
+  return {
+    text: `[Private Live Chat notification — conversation content is not stored in admin logs.]${demoLinkNote}`,
+    html: html
+      ? "[Private Live Chat notification — conversation content is not stored in admin logs.]"
+      : "",
+  };
+}
+
 export async function logDemoEmail(params: {
   kind: DemoEmailKind;
   to: string | string[];
@@ -38,14 +64,18 @@ export async function logDemoEmail(params: {
   const shouldLog = !params.delivered || isDemoRecipient(params.to) || process.env.DEMO_EMAIL_LOG === "true";
   if (!shouldLog) return;
 
+  const redacted = PRIVATE_LIVE_CHAT_KINDS.has(params.kind)
+    ? redactPrivateLiveChatLog(params.kind, params.text, params.html)
+    : { text: params.text ?? params.subject, html: params.html };
+
   try {
     await prisma.demoEmailLog.create({
       data: {
         kind: params.kind,
         to,
         subject: params.subject,
-        bodyText: params.text ?? params.subject,
-        bodyHtml: params.html,
+        bodyText: redacted.text,
+        bodyHtml: redacted.html,
         delivered: params.delivered,
       },
     });
