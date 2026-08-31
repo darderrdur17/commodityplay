@@ -16,6 +16,10 @@ import { AdminUserDetailPanel, type AdminUserDetail } from "./admin-user-detail"
 import { AdminMentorDetailPanel, type AdminMentorDetail, type MentorSegmentOption } from "./admin-mentor-detail";
 import { MENTOR_COUNT, MENTOR_SEGMENTS, UNASSIGNED_SEGMENT_ID } from "@/data/mentors";
 import { formatMentorCreditsUsedLabel, getMentorCreditUsage } from "@/lib/mentor-credits";
+import {
+  isDeskChannelQueueItem,
+  MENTOR_SEGMENT_TO_DESK_CATEGORY,
+} from "@/lib/mentor-share-consent";
 
 function formatAdminMentorCreditsCell(user: AdminUserDetail): string {
   if (user.tier !== "ELITE") return "M: —";
@@ -38,6 +42,10 @@ interface MentorQ {
   question: string;
   answer: string | null;
   isAnswered: boolean;
+  memberShareOptIn: boolean;
+  mentorShareOptIn: boolean;
+  deskChannelStatus?: string | null;
+  deskChannelQaId?: string | null;
   createdAt: string;
   answeredAt?: string | null;
   answeredByEmail?: string | null;
@@ -136,7 +144,9 @@ export function AdminClient({
   const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(null);
   const [selectedMentor, setSelectedMentor] = useState<AdminMentorDetail | null>(null);
   // Q&A tab filters
-  const [qaFilter, setQaFilter] = useState<"all" | "pending" | "answered">("all");
+  const [qaFilter, setQaFilter] = useState<"all" | "pending" | "answered" | "queue">("all");
+  const [deskCategoryDraft, setDeskCategoryDraft] = useState<Record<string, string>>({});
+  const [deskChannelBusy, setDeskChannelBusy] = useState<string | null>(null);
   // Progress tab filters
   const [progressTierFilter, setProgressTierFilter] = useState<string>("ALL");
   // Mentors tab filter
@@ -177,8 +187,8 @@ export function AdminClient({
     }
   }
 
-  async function loadQAs(filter: "all" | "pending" | "answered") {
-    const res = await fetch(`/api/admin/mentor?status=${filter}`);
+  async function loadQAs() {
+    const res = await fetch("/api/admin/mentor?status=all");
     if (res.ok) setMentorQs(await res.json());
   }
 
@@ -217,7 +227,7 @@ export function AdminClient({
     });
     const data = res.ok ? await res.json() : null;
     setAnswerDraft((d) => ({ ...d, [id]: "" }));
-    await loadQAs(qaFilter);
+    await loadQAs();
     setSaving(null);
     if (data?.menteeEmail?.sent) {
       setActionMsg("Answer saved and member notified by email.");
@@ -233,7 +243,7 @@ export function AdminClient({
     setActionMsg(null);
     const res = await fetch(`/api/admin/mentor/${id}/notify`, { method: "POST" });
     const data = res.ok ? await res.json() : null;
-    await loadQAs(qaFilter);
+    await loadQAs();
     setNotifying(null);
     if (data?.email?.sent) {
       setActionMsg("Reminder email sent to mentor inbox.");
@@ -247,7 +257,38 @@ export function AdminClient({
   const tierBadge = (tier: string) =>
     tier === "ELITE" ? "elite" : tier === "PRO" ? "pro" : "starter";
 
+  async function deskChannelReview(id: string, action: "publish" | "reject", segment: string) {
+    setDeskChannelBusy(`${id}:${action}`);
+    setActionMsg(null);
+    const category =
+      deskCategoryDraft[id] || MENTOR_SEGMENT_TO_DESK_CATEGORY[segment] || "career";
+    const res = await fetch(`/api/admin/mentor/${id}/desk-channel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, category }),
+    });
+    const data = await res.json().catch(() => null);
+    await loadQAs();
+    setDeskChannelBusy(null);
+    if (!res.ok) {
+      setActionMsg((data && data.error) || "Could not update Desk Channel review.");
+      return;
+    }
+    setActionMsg(
+      action === "publish"
+        ? "Published to Desk Channel. It now appears on /desk-channel."
+        : "Removed from the Desk Channel queue. Q&A stays private."
+    );
+  }
+
   const pendingCount = mentorQs.filter((q) => !q.isAnswered).length;
+  const queueCount = mentorQs.filter((q) => isDeskChannelQueueItem(q)).length;
+  const visibleMentorQs = mentorQs.filter((q) => {
+    if (qaFilter === "pending") return !q.isAnswered;
+    if (qaFilter === "answered") return q.isAnswered;
+    if (qaFilter === "queue") return isDeskChannelQueueItem(q);
+    return true;
+  });
 
   // Filtered progress rows
   const filteredProgress = progressTierFilter === "ALL"
@@ -339,7 +380,7 @@ export function AdminClient({
             ["users", `Customers (${users.length})`, Users],
             ["progress", "Progress Activity", BarChart2],
             ["mentors", `Mentors (${totalMentorCount})`, UserCheck],
-            ["mentor", `Q&A (${pendingCount} pending)`, MessageSquare],
+            ["mentor", `Q&A (${pendingCount} pending${queueCount ? ` · ${queueCount} queue` : ""})`, MessageSquare],
             ["billing", "Billing & Invoice", CreditCard],
             ["waitlist", `Waitlist (${waitlist.length})`, Mail],
             ["emails", "Email Log", Mail],
@@ -674,15 +715,12 @@ export function AdminClient({
         {activeTab === "mentor" && (
           <div className="space-y-4">
             {/* Status filter */}
-            <div className="flex items-center gap-2">
-              {(["all", "pending", "answered"] as const).map((f) => (
+            <div className="flex items-center gap-2 flex-wrap">
+              {(["all", "pending", "answered", "queue"] as const).map((f) => (
                 <button
                   key={f}
                   type="button"
-                  onClick={async () => {
-                    setQaFilter(f);
-                    await loadQAs(f);
-                  }}
+                  onClick={() => setQaFilter(f)}
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all",
                     qaFilter === f
@@ -690,10 +728,21 @@ export function AdminClient({
                       : "bg-white text-muted-fg border border-border hover:border-primary-line"
                   )}
                 >
-                  {f === "all" ? `All (${mentorQs.length})` : f === "pending" ? `Pending (${mentorQs.filter(q => !q.isAnswered).length})` : `Answered (${mentorQs.filter(q => q.isAnswered).length})`}
+                  {f === "all"
+                    ? `All (${mentorQs.length})`
+                    : f === "pending"
+                      ? `Pending (${mentorQs.filter((q) => !q.isAnswered).length})`
+                      : f === "answered"
+                        ? `Answered (${mentorQs.filter((q) => q.isAnswered).length})`
+                        : `Desk Channel queue (${queueCount})`}
                 </button>
               ))}
             </div>
+            {qaFilter === "queue" && (
+              <p className="text-xs text-muted-fg">
+                Dual consent only — both member and mentor opted in. Publish adds an anonymous Q&amp;A to Desk Channel; reject keeps it private.
+              </p>
+            )}
             {actionMsg && (
               <div className="rounded-lg border border-primary-line bg-primary-soft px-4 py-3 text-sm text-primary-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <span>{actionMsg}</span>
@@ -706,22 +755,33 @@ export function AdminClient({
                 </button>
               </div>
             )}
-            {mentorQs.length === 0 ? (
+            {visibleMentorQs.length === 0 ? (
               <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-fg">
-                No mentor questions yet.
+                {qaFilter === "queue"
+                  ? "No dual-consent Q&As waiting for Desk Channel review."
+                  : "No mentor questions yet."}
               </div>
             ) : (
-              mentorQs.map((q) => (
+              visibleMentorQs.map((q) => (
                 <div key={q.id} className="bg-white rounded-xl border border-border p-5">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         {q.isAnswered ? (
                           <Badge variant="success" size="sm"><CheckCircle className="w-3 h-3" /> Answered</Badge>
                         ) : (
                           <Badge variant="warning" size="sm"><Clock className="w-3 h-3" /> Pending</Badge>
                         )}
                         <span className="text-xs text-muted-fg capitalize">{q.segment.replace("-", " ")}</span>
+                        {q.deskChannelStatus === "published" && (
+                          <Badge variant="success" size="sm">On Desk Channel</Badge>
+                        )}
+                        {q.deskChannelStatus === "rejected" && (
+                          <Badge variant="secondary" size="sm">Review declined</Badge>
+                        )}
+                        {isDeskChannelQueueItem(q) && (
+                          <Badge variant="warning" size="sm">Desk Channel candidate</Badge>
+                        )}
                       </div>
                       <p className="text-sm text-gray-800">{q.question}</p>
                       <p className="text-xs text-muted-fg mt-1">
@@ -734,6 +794,14 @@ export function AdminClient({
                           {q.menteeNotifiedAt ? " · member emailed" : " · member email pending"}
                         </p>
                       )}
+                      <p className="text-xs mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                        <span className={q.memberShareOptIn ? "text-green-700" : "text-muted-fg"}>
+                          Member share: {q.memberShareOptIn ? "opted in" : "no"}
+                        </span>
+                        <span className={q.mentorShareOptIn ? "text-green-700" : "text-muted-fg"}>
+                          Mentor share: {q.mentorShareOptIn ? "opted in" : "no"}
+                        </span>
+                      </p>
                       {!q.isAnswered && q.mentorReminderSentAt && (
                         <p className="text-xs text-amber-700 mt-1">
                           Mentor reminded {formatDate(q.mentorReminderSentAt)}
@@ -742,9 +810,54 @@ export function AdminClient({
                     </div>
                   </div>
                   {q.isAnswered && q.answer ? (
-                    <div className="bg-primary-soft border border-primary-line rounded-lg p-3 text-sm text-primary-800">
-                      {q.answer}
-                    </div>
+                    <>
+                      <div className="bg-primary-soft border border-primary-line rounded-lg p-3 text-sm text-primary-800">
+                        {q.answer}
+                      </div>
+                      {isDeskChannelQueueItem(q) && (
+                        <div className="mt-3 flex flex-col sm:flex-row sm:items-end gap-2">
+                          <label className="flex-1 text-xs font-semibold text-muted-fg">
+                            Desk Channel category
+                            <select
+                              className="mt-1 w-full text-sm border border-border rounded-lg px-2.5 py-2 bg-white text-gray-800"
+                              value={
+                                deskCategoryDraft[q.id] ||
+                                MENTOR_SEGMENT_TO_DESK_CATEGORY[q.segment] ||
+                                "career"
+                              }
+                              onChange={(e) =>
+                                setDeskCategoryDraft((d) => ({ ...d, [q.id]: e.target.value }))
+                              }
+                            >
+                              <option value="trading">Trading &amp; Market Analysis</option>
+                              <option value="ops">Operations &amp; Scheduling</option>
+                              <option value="risk">Risk &amp; Compliance</option>
+                              <option value="tools">Market Intelligence &amp; Tools</option>
+                              <option value="career">Career Positioning</option>
+                            </select>
+                          </label>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => deskChannelReview(q.id, "publish", q.segment)}
+                              loading={deskChannelBusy === `${q.id}:publish`}
+                              disabled={Boolean(deskChannelBusy)}
+                            >
+                              Publish to Desk Channel
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => deskChannelReview(q.id, "reject", q.segment)}
+                              loading={deskChannelBusy === `${q.id}:reject`}
+                              disabled={Boolean(deskChannelBusy)}
+                            >
+                              Keep private
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="space-y-2 mt-2">
                       <div className="flex gap-2 flex-col sm:flex-row">

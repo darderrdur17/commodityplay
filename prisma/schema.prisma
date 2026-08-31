@@ -169,6 +169,9 @@ model MentorQuestion {
   isAnswered Boolean  @default(false)
   memberShareOptIn Boolean @default(false) @map("isPublic")
   mentorShareOptIn Boolean @default(false)
+  /// none | published | rejected — queue = both consents + answered + none
+  deskChannelStatus String @default("none")
+  deskChannelQaId   String?
   createdAt  DateTime @default(now())
   answeredAt DateTime?
   answeredByEmail      String?

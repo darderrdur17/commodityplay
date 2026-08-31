@@ -11,53 +11,48 @@ Member questions and mentor answers stay **private by default**. Anonymous Desk 
 
 If either party does not opt in, the Q&A remains private (member still receives the answer on Mentor Connect / email).
 
-When **both** opt in, the Q&A is flagged as a **Desk Channel candidate** — but nothing is published automatically.
+When **both** opt in and the question is answered, it appears in **Admin → Q&A → Desk Channel queue**.
 
 ### Current behaviour
 
 - Member checkbox on web (`/mentor-connect`) and mobile Mentor Connect form
 - Mentor checkbox on practitioner inbox (`/mentor-connect/inbox`)
-- UI copy explains admin review is required before Desk Channel publication
-- Desk Channel page (`/desk-channel`) still uses **admin-curated CMS content** only
+- Admin Q&A cards show member + mentor consent on every item (manual review on Answered / All)
+- Desk Channel queue filter lists dual-consent candidates only
 
-### Helper
+## Admin review queue (implemented)
 
-`isDeskChannelShareCandidate(memberShareOptIn, mentorShareOptIn)` in `src/lib/mentor-share-consent.ts`
+Admin → **Q&A** → **Desk Channel queue**:
 
----
+- [x] Filter: dual consent + answered + not yet published/rejected
+- [x] Show segment, member, question, answer, both consent flags
+- [x] Category picker (Trading / Ops / Risk / Tools / Career)
+- [x] **Publish to Desk Channel** — copies anonymous Q&A into Desk Channel CMS
+- [x] **Keep private** — reject; stays off Desk Channel
 
-## Admin review queue (pending)
+Frances can still review **All / Answered** and scan consent lines without using the queue.
 
-> **Status:** Planned — not implemented yet.
+## Publish to Desk Channel (implemented)
 
-When both consents are true, surface the Q&A in Admin for Frances to review:
+On admin **Publish**:
 
-- [ ] Admin tab or filter: **Desk Channel candidates** (`memberShareOptIn AND mentorShareOptIn AND answered`)
-- [ ] Show segment, anonymous member ID, question, answer, consent timestamps
-- [ ] Actions: **Approve**, **Reject**, **Edit before publish**
+- [x] Append Q&A to Desk Channel CMS (`desk-channel` module), anonymous practitioner attribution
+- [x] Category/tag from admin picker
+- [x] Mark source question `deskChannelStatus: published` so it leaves the queue
 
-Frances can still manually add Q&As to Desk Channel via Admin → Desk Channel CMS until this queue exists.
-
----
-
-## Publish to Desk Channel (pending)
-
-> **Status:** Planned — not implemented yet.
-
-On admin **Approve**:
-
-- [ ] Copy Q&A into Desk Channel library (CMS module or approved-questions table)
-- [ ] Allow category/tag assignment and light redaction before go-live
-- [ ] Mark source question as published (e.g. `deskChannelStatus: APPROVED`) to avoid duplicate review
+On **Keep private**: `deskChannelStatus: rejected`.
 
 ---
 
 ## Related code
 
 - Consent helper: `src/lib/mentor-share-consent.ts`
+- Publish helper: `src/lib/desk-channel-publish.ts`
+- Admin queue API: `src/app/api/admin/mentor/[id]/desk-channel/route.ts`
 - Member submit API: `src/app/api/mentor-connect/route.ts`
 - Mentor answer API: `src/app/api/mentor-connect/inbox/[id]/route.ts`
 - Member UI: `src/components/mentor-connect/mentor-ask-panel.tsx`
 - Mentor UI: `src/app/mentor-connect/inbox/mentor-inbox-client.tsx`
+- Admin UI: `src/app/admin/admin-client.tsx` (Q&A tab)
 - Desk Channel CMS: `src/app/admin/editors/desk-channel-editor.tsx`
-- Schema: `MentorQuestion.memberShareOptIn` (DB column `isPublic`), `MentorQuestion.mentorShareOptIn`
+- Schema: `MentorQuestion.memberShareOptIn` (DB column `isPublic`), `mentorShareOptIn`, `deskChannelStatus`

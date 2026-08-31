@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { applyCmsSchemaSql } from "@/lib/setup-database";
 
 export async function GET(req: NextRequest) {
   const session = await requireAdmin();
   if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  await applyCmsSchemaSql();
 
   const status = req.nextUrl.searchParams.get("status") ?? "all";
 
@@ -15,7 +18,14 @@ export async function GET(req: NextRequest) {
       ? { isAnswered: false }
       : status === "answered"
         ? { isAnswered: true }
-        : {};
+        : status === "queue"
+          ? {
+              isAnswered: true,
+              memberShareOptIn: true,
+              mentorShareOptIn: true,
+              deskChannelStatus: "none",
+            }
+          : {};
 
   const questions = await prisma.mentorQuestion.findMany({
     where,
