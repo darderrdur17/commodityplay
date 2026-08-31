@@ -8,6 +8,17 @@ import {
 import { MENTOR_DEMO_EMAIL, MENTOR_SEGMENT_LABELS, memberDisplayId } from "@/lib/mentor-demo";
 import { formatDate } from "@/lib/utils";
 
+export async function mentorNotifyEmails(): Promise<string[]> {
+  const mentors = await prisma.user.findMany({
+    where: { isMentor: true },
+    select: { email: true },
+  });
+  const fromDb = mentors.map((m) => m.email).filter(Boolean);
+  const extra = process.env.MENTOR_NOTIFY_EMAIL?.trim();
+  const unique = [...new Set([...fromDb, extra].filter((e): e is string => Boolean(e)))];
+  return unique.length ? unique : [MENTOR_DEMO_EMAIL];
+}
+
 export function mentorNotifyEmail(): string {
   return process.env.MENTOR_NOTIFY_EMAIL || MENTOR_DEMO_EMAIL;
 }
@@ -117,13 +128,22 @@ export async function notifyMentorPendingQuestion(questionId: string): Promise<N
   if (question.isAnswered) throw new Error("ALREADY_ANSWERED");
 
   const segmentLabel = MENTOR_SEGMENT_LABELS[question.segment] ?? question.segment;
-  const emailResult = await sendMentorReminderEmail({
-    to: mentorNotifyEmail(),
-    segmentLabel,
-    question: question.question,
-    memberLabel: memberDisplayId(question.user.id),
-    submittedAt: formatDate(question.createdAt.toISOString()),
-  });
+  const recipients = await mentorNotifyEmails();
+  let lastResult: { sent: boolean; skipped?: boolean; error?: string } = { sent: false };
+  for (const to of recipients) {
+    const emailResult = await sendMentorReminderEmail({
+      to,
+      segmentLabel,
+      question: question.question,
+      memberLabel: memberDisplayId(question.user.id),
+      submittedAt: formatDate(question.createdAt.toISOString()),
+    });
+    lastResult = emailResult.ok
+      ? { sent: true }
+      : "skipped" in emailResult && emailResult.skipped
+        ? { sent: false, skipped: true }
+        : { sent: false, error: "error" in emailResult ? emailResult.error : "Unknown error" };
+  }
 
   const mentorReminderSentAt = new Date();
   await prisma.mentorQuestion.update({
@@ -133,11 +153,7 @@ export async function notifyMentorPendingQuestion(questionId: string): Promise<N
 
   return {
     mentorReminderSentAt,
-    email: emailResult.ok
-      ? { sent: true }
-      : "skipped" in emailResult && emailResult.skipped
-        ? { sent: false, skipped: true }
-        : { sent: false, error: "error" in emailResult ? emailResult.error : "Unknown error" },
+    email: lastResult,
   };
 }
 
@@ -149,10 +165,13 @@ export async function notifyMentorPoolNewQuestion(questionId: string): Promise<v
   if (!question) return;
 
   const segmentLabel = MENTOR_SEGMENT_LABELS[question.segment] ?? question.segment;
-  await sendNewQuestionToMentorPoolEmail({
-    to: mentorNotifyEmail(),
-    segmentLabel,
-    question: question.question,
-    memberLabel: memberDisplayId(question.user.id),
-  });
+  const recipients = await mentorNotifyEmails();
+  for (const to of recipients) {
+    await sendNewQuestionToMentorPoolEmail({
+      to,
+      segmentLabel,
+      question: question.question,
+      memberLabel: memberDisplayId(question.user.id),
+    });
+  }
 }

@@ -78,6 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: {
+            email: true,
             role: true,
             tier: true,
             track: true,
@@ -87,6 +88,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           },
         });
         if (dbUser) {
+          token.email = dbUser.email;
           token.role = dbUser.role;
           token.tier = dbUser.tier;
           token.track = dbUser.track;

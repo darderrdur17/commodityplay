@@ -3,7 +3,7 @@ import { MentorConnectClient } from "./mentor-connect-client";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { isMentorDemoUser } from "@/lib/mentor-demo";
+import { isMentorAccount } from "@/lib/mentor-demo";
 import { Suspense } from "react";
 import {
   getMentorConnectHero,
@@ -28,7 +28,7 @@ export default async function MentorConnectPage() {
 
   if (!user) redirect("/login");
 
-  if (isMentorDemoUser(user.email)) {
+  if (isMentorAccount(user)) {
     redirect("/mentor-connect/inbox");
   }
 

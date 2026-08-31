@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isMentorDemoUser, memberDisplayId } from "@/lib/mentor-demo";
+import { isMentorAccount, memberDisplayId } from "@/lib/mentor-demo";
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.id || !isMentorDemoUser(session.user.email)) {
+  if (!session?.user?.id || !isMentorAccount(session.user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

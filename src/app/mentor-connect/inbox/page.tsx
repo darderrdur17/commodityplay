@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { isMentorDemoUser, memberDisplayId } from "@/lib/mentor-demo";
+import { isMentorAccount, memberDisplayId } from "@/lib/mentor-demo";
 import { MentorInboxClient } from "./mentor-inbox-client";
 
 export const metadata = { title: "Mentor Inbox" };
@@ -12,7 +12,7 @@ export default async function MentorInboxPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/mentor-connect/inbox");
 
-  if (!isMentorDemoUser(session.user.email)) {
+  if (!isMentorAccount(session.user)) {
     redirect("/mentor-connect");
   }
 

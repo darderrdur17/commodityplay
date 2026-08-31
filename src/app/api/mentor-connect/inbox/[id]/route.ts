@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isMentorDemoUser } from "@/lib/mentor-demo";
+import { isMentorAccount } from "@/lib/mentor-demo";
 import { answerMentorQuestion } from "@/lib/mentor-questions";
 
 const schema = z.object({
@@ -15,7 +15,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.id || !isMentorDemoUser(session.user.email)) {
+  if (!session?.user?.id || !isMentorAccount(session.user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

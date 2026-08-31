@@ -7,7 +7,7 @@ import {
   getContentStats,
 } from "@/lib/content/content-stats";
 import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
-import { isMentorDemoUser } from "@/lib/mentor-demo";
+import { isMentorAccount } from "@/lib/mentor-demo";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { DashboardClient } from "./dashboard-client";
@@ -39,7 +39,7 @@ export default async function DashboardPage({
 
   if (!user) redirect("/login");
 
-  const isMentorUser = isMentorDemoUser(session.user.email);
+  const isMentorUser = isMentorAccount({ isMentor: user.isMentor, email: session.user.email });
 
   const completedChapters = user.progress.filter((p) => p.completed).length;
   const mentorCreditUsage = await getMentorCreditUsageForUser(user.id, user.tier);

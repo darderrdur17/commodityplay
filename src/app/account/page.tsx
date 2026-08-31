@@ -10,8 +10,9 @@ import { getContentStats } from "@/lib/content/content-stats";
 import { AccountBillingSection } from "@/components/account/account-billing-section";
 import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
 import { formatMentorCreditsUsedLabel } from "@/lib/mentor-credits";
-import { isMentorDemoUser } from "@/lib/mentor-demo";
+import { isMentorAccount } from "@/lib/mentor-demo";
 import { User, Mail, CreditCard, Sparkles, Inbox, CheckCircle, Clock, BookOpen } from "lucide-react";
+import { MentorAccountSettings } from "@/components/account/mentor-account-settings";
 
 export const metadata = { title: "Account" };
 
@@ -29,6 +30,8 @@ export default async function AccountPage() {
       track: true,
       persona: true,
       resumePersonaDone: true,
+      company: true,
+      isMentor: true,
       mentorCredits: true,
       resumeCredits: true,
       stripeCurrentPeriodEnd: true,
@@ -43,7 +46,7 @@ export default async function AccountPage() {
   const contentStats = await getContentStats();
   const completedChapters = user.progress.filter((p) => p.completed).length;
 
-  const isMentorUser = isMentorDemoUser(user.email);
+  const isMentorUser = isMentorAccount(user);
 
   const mentorCreditUsage = isMentorUser
     ? null
@@ -93,7 +96,6 @@ export default async function AccountPage() {
           <div className="divide-y divide-border">
             {(isMentorUser
               ? [
-                  { icon: User, label: "Track", value: user.track === "CAREER" ? "Build a Career" : "Sell Into Firms" },
                   { icon: Sparkles, label: "Persona", value: personaLabel ?? "Not set" },
                   { icon: Inbox, label: "Total requests received", value: String(mentorStats?.total ?? 0) },
                   { icon: CheckCircle, label: "Requests answered", value: String(mentorStats?.answered ?? 0) },
@@ -128,6 +130,10 @@ export default async function AccountPage() {
           </div>
         </div>
 
+        {isMentorUser && (
+          <MentorAccountSettings initialEmail={user.email} initialCompany={user.company} />
+        )}
+
         {!isMentorUser && (
           <AccountBillingSection
             tier={user.tier}
@@ -138,7 +144,7 @@ export default async function AccountPage() {
           />
         )}
 
-        {!personaLabel && user.track === "CAREER" && (
+        {!isMentorUser && !personaLabel && user.track === "CAREER" && (
           <div className="text-center mt-4">
             <Link href="/resume-templates#quiz" className="text-sm text-primary-400 hover:underline">
               Take the resume persona quiz →
