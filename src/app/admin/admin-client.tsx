@@ -146,6 +146,9 @@ export function AdminClient({
   // Q&A tab filters
   const [qaFilter, setQaFilter] = useState<"all" | "pending" | "answered" | "queue">("all");
   const [deskCategoryDraft, setDeskCategoryDraft] = useState<Record<string, string>>({});
+  const [deskPublishDraft, setDeskPublishDraft] = useState<
+    Record<string, { question: string; answer: string }>
+  >({});
   const [deskChannelBusy, setDeskChannelBusy] = useState<string | null>(null);
   // Progress tab filters
   const [progressTierFilter, setProgressTierFilter] = useState<string>("ALL");
@@ -257,7 +260,12 @@ export function AdminClient({
   const tierBadge = (tier: string) =>
     tier === "ELITE" ? "elite" : tier === "PRO" ? "pro" : "starter";
 
-  async function deskChannelReview(id: string, action: "publish" | "reject", segment: string) {
+  async function deskChannelReview(
+    id: string,
+    action: "publish" | "reject",
+    segment: string,
+    copy?: { question: string; answer: string }
+  ) {
     setDeskChannelBusy(`${id}:${action}`);
     setActionMsg(null);
     const category =
@@ -265,7 +273,13 @@ export function AdminClient({
     const res = await fetch(`/api/admin/mentor/${id}/desk-channel`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, category }),
+      body: JSON.stringify({
+        action,
+        category,
+        ...(action === "publish" && copy
+          ? { question: copy.question.trim(), answer: copy.answer.trim() }
+          : {}),
+      }),
     });
     const data = await res.json().catch(() => null);
     await loadQAs();
@@ -815,45 +829,91 @@ export function AdminClient({
                         {q.answer}
                       </div>
                       {isDeskChannelQueueItem(q) && (
-                        <div className="mt-3 flex flex-col sm:flex-row sm:items-end gap-2">
-                          <label className="flex-1 text-xs font-semibold text-muted-fg">
-                            Desk Channel category
-                            <select
-                              className="mt-1 w-full text-sm border border-border rounded-lg px-2.5 py-2 bg-white text-gray-800"
-                              value={
-                                deskCategoryDraft[q.id] ||
-                                MENTOR_SEGMENT_TO_DESK_CATEGORY[q.segment] ||
-                                "career"
-                              }
+                        <div className="mt-3 space-y-3 rounded-lg border border-amber-200 bg-amber-50/40 p-4">
+                          <p className="text-xs font-semibold text-amber-900">
+                            Edit for Desk Channel before publish — wording changes here do not alter the private member/mentor record.
+                          </p>
+                          <label className="block text-xs font-semibold text-muted-fg">
+                            Question (Desk Channel)
+                            <textarea
+                              className="mt-1 w-full text-sm border border-border rounded-lg px-2.5 py-2 bg-white text-gray-800 min-h-[72px] resize-y focus:outline-none focus:ring-2 focus:ring-primary-400"
+                              value={deskPublishDraft[q.id]?.question ?? q.question}
                               onChange={(e) =>
-                                setDeskCategoryDraft((d) => ({ ...d, [q.id]: e.target.value }))
+                                setDeskPublishDraft((d) => ({
+                                  ...d,
+                                  [q.id]: {
+                                    question: e.target.value,
+                                    answer: d[q.id]?.answer ?? q.answer ?? "",
+                                  },
+                                }))
                               }
-                            >
-                              <option value="trading">Trading &amp; Market Analysis</option>
-                              <option value="ops">Operations &amp; Scheduling</option>
-                              <option value="risk">Risk &amp; Compliance</option>
-                              <option value="tools">Market Intelligence &amp; Tools</option>
-                              <option value="career">Career Positioning</option>
-                            </select>
+                            />
                           </label>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => deskChannelReview(q.id, "publish", q.segment)}
-                              loading={deskChannelBusy === `${q.id}:publish`}
-                              disabled={Boolean(deskChannelBusy)}
-                            >
-                              Publish to Desk Channel
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => deskChannelReview(q.id, "reject", q.segment)}
-                              loading={deskChannelBusy === `${q.id}:reject`}
-                              disabled={Boolean(deskChannelBusy)}
-                            >
-                              Keep private
-                            </Button>
+                          <label className="block text-xs font-semibold text-muted-fg">
+                            Answer (Desk Channel)
+                            <textarea
+                              className="mt-1 w-full text-sm border border-border rounded-lg px-2.5 py-2 bg-white text-gray-800 min-h-[120px] resize-y focus:outline-none focus:ring-2 focus:ring-primary-400"
+                              value={deskPublishDraft[q.id]?.answer ?? q.answer ?? ""}
+                              onChange={(e) =>
+                                setDeskPublishDraft((d) => ({
+                                  ...d,
+                                  [q.id]: {
+                                    question: d[q.id]?.question ?? q.question,
+                                    answer: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
+                          <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+                            <label className="flex-1 text-xs font-semibold text-muted-fg">
+                              Desk Channel category
+                              <select
+                                className="mt-1 w-full text-sm border border-border rounded-lg px-2.5 py-2 bg-white text-gray-800"
+                                value={
+                                  deskCategoryDraft[q.id] ||
+                                  MENTOR_SEGMENT_TO_DESK_CATEGORY[q.segment] ||
+                                  "career"
+                                }
+                                onChange={(e) =>
+                                  setDeskCategoryDraft((d) => ({ ...d, [q.id]: e.target.value }))
+                                }
+                              >
+                                <option value="trading">Trading &amp; Market Analysis</option>
+                                <option value="ops">Operations &amp; Scheduling</option>
+                                <option value="risk">Risk &amp; Compliance</option>
+                                <option value="tools">Market Intelligence &amp; Tools</option>
+                                <option value="career">Career Positioning</option>
+                              </select>
+                            </label>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  deskChannelReview(q.id, "publish", q.segment, {
+                                    question: deskPublishDraft[q.id]?.question ?? q.question,
+                                    answer: deskPublishDraft[q.id]?.answer ?? q.answer ?? "",
+                                  })
+                                }
+                                loading={deskChannelBusy === `${q.id}:publish`}
+                                disabled={
+                                  Boolean(deskChannelBusy) ||
+                                  (deskPublishDraft[q.id]?.question ?? q.question).trim().length < 10 ||
+                                  (deskPublishDraft[q.id]?.answer ?? q.answer ?? "").trim().length < 10
+                                }
+                              >
+                                Publish to Desk Channel
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => deskChannelReview(q.id, "reject", q.segment)}
+                                loading={deskChannelBusy === `${q.id}:reject`}
+                                disabled={Boolean(deskChannelBusy)}
+                              >
+                                Keep private
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       )}

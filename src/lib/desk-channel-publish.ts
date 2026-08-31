@@ -63,6 +63,9 @@ export async function publishMentorQuestionToDeskChannel(params: {
   questionId: string;
   category: DeskCategory;
   adminUserId: string;
+  /** Desk Channel copy only — does not change the private Mentor Connect record. */
+  questionText?: string;
+  answerText?: string;
 }): Promise<{ deskChannelQaId: string }> {
   const existing = await prisma.mentorQuestion.findUnique({ where: { id: params.questionId } });
   if (!existing) throw new Error("NOT_FOUND");
@@ -72,22 +75,29 @@ export async function publishMentorQuestionToDeskChannel(params: {
     return { deskChannelQaId: existing.deskChannelQaId ?? `mc-${existing.id}` };
   }
 
+  const publishQuestion = (params.questionText?.trim() || existing.question).trim();
+  const publishAnswer = (params.answerText?.trim() || existing.answer).trim();
+  if (publishQuestion.length < 10 || publishAnswer.length < 10) {
+    throw new Error("INVALID_COPY");
+  }
+
   const record = await getContentModuleRecord("desk-channel");
   const resolved = resolveAdminModulePayload("desk-channel", record?.payload) as DeskPayload;
   const defaults = getDefaultPayload("desk-channel") as DeskPayload;
   const questions = [...(resolved.questions?.length ? resolved.questions : defaults.questions ?? DESK_QA)];
 
   const deskQaId = `mc-${existing.id}`;
-  const already = questions.find((q) => q.id === deskQaId);
-  if (!already) {
-    questions.unshift(
-      deskQaFromMentor({
-        questionId: existing.id,
-        question: existing.question,
-        answer: existing.answer,
-        category: params.category,
-      })
-    );
+  const entry = deskQaFromMentor({
+    questionId: existing.id,
+    question: publishQuestion,
+    answer: publishAnswer,
+    category: params.category,
+  });
+  const existingIdx = questions.findIndex((q) => q.id === deskQaId);
+  if (existingIdx >= 0) {
+    questions[existingIdx] = entry;
+  } else {
+    questions.unshift(entry);
   }
 
   await updateContentModule(

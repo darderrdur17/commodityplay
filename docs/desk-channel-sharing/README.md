@@ -27,7 +27,8 @@ Admin → **Q&A** → **Desk Channel queue**:
 - [x] Filter: dual consent + answered + not yet published/rejected
 - [x] Show segment, member, question, answer, both consent flags
 - [x] Category picker (Trading / Ops / Risk / Tools / Career)
-- [x] **Publish to Desk Channel** — copies anonymous Q&A into Desk Channel CMS
+- [x] **Edit question + answer before publish** — Desk Channel copy only; private Mentor Connect record unchanged
+- [x] **Publish to Desk Channel** — copies edited anonymous Q&A into Desk Channel CMS
 - [x] **Keep private** — reject; stays off Desk Channel
 
 Frances can still review **All / Answered** and scan consent lines without using the queue.

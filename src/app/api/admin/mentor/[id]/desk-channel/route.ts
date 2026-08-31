@@ -12,6 +12,8 @@ import { prisma } from "@/lib/prisma";
 const schema = z.object({
   action: z.enum(["publish", "reject"]),
   category: z.enum(["trading", "ops", "risk", "tools", "career"]).optional(),
+  question: z.string().min(10).max(2000).optional(),
+  answer: z.string().min(10).max(5000).optional(),
 });
 
 export async function POST(
@@ -48,6 +50,8 @@ export async function POST(
       questionId: id,
       category,
       adminUserId: session.user.id,
+      questionText: parsed.data.question,
+      answerText: parsed.data.answer,
     });
     return NextResponse.json({
       ok: true,
@@ -62,6 +66,9 @@ export async function POST(
     }
     if (code === "NO_DUAL_CONSENT") {
       return NextResponse.json({ error: "Both member and mentor must opt in" }, { status: 409 });
+    }
+    if (code === "INVALID_COPY") {
+      return NextResponse.json({ error: "Question and answer must each be at least 10 characters" }, { status: 400 });
     }
     if (code === "ALREADY_PUBLISHED") {
       return NextResponse.json({ error: "Already published to Desk Channel" }, { status: 409 });
