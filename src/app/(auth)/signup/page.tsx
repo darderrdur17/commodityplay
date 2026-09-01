@@ -2,6 +2,7 @@
 
 import React, { useState, Suspense } from "react";
 import Link from "next/link";
+import { TRACK_SELECTION } from "@/data/track-selection";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowRight, Check, AlertCircle } from "lucide-react";
@@ -275,12 +276,10 @@ function SignupForm() {
                       />
                       <div>
                         <p className="text-sm font-semibold text-gray-900">
-                          {t === "CAREER" ? "Build a Career" : "Sell into Firms"}
+                          {t === "CAREER" ? TRACK_SELECTION.career.title : TRACK_SELECTION.sales.title}
                         </p>
                         <p className="text-xs text-muted-fg mt-0.5">
-                          {t === "CAREER"
-                            ? "Breaking in or moving up on the desk"
-                            : "Selling products and services into trading firms"}
+                          {t === "CAREER" ? TRACK_SELECTION.career.caption : TRACK_SELECTION.sales.caption}
                         </p>
                       </div>
                     </div>

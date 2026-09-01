@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { GradientOrbs } from "@/components/animations";
 import { Logo } from "@/components/brand/logo";
+import { TRACK_SELECTION } from "@/data/track-selection";
 import { BRAND_NAME } from "@/lib/brand";
 
 export default function OnboardingPage() {
@@ -174,12 +175,10 @@ function OnboardingContent() {
               >
                 <div className="text-2xl mb-2">{t === "CAREER" ? "🚀" : "💼"}</div>
                 <h3 className="font-semibold text-gray-900 text-sm mb-1">
-                  {t === "CAREER" ? "Build a Career" : "Sell Into Firms"}
+                  {t === "CAREER" ? TRACK_SELECTION.career.title : TRACK_SELECTION.sales.title}
                 </h3>
                 <p className="text-xs text-muted-fg">
-                  {t === "CAREER"
-                    ? "Breaking in, moving up, or re-positioning in commodity trading"
-                    : "Selling products / services into commodity trading firms"}
+                  {t === "CAREER" ? TRACK_SELECTION.career.caption : TRACK_SELECTION.sales.caption}
                 </p>
                 {track === t && (
                   <div className="mt-3 flex items-center gap-1 text-primary-400 text-xs font-semibold">

@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/animations";
 import { TIER_LABELS, formatDate } from "@/lib/utils";
 import { resolveMemberPersonaLabel } from "@/lib/persona-display";
-import { getContentStats } from "@/lib/content/content-stats";
 import { AccountBillingSection } from "@/components/account/account-billing-section";
 import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
 import { formatMentorCreditsUsedLabel } from "@/lib/mentor-credits";
@@ -40,12 +39,9 @@ export default async function AccountPage() {
       stripeStatus: true,
       stripeCustomerId: true,
       createdAt: true,
-      progress: { select: { completed: true } },
     },
   });
   if (!user) redirect("/login");
-
-  await getContentStats();
 
   const isMentorUser = isMentorAccount(user);
 

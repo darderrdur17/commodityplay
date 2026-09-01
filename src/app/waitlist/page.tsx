@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Reveal } from "@/components/animations";
+import { TRACK_SELECTION } from "@/data/track-selection";
 import { PAGE_HERO_TOP } from "@/lib/layout-constants";
 
 export default function WaitlistPage() {
@@ -131,7 +132,7 @@ export default function WaitlistPage() {
                             : "border-border text-muted-fg hover:border-primary-line"
                         }`}
                       >
-                        {t === "CAREER" ? "Build a Career" : "Sell Into Firms"}
+                        {t === "CAREER" ? TRACK_SELECTION.career.title : TRACK_SELECTION.sales.title}
                       </button>
                     ))}
                   </div>

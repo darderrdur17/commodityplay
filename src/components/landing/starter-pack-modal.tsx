@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, Download, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TRACK_SELECTION } from "@/data/track-selection";
 
 const PACK_ITEMS = [
   "Ecosystem Map",
@@ -189,12 +190,10 @@ export function StarterPackModal({ open, onClose }: Props) {
                             />
                             <div>
                               <p className="text-sm font-semibold text-gray-900">
-                                {t === "CAREER" ? "Build a Career" : "Sell into Firms"}
+                                {t === "CAREER" ? TRACK_SELECTION.career.title : TRACK_SELECTION.sales.title}
                               </p>
                               <p className="text-xs text-muted-fg mt-0.5">
-                                {t === "CAREER"
-                                  ? "Breaking in or moving up on the desk"
-                                  : "Selling products and services into trading firms"}
+                                {t === "CAREER" ? TRACK_SELECTION.career.caption : TRACK_SELECTION.sales.caption}
                               </p>
                             </div>
                           </div>
