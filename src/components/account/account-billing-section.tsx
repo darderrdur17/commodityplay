@@ -27,6 +27,8 @@ interface AccountBillingSectionProps {
   stripeStatus?: string | null;
   stripeCurrentPeriodEnd?: Date | null;
   hasStripeCustomer: boolean;
+  /** False until Stripe (and later PayNow) keys are configured in production. */
+  paymentsEnabled?: boolean;
 }
 
 export function AccountBillingSection({
@@ -35,6 +37,7 @@ export function AccountBillingSection({
   stripeStatus,
   stripeCurrentPeriodEnd,
   hasStripeCustomer,
+  paymentsEnabled = true,
 }: AccountBillingSectionProps) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,11 +54,9 @@ export function AccountBillingSection({
     setError(null);
     try {
       const url = await startBillingPortal(flow);
-      if (url) {
-        window.location.href = url;
-        return;
-      }
-      setError("Could not open billing portal. Please try again or contact support.");
+      if (url) window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not open billing portal.");
     } finally {
       setLoadingAction(null);
     }
@@ -66,11 +67,9 @@ export function AccountBillingSection({
     setError(null);
     try {
       const url = await startCheckout(plan);
-      if (url) {
-        window.location.href = url;
-        return;
-      }
-      setError("Could not start checkout. Please try again or contact support.");
+      if (url) window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start checkout.");
     } finally {
       setLoadingAction(null);
     }
@@ -115,11 +114,20 @@ export function AccountBillingSection({
       <div className="px-6 py-4 border-b border-border">
         <h2 className="font-serif text-lg font-bold text-gray-900">Billing &amp; Subscription</h2>
         <p className="text-xs text-muted-fg mt-1">
-          Manage your plan, payment method, and invoices via our secure Stripe checkout.
+          {paymentsEnabled
+            ? "Manage your plan, payment method, and invoices via our secure checkout."
+            : "View your plan here. Online card and PayNow checkout will be enabled before go-live."}
         </p>
       </div>
 
-      {isPastDue && (
+      {!paymentsEnabled && (
+        <div className="mx-6 mt-4 rounded-xl border border-primary-line bg-primary-soft px-4 py-3 text-sm text-primary-800">
+          Payments are not live yet — this page is ready for when Stripe / PayNow is connected. You
+          can still review your tier and billing status below.
+        </div>
+      )}
+
+      {isPastDue && paymentsEnabled && (
         <div className="mx-6 mt-4 flex gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <div>
@@ -164,7 +172,7 @@ export function AccountBillingSection({
       </div>
 
       <div className="p-6 border-t border-border space-y-4">
-        {canManageBilling && (
+        {canManageBilling && paymentsEnabled && (
           <div className="flex flex-wrap gap-2">
             {isPastDue && (
               <ActionButton
@@ -196,7 +204,7 @@ export function AccountBillingSection({
           </div>
         )}
 
-        {upgradePlan && (
+        {upgradePlan && paymentsEnabled && (
           <Button
             size="sm"
             onClick={() => handleUpgrade(upgradePlan)}
@@ -213,14 +221,14 @@ export function AccountBillingSection({
           </Button>
         )}
 
-        {tier === "STARTER" && !hasStripeCustomer && (
+        {tier === "STARTER" && !hasStripeCustomer && paymentsEnabled && (
           <p className="text-xs text-muted-fg">
             Upgrade to Pro or Elite to start a subscription. Checkout opens in a secure Stripe
             window with card-on-file support (Stripe Link). Cancel anytime from this page.
           </p>
         )}
 
-        {canManageBilling && (
+        {canManageBilling && paymentsEnabled && (
           <p className="text-xs text-muted-fg">
             Billing is powered by Stripe. Payment method, invoices, and cancellation open in
             Stripe&apos;s hosted portal — the same flow used by Anthropic and other subscription

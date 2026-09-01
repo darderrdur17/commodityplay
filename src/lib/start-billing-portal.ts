@@ -10,8 +10,9 @@ export async function startBillingPortal(
     body: JSON.stringify({ flow }),
   });
 
-  if (!res.ok) return null;
-
-  const data = (await res.json()) as { url?: string };
+  const data = (await res.json()) as { url?: string; error?: string };
+  if (!res.ok) {
+    throw new Error(data.error || "Could not open billing portal");
+  }
   return data.url ?? null;
 }

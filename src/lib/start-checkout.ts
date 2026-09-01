@@ -8,8 +8,9 @@ export async function startCheckout(plan: CheckoutPlan): Promise<string | null> 
     body: JSON.stringify({ plan }),
   });
 
-  if (!res.ok) return null;
-
-  const data = (await res.json()) as { url?: string };
+  const data = (await res.json()) as { url?: string; error?: string };
+  if (!res.ok) {
+    throw new Error(data.error || "Could not start checkout");
+  }
   return data.url ?? null;
 }

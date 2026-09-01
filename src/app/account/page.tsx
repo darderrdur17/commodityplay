@@ -141,6 +141,7 @@ export default async function AccountPage() {
             stripeStatus={user.stripeStatus}
             stripeCurrentPeriodEnd={user.stripeCurrentPeriodEnd}
             hasStripeCustomer={Boolean(user.stripeCustomerId)}
+            paymentsEnabled={Boolean(process.env.STRIPE_SECRET_KEY)}
           />
         )}
 
