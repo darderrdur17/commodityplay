@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { setupProductionDatabase } from "@/lib/setup-database";
+import { isDatabaseSeeded, setupProductionDatabase } from "@/lib/setup-database";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
+
+/** Read-only check — safe to call without auth (does not expose secrets). */
+export async function GET() {
+  try {
+    const seeded = await isDatabaseSeeded();
+    return NextResponse.json({
+      seeded,
+      message: seeded
+        ? "Demo accounts are present. Use Demo1234! on /login."
+        : "Database not seeded — POST /api/setup-db with SETUP_SECRET (see VERCEL_DEMO_SETUP.md).",
+    });
+  } catch (err) {
+    console.error("[setup-db GET]", err);
+    return NextResponse.json({ seeded: false, error: "Database unreachable" }, { status: 503 });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
 
 /**
  * One-time production DB setup when local port 5432 is blocked.

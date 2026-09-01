@@ -1,6 +1,6 @@
 # Vercel Demo Account Setup Guide
 
-Get demo logins working at **https://commodity-playbook-app.vercel.app/demo** on any device.
+Get demo logins working at **https://commodityplay.vercel.app/demo** on any device.
 
 **Demo password for all accounts:** `Demo1234!`
 
@@ -28,8 +28,8 @@ These must be set for **Production** (and ideally Preview):
 |---|---|
 | `DATABASE_URL` | Neon **pooled** URL (`…-pooler….neon.tech/neondb?sslmode=require`) |
 | `AUTH_SECRET` | Random string: `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | `https://commodity-playbook-app.vercel.app` |
-| `NEXT_PUBLIC_APP_URL` | `https://commodity-playbook-app.vercel.app` |
+| `NEXTAUTH_URL` | `https://commodityplay.vercel.app` |
+| `NEXT_PUBLIC_APP_URL` | `https://commodityplay.vercel.app` |
 | `SETUP_SECRET` | One-time secret for seeding (see Step 3) |
 
 **Do not use** `localhost` in any production variable.
@@ -61,8 +61,8 @@ Choose **one** method:
 After deploy, run (secret is set in Vercel as `SETUP_SECRET`):
 
 ```bash
-curl -X POST https://commodity-playbook-app.vercel.app/api/setup-db \
-  -H "Authorization: Bearer commodityplaybook-seed-once-2025"
+curl -X POST https://commodityplay.vercel.app/api/setup-db \
+  -H "Authorization: Bearer YOUR_SETUP_SECRET"
 ```
 
 > **Important:** Redeploy production **after** adding `SETUP_SECRET` in Vercel, or this returns 401.
@@ -108,7 +108,7 @@ Required whenever you change `DATABASE_URL`, `AUTH_SECRET`, or `NEXTAUTH_URL`.
 
 ## Step 6 — Test demo accounts
 
-Open **https://commodity-playbook-app.vercel.app/demo**
+Open **https://commodityplay.vercel.app/demo**
 
 | Email | Tier | Use for |
 |---|---|---|
@@ -143,6 +143,7 @@ npx expo start
 | Symptom | Fix |
 |---|---|
 | 500 on login | Re-run Step 3 (seed database) |
+| Demo login fails | Check `GET /api/setup-db` — should return `"seeded": true` |
 | 401 on site | Disable Deployment Protection |
 | P1001 locally | Use Method A (Vercel API) or phone hotspot |
 | `SETUP_SECRET not configured` | Add `SETUP_SECRET` to Vercel Production, redeploy |
