@@ -395,19 +395,29 @@ export async function getResolvedMentorSegments() {
  * Respects the mentors module published flag — overrides are ignored when draft.
  */
 export async function getPublishedMentorSegments(): Promise<PublishedMentorSegment[]> {
-  const cms = await tryReadPublishedPayload<Partial<MentorOverridesPayload>>("mentors");
-  const resolved = resolveMentorSegments(MENTOR_SEGMENTS, cms?.overrides ?? []);
+  const [mentorsCms, mentorConnectCms] = await Promise.all([
+    tryReadPublishedPayload<Partial<MentorOverridesPayload>>("mentors"),
+    tryReadPublishedPayload<Partial<{ segments?: { id: string; title: string; blurb: string }[] }>>(
+      "mentor-connect"
+    ),
+  ]);
+  const segmentCopy = normalizeMentorConnectPayload(mentorConnectCms ?? {}).segments;
+  const copyById = new Map(segmentCopy.map((s) => [s.id, s]));
+  const resolved = resolveMentorSegments(MENTOR_SEGMENTS, mentorsCms?.overrides ?? []);
   return resolved
     .filter((seg) => seg.id !== UNASSIGNED_SEGMENT_ID)
-    .map((seg) => ({
-      id: seg.id,
-      num: seg.num,
-      title: seg.title,
-      blurb: seg.blurb,
-      mentors: seg.mentors
-        .filter((m) => (m.status ?? "active") === "active")
-        .map(toPublicMentorProfile),
-    }))
+    .map((seg) => {
+      const copy = copyById.get(seg.id);
+      return {
+        id: seg.id,
+        num: seg.num,
+        title: copy?.title ?? seg.title,
+        blurb: copy?.blurb ?? seg.blurb,
+        mentors: seg.mentors
+          .filter((m) => (m.status ?? "active") === "active")
+          .map(toPublicMentorProfile),
+      };
+    })
     .filter((seg) => seg.mentors.length > 0);
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, Fragment, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { Users, MessageSquare, Clock, Lock } from "lucide-react";
@@ -147,6 +147,10 @@ export function MentorConnectClient({
     }
   }
 
+  function scrollToSegment(segmentId: string) {
+    document.getElementById(`mentor-segment-${segmentId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <div className="page-container py-8 sm:py-10">
       <section className="rounded-2xl bg-primary-800 px-8 py-12 mb-10 relative overflow-hidden">
@@ -185,6 +189,19 @@ export function MentorConnectClient({
         </Reveal>
       </section>
 
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-8 scrollbar-hide">
+        {visibleSegments.map((seg) => (
+          <button
+            key={seg.id}
+            type="button"
+            onClick={() => scrollToSegment(seg.id)}
+            className="px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap border transition-all bg-primary-400 text-white border-primary-400 hover:bg-primary-500 shrink-0"
+          >
+            {seg.num} · {seg.title}
+          </button>
+        ))}
+      </div>
+
       <TierGate requiredTier="ELITE" userTier={userTier}>
         {/* Mentor browse + inline ask panel — full width */}
         <section className="mb-14">
@@ -197,14 +214,13 @@ export function MentorConnectClient({
           </Reveal>
 
           <div className="space-y-10">
-            {visibleSegments.map((seg) => {
-              const panelOpen = selectedMentor?.segmentId === seg.id;
-
-              return (
+            {visibleSegments.map((seg) => (
                 <div key={seg.id} id={`mentor-segment-${seg.id}`}>
                   <div className="mb-4 pb-4 border-b border-border">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-primary-800">{seg.num} · {seg.title}</p>
-                    <p className="text-sm text-muted-fg mt-1">{seg.blurb}</p>
+                    <h2 className="font-serif text-xl sm:text-2xl font-bold text-gray-900">
+                      {seg.num} · {seg.title}
+                    </h2>
+                    <p className="text-sm text-muted-fg mt-1.5 max-w-2xl">{seg.blurb}</p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -212,8 +228,8 @@ export function MentorConnectClient({
                         const isSelected = selectedMentor?.id === mentor.id;
 
                         return (
+                          <Fragment key={mentor.id}>
                           <button
-                            key={mentor.id}
                             type="button"
                             onClick={() => openMentor(mentor, seg.id, seg.title)}
                             aria-expanded={isSelected}
@@ -242,35 +258,37 @@ export function MentorConnectClient({
                               {isSelected ? "Writing question…" : "Ask one question"}
                             </p>
                           </button>
+
+                          <AnimatePresence mode="wait">
+                            {isSelected && selectedMentor && (
+                              <div className="col-span-full">
+                                <MentorAskPanel
+                                  key={selectedMentor.id}
+                                  mentor={selectedMentor}
+                                  question={question}
+                                  memberShareOptIn={memberShareOptIn}
+                                  submitting={submitting}
+                                  submitted={submitted}
+                                  error={error}
+                                  mentorCredits={creditsRemaining}
+                                  onQuestionChange={setQuestion}
+                                  onMemberShareOptInChange={setMemberShareOptIn}
+                                  onClose={clearMentorSelection}
+                                  onSubmit={handleSubmit}
+                                  onAskAnother={() => {
+                                    setSubmitted(false);
+                                    clearMentorSelection();
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </AnimatePresence>
+                          </Fragment>
                         );
                       })}
                     </div>
-
-                    <AnimatePresence mode="wait">
-                      {panelOpen && selectedMentor && (
-                        <MentorAskPanel
-                          key={selectedMentor.id}
-                          mentor={selectedMentor}
-                          question={question}
-                          memberShareOptIn={memberShareOptIn}
-                          submitting={submitting}
-                          submitted={submitted}
-                          error={error}
-                          mentorCredits={creditsRemaining}
-                          onQuestionChange={setQuestion}
-                          onMemberShareOptInChange={setMemberShareOptIn}
-                          onClose={clearMentorSelection}
-                          onSubmit={handleSubmit}
-                          onAskAnother={() => {
-                            setSubmitted(false);
-                            clearMentorSelection();
-                          }}
-                        />
-                      )}
-                    </AnimatePresence>
                   </div>
-                );
-              })}
+                ))}
           </div>
         </section>
 

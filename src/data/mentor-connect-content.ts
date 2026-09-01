@@ -1,3 +1,6 @@
+import { formatContentPlaceholders } from "@/lib/content/content-stat-placeholders";
+import { MENTOR_SEGMENTS } from "@/data/mentors";
+
 export interface MentorConnectHero {
   eyebrow: string;
   title: string;
@@ -9,6 +12,13 @@ export interface MentorConnectCategory {
   id: string;
   label: string;
   track: "career" | "sales" | "both";
+}
+
+/** Per-segment title and caption shown on the Mentor Connect browse grid. */
+export interface MentorConnectSegmentCopy {
+  id: string;
+  title: string;
+  blurb: string;
 }
 
 export interface MentorConnectStep {
@@ -33,6 +43,8 @@ export interface MentorConnectHowItWorks {
 export interface MentorConnectContent {
   hero: MentorConnectHero;
   categories: MentorConnectCategory[];
+  /** Segment headings and blurbs — merged with mentors.json defaults by id. */
+  segments: MentorConnectSegmentCopy[];
   howItWorks: MentorConnectHowItWorks;
 }
 
@@ -61,6 +73,10 @@ export const DEFAULT_MENTOR_CONNECT_HOW_IT_WORKS: MentorConnectHowItWorks = {
   },
 };
 
+export function defaultMentorConnectSegments(): MentorConnectSegmentCopy[] {
+  return MENTOR_SEGMENTS.map((s) => ({ id: s.id, title: s.title, blurb: s.blurb }));
+}
+
 export const DEFAULT_MENTOR_CONNECT_CONTENT: MentorConnectContent = {
   hero: {
     eyebrow: "Elite Access",
@@ -69,10 +85,9 @@ export const DEFAULT_MENTOR_CONNECT_CONTENT: MentorConnectContent = {
       "One question. One mentor. One honest answer. Choose from {mentorCount} anonymous practitioners across {segmentCount} coverage segments. Your session ends once you've finished using all 15 credits and the credits will get reset every month.",
   },
   categories: [],
+  segments: defaultMentorConnectSegments(),
   howItWorks: DEFAULT_MENTOR_CONNECT_HOW_IT_WORKS,
 };
-
-import { formatContentPlaceholders } from "@/lib/content/content-stat-placeholders";
 
 export function formatMentorConnectSubtitle(
   template: string,

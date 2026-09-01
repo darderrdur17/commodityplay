@@ -7,8 +7,9 @@ import {
   DEFAULT_MENTOR_CONNECT_CONTENT,
   type MentorConnectCategory,
   type MentorConnectContent,
+  type MentorConnectSegmentCopy,
 } from "@/data/mentor-connect-content";
-import { normalizeMentorConnectPayload } from "@/lib/content/mentor-connect-schema";
+import { normalizeMentorConnectPayload, mergeMentorConnectSegmentCopy } from "@/lib/content/mentor-connect-schema";
 import { EditorField, EditorSection, TrackToggle, inputClass, textareaClass } from "./shared";
 
 function newCategory(): MentorConnectCategory {
@@ -41,6 +42,14 @@ export function MentorConnectEditor({
     next[i] = step;
     patch({ ...content, howItWorks: { ...content.howItWorks, steps: next } });
   }
+
+  function patchSegment(i: number, segment: MentorConnectSegmentCopy) {
+    const next = [...mergedSegments];
+    next[i] = segment;
+    patch({ ...content, segments: next });
+  }
+
+  const mergedSegments = mergeMentorConnectSegmentCopy(content.segments);
 
   function deleteCategory(i: number) {
     if (!confirm("Delete this category?")) return;
@@ -87,6 +96,38 @@ export function MentorConnectEditor({
             onChange={(e) => patch({ ...content, hero: { ...content.hero, subtitle: e.target.value } })}
           />
         </EditorField>
+      </EditorSection>
+
+      <EditorSection
+        title="Segment titles & captions"
+        description="Heading and blurb for each mentor segment on the browse grid"
+        defaultOpen
+      >
+        <div className="space-y-3">
+          {mergedSegments.map((seg, i) => (
+            <div key={seg.id} className="border border-border rounded-lg p-4 space-y-3">
+              <p className="text-xs font-semibold text-muted-fg uppercase tracking-wider">
+                Segment {seg.id}
+              </p>
+              <EditorField label="Title">
+                <input
+                  className={inputClass}
+                  value={seg.title}
+                  onChange={(e) => patchSegment(i, { ...seg, title: e.target.value })}
+                  placeholder="e.g. Physical & Paper Trading Markets"
+                />
+              </EditorField>
+              <EditorField label="Caption / blurb">
+                <textarea
+                  className={textareaClass}
+                  value={seg.blurb}
+                  onChange={(e) => patchSegment(i, { ...seg, blurb: e.target.value })}
+                  placeholder="Short description shown below the segment title"
+                />
+              </EditorField>
+            </div>
+          ))}
+        </div>
       </EditorSection>
 
       <EditorSection

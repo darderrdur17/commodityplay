@@ -3,8 +3,10 @@ import { mergeByKey } from "./merge";
 import {
   DEFAULT_MENTOR_CONNECT_CONTENT,
   DEFAULT_MENTOR_CONNECT_HOW_IT_WORKS,
+  defaultMentorConnectSegments,
   type MentorConnectContent,
   type MentorConnectHowItWorks,
+  type MentorConnectSegmentCopy,
   type MentorConnectStep,
 } from "@/data/mentor-connect-content";
 
@@ -37,9 +39,16 @@ const howItWorksSchema = z.object({
   callout: calloutSchema,
 });
 
+const segmentCopySchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1).max(160),
+  blurb: z.string().min(1).max(400),
+});
+
 export const mentorConnectSchema = z.object({
   hero: heroSchema,
   categories: z.array(categorySchema),
+  segments: z.array(segmentCopySchema),
   howItWorks: howItWorksSchema,
 });
 
@@ -61,6 +70,12 @@ function mergeHowItWorksSteps(cms?: MentorConnectStep[]): MentorConnectStep[] {
   return mergeByKey(DEFAULT_MENTOR_CONNECT_HOW_IT_WORKS.steps, cms ?? [], "num");
 }
 
+export function mergeMentorConnectSegmentCopy(
+  cms?: MentorConnectSegmentCopy[]
+): MentorConnectSegmentCopy[] {
+  return mergeByKey(defaultMentorConnectSegments(), cms ?? [], "id");
+}
+
 function mergeHowItWorks(cms?: Partial<MentorConnectHowItWorks>): MentorConnectHowItWorks {
   return {
     title: cms?.title?.trim() || DEFAULT_MENTOR_CONNECT_HOW_IT_WORKS.title,
@@ -77,6 +92,7 @@ export function normalizeMentorConnectPayload(payload: unknown): MentorConnectCo
   if (parsed.success) {
     return {
       ...parsed.data,
+      segments: mergeMentorConnectSegmentCopy(parsed.data.segments),
       howItWorks: mergeHowItWorks(parsed.data.howItWorks),
     };
   }
@@ -88,6 +104,7 @@ export function normalizeMentorConnectPayload(payload: unknown): MentorConnectCo
       ...partial?.hero,
     },
     categories: partial?.categories ?? DEFAULT_MENTOR_CONNECT_CONTENT.categories,
+    segments: mergeMentorConnectSegmentCopy(partial?.segments),
     howItWorks: mergeHowItWorks(partial?.howItWorks),
   };
 }
