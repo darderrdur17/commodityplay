@@ -44,7 +44,11 @@ export function LoginForm({ heroStats }: { heroStats: string[] }) {
       redirect: false,
     });
     if (result?.error) {
-      setAuthError("Demo account not found. Run: npm run db:push && npm run db:seed");
+      setAuthError(
+        process.env.NODE_ENV === "production"
+          ? "Demo sign-in is not available here yet. Use your member account or contact the team."
+          : "Demo account not found. Run: npm run db:push && npm run db:seed"
+      );
     } else {
       router.push(redirectTo);
     }

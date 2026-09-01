@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { BookOpen, ArrowRight } from "lucide-react";
+import { BookOpen, ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
 import { BrandedSearchInput } from "@/components/brand/logo";
 import {
   GLOSSARY_TERMS,
@@ -51,11 +51,31 @@ export function GlossaryClient({
   const initialQuery = searchParams.get("q") ?? "";
   const [search, setSearch] = useState(initialQuery);
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
+    () => new Set(GLOSSARY_CATEGORIES)
+  );
 
   useEffect(() => {
     const q = searchParams.get("q");
     if (q) setSearch(q);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (search.trim() || activeCategory !== "All") {
+      setCollapsedSections(new Set());
+    } else {
+      setCollapsedSections(new Set(GLOSSARY_CATEGORIES));
+    }
+  }, [search, activeCategory]);
+
+  function toggleSection(category: string) {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  }
   const personaGuide = getPersonaGlossaryGuide(persona);
   const personaLabel = persona ? PERSONA_LABELS[persona]?.label : null;
 
@@ -196,7 +216,7 @@ export function GlossaryClient({
         </div>
         <p className="text-xs text-muted-fg mt-3">
           {filtered.length === terms.length
-            ? `Showing all ${terms.length} terms across ${GLOSSARY_CATEGORIES.length} categories`
+            ? `Showing all ${terms.length} terms across ${GLOSSARY_CATEGORIES.length} categories — tap a section to expand`
             : `${filtered.length} of ${terms.length} terms`}
         </p>
       </div>
@@ -208,24 +228,39 @@ export function GlossaryClient({
           <p className="text-sm text-muted-fg mt-1">Try a different search term or category.</p>
         </div>
       ) : (
-        <div className="space-y-12">
-          {groupedByCategory.map(({ category, items }) => (
-            <section key={category}>
-              <div className="flex items-baseline gap-3 pb-3 mb-1 border-b border-border">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary-400">
+        <div className="space-y-4">
+          {groupedByCategory.map(({ category, items }) => {
+            const isCollapsed = collapsedSections.has(category);
+            return (
+            <section key={category} className="rounded-xl border border-border overflow-hidden bg-white">
+              <button
+                type="button"
+                onClick={() => toggleSection(category)}
+                className="w-full flex items-center gap-3 px-4 sm:px-5 py-4 text-left hover:bg-secondary/40 transition-colors"
+                aria-expanded={!isCollapsed}
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="w-4 h-4 text-primary-400 shrink-0" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-primary-400 shrink-0" />
+                )}
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary-400 flex-1">
                   {category}
                 </h2>
-                <span className="text-xs text-muted-fg">
+                <span className="text-xs text-muted-fg shrink-0">
                   {items.length} term{items.length !== 1 ? "s" : ""}
                 </span>
-              </div>
-              <div className="divide-y divide-border">
+              </button>
+              {!isCollapsed && (
+              <div className="divide-y divide-border border-t border-border px-4 sm:px-5">
                 {items.map((term) => (
                   <TermRow key={term.term} term={term} search={search} />
                 ))}
               </div>
+              )}
             </section>
-          ))}
+            );
+          })}
         </div>
       )}
 
