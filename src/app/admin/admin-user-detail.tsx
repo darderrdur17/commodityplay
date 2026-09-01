@@ -14,6 +14,8 @@ export interface AdminUserDetail {
   id: string;
   name: string | null;
   email: string;
+  company?: string | null;
+  profession?: string | null;
   role: string;
   tier: string;
   track: string;
@@ -39,6 +41,9 @@ interface Props {
 
 export function AdminUserDetailPanel({ user, onClose, onSaved, isSelf }: Props) {
   const [form, setForm] = useState({
+    email: user.email,
+    company: user.company ?? "",
+    profession: user.profession ?? "",
     tier: user.tier,
     role: user.role,
     track: user.track,
@@ -61,6 +66,9 @@ export function AdminUserDetailPanel({ user, onClose, onSaved, isSelf }: Props) 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         userId: user.id,
+        email: form.email.trim(),
+        company: form.company.trim() || null,
+        profession: form.profession.trim() || null,
         tier: form.tier,
         role: form.role,
         track: form.track,
@@ -103,13 +111,46 @@ export function AdminUserDetailPanel({ user, onClose, onSaved, isSelf }: Props) 
               <p className="text-xs text-muted-fg mb-1">Stripe</p>
               <p className="font-medium">{user.stripeStatus || "inactive"}</p>
             </div>
-            <div className="bg-secondary rounded-lg p-3">
+            <div className="bg-secondary rounded-lg p-3 col-span-2">
               <p className="text-xs text-muted-fg mb-1">Mentor Qs (all time)</p>
               <p className="font-medium">{user._count?.mentorQuestions ?? 0}</p>
             </div>
-            <div className="bg-secondary rounded-lg p-3">
-              <p className="text-xs text-muted-fg mb-1">Chapters started</p>
-              <p className="font-medium">{user._count?.progress ?? 0}</p>
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg">
+              Email Address - Work or School
+            </label>
+            <input
+              type="email"
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg mb-1">
+                Company Name
+              </label>
+              <input
+                type="text"
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
+                value={form.company}
+                onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg mb-1">
+                Profession
+              </label>
+              <input
+                type="text"
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
+                value={form.profession}
+                onChange={(e) => setForm((f) => ({ ...f, profession: e.target.value }))}
+              />
             </div>
           </div>
 

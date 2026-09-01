@@ -20,6 +20,8 @@ export async function GET() {
         id: true,
         name: true,
         email: true,
+        company: true,
+        profession: true,
         role: true,
         tier: true,
         track: true,
@@ -60,6 +62,9 @@ export async function GET() {
 
 const updateSchema = z.object({
   userId: z.string(),
+  email: z.string().email().max(200).optional(),
+  company: z.string().max(120).nullable().optional(),
+  profession: z.string().max(120).nullable().optional(),
   tier: z.enum(["STARTER", "PRO", "ELITE"]).optional(),
   role: z.enum(["USER", "ADMIN"]).optional(),
   track: z.enum(["CAREER", "SALES"]).optional(),
@@ -83,18 +88,42 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { userId, ...data } = parsed.data;
+  const { userId, email, company, profession, ...data } = parsed.data;
 
   if (userId === session.user.id && data.role === "USER") {
     return NextResponse.json({ error: "Cannot demote yourself" }, { status: 400 });
   }
 
+  const updateData: Record<string, unknown> = { ...data };
+
+  if (email !== undefined) {
+    const nextEmail = email.trim().toLowerCase();
+    const taken = await prisma.user.findUnique({
+      where: { email: nextEmail },
+      select: { id: true },
+    });
+    if (taken && taken.id !== userId) {
+      return NextResponse.json({ error: "That email is already in use." }, { status: 409 });
+    }
+    updateData.email = nextEmail;
+  }
+
+  if (company !== undefined) {
+    updateData.company = company?.trim() ? company.trim() : null;
+  }
+
+  if (profession !== undefined) {
+    updateData.profession = profession?.trim() ? profession.trim() : null;
+  }
+
   const user = await prisma.user.update({
     where: { id: userId },
-    data,
+    data: updateData,
     select: {
       id: true,
       email: true,
+      company: true,
+      profession: true,
       tier: true,
       role: true,
       resumeCredits: true,

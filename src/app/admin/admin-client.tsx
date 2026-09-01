@@ -450,6 +450,11 @@ export function AdminClient({
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{u.name || "-"}</p>
                         <p className="text-xs text-muted-fg">{u.email}</p>
+                        {(u.company || u.profession) && (
+                          <p className="text-[11px] text-muted-fg mt-0.5">
+                            {[u.company, u.profession].filter(Boolean).join(" · ")}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         {u.role === "ADMIN" ? (
