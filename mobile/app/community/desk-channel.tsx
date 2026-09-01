@@ -84,7 +84,6 @@ export default function DeskChannelScreen() {
             <Text style={styles.question}>{q.question}</Text>
             {openId === q.id && (
               <View style={styles.answerBlock}>
-                <Text style={styles.author}>{q.author} · {q.authorRole}</Text>
                 <Text style={styles.answer}>{q.answer}</Text>
                 {q.deskSignal && (
                   <View style={styles.signal}>
@@ -124,7 +123,6 @@ const styles = StyleSheet.create({
   category: { fontSize: 10, fontWeight: "700", textTransform: "uppercase", marginBottom: 6 },
   question: { fontSize: 14, fontWeight: "600", color: "#1a1a1a", lineHeight: 20 },
   answerBlock: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#e4e7ec" },
-  author: { fontSize: 11, color: "#677184", marginBottom: 8 },
   answer: { fontSize: 13, color: "#374151", lineHeight: 20 },
   signal: { marginTop: 10, backgroundColor: "#111827", borderRadius: 8, padding: 12 },
   signalLabel: { fontSize: 10, color: PRIMARY, fontWeight: "700", marginBottom: 4 },

@@ -6,7 +6,8 @@ export type DemoEmailKind =
   | "new_question"
   | "job_chat_question"
   | "job_chat_answer"
-  | "job_interview_offer";
+  | "job_interview_offer"
+  | "billing_receipt";
 
 const DEMO_EMAIL_KIND_LABELS: Record<DemoEmailKind, string> = {
   mentee_answer: "Answer sent to member",
@@ -15,6 +16,7 @@ const DEMO_EMAIL_KIND_LABELS: Record<DemoEmailKind, string> = {
   job_chat_question: "Job chat question to hirer",
   job_chat_answer: "Job chat answer to candidate",
   job_interview_offer: "Interview offer to both parties",
+  billing_receipt: "Subscription payment receipt",
 };
 
 export function demoEmailKindLabel(kind: string): string {

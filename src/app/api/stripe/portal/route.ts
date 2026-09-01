@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const schema = z.object({
+  flow: z.enum(["manage", "payment_method", "invoices"]).optional(),
+});
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -12,6 +17,10 @@ export async function POST(req: NextRequest) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not configured" }, { status: 503 });
   }
+
+  const body = await req.json().catch(() => ({}));
+  const parsed = schema.safeParse(body);
+  const flow = parsed.success ? parsed.data.flow ?? "manage" : "manage";
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -25,11 +34,21 @@ export async function POST(req: NextRequest) {
   try {
     const stripe = getStripe();
     const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL;
+    const returnUrl = `${origin}/account`;
 
-    const portalSession = await stripe.billingPortal.sessions.create({
+    const configuration = process.env.STRIPE_BILLING_PORTAL_CONFIGURATION_ID;
+
+    const sessionParams: Parameters<typeof stripe.billingPortal.sessions.create>[0] = {
       customer: user.stripeCustomerId,
-      return_url: `${origin}/account`,
-    });
+      return_url: returnUrl,
+      ...(configuration && { configuration }),
+    };
+
+    if (flow === "payment_method") {
+      sessionParams.flow_data = { type: "payment_method_update" };
+    }
+
+    const portalSession = await stripe.billingPortal.sessions.create(sessionParams);
 
     return NextResponse.json({ url: portalSession.url });
   } catch (err) {

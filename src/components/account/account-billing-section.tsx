@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ArrowRight, ExternalLink, Loader2 } from "lucide-react";
+import {
+  ArrowRight,
+  CreditCard,
+  ExternalLink,
+  FileText,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   subscriptionPlanLabel,
   subscriptionStatusLabel,
@@ -12,7 +17,8 @@ import {
   type BillingTier,
   type BillingTrack,
 } from "@/lib/billing";
-import { startBillingPortal } from "@/lib/start-billing-portal";
+import { startBillingPortal, type BillingPortalFlow } from "@/lib/start-billing-portal";
+import { startCheckout, type CheckoutPlan } from "@/lib/start-checkout";
 import { cn, formatDate } from "@/lib/utils";
 
 interface AccountBillingSectionProps {
@@ -30,26 +36,78 @@ export function AccountBillingSection({
   stripeCurrentPeriodEnd,
   hasStripeCustomer,
 }: AccountBillingSectionProps) {
-  const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const planHref = track === "SALES" ? SALES_PLAN_HREF : CAREER_PLAN_HREF;
+
   const statusTone = subscriptionStatusTone(stripeStatus);
+  const isPastDue = stripeStatus === "past_due";
   const showRenewal = tier !== "STARTER" && stripeCurrentPeriodEnd;
   const canManageBilling = hasStripeCustomer && tier !== "STARTER";
+  const upgradePlan: CheckoutPlan | null =
+    tier === "STARTER" ? "pro" : tier === "PRO" ? "elite" : null;
 
-  async function handleManageBilling() {
-    setLoading(true);
+  async function openPortal(flow: BillingPortalFlow, actionKey: string) {
+    setLoadingAction(actionKey);
     setError(null);
     try {
-      const url = await startBillingPortal();
+      const url = await startBillingPortal(flow);
       if (url) {
         window.location.href = url;
         return;
       }
       setError("Could not open billing portal. Please try again or contact support.");
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
+  }
+
+  async function handleUpgrade(plan: CheckoutPlan) {
+    setLoadingAction(`upgrade-${plan}`);
+    setError(null);
+    try {
+      const url = await startCheckout(plan);
+      if (url) {
+        window.location.href = url;
+        return;
+      }
+      setError("Could not start checkout. Please try again or contact support.");
+    } finally {
+      setLoadingAction(null);
+    }
+  }
+
+  function ActionButton({
+    actionKey,
+    flow,
+    label,
+    icon: Icon,
+    variant = "outline",
+  }: {
+    actionKey: string;
+    flow: BillingPortalFlow;
+    label: string;
+    icon: typeof CreditCard;
+    variant?: "outline" | "default";
+  }) {
+    const loading = loadingAction === actionKey;
+    return (
+      <Button
+        variant={variant}
+        size="sm"
+        onClick={() => openPortal(flow, actionKey)}
+        disabled={Boolean(loadingAction)}
+      >
+        {loading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <>
+            <Icon className="w-4 h-4" />
+            {label}
+            <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+          </>
+        )}
+      </Button>
+    );
   }
 
   return (
@@ -57,9 +115,21 @@ export function AccountBillingSection({
       <div className="px-6 py-4 border-b border-border">
         <h2 className="font-serif text-lg font-bold text-gray-900">Billing &amp; Subscription</h2>
         <p className="text-xs text-muted-fg mt-1">
-          View your plan, renewal date, invoices, and payment method.
+          Manage your plan, payment method, and invoices via our secure Stripe checkout.
         </p>
       </div>
+
+      {isPastDue && (
+        <div className="mx-6 mt-4 flex gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">Payment overdue</p>
+            <p className="text-xs mt-0.5 text-red-700/90">
+              Update your payment method or pay the open invoice to restore access.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="divide-y divide-border">
         <div className="flex items-center gap-3 px-6 py-4">
@@ -93,41 +163,72 @@ export function AccountBillingSection({
         )}
       </div>
 
-      <div className="p-6 border-t border-border flex flex-wrap gap-3">
+      <div className="p-6 border-t border-border space-y-4">
         {canManageBilling && (
+          <div className="flex flex-wrap gap-2">
+            {isPastDue && (
+              <ActionButton
+                actionKey="pay-now"
+                flow="manage"
+                label="Pay now"
+                icon={CreditCard}
+                variant="default"
+              />
+            )}
+            <ActionButton
+              actionKey="manage"
+              flow="manage"
+              label="Manage subscription"
+              icon={CreditCard}
+            />
+            <ActionButton
+              actionKey="payment-method"
+              flow="payment_method"
+              label="Update payment method"
+              icon={CreditCard}
+            />
+            <ActionButton
+              actionKey="invoices"
+              flow="invoices"
+              label="View invoices"
+              icon={FileText}
+            />
+          </div>
+        )}
+
+        {upgradePlan && (
           <Button
-            variant="outline"
             size="sm"
-            onClick={handleManageBilling}
-            disabled={loading}
+            onClick={() => handleUpgrade(upgradePlan)}
+            disabled={Boolean(loadingAction)}
           >
-            {loading ? (
+            {loadingAction === `upgrade-${upgradePlan}` ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
-                Manage billing
-                <ExternalLink className="w-4 h-4" />
+                {tier === "STARTER" ? "Upgrade to Pro" : "Upgrade to Elite"}
+                <ArrowRight className="w-4 h-4" />
               </>
             )}
           </Button>
         )}
 
-        {tier !== "ELITE" && (
-          <Link href={tier === "STARTER" ? planHref("pro") : planHref("elite")}>
-            <Button size="sm">
-              {tier === "STARTER" ? "Upgrade to Pro" : "Upgrade to Elite"}
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          </Link>
-        )}
-
         {tier === "STARTER" && !hasStripeCustomer && (
-          <p className="text-xs text-muted-fg w-full">
-            Upgrade to Pro or Elite to start a subscription. You can cancel anytime from this page.
+          <p className="text-xs text-muted-fg">
+            Upgrade to Pro or Elite to start a subscription. Checkout opens in a secure Stripe
+            window with card-on-file support (Stripe Link). Cancel anytime from this page.
           </p>
         )}
 
-        {error && <p className="text-xs text-red-500 w-full">{error}</p>}
+        {canManageBilling && (
+          <p className="text-xs text-muted-fg">
+            Billing is powered by Stripe. Payment method, invoices, and cancellation open in
+            Stripe&apos;s hosted portal — the same flow used by Anthropic and other subscription
+            products.
+          </p>
+        )}
+
+        {error && <p className="text-xs text-red-500">{error}</p>}
       </div>
     </div>
   );

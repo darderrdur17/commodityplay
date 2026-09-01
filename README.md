@@ -171,9 +171,17 @@ npx expo start
 5. **Configure Stripe Webhook**:
    - Stripe Dashboard → Developers → Webhooks → Add endpoint
    - URL: `https://your-domain.vercel.app/api/stripe/webhook`
-   - Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`
+   - Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`, `invoice.paid`
 
-6. **Deploy**: Vercel auto-deploys on every git push to `main`
+6. **Stripe receipt emails (Dashboard — recommended in addition to app emails)**:
+   - Settings → Emails → enable **Successful payments** and **Invoices**
+   - Settings → Branding → add CommodityPlay. logo and accent colour `#0830a0`
+
+7. **Stripe Customer Portal** (Settings → Billing → Customer portal):
+   - Enable payment method update, invoice history, subscription cancellation
+   - Optional: copy Configuration ID → `STRIPE_BILLING_PORTAL_CONFIGURATION_ID`
+
+8. **Deploy**: Vercel auto-deploys on every git push to `main`
 
 ### Mobile App (Expo)
 

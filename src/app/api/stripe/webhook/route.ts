@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripe, getTierFromPriceId } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { sendBillingReceiptEmail } from "@/lib/email";
+import { subscriptionPlanLabel } from "@/lib/billing";
 
 export async function POST(req: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -97,6 +99,55 @@ export async function POST(req: NextRequest) {
             data: { stripeStatus: "past_due" },
           });
         }
+        break;
+      }
+
+      // Paid subscription invoice — send branded receipt email
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (invoice.amount_paid <= 0) break;
+
+        const billingReason = invoice.billing_reason;
+        if (
+          billingReason !== "subscription_create" &&
+          billingReason !== "subscription_cycle" &&
+          billingReason !== "subscription_update"
+        ) {
+          break;
+        }
+
+        const customerId =
+          typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+        if (!customerId) break;
+
+        const user = await prisma.user.findFirst({
+          where: { stripeCustomerId: customerId },
+          select: { name: true, email: true, tier: true, track: true },
+        });
+
+        const recipient = invoice.customer_email || user?.email;
+        if (!recipient) break;
+
+        const priceId = invoice.lines.data[0]?.price?.id;
+        const tier = priceId ? getTierFromPriceId(priceId) : user?.tier ?? "PRO";
+        const planLabel = subscriptionPlanLabel(tier as "STARTER" | "PRO" | "ELITE", user?.track);
+
+        const period = invoice.lines.data[0]?.period;
+        const periodStart = period?.start ? new Date(period.start * 1000) : null;
+        const periodEnd = period?.end ? new Date(period.end * 1000) : null;
+
+        await sendBillingReceiptEmail({
+          to: recipient,
+          memberName: user?.name ?? null,
+          invoiceNumber: invoice.number || invoice.id,
+          amountCents: invoice.amount_paid,
+          currency: invoice.currency,
+          planLabel,
+          periodStart,
+          periodEnd,
+          invoicePdfUrl: invoice.invoice_pdf,
+          hostedInvoiceUrl: invoice.hosted_invoice_url,
+        });
         break;
       }
     }

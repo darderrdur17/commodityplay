@@ -176,13 +176,6 @@ export function DeskChannelClient({
                           className="overflow-hidden border-t border-border"
                         >
                           <div className="p-4 sm:p-5 sm:pl-14 space-y-4">
-                            <div className="flex items-start gap-3 p-3 rounded-lg text-sm bg-primary-soft border border-primary-line">
-                              <div>
-                                <p className="font-semibold text-gray-800">{q.author}</p>
-                                <p className="text-xs text-muted-fg">{q.authorRole}</p>
-                              </div>
-                            </div>
-
                             <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
                               {q.answer}
                             </div>

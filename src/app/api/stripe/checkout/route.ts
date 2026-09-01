@@ -40,12 +40,15 @@ export async function POST(req: NextRequest) {
       customer: customerId,
       mode,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${origin}/dashboard?upgraded=1`,
-      cancel_url: `${origin}/pricing?cancelled=1`,
+      success_url: `${origin}/account?upgraded=1`,
+      cancel_url: `${origin}/account?cancelled=1`,
       metadata: { userId, plan },
       subscription_data: { metadata: { userId } },
       allow_promotion_codes: true,
       billing_address_collection: "required",
+      customer_update: { address: "auto", name: "auto" },
+      saved_payment_method_options: { payment_method_save: "enabled" },
+      payment_method_types: ["card"],
     });
 
     return NextResponse.json({ url: checkoutSession.url });

@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { logDemoEmail, type DemoEmailKind } from "@/lib/demo-email-log";
-import { BRAND_NAME, BRAND_SITE_URL, BRAND_TAGLINE } from "@/lib/brand";
+import { BRAND_NAME, BRAND_SITE_URL, BRAND_TAGLINE, BRAND_EMAIL_SUPPORT } from "@/lib/brand";
 import { jobChatRespondUrl } from "@/lib/job-chat";
 import type { JobChatMessage } from "@/lib/job-chat";
 
@@ -310,4 +310,72 @@ export async function sendJobInterviewOfferEmails(params: {
   ]);
 
   return { candidateResult, hirerResult };
+}
+
+function formatStripeAmount(amountCents: number, currency: string): string {
+  const amount = amountCents / 100;
+  const code = currency.toUpperCase();
+  if (code === "SGD") {
+    return `SGD ${amount.toFixed(2)}`;
+  }
+  return new Intl.NumberFormat("en-SG", {
+    style: "currency",
+    currency: code,
+  }).format(amount);
+}
+
+export async function sendBillingReceiptEmail(params: {
+  to: string;
+  memberName: string | null;
+  invoiceNumber: string;
+  amountCents: number;
+  currency: string;
+  planLabel: string;
+  periodStart?: Date | null;
+  periodEnd?: Date | null;
+  invoicePdfUrl?: string | null;
+  hostedInvoiceUrl?: string | null;
+}) {
+  const name = params.memberName?.split(" ")[0] || "there";
+  const amount = formatStripeAmount(params.amountCents, params.currency);
+  const invoiceRef = params.invoiceNumber.startsWith("#")
+    ? params.invoiceNumber
+    : `#${params.invoiceNumber}`;
+  const periodLine =
+    params.periodStart && params.periodEnd
+      ? `\nBilling period: ${params.periodStart.toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" })} – ${params.periodEnd.toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" })}`
+      : "";
+  const receiptLink = params.hostedInvoiceUrl || params.invoicePdfUrl || `${appUrl()}/account`;
+  const text = `Hi ${name},\n\nYour receipt from ${BRAND_NAME} ${invoiceRef}\n\nAmount paid: ${amount}\nPlan: ${params.planLabel}${periodLine}\n\nView receipt: ${receiptLink}\n\nQuestions? Reply to this email or contact ${BRAND_EMAIL_SUPPORT}.`;
+
+  const periodHtml =
+    params.periodStart && params.periodEnd
+      ? `<tr><td style="padding:8px 0;color:#677184">Billing period</td><td style="padding:8px 0;font-weight:600;text-align:right">${escapeHtml(params.periodStart.toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" }))} – ${escapeHtml(params.periodEnd.toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" }))}</td></tr>`
+      : "";
+
+  const html = `
+      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
+        <p style="color:#0830a0;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">${BRAND_NAME}</p>
+        <h1 style="font-size:22px;margin:0 0 8px">Your receipt from ${escapeHtml(BRAND_NAME)} ${escapeHtml(invoiceRef)}</h1>
+        <p style="color:#677184;font-size:14px;margin:0 0 20px">Thank you for your subscription.</p>
+        <p>Hi ${escapeHtml(name)},</p>
+        <p>We received your payment of <strong>${escapeHtml(amount)}</strong> for <strong>${escapeHtml(params.planLabel)}</strong>.</p>
+        <table style="width:100%;font-size:14px;margin:20px 0;border-collapse:collapse;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
+          <tr><td style="padding:8px 0;color:#677184">Amount paid</td><td style="padding:8px 0;font-weight:700;text-align:right">${escapeHtml(amount)}</td></tr>
+          <tr><td style="padding:8px 0;color:#677184">Plan</td><td style="padding:8px 0;font-weight:600;text-align:right">${escapeHtml(params.planLabel)}</td></tr>
+          <tr><td style="padding:8px 0;color:#677184">Receipt</td><td style="padding:8px 0;font-weight:600;text-align:right">${escapeHtml(invoiceRef)}</td></tr>
+          ${periodHtml}
+        </table>
+        <p><a href="${receiptLink}" style="display:inline-block;background:#0830a0;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">View receipt</a></p>
+        <p style="font-size:12px;color:#677184;margin-top:24px">${BRAND_NAME} · ${BRAND_TAGLINE}<br/>${BRAND_EMAIL_SUPPORT}</p>
+      </div>
+    `;
+
+  return sendAndLog({
+    kind: "billing_receipt",
+    to: params.to,
+    subject: `Your receipt from ${BRAND_NAME} ${invoiceRef}`,
+    text,
+    html,
+  });
 }
