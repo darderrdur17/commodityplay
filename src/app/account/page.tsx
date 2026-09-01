@@ -11,8 +11,9 @@ import { AccountBillingSection } from "@/components/account/account-billing-sect
 import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
 import { formatMentorCreditsUsedLabel } from "@/lib/mentor-credits";
 import { isMentorAccount } from "@/lib/mentor-demo";
-import { User, Mail, CreditCard, Sparkles, Inbox, CheckCircle, Clock, BookOpen } from "lucide-react";
+import { User, Mail, CreditCard, Sparkles, Inbox, CheckCircle, Clock } from "lucide-react";
 import { MentorAccountSettings } from "@/components/account/mentor-account-settings";
+import { MemberAccountSettings } from "@/components/account/member-account-settings";
 
 export const metadata = { title: "Account" };
 
@@ -31,6 +32,7 @@ export default async function AccountPage() {
       persona: true,
       resumePersonaDone: true,
       company: true,
+      profession: true,
       isMentor: true,
       mentorCredits: true,
       resumeCredits: true,
@@ -43,8 +45,7 @@ export default async function AccountPage() {
   });
   if (!user) redirect("/login");
 
-  const contentStats = await getContentStats();
-  const completedChapters = user.progress.filter((p) => p.completed).length;
+  await getContentStats();
 
   const isMentorUser = isMentorAccount(user);
 
@@ -54,8 +55,6 @@ export default async function AccountPage() {
 
   let mentorStats: { total: number; answered: number; pending: number } | null = null;
   if (isMentorUser) {
-    // Mirrors the query used in mentor-connect/inbox/page.tsx: all member
-    // questions not asked by the mentor themselves.
     const [total, answered] = await Promise.all([
       prisma.mentorQuestion.count({ where: { userId: { not: user.id } } }),
       prisma.mentorQuestion.count({ where: { userId: { not: user.id }, isAnswered: true } }),
@@ -65,10 +64,6 @@ export default async function AccountPage() {
 
   const tierInfo = TIER_LABELS[user.tier] || TIER_LABELS.STARTER;
   const personaLabel = resolveMemberPersonaLabel(user.track, user.persona, user.resumePersonaDone);
-  const chaptersLabel =
-    user.tier === "STARTER"
-      ? `Chapter A preview · ${contentStats.chapterCount} total`
-      : `${completedChapters}/${contentStats.chapterCount} completed`;
 
   return (
     <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8 sm:py-10">
@@ -111,7 +106,6 @@ export default async function AccountPage() {
                   personaLabel ??
                   (user.track === "SALES" ? "Vendor / Supplier" : "Not set — take resume quiz"),
               },
-              { icon: BookOpen, label: "Chapters", value: chaptersLabel },
               {
                 icon: CreditCard,
                 label: "Mentor credits",
@@ -130,8 +124,18 @@ export default async function AccountPage() {
           </div>
         </div>
 
-        {isMentorUser && (
-          <MentorAccountSettings initialEmail={user.email} initialCompany={user.company} />
+        {isMentorUser ? (
+          <MentorAccountSettings
+            initialEmail={user.email}
+            initialCompany={user.company}
+            initialProfession={user.profession}
+          />
+        ) : (
+          <MemberAccountSettings
+            initialEmail={user.email}
+            initialCompany={user.company}
+            initialProfession={user.profession}
+          />
         )}
 
         {!isMentorUser && (

@@ -8,6 +8,7 @@ import { syncUserContactToMentorProfile } from "@/lib/mentor-profile-sync";
 const schema = z.object({
   email: z.string().email("Enter a valid email address").max(200),
   company: z.string().max(120).optional(),
+  profession: z.string().max(120).optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -20,8 +21,8 @@ export async function PATCH(req: NextRequest) {
     where: { id: session.user.id },
     select: { id: true, email: true, isMentor: true, company: true, mentorProfileId: true },
   });
-  if (!user || !isMentorAccount(user)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body = await req.json();
@@ -32,6 +33,7 @@ export async function PATCH(req: NextRequest) {
 
   const nextEmail = parsed.data.email.trim().toLowerCase();
   const nextCompany = parsed.data.company?.trim() ? parsed.data.company.trim() : null;
+  const nextProfession = parsed.data.profession?.trim() ? parsed.data.profession.trim() : null;
 
   if (nextEmail !== user.email.toLowerCase()) {
     const taken = await prisma.user.findUnique({
@@ -49,15 +51,19 @@ export async function PATCH(req: NextRequest) {
       data: {
         email: nextEmail,
         company: nextCompany,
+        profession: nextProfession,
       },
-      select: { email: true, company: true },
+      select: { email: true, company: true, profession: true },
     });
 
-    await syncUserContactToMentorProfile(user.id, user.email, nextEmail, nextCompany);
+    if (isMentorAccount(user)) {
+      await syncUserContactToMentorProfile(user.id, user.email, nextEmail, nextCompany);
+    }
 
     return NextResponse.json({
       email: updated.email,
       company: updated.company,
+      profession: updated.profession,
     });
   } catch (err) {
     const code = typeof err === "object" && err && "code" in err ? String((err as { code: string }).code) : "";

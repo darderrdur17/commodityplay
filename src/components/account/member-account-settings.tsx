@@ -6,14 +6,14 @@ import { Building2, Briefcase, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function MentorAccountSettings({
+export function MemberAccountSettings({
   initialEmail,
   initialCompany,
   initialProfession,
 }: {
   initialEmail: string;
   initialCompany: string | null;
-  initialProfession?: string | null;
+  initialProfession: string | null;
 }) {
   const { update } = useSession();
   const [email, setEmail] = useState(initialEmail);
@@ -43,7 +43,7 @@ export function MentorAccountSettings({
       setCompany(data.company ?? "");
       setProfession(data.profession ?? "");
       await update();
-      setSuccess("Saved. New member requests will be emailed to this address.");
+      setSuccess("Profile saved.");
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -54,10 +54,8 @@ export function MentorAccountSettings({
   return (
     <form onSubmit={onSubmit} className="bg-white rounded-2xl border border-border overflow-hidden mb-6">
       <div className="px-6 py-4 border-b border-border">
-        <h2 className="font-serif text-lg font-bold text-gray-900">Profile</h2>
-        <p className="text-xs text-muted-fg mt-1">
-          Update where request notifications are sent. Company is only visible to you.
-        </p>
+        <h2 className="font-serif text-lg font-bold text-gray-900">Personal info</h2>
+        <p className="text-xs text-muted-fg mt-1">Update your contact details. Track and billing stay read-only below.</p>
       </div>
       <div className="p-6 space-y-4">
         <div className="flex items-start gap-3">
@@ -68,7 +66,6 @@ export function MentorAccountSettings({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            hint="Member questions and reminders are sent here."
           />
         </div>
         <div className="flex items-start gap-3">
@@ -79,7 +76,6 @@ export function MentorAccountSettings({
             value={company}
             onChange={(e) => setCompany(e.target.value)}
             placeholder="Optional"
-            hint="Stays private — not shown to members or on Mentor Connect."
           />
         </div>
         <div className="flex items-start gap-3">
