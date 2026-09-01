@@ -20,30 +20,15 @@ import {
   HERO_EYEBROW_BASE,
   PAGE_SECTION_PY,
 } from "@/lib/layout-constants";
-import type { LandingContent } from "@/data/landing-content";
+import type { LandingContent, LandingTestimonials } from "@/data/landing-content";
 import { SALES_MARKET_NOTE } from "@/data/market-notes";
 import { SALES_PRICING_HREF } from "@/lib/pricing-routes";
 import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-notes";
 
 const SALES_COLOR = "#0F766E";
-
-const SALES_TESTIMONIALS = [
-  {
-    quote: "After the Playbook, I stopped presenting to operations and started having commercial conversations with the desk. First call conversion improved immediately.",
-    name: "Marcus L.",
-    role: "Enterprise Software Sales, Singapore",
-  },
-  {
-    quote: "Understanding how desks actually use AIS data changed how I demo. Win rate on enterprise accounts up 35%.",
-    name: "Nadia R.",
-    role: "Market Data Sales, China",
-  },
-  {
-    quote: "The Playbook's risk chapter gave me the vocabulary to have real conversations with the CRO. Accelerated our deal cycle by 6 weeks.",
-    name: "Chris B.",
-    role: "Risk Technology Sales, London",
-  },
-];
+const SALES_DEMO_URL =
+  process.env.NEXT_PUBLIC_SALES_DEMO_URL?.trim() ||
+  "mailto:hello@commodityplay.com?subject=Sales%20demo%20request";
 
 const PAIN_POINTS = [
   {
@@ -159,13 +144,14 @@ function LearnAccordion() {
 
 interface Props {
   content: LandingContent["sales"];
+  testimonials: LandingTestimonials;
   membersStrip: LandingContent["salesMembersStrip"];
   edgeNote: WeeklyEdgeNote;
   onOpenModal: () => void;
   onOpenContactModal: () => void;
 }
 
-export function SalesLandingPanel({ content, membersStrip, edgeNote, onOpenContactModal }: Props) {
+export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNote, onOpenContactModal }: Props) {
   const learnRef = useRef<HTMLElement>(null);
   const router = useRouter();
   const { data: session } = useSession();
@@ -305,6 +291,11 @@ export function SalesLandingPanel({ content, membersStrip, edgeNote, onOpenConta
           accentColor: SALES_COLOR,
           variant: "tags",
         })}
+        secondaryCta={{
+          label: "See demo",
+          href: SALES_DEMO_URL,
+          variant: "outline",
+        }}
       />
 
       {/* Who this is for */}
@@ -561,17 +552,20 @@ export function SalesLandingPanel({ content, membersStrip, edgeNote, onOpenConta
             ))}
           </div>
           <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-bold tracking-tight text-gray-900">
-            Used by practitioners who mean it.
+            {testimonials.title}
           </h2>
         </Reveal>
         <StaggerChildren className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-          {SALES_TESTIMONIALS.map((t) => (
-            <StaggerItem key={t.name} className="h-full">
+          {testimonials.items.map((t) => (
+            <StaggerItem key={t.id} className="h-full">
               <div className="card-hover rounded-xl border border-border bg-white p-6 h-full flex flex-col gap-4">
                 <p className="text-gray-700 text-sm leading-relaxed flex-1 italic">&ldquo;{t.quote}&rdquo;</p>
                 <div className="flex items-center gap-3 pt-2 border-t border-border">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: SALES_COLOR }}>
-                    {t.name[0]}
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                    style={{ background: t.avatarColor ?? SALES_COLOR }}
+                  >
+                    {(t.avatarLetter ?? t.name[0])?.toUpperCase()}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-800">{t.name}</p>

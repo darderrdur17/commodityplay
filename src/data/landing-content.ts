@@ -1,3 +1,5 @@
+import { TRACK_SELECTION } from "@/data/track-selection";
+
 export interface LandingFeature {
   icon: string;
   title: string;
@@ -96,6 +98,16 @@ export interface LandingMentorConnect {
   title: string;
 }
 
+export interface TrackSelectionTrackCopy {
+  title: string;
+  caption: string;
+}
+
+export interface TrackSelectionContent {
+  career: TrackSelectionTrackCopy;
+  sales: TrackSelectionTrackCopy;
+}
+
 export interface MembersStripContent {
   label: string;
   companies: string[];
@@ -178,7 +190,9 @@ export interface LandingContent {
   /** @deprecated Legacy shared strip — migrated to career/sales fields on read */
   membersStrip?: MembersStripContent;
   testimonials: LandingTestimonials;
+  salesTestimonials: LandingTestimonials;
   mentorConnect: LandingMentorConnect;
+  trackSelection: TrackSelectionContent;
 }
 
 /** Career track pricing tiers (Starter / Pro / Elite) — used to seed defaults and the comparison table. */
@@ -557,8 +571,41 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
       },
     ],
   },
+  salesTestimonials: {
+    title: "Used by practitioners who mean it.",
+    items: [
+      {
+        id: "marcus-l",
+        quote:
+          "After the Playbook, I stopped presenting to operations and started having commercial conversations with the desk. First call conversion improved immediately.",
+        name: "Marcus L.",
+        role: "Enterprise Software Sales, Singapore",
+        avatarColor: "#0F766E",
+      },
+      {
+        id: "nadia-r",
+        quote:
+          "Understanding how desks actually use AIS data changed how I demo. Win rate on enterprise accounts up 35%.",
+        name: "Nadia R.",
+        role: "Market Data Sales, China",
+        avatarColor: "#0F766E",
+      },
+      {
+        id: "chris-b",
+        quote:
+          "The Playbook's risk chapter gave me the vocabulary to have real conversations with the CRO. Accelerated our deal cycle by 6 weeks.",
+        name: "Chris B.",
+        role: "Risk Technology Sales, London",
+        avatarColor: "#0F766E",
+      },
+    ],
+  },
   mentorConnect: {
     eyebrow: "Elite Access",
     title: "Mentor Connect",
+  },
+  trackSelection: {
+    career: { ...TRACK_SELECTION.career },
+    sales: { ...TRACK_SELECTION.sales },
   },
 };

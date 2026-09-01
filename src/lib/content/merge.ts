@@ -176,6 +176,35 @@ export function resolveTestimonials(
   };
 }
 
+/** Sales landing testimonials — fully CMS-editable (not code-locked). */
+export function resolveSalesTestimonials(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["salesTestimonials"]>
+): LandingContent["salesTestimonials"] {
+  return {
+    eyebrow: cms?.eyebrow ?? defaults.salesTestimonials.eyebrow,
+    title: cms?.title ?? defaults.salesTestimonials.title,
+    items: cms?.items?.length ? cms.items : defaults.salesTestimonials.items,
+  };
+}
+
+/** Track picker captions on signup modals and related flows. */
+export function resolveTrackSelection(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["trackSelection"]>
+): LandingContent["trackSelection"] {
+  return {
+    career: {
+      title: cms?.career?.title?.trim() || defaults.trackSelection.career.title,
+      caption: cms?.career?.caption?.trim() || defaults.trackSelection.career.caption,
+    },
+    sales: {
+      title: cms?.sales?.title?.trim() || defaults.trackSelection.sales.title,
+      caption: cms?.sales?.caption?.trim() || defaults.trackSelection.sales.caption,
+    },
+  };
+}
+
 /** Mentor Connect hero copy — fully CMS-editable (not code-locked). */
 export function resolveMentorConnect(
   defaults: LandingContent,
@@ -425,6 +454,8 @@ export function mergeLandingContent(
 
   merged.pricing = resolvePricing(defaults, cms.pricing);
   merged.testimonials = resolveTestimonials(defaults, cms.testimonials);
+  merged.salesTestimonials = resolveSalesTestimonials(defaults, cms.salesTestimonials);
+  merged.trackSelection = resolveTrackSelection(defaults, cms.trackSelection);
   merged.mentorConnect = resolveMentorConnect(defaults, cms.mentorConnect);
   merged.career = resolveCareerContent(defaults, cms.career);
 

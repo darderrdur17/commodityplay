@@ -23,6 +23,12 @@ interface Props {
     onClick?: () => void;
     href?: string;
     loading?: boolean;
+    variant?: "default" | "outline";
+  };
+  secondaryCta?: {
+    label: string;
+    href: string;
+    variant?: "default" | "outline";
   };
   /** Optional green confirmation line below description (e.g. starter-pack subscribe state) */
   subscribedNote?: string;
@@ -37,6 +43,7 @@ export function MarketNoteStrip({
   variant = "tags",
   tagStyle = "colored",
   cta,
+  secondaryCta,
   subscribedNote,
 }: Props) {
   return (
@@ -65,18 +72,34 @@ export function MarketNoteStrip({
               </p>
             )}
             {cta && (
-              <div className="mt-8">
+              <div className="mt-8 flex flex-wrap items-center gap-3">
                 {cta.href ? (
                   <Link href={cta.href}>
-                    <Button size="lg" loading={cta.loading}>
+                    <Button size="lg" variant={cta.variant ?? "default"} loading={cta.loading}>
                       {cta.label} <ArrowRight className="w-4 h-4" />
                     </Button>
                   </Link>
                 ) : (
-                  <Button size="lg" onClick={cta.onClick} loading={cta.loading}>
+                  <Button size="lg" variant={cta.variant ?? "default"} onClick={cta.onClick} loading={cta.loading}>
                     {cta.label} <ArrowRight className="w-4 h-4" />
                   </Button>
                 )}
+                {secondaryCta && (
+                  <Link href={secondaryCta.href} target="_blank" rel="noopener noreferrer">
+                    <Button size="lg" variant={secondaryCta.variant ?? "outline"}>
+                      {secondaryCta.label}
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            )}
+            {!cta && secondaryCta && (
+              <div className="mt-8">
+                <Link href={secondaryCta.href} target="_blank" rel="noopener noreferrer">
+                  <Button size="lg" variant={secondaryCta.variant ?? "outline"}>
+                    {secondaryCta.label}
+                  </Button>
+                </Link>
               </div>
             )}
           </Reveal>

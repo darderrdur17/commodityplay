@@ -105,6 +105,7 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
       {activeTrack === "sales" ? (
         <SalesLandingPanel
           content={sales}
+          testimonials={content.salesTestimonials}
           membersStrip={content.salesMembersStrip}
           edgeNote={edgeNotes.sales}
           onOpenModal={() => setModalOpen(true)}

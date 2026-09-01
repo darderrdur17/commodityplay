@@ -47,10 +47,10 @@ export const CAREER_MARKET_NOTE = {
 
 /** Sales track market note strip */
 export const SALES_MARKET_NOTE = {
-  eyebrow: "Live · Every Tuesday Edition",
-  title: "The Market Note on the Sales Edge.",
+  eyebrow: "Sales Track Only",
+  title: "Sales Market Nudges | Prep Library | Account Intelligence Tracker",
   description:
-    "Not a news digest. Use it in your next conversation with your customer — and relate the context with them easier.",
+    "Use market nudges in your next conversation with your customer — and relate the context with them easier by saving the talking points under your personal Prep Library. Track the desks you're engaging, and see what's moving in their markets before your next call — a separate enhanced tool from your Prep Library.",
   topics: [
     { tag: "Crude Oil", tagColor: "#2563eb", tagBg: "#dbeafe", title: "OPEC+ cut → Budget mood at major firms" },
     { tag: "Freight", tagColor: "#b45309", tagBg: "#fef3c7", title: "VLCC Rate Spike → Maritime tech opportunity window" },
