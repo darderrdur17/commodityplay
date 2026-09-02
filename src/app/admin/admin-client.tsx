@@ -60,6 +60,7 @@ interface WaitlistEntry {
   name: string | null;
   track: string;
   createdAt: string;
+  user?: { name: string | null; tier: string } | null;
 }
 
 interface ChapterProgressRow {
@@ -387,7 +388,7 @@ export function AdminClient({
               { label: "Mentors", value: totalMentorCount, icon: UserCheck, color: "#0891b2" },
               { label: "Pending Applications", value: pendingMentorApps, icon: Clock, color: "#d97706" },
               { label: "Pending Q&A", value: stats.mentor.pending, icon: MessageSquare, color: "#ef4444" },
-              { label: "Waitlist", value: stats.waitlistCount, icon: Mail, color: "#5B21B6" },
+              { label: "Job Board Waitlist", value: stats.waitlistCount, icon: Mail, color: "#5B21B6" },
             ].map((s) => (
               <div key={s.label} className="bg-white rounded-xl border border-border p-4">
                 <div className="flex items-center justify-between mb-2">
@@ -407,7 +408,7 @@ export function AdminClient({
             ["mentors", `Mentors (${totalMentorCount})`, UserCheck],
             ["mentor", `Q&A (${pendingCount} pending${queueCount ? ` · ${queueCount} queue` : ""})`, MessageSquare],
             ["billing", "Billing & Invoice", CreditCard],
-            ["waitlist", `Waitlist (${waitlist.length})`, Mail],
+            ["waitlist", `Job Board Waitlist (${waitlist.length})`, Mail],
             ["emails", "Email Log", Mail],
             ["content", "Content CMS", FileJson],
           ] as const).map(([tab, label, Icon]) => (
@@ -1063,27 +1064,47 @@ export function AdminClient({
 
         {/* ── Waitlist tab ── */}
         {activeTab === "waitlist" && (
-          <div className="bg-white rounded-xl border border-border overflow-x-auto">
-            <table className="w-full text-sm min-w-[500px]">
+          <div className="space-y-4">
+            <div className="rounded-lg border border-border bg-white px-4 py-3 text-sm text-muted-fg">
+              This is the <strong className="text-gray-800">job board waitlist</strong> — people who asked to be emailed when curated roles launch.
+              Signup already creates a CommodityPlay account (see Customers). Signing up does <strong className="text-gray-800">not</strong> auto-add someone here, because job alerts need separate consent.
+            </div>
+            <div className="bg-white rounded-xl border border-border overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="border-b border-border bg-secondary text-left">
                   <th className="px-4 py-3 font-semibold text-muted-fg">Email</th>
                   <th className="px-4 py-3 font-semibold text-muted-fg">Name</th>
                   <th className="px-4 py-3 font-semibold text-muted-fg">Track</th>
+                  <th className="px-4 py-3 font-semibold text-muted-fg">Member account</th>
                   <th className="px-4 py-3 font-semibold text-muted-fg">Joined</th>
                 </tr>
               </thead>
               <tbody>
-                {waitlist.map((w) => (
+                {waitlist.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-fg">
+                      No job board waitlist entries yet.
+                    </td>
+                  </tr>
+                ) : waitlist.map((w) => (
                   <tr key={w.id} className="border-b border-border">
                     <td className="px-4 py-3">{w.email}</td>
                     <td className="px-4 py-3">{w.name || "-"}</td>
                     <td className="px-4 py-3">{w.track}</td>
+                    <td className="px-4 py-3">
+                      {w.user ? (
+                        <Badge variant="success" size="sm">{w.user.tier}</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-fg">Alerts only — no account</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-muted-fg">{formatDate(w.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 

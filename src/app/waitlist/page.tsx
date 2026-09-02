@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Mail, CheckCircle, Bell, Shield } from "lucide-react";
@@ -12,14 +12,41 @@ import { TRACK_SELECTION } from "@/data/track-selection";
 import { PAGE_HERO_TOP } from "@/lib/layout-constants";
 
 export default function WaitlistPage() {
-  const { data: session } = useSession();
-  const [name, setName] = useState(session?.user?.name || "");
-  const [email, setEmail] = useState(session?.user?.email || "");
+  const { data: session, status } = useSession();
+  const isSignedIn = status === "authenticated";
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [track, setTrack] = useState<"CAREER" | "SALES">("CAREER");
   const [gdpr, setGdpr] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadStatus() {
+      try {
+        const res = await fetch("/api/waitlist");
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.enrolled) setSuccess(true);
+        if (data.authenticated) {
+          setName(data.name || "");
+          setEmail(data.email || "");
+          if (data.track === "CAREER" || data.track === "SALES") setTrack(data.track);
+        }
+      } catch {
+        // Keep the form available if status check fails
+      } finally {
+        if (!cancelled) setChecking(false);
+      }
+    }
+    loadStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,7 +88,7 @@ export default function WaitlistPage() {
               Job Board Waitlist
             </h1>
             <p className="text-white/65 text-lg">
-              Be first to access our curated commodity trading job board — roles from majors, independents, and banks across Asia, Europe, and the Americas.
+              This is not a product waitlist — signup already creates your CommodityPlay account. Join here only if you want an email when the curated job board launches.
             </p>
           </Reveal>
         </div>
@@ -79,7 +106,7 @@ export default function WaitlistPage() {
             </div>
             <h2 className="font-serif text-xl font-bold text-gray-900 mb-2">You&apos;re on the list!</h2>
             <p className="text-muted-fg text-sm mb-6">
-              We&apos;ll email you at <strong>{email}</strong> when the job board launches. In the meantime, explore the Elite pack job openings preview.
+              We&apos;ll email you at <strong>{email || session?.user?.email}</strong> when the job board launches. Your member account is separate — this list is only for job alerts.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/job-openings">
@@ -93,8 +120,18 @@ export default function WaitlistPage() {
         ) : (
           <Reveal>
             <div className="bg-white rounded-2xl border border-border p-6 sm:p-8">
-              <h2 className="font-serif text-lg font-bold text-gray-900 mb-1">Join the waitlist</h2>
-              <p className="text-sm text-muted-fg mb-6">Free to join. No spam — one launch notification.</p>
+              <h2 className="font-serif text-lg font-bold text-gray-900 mb-1">
+                {isSignedIn ? "Get job board alerts" : "Join the job board waitlist"}
+              </h2>
+              <p className="text-sm text-muted-fg mb-6">
+                {isSignedIn
+                  ? "You're already a member. Opt in and we'll use your account email — one launch notification, no extra signup."
+                  : "No account needed for job alerts. To use Playbook and Mentor Connect, create an account from Sign up."}
+              </p>
+
+              {checking && (
+                <p className="text-sm text-muted-fg mb-4">Checking your account…</p>
+              )}
 
               {error && (
                 <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-600">
@@ -103,40 +140,49 @@ export default function WaitlistPage() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <Input
-                  label="Full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Alex Chen"
-                />
-                <Input
-                  label="Email address"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                />
-
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">Your track</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(["CAREER", "SALES"] as const).map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setTrack(t)}
-                        className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                          track === t
-                            ? "border-primary-400 bg-primary-soft text-primary-800"
-                            : "border-border text-muted-fg hover:border-primary-line"
-                        }`}
-                      >
-                        {t === "CAREER" ? TRACK_SELECTION.career.title : TRACK_SELECTION.sales.title}
-                      </button>
-                    ))}
+                {isSignedIn ? (
+                  <div className="rounded-lg border border-border bg-secondary/50 px-3 py-2.5 text-sm text-muted-fg">
+                    Alerts will go to <strong className="text-gray-800">{email || session?.user?.email}</strong>
+                    {track ? ` · ${track === "CAREER" ? TRACK_SELECTION.career.title : TRACK_SELECTION.sales.title}` : ""}
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <Input
+                      label="Full name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Alex Chen"
+                    />
+                    <Input
+                      label="Email address"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                    />
+
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">Your track</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(["CAREER", "SALES"] as const).map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setTrack(t)}
+                            className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                              track === t
+                                ? "border-primary-400 bg-primary-soft text-primary-800"
+                                : "border-border text-muted-fg hover:border-primary-line"
+                            }`}
+                          >
+                            {t === "CAREER" ? TRACK_SELECTION.career.title : TRACK_SELECTION.sales.title}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
@@ -152,8 +198,8 @@ export default function WaitlistPage() {
                   </span>
                 </label>
 
-                <Button type="submit" className="w-full" size="lg" loading={loading}>
-                  <Mail className="w-4 h-4" /> Join Waitlist
+                <Button type="submit" className="w-full" size="lg" loading={loading} disabled={checking}>
+                  <Mail className="w-4 h-4" /> {isSignedIn ? "Get job alerts with my account" : "Join Job Board Waitlist"}
                 </Button>
               </form>
 

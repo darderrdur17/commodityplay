@@ -180,7 +180,7 @@ export function JobOpeningsClient({
 
         <div className="mt-8 text-center p-6 bg-secondary rounded-xl">
           <p className="text-sm text-muted-fg mb-3">
-            Want alerts when new roles are posted? Join the job board waitlist.
+            Want an email when new roles go live? Opt in to the job board waitlist — your member account already exists separately.
           </p>
           <Link href="/waitlist">
             <Badge variant="pro" className="cursor-pointer hover:opacity-80">
