@@ -10,7 +10,7 @@ export async function getMobileUser(req: NextRequest) {
     const payload = verify(authHeader.slice(7), process.env.AUTH_SECRET!) as { userId: string };
     return await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { id: true, tier: true, role: true, mentorCredits: true },
+      select: { id: true, tier: true, role: true, track: true, mentorCredits: true },
     });
   } catch {
     return null;

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn, isAdmin } from "@/lib/utils";
 import { signOut, useSession } from "next-auth/react";
 import { Logo } from "@/components/brand/logo";
+import { memberMayAccessCareerPlaybook } from "@/lib/dashboard-module-visibility";
 
 import { NAV_HEIGHT, NAV_OFFSET, NAV_HEIGHT_PX } from "@/lib/layout-constants";
 
@@ -47,9 +48,15 @@ export function Nav() {
     email?: string | null;
     tier?: string;
     role?: string;
+    track?: string;
     isMentor?: boolean;
   } | undefined;
   const myProgressHref = user?.isMentor ? "/mentor-connect/inbox" : "/dashboard";
+  const navLinks = NAV_LINKS.filter((link) => {
+    if (link.key !== "playbook") return true;
+    if (!user) return true;
+    return memberMayAccessCareerPlaybook({ track: user.track ?? "CAREER", role: user.role });
+  });
 
   const handleTrackParamChange = useCallback((track: string | null) => {
     setActiveTrackParam(track);
@@ -118,7 +125,7 @@ export function Nav() {
           </div>
 
           <nav className="hidden md:flex items-center justify-center gap-0.5 md:col-start-2 md:row-start-1">
-            {NAV_LINKS.map((link) => {
+            {navLinks.map((link) => {
               const active = isLinkActive(link.key, link.href);
               return (
                 <Link
@@ -271,7 +278,7 @@ export function Nav() {
             }}
           >
             <nav className="page-container py-4 flex flex-col gap-1">
-              {NAV_LINKS.map((link) => (
+              {navLinks.map((link) => (
                 <Link
                   key={link.key}
                   href={link.href}

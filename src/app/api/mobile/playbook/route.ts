@@ -4,10 +4,14 @@ import { getPublishedPayload } from "@/lib/content/repository";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { getMobileUser, hasTierAccess } from "@/lib/mobile-auth";
+import { memberMayAccessCareerPlaybook } from "@/lib/dashboard-module-visibility";
 
 export async function GET(req: NextRequest) {
   const user = await getMobileUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!memberMayAccessCareerPlaybook({ track: user.track, role: user.role })) {
+    return NextResponse.json({ error: "Playbook is Career track only" }, { status: 403 });
+  }
 
   const requiredTier = await getContentTierForSlug("playbook");
   const hasPlaybookAccess = hasTierAccess(user.tier, requiredTier);

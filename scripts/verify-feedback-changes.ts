@@ -12,7 +12,7 @@ import { getDemoAccountDisplayPersona } from "../src/data/demo-accounts";
 import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
 import { PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import { mergeStarterEmailDigest, splitLegacyDigestTopicLine } from "../src/data/starter-pack";
-import { isDashboardModuleVisible } from "../src/lib/dashboard-module-visibility";
+import { isDashboardModuleVisible, memberMayAccessCareerPlaybook } from "../src/lib/dashboard-module-visibility";
 import {
   DEFAULT_DASHBOARD_RESOURCE_CARDS,
   DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS,
@@ -194,6 +194,33 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Sales-only tools are Sales-tracked",
     DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS.every((c) => c.track === "Sales")
+  );
+
+  const careerSlugs = DEFAULT_DASHBOARD_RESOURCE_CARDS.filter((c) => c.track === "Career").map((c) => c.slug);
+  const bothSlugs = DEFAULT_DASHBOARD_RESOURCE_CARDS.filter((c) => c.track === "Both").map((c) => c.slug);
+  for (const slug of careerSlugs) {
+    ok(
+      `Sales cannot see Career card ${slug}`,
+      !isDashboardModuleVisible("Career", "SALES")
+    );
+  }
+  for (const slug of bothSlugs) {
+    ok(`Both card ${slug} visible to Sales`, isDashboardModuleVisible("Both", "SALES"));
+    ok(`Both card ${slug} visible to Career`, isDashboardModuleVisible("Both", "CAREER"));
+  }
+  ok("Admin ALL sees Career playbook", isDashboardModuleVisible("Career", "ALL"));
+  ok("Admin ALL sees Sales tools", isDashboardModuleVisible("Sales", "ALL"));
+  ok(
+    "Sales member cannot open playbook A–E",
+    !memberMayAccessCareerPlaybook({ track: "SALES", role: "USER" })
+  );
+  ok(
+    "Career member can open playbook A–E",
+    memberMayAccessCareerPlaybook({ track: "CAREER", role: "USER" })
+  );
+  ok(
+    "Admin can open playbook even on Sales track",
+    memberMayAccessCareerPlaybook({ track: "SALES", role: "ADMIN" })
   );
 }
 

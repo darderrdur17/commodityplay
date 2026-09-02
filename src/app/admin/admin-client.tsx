@@ -387,7 +387,7 @@ export function AdminClient({
               { label: "Elite", value: stats.tiers.elite, icon: Crown, color: "#B45309", tab: "users" as const },
               { label: "Mentors", value: totalMentorCount, icon: UserCheck, color: "#0891b2", tab: "mentors" as const },
               {
-                label: "Pending Mentor Apps",
+                label: "Pending Mentor Applications",
                 value: pendingMentorApps,
                 icon: Clock,
                 color: "#d97706",
