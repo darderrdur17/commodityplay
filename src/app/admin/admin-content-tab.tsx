@@ -91,7 +91,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "Pro Pack",
     tier: "PRO",
     items: [
-      { slug: "playbook", label: "Full Playbook", track: "Both", tier: "PRO" },
+      { slug: "playbook", label: "Full Playbook", track: "Career", tier: "PRO" },
       { slug: "resume-templates", label: "Resume", track: "Career", tier: "PRO" },
       { slug: "career-roadmap", label: "Career Roadmap", track: "Career", tier: "PRO" },
       { slug: "career-roadmap", label: "Career Navigation Guide", track: "Career", tier: "PRO", editorVariant: "career-nav" },

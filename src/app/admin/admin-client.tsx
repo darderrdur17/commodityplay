@@ -381,22 +381,33 @@ export function AdminClient({
         {stats && (
           <Reveal className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-4 mb-8">
             {[
-              { label: "Total Users", value: stats.totalUsers, icon: Users, color: "#3280ff" },
-              { label: "Starter", value: stats.tiers.starter, icon: TrendingUp, color: "#16a34a" },
-              { label: "Pro", value: stats.tiers.pro, icon: Crown, color: "#3280ff" },
-              { label: "Elite", value: stats.tiers.elite, icon: Crown, color: "#B45309" },
-              { label: "Mentors", value: totalMentorCount, icon: UserCheck, color: "#0891b2" },
-              { label: "Pending Applications", value: pendingMentorApps, icon: Clock, color: "#d97706" },
-              { label: "Pending Q&A", value: stats.mentor.pending, icon: MessageSquare, color: "#ef4444" },
-              { label: "Job Board Waitlist", value: stats.waitlistCount, icon: Mail, color: "#5B21B6" },
+              { label: "Total Users", value: stats.totalUsers, icon: Users, color: "#3280ff", tab: "users" as const },
+              { label: "Starter", value: stats.tiers.starter, icon: TrendingUp, color: "#16a34a", tab: "users" as const },
+              { label: "Pro", value: stats.tiers.pro, icon: Crown, color: "#3280ff", tab: "users" as const },
+              { label: "Elite", value: stats.tiers.elite, icon: Crown, color: "#B45309", tab: "users" as const },
+              { label: "Mentors", value: totalMentorCount, icon: UserCheck, color: "#0891b2", tab: "mentors" as const },
+              {
+                label: "Pending Mentor Apps",
+                value: pendingMentorApps,
+                icon: Clock,
+                color: "#d97706",
+                tab: "mentors" as const,
+              },
+              { label: "Pending Q&A", value: stats.mentor.pending, icon: MessageSquare, color: "#ef4444", tab: "mentor" as const },
+              { label: "Job Board Waitlist", value: stats.waitlistCount, icon: Mail, color: "#5B21B6", tab: "waitlist" as const },
             ].map((s) => (
-              <div key={s.label} className="bg-white rounded-xl border border-border p-4">
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => setActiveTab(s.tab)}
+                className="bg-white rounded-xl border border-border p-4 text-left hover:border-primary-line transition-colors"
+              >
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-fg">{s.label}</p>
                   <s.icon className="w-4 h-4" style={{ color: s.color }} />
                 </div>
                 <p className="font-serif text-2xl font-bold text-gray-900">{s.value}</p>
-              </div>
+              </button>
             ))}
           </Reveal>
         )}

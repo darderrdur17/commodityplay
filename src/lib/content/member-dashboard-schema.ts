@@ -70,7 +70,9 @@ export function formatMemberDashboardValidationErrors(
     .join("; ");
 }
 
-function mergeResourceCards(cms?: DashboardResourceCardCopy[]): DashboardResourceCardCopy[] {
+function mergeResourceCards(
+  cms?: Array<Pick<DashboardResourceCardCopy, "slug" | "title" | "description">>
+): DashboardResourceCardCopy[] {
   const bySlug = new Map((cms ?? []).map((c) => [c.slug, c]));
   return DEFAULT_DASHBOARD_RESOURCE_CARDS.map((def) => {
     const saved = bySlug.get(def.slug);
@@ -79,12 +81,16 @@ function mergeResourceCards(cms?: DashboardResourceCardCopy[]): DashboardResourc
       slug: def.slug,
       title: saved.title?.trim() || def.title,
       description: saved.description.trim(),
+      track: def.track,
     };
   });
 }
 
 function mergeSalesResourceCards(
-  cms?: DashboardSalesResourceCardCopy[]
+  cms?: Array<
+    Pick<DashboardSalesResourceCardCopy, "slug" | "title" | "description" | "href"> &
+      Partial<Pick<DashboardSalesResourceCardCopy, "deliverableKey" | "requiredTier">>
+  >
 ): DashboardSalesResourceCardCopy[] {
   const bySlug = new Map((cms ?? []).map((c) => [c.slug, c]));
   return DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS.map((def) => {
@@ -97,6 +103,7 @@ function mergeSalesResourceCards(
       href: saved.href?.trim() || def.href,
       requiredTier: def.requiredTier,
       deliverableKey: saved.deliverableKey ?? def.deliverableKey,
+      track: def.track,
     };
   });
 }

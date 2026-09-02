@@ -541,12 +541,12 @@ export function PrepLibraryCard({
   track,
   userTier,
   topicCount,
-  showTrackBadge = false,
+  showTrackBadge = true,
 }: {
   track: PrepLibraryTrack;
   userTier: string;
   topicCount: number;
-  /** When true, show Career/Sales track pill for admin preview. */
+  /** Career / Sales track pill on the compact dashboard card. */
   showTrackBadge?: boolean;
 }) {
   const segment = PREP_LIBRARY_SEGMENTS[track];

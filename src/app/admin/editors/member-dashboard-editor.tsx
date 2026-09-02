@@ -113,7 +113,7 @@ export function MemberDashboardEditor({
 
       <EditorSection
         title="Resource card descriptions"
-        description="Small text under each title in the dashboard grid. Counts auto-fill from live CMS data."
+        description="Small text under each title in the dashboard grid. Counts auto-fill from live CMS data. Track (Career / Sales / Both) is product-owned and filters the live dashboard."
         defaultOpen
       >
         <p className="text-xs text-muted-fg mb-3">
@@ -122,7 +122,11 @@ export function MemberDashboardEditor({
         </p>
         <div className="space-y-4">
           {content.resourceCards.map((card, i) => (
-            <EditorField key={card.slug} label={card.title}>
+            <EditorField
+              key={card.slug}
+              label={card.title}
+              hint={`${card.track} track · shown to ${card.track === "Both" ? "Career and Sales" : `${card.track} only`}`}
+            >
               <textarea
                 className={textareaClass}
                 rows={2}

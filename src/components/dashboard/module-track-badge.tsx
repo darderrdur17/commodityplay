@@ -8,7 +8,7 @@ const TRACK_STYLES: Record<ModuleTrack, string> = {
   Both: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 
-/** Compact track pill for admin preview on dashboard module cards. */
+/** Compact Career / Sales / Both pill on member dashboard module cards. */
 export function ModuleTrackBadge({ track }: { track: ModuleTrack }) {
   return (
     <span

@@ -5,6 +5,7 @@ import { getContentTierForSlug, getPlaybookChapters, getPlaybookSections, getPla
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { hasAccess } from "@/lib/utils";
+import { memberMayAccessCareerPlaybook } from "@/lib/dashboard-module-visibility";
 import { ChapterClient } from "./chapter-client";
 
 export async function generateMetadata({ params }: { params: Promise<{ chapter: string }> }) {
@@ -26,10 +27,14 @@ export default async function ChapterPage({ params }: { params: Promise<{ chapte
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { tier: true },
+    select: { tier: true, track: true, role: true },
   });
 
   if (!user) redirect("/login");
+
+  if (!memberMayAccessCareerPlaybook({ track: user.track, role: user.role })) {
+    redirect("/dashboard");
+  }
 
   const requiredTier = await getContentTierForSlug("playbook");
   const hasPlaybookAccess = hasAccess(user.tier, requiredTier as "PRO" | "ELITE");

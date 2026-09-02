@@ -12,6 +12,11 @@ import { getDemoAccountDisplayPersona } from "../src/data/demo-accounts";
 import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
 import { PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import { mergeStarterEmailDigest, splitLegacyDigestTopicLine } from "../src/data/starter-pack";
+import { isDashboardModuleVisible } from "../src/lib/dashboard-module-visibility";
+import {
+  DEFAULT_DASHBOARD_RESOURCE_CARDS,
+  DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS,
+} from "../src/data/member-dashboard";
 
 let failed = 0;
 function ok(name: string, pass: boolean, detail?: string) {
@@ -173,6 +178,22 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Corrupted char-index CMS topics recover on read",
     recovered.topics[0]?.tag === "Desk Truths" && recovered.topics[0]?.title === "caption"
+  );
+}
+
+// ── Dashboard module track mapping ──────────────────────────────────────────
+{
+  const careerOnly = DEFAULT_DASHBOARD_RESOURCE_CARDS.filter((c) => c.track === "Career").map((c) => c.slug);
+  ok("Playbook is Career-only", careerOnly.includes("playbook"));
+  ok(
+    "Sales Pro cannot see Career playbook card",
+    !isDashboardModuleVisible("Career", "SALES") && isDashboardModuleVisible("Career", "CAREER")
+  );
+  ok("Sales sees Both modules", isDashboardModuleVisible("Both", "SALES"));
+  ok("Career does not see Sales-only", !isDashboardModuleVisible("Sales", "CAREER"));
+  ok(
+    "Sales-only tools are Sales-tracked",
+    DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS.every((c) => c.track === "Sales")
   );
 }
 

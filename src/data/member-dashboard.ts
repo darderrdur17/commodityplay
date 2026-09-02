@@ -11,11 +11,16 @@ export interface DashboardPromoBox {
   footerNote?: string;
 }
 
+/** Career / Sales / Both — same labels shown as bubbles on dashboard module cards. */
+export type DashboardModuleTrack = "Career" | "Sales" | "Both";
+
 /** Editable description under each resource card title on /dashboard. */
 export interface DashboardResourceCardCopy {
   slug: string;
   title: string;
   description: string;
+  /** Product track. Code-owned — CMS may edit title/description but not this. */
+  track: DashboardModuleTrack;
 }
 
 /** Sales-track-only cards in the dashboard grid (Career members never see these). */
@@ -50,48 +55,57 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
     title: "Full Playbook",
     description:
       "{chapterCount} chapters, {sectionCount} sections — industry foundations through commercial decision-making.",
+    track: "Career",
   },
   {
     slug: "resume-templates",
     title: "Resume Templates",
     description: "{templateCount} tailored templates with persona analysis quiz.",
+    track: "Career",
   },
   {
     slug: "career-roadmap",
     title: "Career Roadmap",
     description:
       "{roleCount} role blueprints, navigation guide, comp benchmarks, and 12-month action plans.",
+    track: "Career",
   },
   {
     slug: "interview-questions",
     title: "Interview Questions",
     description:
       "{interviewCount} desk interview questions with model answers across technical and commercial tabs.",
+    track: "Career",
   },
   {
     slug: "knowledge-test",
     title: "Knowledge Test",
     description: "{knowledgeTestCount}-question gap analysis with personalised study recommendations.",
+    track: "Both",
   },
   {
     slug: "case-studies",
     title: "Case Studies",
     description: "{caseStudyCount} real-world trading scenarios with full P&L breakdowns.",
+    track: "Both",
   },
   {
     slug: "desk-channel",
     title: "Desk Channel",
     description: "{deskQaCount} practitioner Q&As across {deskSegmentCount} coverage segments.",
+    track: "Both",
   },
   {
     slug: "mentor-connect",
     title: "Mentor Connect",
     description: "One question. One mentor. One honest answer — {mentorCount} anonymous practitioners.",
+    track: "Both",
   },
   {
     slug: "job-openings",
     title: "Job Openings",
     description: "{jobCount} curated commodity trading roles across regions.",
+    track: "Both",
   },
 ];
 
@@ -103,6 +117,7 @@ export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardC
       "Weekly sales intelligence note — desk language, commercial angles, and what buyers are thinking this week.",
     requiredTier: "PRO",
     href: "/dashboard/sales-market-nudges",
+    track: "Sales",
   },
   {
     slug: "industry-guide-for-sales",
@@ -111,6 +126,7 @@ export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardC
     requiredTier: "PRO",
     href: "/library",
     deliverableKey: "industryGuideForSales",
+    track: "Sales",
   },
   {
     slug: "sales-prep-library",
@@ -120,6 +136,7 @@ export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardC
     requiredTier: "PRO",
     href: "/dashboard/prep-library#prep-library-sales",
     isPrepLibrary: true,
+    track: "Sales",
   },
   {
     slug: "account-intelligence",
@@ -127,6 +144,7 @@ export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardC
     description: "Company and contact intelligence to help you understand who you're selling to and what they care about.",
     requiredTier: "ELITE",
     href: "/dashboard/account-intelligence",
+    track: "Sales",
   },
 ];
 

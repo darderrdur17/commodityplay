@@ -63,7 +63,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     mentorCredits: 0,
     resumeCredits: 0,
     description:
-      "Career Starter — Chapter A preview, glossary, digest. Persona unlocks after the resume quiz on Resume Templates.",
+      "Career Starter — Chapter A preview, glossary, starter pack. Persona unlocks after the resume quiz.",
     emoji: "🎓",
     redirectTo: "/dashboard",
   },
@@ -76,7 +76,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     persona: "VENDOR",
     mentorCredits: 0,
     resumeCredits: 0,
-    description: "Sales track Starter — Chapter A preview (3 of 8 sections), sales dashboard, digest.",
+    description: "Sales track Starter — glossary, starter pack, and sales dashboard (Career playbook is Career-only).",
     emoji: "🤝",
     redirectTo: "/dashboard",
   },

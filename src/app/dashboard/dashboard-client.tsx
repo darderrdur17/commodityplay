@@ -20,10 +20,16 @@ import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import { attachmentHref } from "@/lib/content/attachments";
 import type { NavigationGuideAttachment } from "@/lib/content/accessors";
 import {
+  DEFAULT_DASHBOARD_RESOURCE_CARDS,
   DEFAULT_MEMBER_DASHBOARD_CONTENT,
   type DashboardSalesResourceCardCopy,
   type MemberDashboardContent,
 } from "@/data/member-dashboard";
+import {
+  dashboardAudienceFromPreview,
+  filterByDashboardAudience,
+  isDashboardModuleVisible,
+} from "@/lib/dashboard-module-visibility";
 import type { StarterInfographic } from "@/data/starter-pack";
 import type { SalesDashboardDeliverables } from "@/lib/content/sales-dashboard-deliverables";
 import type { ContentStats } from "@/lib/content/content-stats";
@@ -83,7 +89,7 @@ const CONTENT_CARDS = [
     href: "/playbook",
     requiredTier: "PRO",
     color: "#3280ff",
-    track: "Both",
+    track: "Career",
   },
   {
     slug: "resume-templates",
@@ -182,9 +188,9 @@ const SALES_CARD_COLORS: Record<string, string> = {
 };
 
 const QUICK_LINKS = [
-  { label: "Desk Glossary", href: "/glossary", free: true },
-  { label: "Chapter A Preview", href: "/playbook/a", free: true },
-  { label: "Job Board Waitlist", href: "/waitlist", free: true },
+  { label: "Desk Glossary", href: "/glossary", free: true, track: "Both" as const },
+  { label: "Chapter A Preview", href: "/playbook/a", free: true, track: "Career" as const },
+  { label: "Job Board Waitlist", href: "/waitlist", free: true, track: "Both" as const },
 ];
 
 const MEMBER_PREVIEW_OPTIONS = [
@@ -242,12 +248,33 @@ export function DashboardClient({
     user.resumePersonaDone
   );
   const greeting = user.name?.split(" ")[0] || "there";
-  const isCareerTrack = effectiveTrack === "CAREER";
+  const isCareerTrack = effectiveTrack.toUpperCase() === "CAREER";
+  const audience = dashboardAudienceFromPreview({
+    isAdmin: isAdminUser,
+    isMentorUser,
+    isPreviewActive,
+    effectiveTrack,
+  });
   const planHref = (tier: "pro" | "elite") =>
     isCareerTrack ? CAREER_PLAN_HREF(tier) : SALES_PLAN_HREF(tier);
-  const showSalesTrackCards = isPreviewActive
-    ? effectiveTrack === "SALES"
-    : isAdminUser || !isCareerTrack;
+  const visibleContentCards = filterByDashboardAudience(
+    CONTENT_CARDS.map((card) => ({
+      ...card,
+      track:
+        DEFAULT_DASHBOARD_RESOURCE_CARDS.find((resource) => resource.slug === card.slug)?.track ??
+        card.track,
+    })),
+    audience
+  );
+  const visibleQuickLinks = filterByDashboardAudience(QUICK_LINKS, audience);
+  const visibleSalesCards = filterByDashboardAudience(
+    dashboardContent.salesResourceCards,
+    audience
+  );
+  const showSalesTrackCards = visibleSalesCards.length > 0;
+  const showPlaybookProgress =
+    hasAccess(effectiveTier, "PRO") && isDashboardModuleVisible("Career", audience);
+  const showCareerPrepLibrarySlot = isDashboardModuleVisible("Career", audience);
   const isStarter = effectiveTier === "STARTER";
   const isElite = hasAccess(effectiveTier, "ELITE");
   const showCareerNavGuide =
@@ -321,7 +348,7 @@ export function DashboardClient({
     return () => window.removeEventListener(PREP_LIBRARY_COUNT_EVENT, onPrepLibraryCount);
   }, [effectiveTier]);
 
-  const firstEliteContentCardIndex = CONTENT_CARDS.findIndex(
+  const firstEliteContentCardIndex = visibleContentCards.findIndex(
     (card) => (contentTiers[card.slug] || card.requiredTier) === "ELITE"
   );
 
@@ -358,7 +385,7 @@ export function DashboardClient({
     delay?: number;
     pendingLabel?: string;
     accessLabel?: string;
-    trackLabel?: ModuleTrack;
+    trackLabel: ModuleTrack;
   }) {
     const locked = !unlocked;
     const tierBadge = (
@@ -373,7 +400,7 @@ export function DashboardClient({
     const tierBadges = (
       <div className="flex flex-wrap items-center gap-1.5">
         {tierBadge}
-        {isAdminUser && trackLabel && <ModuleTrackBadge track={trackLabel} />}
+        <ModuleTrackBadge track={trackLabel} />
       </div>
     );
 
@@ -589,14 +616,25 @@ export function DashboardClient({
             icon: Users,
             color: "#B45309",
           },
-          {
-            label: isStarter ? "Chapters" : "Chapters Done",
-            value: isStarter
-              ? `Chapter A · ${contentStats.chapterCount} total`
-              : `${stats.completedChapters}/${contentStats.chapterCount}`,
-            icon: BookOpen,
-            color: "#16a34a",
-          },
+          showPlaybookProgress || isDashboardModuleVisible("Career", audience)
+            ? {
+                label: isStarter ? "Chapters" : "Chapters Done",
+                value: isStarter
+                  ? `Chapter A · ${contentStats.chapterCount} total`
+                  : `${stats.completedChapters}/${contentStats.chapterCount}`,
+                icon: BookOpen,
+                color: "#16a34a",
+              }
+            : {
+                label: "Sales tools",
+                value: hasAccess(effectiveTier, "ELITE")
+                  ? "Nudges · Prep · Accounts"
+                  : hasAccess(effectiveTier, "PRO")
+                    ? "Nudges · Prep · Guide"
+                    : "Starter pack",
+                icon: NotebookPen,
+                color: "#0f766e",
+              },
         ]).map((stat) => (
           <StaggerItem key={stat.label}>
             <div className="bg-white rounded-xl border border-border p-4 sm:p-5">
@@ -653,8 +691,8 @@ export function DashboardClient({
         </Reveal>
       )}
 
-      {/* ── PLAYBOOK PROGRESS (Pro+) ── */}
-      {hasAccess(effectiveTier, "PRO") && (
+      {/* ── PLAYBOOK PROGRESS (Career Pro+ only) ── */}
+      {showPlaybookProgress && (
         <Reveal className="mb-10">
           <div className="bg-white rounded-xl border border-border p-6">
             <div className="flex items-center justify-between mb-4">
@@ -711,7 +749,7 @@ export function DashboardClient({
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5 mb-2">
                       <Badge variant="pro" size="sm">Pro Pack</Badge>
-                      {isAdminUser && <ModuleTrackBadge track="Career" />}
+                      <ModuleTrackBadge track="Career" />
                     </div>
                     <h2 className="font-serif text-lg font-bold text-gray-900 mb-1">
                       {navigationGuides.career.label}
@@ -740,7 +778,7 @@ export function DashboardClient({
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5 mb-2">
                       <Badge variant="pro" size="sm">Pro Pack</Badge>
-                      {isAdminUser && <ModuleTrackBadge track="Sales" />}
+                      <ModuleTrackBadge track="Sales" />
                     </div>
                     <h2 className="font-serif text-lg font-bold text-gray-900 mb-1">
                       {navigationGuides.sales.label}
@@ -777,7 +815,7 @@ export function DashboardClient({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {/* Free content */}
-          {QUICK_LINKS.map((link) => (
+          {visibleQuickLinks.map((link) => (
             <Reveal key={link.label}>
               <Link href={link.href} className="block">
                 <div className="card-hover h-full bg-white rounded-xl border border-border p-5 flex items-start gap-3 group">
@@ -788,7 +826,7 @@ export function DashboardClient({
                     <p className="font-semibold text-sm text-gray-900">{link.label}</p>
                     <div className="flex flex-wrap items-center gap-1.5 mt-1">
                       <Badge variant="starter" size="sm">Free</Badge>
-                      {isAdminUser && <ModuleTrackBadge track="Both" />}
+                      <ModuleTrackBadge track={link.track} />
                     </div>
                   </div>
                 </div>
@@ -797,7 +835,7 @@ export function DashboardClient({
           ))}
 
           {/* Tiered content — career Prep Library slots in after Pro cards, before Elite */}
-          {CONTENT_CARDS.map((card, i) => {
+          {visibleContentCards.map((card, i) => {
             const tier = (contentTiers[card.slug] || card.requiredTier) as "PRO" | "ELITE";
             const unlocked = hasAccess(effectiveTier, tier);
             const description =
@@ -805,7 +843,7 @@ export function DashboardClient({
               DEFAULT_MEMBER_DASHBOARD_CONTENT.resourceCards.find((c) => c.slug === card.slug)?.description ??
               "";
             const showCareerPrepLibrary =
-              isCareerTrack && i === firstEliteContentCardIndex;
+              showCareerPrepLibrarySlot && i === firstEliteContentCardIndex;
 
             return (
               <React.Fragment key={card.slug}>
@@ -814,7 +852,6 @@ export function DashboardClient({
                     track="CAREER"
                     userTier={effectiveTier}
                     topicCount={careerTopicCount}
-                    showTrackBadge={isAdminUser}
                   />
                 )}
                 {renderResourceCard({
@@ -831,18 +868,17 @@ export function DashboardClient({
               </React.Fragment>
             );
           })}
-          {isCareerTrack && firstEliteContentCardIndex === -1 && (
+          {showCareerPrepLibrarySlot && firstEliteContentCardIndex === -1 && (
             <PrepLibraryCard
               track="CAREER"
               userTier={effectiveTier}
               topicCount={careerTopicCount}
-              showTrackBadge={isAdminUser}
             />
           )}
 
           {/* Sales track only */}
           {showSalesTrackCards &&
-            dashboardContent.salesResourceCards.map((card, i) => {
+            visibleSalesCards.map((card, i) => {
               const tier = card.requiredTier;
               const description =
                 salesResourceCopyBySlug[card.slug] ??
@@ -867,7 +903,6 @@ export function DashboardClient({
                     track="SALES"
                     userTier={effectiveTier}
                     topicCount={salesTopicCount}
-                    showTrackBadge={isAdminUser}
                   />
                 );
               }
@@ -882,9 +917,9 @@ export function DashboardClient({
                     tier,
                     unlocked: canOpen,
                     href,
-                    delay: (CONTENT_CARDS.length + i) * 0.05,
+                    delay: (visibleContentCards.length + i) * 0.05,
                     pendingLabel,
-                    trackLabel: "Sales",
+                    trackLabel: card.track,
                   })}
                 </React.Fragment>
               );

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getContentTierForSlug, getPlaybookChapters, getPlaybookHubHero } from "@/lib/content/accessors";
 import { getContentStats } from "@/lib/content/content-stats";
+import { memberMayAccessCareerPlaybook } from "@/lib/dashboard-module-visibility";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { PlaybookHubClient } from "./playbook-hub-client";
@@ -19,6 +20,10 @@ export default async function PlaybookPage() {
   });
 
   if (!user) redirect("/login");
+
+  if (!memberMayAccessCareerPlaybook({ track: user.track, role: user.role })) {
+    redirect("/dashboard");
+  }
 
   const [chapters, requiredTier, contentStats, hubHero] = await Promise.all([
     getPlaybookChapters(),
