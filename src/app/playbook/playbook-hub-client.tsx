@@ -5,7 +5,9 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { BookOpen, Clock, ChevronRight, Lock, CheckCircle } from "lucide-react";
 import { CHAPTERS } from "@/data/playbook";
+import type { PlaybookHubHeroCopy } from "@/data/playbook-hub-hero";
 import type { ContentStats } from "@/lib/content/content-stats";
+import { formatContentPlaceholders } from "@/lib/content/content-stat-placeholders";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { starterChapterPreviewLabel } from "@/data/starter-pack";
@@ -22,6 +24,7 @@ interface Props {
   progress: Array<{ chapterId: string; progress: number; completed: boolean }>;
   requiredTier?: "PRO" | "ELITE";
   contentStats: Pick<ContentStats, "chapterCount" | "sectionCount">;
+  hubHero: PlaybookHubHeroCopy;
 }
 
 export function PlaybookHubClient({
@@ -30,8 +33,13 @@ export function PlaybookHubClient({
   progress,
   requiredTier = "PRO",
   contentStats,
+  hubHero,
 }: Props) {
   const { chapterCount, sectionCount } = contentStats;
+  const statPlaceholders = { chapterCount, sectionCount };
+  const proDescription = formatContentPlaceholders(hubHero.proDescription, statPlaceholders);
+  const previewDescription = formatContentPlaceholders(hubHero.previewDescription, statPlaceholders)
+    .replace("{starterPreviewLabel}", starterChapterPreviewLabel());
   const getChapterProgress = (id: string) => progress.find((p) => p.chapterId === id);
   const completedCount = progress.filter((p) => p.completed).length;
   const totalProgress =
@@ -48,15 +56,15 @@ export function PlaybookHubClient({
         <Reveal className="relative z-10">
           <div className="pill pill-dark mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            {isPro ? "Pro Access" : "Chapter A · Free Preview"}
+            {isPro ? hubHero.proBadge : hubHero.previewBadge}
           </div>
           <h1 className="font-serif text-4xl font-bold text-white mb-3">
-            {isPro ? "The Full Playbook" : "Industry Foundations"}
+            {isPro ? hubHero.proTitle : hubHero.previewTitle}
           </h1>
           <p className="text-white/65 text-lg max-w-xl mb-6">
             {isPro
-              ? `${chapterCount} Chapters. ${sectionCount} sections. Industry foundations through commercial decision-making — sourced from the Pro Pack playbook.`
-              : `Chapter A preview — ${starterChapterPreviewLabel()}. The ground-level understanding every serious learner of commodity trading needs before anything else.`}
+              ? proDescription
+              : previewDescription}
           </p>
           {isPro && (
             <div className="flex items-center gap-4 flex-wrap">

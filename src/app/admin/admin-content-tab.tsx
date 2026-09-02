@@ -26,6 +26,7 @@ import { MemberDashboardEditor } from "./editors/member-dashboard-editor";
 import { SalesNavigationGuideEditor } from "./editors/sales-navigation-guide-editor";
 import { SalesMarketNudgesEditor } from "./editors/sales-market-nudges-editor";
 import { AccountIntelligenceEditor } from "./editors/account-intelligence-editor";
+import { TrackSelectionCaptionsEditor } from "./editors/track-selection-captions-editor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,7 +50,7 @@ interface SidebarItem {
   label: string;
   track?: TrackLabel;
   tier?: string;
-  editorVariant?: "default" | "career-nav" | "sales-nav";
+  editorVariant?: "default" | "career-nav" | "sales-nav" | "track-captions";
 }
 
 interface SidebarGroup {
@@ -65,6 +66,13 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { slug: "landing", label: "Career Track", track: "Career", tier: "STARTER" },
       { slug: "landing", label: "Sales Track", track: "Sales", tier: "STARTER" },
+      {
+        slug: "landing",
+        label: "Track Selection Captions",
+        track: "Both",
+        tier: "STARTER",
+        editorVariant: "track-captions",
+      },
       { slug: "site-footer", label: "Footer", track: "Both", tier: "STARTER" },
       { slug: "faq", label: "FAQ", track: "Both", tier: "STARTER" },
       { slug: "member-dashboard", label: "Member Dashboard", track: "Both", tier: "STARTER" },
@@ -193,6 +201,9 @@ function ModuleEditor({
   function renderEditor() {
     switch (slug) {
       case "landing":
+        if (editorVariant === "track-captions") {
+          return <TrackSelectionCaptionsEditor payload={payload} onChange={setPayload} contentVersion={version} />;
+        }
         return (
           <LandingEditorWrapper
             {...editorProps}
@@ -229,7 +240,7 @@ function ModuleEditor({
       case "starter-pack":
         return <StarterPackEditor {...editorProps} contentVersion={version} />;
       case "resume-templates":
-        return <ResumeEditor {...editorProps} />;
+        return <ResumeEditor {...editorProps} contentVersion={version} />;
       case "mentor-connect":
         return <MentorConnectEditor payload={payload} onChange={setPayload} />;
       case "library":

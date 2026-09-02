@@ -61,6 +61,10 @@ export async function GET() {
           name: m.name ?? null,
           email: live.email,
           company: live.company,
+          linkedIn: m.linkedIn ?? null,
+          location: m.location ?? null,
+          role: m.role ?? null,
+          commodityDesk: m.commodityDesk ?? null,
           track: m.track ?? "both",
           status: m.status ?? "active",
           isNew: m.isNew ?? false,
@@ -89,6 +93,10 @@ const patchSchema = z.object({
     z.string().email().max(200).nullable().optional()
   ),
   company: z.string().max(200).nullable().optional(),
+  linkedIn: z.string().max(300).nullable().optional(),
+  location: z.string().max(200).nullable().optional(),
+  role: z.string().max(200).nullable().optional(),
+  commodityDesk: z.string().max(200).nullable().optional(),
   track: z.enum(["career", "sales", "both"]).optional(),
   /** Approve (or re-open) a pending self-submitted application. */
   status: z.enum(["pending", "active"]).optional(),
@@ -135,6 +143,18 @@ export async function PATCH(req: NextRequest) {
   }
   if (patch.company !== undefined) {
     nextOverride.company = patch.company === null ? undefined : patch.company;
+  }
+  if (patch.linkedIn !== undefined) {
+    nextOverride.linkedIn = patch.linkedIn === null ? undefined : patch.linkedIn;
+  }
+  if (patch.location !== undefined) {
+    nextOverride.location = patch.location === null ? undefined : patch.location;
+  }
+  if (patch.role !== undefined) {
+    nextOverride.role = patch.role === null ? undefined : patch.role;
+  }
+  if (patch.commodityDesk !== undefined) {
+    nextOverride.commodityDesk = patch.commodityDesk === null ? undefined : patch.commodityDesk;
   }
   if (patch.track !== undefined) nextOverride.track = patch.track;
   if (patch.status !== undefined) nextOverride.status = patch.status;

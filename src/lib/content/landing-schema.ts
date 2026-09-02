@@ -107,6 +107,12 @@ export const landingContentSchema = z.object({
     ctaPrimary: z.string().min(1),
     ctaSecondary: z.string().min(1),
     stats: z.array(salesStatSchema).min(1),
+    whoSection: z
+      .object({
+        label: z.string().min(1),
+        headline: z.string().min(1),
+      })
+      .default(() => DEFAULT_LANDING_CONTENT.sales.whoSection),
     whoCards: z.array(whoCardSchema).min(1),
     roi: z.object({
       eyebrow: z.string().min(1),

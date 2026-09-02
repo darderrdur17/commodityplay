@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSectionAssets } from "@/data/playbook-assets";
+import { mergePlaybookHubHero, type PlaybookHubHeroCopy } from "@/data/playbook-hub-hero";
 import type { ContentAttachment } from "@/lib/content/attachments";
 import { slugifyFileName } from "@/lib/content/attachments";
 import {
@@ -44,6 +45,7 @@ interface PlaybookChapter {
 
 interface PlaybookPayload {
   chapters: PlaybookChapter[];
+  hubHero?: Partial<PlaybookHubHeroCopy>;
 }
 
 const REFERENCE_ASSET_TYPES = ["Infographic", "Framework", "Worked Example"] as const;
@@ -217,6 +219,11 @@ export function PlaybookEditor({
 }) {
   const data = payload as PlaybookPayload ?? { chapters: [] };
   const chapters: PlaybookChapter[] = data.chapters ?? [];
+  const hubHero = mergePlaybookHubHero(data.hubHero);
+
+  function patchHubHero(updates: Partial<PlaybookHubHeroCopy>) {
+    onChange({ ...data, chapters, hubHero: { ...hubHero, ...updates } });
+  }
 
   function patchChapter(i: number, ch: PlaybookChapter) {
     const next = [...chapters];
@@ -252,6 +259,37 @@ export function PlaybookEditor({
 
   return (
     <div className="space-y-4">
+      <EditorSection
+        title="Hub hero strip"
+        description="Blue banner at the top of /playbook — badge, title, and description. Progress stats stay dynamic."
+      >
+        <p className="text-xs font-semibold text-gray-700">Pro members</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <EditorField label="Badge">
+            <input className={inputClass} value={hubHero.proBadge} onChange={(e) => patchHubHero({ proBadge: e.target.value })} />
+          </EditorField>
+          <EditorField label="Title">
+            <input className={inputClass} value={hubHero.proTitle} onChange={(e) => patchHubHero({ proTitle: e.target.value })} />
+          </EditorField>
+        </div>
+        <EditorField label="Description" hint="Use {chapterCount} and {sectionCount} for live counts">
+          <textarea className={textareaClass} rows={3} value={hubHero.proDescription} onChange={(e) => patchHubHero({ proDescription: e.target.value })} />
+        </EditorField>
+
+        <p className="text-xs font-semibold text-gray-700 pt-2">Starter preview</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <EditorField label="Badge">
+            <input className={inputClass} value={hubHero.previewBadge} onChange={(e) => patchHubHero({ previewBadge: e.target.value })} />
+          </EditorField>
+          <EditorField label="Title">
+            <input className={inputClass} value={hubHero.previewTitle} onChange={(e) => patchHubHero({ previewTitle: e.target.value })} />
+          </EditorField>
+        </div>
+        <EditorField label="Description">
+          <textarea className={textareaClass} rows={3} value={hubHero.previewDescription} onChange={(e) => patchHubHero({ previewDescription: e.target.value })} />
+        </EditorField>
+      </EditorSection>
+
       <p className="text-xs text-muted-fg">
         Attach PDFs and documents directly on each section below. Files appear on the matching playbook chapter page after Save.
       </p>

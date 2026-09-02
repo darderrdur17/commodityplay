@@ -323,6 +323,10 @@ export function resolveSalesContent(
       groups: resolveComparisonGroups(defaults.sales.comparison.groups, cms?.comparison?.groups),
     },
     roi: resolveSalesRoi(defaults, cms),
+    whoSection: {
+      label: cmsString(cms?.whoSection?.label, defaults.sales.whoSection.label),
+      headline: cmsString(cms?.whoSection?.headline, defaults.sales.whoSection.headline),
+    },
   };
 }
 
@@ -354,6 +358,10 @@ function synthesizeMentorProfile(override: MentorOverride): MentorProfile {
     name: override.name,
     email: override.email,
     company: override.company,
+    linkedIn: override.linkedIn,
+    location: override.location,
+    role: override.role,
+    commodityDesk: override.commodityDesk,
     track: override.track ?? "both",
     status: override.status ?? "pending",
     isNew: true,
@@ -397,6 +405,10 @@ export function resolveMentorSegments(
         name: override?.name ?? mentor.name,
         email: override?.email ?? mentor.email,
         company: override?.company ?? mentor.company,
+        linkedIn: override?.linkedIn ?? mentor.linkedIn,
+        location: override?.location ?? mentor.location,
+        role: override?.role ?? mentor.role,
+        commodityDesk: override?.commodityDesk ?? mentor.commodityDesk,
         track: override?.track ?? mentor.track ?? "both",
         status: override?.status ?? mentor.status ?? "active",
       };

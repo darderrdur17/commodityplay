@@ -421,62 +421,6 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
         </div>
       </Section>
 
-      <Section
-        title="Track Selection Captions"
-        description={'Subtitle under "Build a Career" / "Sell into Firms" on signup, onboarding, and starter-pack modal'}
-      >
-        <p className="text-xs font-semibold text-gray-700 mb-2">Career track</p>
-        <div className="grid gap-4 sm:grid-cols-2 mb-4">
-          <Field label="Title">
-            <TextInput
-              value={content.trackSelection.career.title}
-              onChange={(v) =>
-                patch("trackSelection", {
-                  ...content.trackSelection,
-                  career: { ...content.trackSelection.career, title: v },
-                })
-              }
-            />
-          </Field>
-          <Field label="Caption">
-            <TextInput
-              value={content.trackSelection.career.caption}
-              onChange={(v) =>
-                patch("trackSelection", {
-                  ...content.trackSelection,
-                  career: { ...content.trackSelection.career, caption: v },
-                })
-              }
-            />
-          </Field>
-        </div>
-        <p className="text-xs font-semibold text-gray-700 mb-2">Sales track</p>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Title">
-            <TextInput
-              value={content.trackSelection.sales.title}
-              onChange={(v) =>
-                patch("trackSelection", {
-                  ...content.trackSelection,
-                  sales: { ...content.trackSelection.sales, title: v },
-                })
-              }
-            />
-          </Field>
-          <Field label="Caption">
-            <TextInput
-              value={content.trackSelection.sales.caption}
-              onChange={(v) =>
-                patch("trackSelection", {
-                  ...content.trackSelection,
-                  sales: { ...content.trackSelection.sales, caption: v },
-                })
-              }
-            />
-          </Field>
-        </div>
-      </Section>
-
       <Section title="What's Inside" description="Career track resource grid">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Title line 1">
@@ -1146,6 +1090,121 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
             </div>
           ))}
         </div>
+      </Section>
+
+      <Section
+        title="Who This Is For"
+        description="Persona cards on the Sales Track landing page — category, title, description, and quote"
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Section label">
+            <TextInput
+              value={content.sales.whoSection.label}
+              onChange={(v) =>
+                patch("sales", {
+                  ...content.sales,
+                  whoSection: { ...content.sales.whoSection, label: v },
+                })
+              }
+            />
+          </Field>
+          <Field label="Section headline">
+            <TextInput
+              value={content.sales.whoSection.headline}
+              onChange={(v) =>
+                patch("sales", {
+                  ...content.sales,
+                  whoSection: { ...content.sales.whoSection, headline: v },
+                })
+              }
+            />
+          </Field>
+        </div>
+        <div className="space-y-4">
+          {content.sales.whoCards.map((card, i) => (
+            <div key={`${card.title}-${i}`} className="p-3 rounded-lg border border-border space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-muted-fg uppercase">Role card {i + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (content.sales.whoCards.length <= 1) return;
+                    patch("sales", {
+                      ...content.sales,
+                      whoCards: content.sales.whoCards.filter((_, idx) => idx !== i),
+                    });
+                  }}
+                  className="text-red-400 hover:text-red-600 p-1 shrink-0"
+                  title="Remove card"
+                  disabled={content.sales.whoCards.length <= 1}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Field label="Category label">
+                  <TextInput
+                    value={card.role}
+                    onChange={(v) => {
+                      const whoCards = [...content.sales.whoCards];
+                      whoCards[i] = { ...card, role: v };
+                      patch("sales", { ...content.sales, whoCards });
+                    }}
+                  />
+                </Field>
+                <Field label="Title">
+                  <TextInput
+                    value={card.title}
+                    onChange={(v) => {
+                      const whoCards = [...content.sales.whoCards];
+                      whoCards[i] = { ...card, title: v };
+                      patch("sales", { ...content.sales, whoCards });
+                    }}
+                  />
+                </Field>
+              </div>
+              <Field label="Description">
+                <TextInput
+                  value={card.desc}
+                  onChange={(v) => {
+                    const whoCards = [...content.sales.whoCards];
+                    whoCards[i] = { ...card, desc: v };
+                    patch("sales", { ...content.sales, whoCards });
+                  }}
+                  multiline
+                  rows={3}
+                />
+              </Field>
+              <Field label="Testimonial quote">
+                <TextInput
+                  value={card.outcome}
+                  onChange={(v) => {
+                    const whoCards = [...content.sales.whoCards];
+                    whoCards[i] = { ...card, outcome: v };
+                    patch("sales", { ...content.sales, whoCards });
+                  }}
+                  multiline
+                  rows={3}
+                />
+              </Field>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            patch("sales", {
+              ...content.sales,
+              whoCards: [
+                ...content.sales.whoCards,
+                { role: "", title: "", desc: "", outcome: "" },
+              ],
+            })
+          }
+          className={smallButtonClass}
+        >
+          <Plus className="w-3.5 h-3.5" /> Add role card
+        </button>
       </Section>
 
       <Section

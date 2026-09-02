@@ -150,14 +150,16 @@ export function LandingEditorWrapper({
 
       {showSalesNote && (
         <EditorSection
-          title="Weekly Sales Edge Note"
-          description="Sales track only — saves to landing payload key salesEdgeNote"
+          title="Sales Market Strip"
+          description="Green CTA strip on sales landing — badge, headline, body, See demo button, and Recent Topics card. Saves to salesEdgeNote."
         >
           <WeeklyEdgeNoteEditor
             note={salesEdgeNote}
             onChange={handleSalesEdgeNoteChange}
             trackLabel="Sales Track Only"
             defaultNote={defaultSalesEdgeNote}
+            showDemoButton
+            showTopics
           />
         </EditorSection>
       )}

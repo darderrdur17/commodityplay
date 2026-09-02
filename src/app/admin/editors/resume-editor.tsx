@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import {
   mergeResumeVettingSection,
   type ResumeVettingSection,
 } from "@/data/resume-templates";
+import { resolveEditorResumePayload } from "@/lib/content/resume-payload";
 import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -28,6 +29,7 @@ interface QuizOption {
 interface QuizQuestion {
   id: string;
   question: string;
+  sub?: string;
   options: QuizOption[];
 }
 
@@ -98,7 +100,10 @@ function PersonaQuizTab({ data, onChange }: { data: ResumePayload; onChange: (d:
   }
 
   function addQ() {
-    onChange({ ...data, quiz: [...questions, { id: `qq-${Date.now()}`, question: "", options: [] }] });
+    onChange({
+      ...data,
+      quiz: [...questions, { id: `qq-${Date.now()}`, question: "", sub: "", options: [] }],
+    });
   }
 
   function delQ(i: number) {
@@ -131,6 +136,9 @@ function PersonaQuizTab({ data, onChange }: { data: ResumePayload; onChange: (d:
         <EditorRow key={q.id} summary={<span className="font-medium">{q.question || "(no question)"}</span>} onDelete={() => delQ(qi)}>
           <EditorField label="Question">
             <textarea className={textareaClass} value={q.question} onChange={(e) => patchQ(qi, { ...q, question: e.target.value })} />
+          </EditorField>
+          <EditorField label="Subtext">
+            <textarea className={textareaClass} rows={2} value={q.sub ?? ""} onChange={(e) => patchQ(qi, { ...q, sub: e.target.value })} />
           </EditorField>
           <div className="space-y-2">
             <p className="text-xs font-semibold text-gray-700">Options</p>
@@ -317,14 +325,29 @@ export function ResumeEditor({
   onChange,
   moduleSlug,
   requiredTier,
+  contentVersion = 0,
 }: {
   payload: unknown;
   onChange: (p: unknown) => void;
   moduleSlug: string;
   requiredTier: string;
+  /** Bumps after load / save / revert so editor re-syncs from server payload. */
+  contentVersion?: number;
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("personas");
-  const data = (payload as ResumePayload) ?? {};
+  const [data, setData] = useState<ResumePayload>(() => resolveEditorResumePayload(payload) as ResumePayload);
+
+  useEffect(() => {
+    if (payload == null) return;
+    setData(resolveEditorResumePayload(payload) as ResumePayload);
+    // Re-sync only after load / save / revert — not on every local edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- payload read when contentVersion bumps
+  }, [contentVersion]);
+
+  function handleChange(next: ResumePayload) {
+    setData(next);
+    onChange(next);
+  }
 
   return (
     <div className="space-y-4">
@@ -344,10 +367,10 @@ export function ResumeEditor({
         ))}
       </div>
 
-      {activeTab === "personas" && <PersonaTypesTab data={data} onChange={onChange} />}
-      {activeTab === "quiz" && <PersonaQuizTab data={data} onChange={onChange} />}
-      {activeTab === "templates" && <ResumeTemplatesTab data={data} onChange={onChange} moduleSlug={moduleSlug} requiredTier={requiredTier} />}
-      {activeTab === "vetting" && <ResumeVettingTab data={data} onChange={onChange} />}
+      {activeTab === "personas" && <PersonaTypesTab data={data} onChange={handleChange} />}
+      {activeTab === "quiz" && <PersonaQuizTab data={data} onChange={handleChange} />}
+      {activeTab === "templates" && <ResumeTemplatesTab data={data} onChange={handleChange} moduleSlug={moduleSlug} requiredTier={requiredTier} />}
+      {activeTab === "vetting" && <ResumeVettingTab data={data} onChange={handleChange} />}
     </div>
   );
 }

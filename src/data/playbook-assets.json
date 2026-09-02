@@ -160,5 +160,653 @@
         "fileKey": "playbook/a/a8/a-position-approaching-the-limit.pdf"
       }
     ]
+  },
+  "b": {
+    "b1": [
+      {
+        "type": "Infographic",
+        "title": "The Physical Trade Lifecycle — Visual Map",
+        "description": "A one-page visual reference for the physical trade lifecycle — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/b/b1/the-physical-trade-lifecycle-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "The Physical Trade Lifecycle — Framework",
+        "description": "A structured framework for applying the physical trade lifecycle on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/b/b1/the-physical-trade-lifecycle-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "The Physical Trade Lifecycle — Desk Case Study",
+        "description": "A worked example showing the physical trade lifecycle in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/b/b1/the-physical-trade-lifecycle-desk-case-study.pdf"
+      }
+    ],
+    "b2": [
+      {
+        "type": "Infographic",
+        "title": "Futures, Swaps & Options — Visual Map",
+        "description": "A one-page visual reference for futures, swaps & options — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/b/b2/futures-swaps-options-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Futures, Swaps & Options — Framework",
+        "description": "A structured framework for applying futures, swaps & options on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/b/b2/futures-swaps-options-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Futures, Swaps & Options — Desk Case Study",
+        "description": "A worked example showing futures, swaps & options in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/b/b2/futures-swaps-options-desk-case-study.pdf"
+      }
+    ],
+    "b3": [
+      {
+        "type": "Infographic",
+        "title": "Hedging a Physical Position — Visual Map",
+        "description": "A one-page visual reference for hedging a physical position — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/b/b3/hedging-a-physical-position-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Hedging a Physical Position — Framework",
+        "description": "A structured framework for applying hedging a physical position on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/b/b3/hedging-a-physical-position-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Hedging a Physical Position — Desk Case Study",
+        "description": "A worked example showing hedging a physical position in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/b/b3/hedging-a-physical-position-desk-case-study.pdf"
+      }
+    ],
+    "b4": [
+      {
+        "type": "Infographic",
+        "title": "Basis & the Differential — Visual Map",
+        "description": "A one-page visual reference for basis & the differential — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/b/b4/basis-the-differential-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Basis & the Differential — Framework",
+        "description": "A structured framework for applying basis & the differential on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/b/b4/basis-the-differential-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Basis & the Differential — Desk Case Study",
+        "description": "A worked example showing basis & the differential in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/b/b4/basis-the-differential-desk-case-study.pdf"
+      }
+    ],
+    "b5": [
+      {
+        "type": "Infographic",
+        "title": "The Exchange of Futures for Swaps (EFS) — Visual Map",
+        "description": "A one-page visual reference for the exchange of futures for swaps (efs) — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/b/b5/the-exchange-of-futures-for-swaps-efs-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "The Exchange of Futures for Swaps (EFS) — Framework",
+        "description": "A structured framework for applying the exchange of futures for swaps (efs) on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/b/b5/the-exchange-of-futures-for-swaps-efs-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "The Exchange of Futures for Swaps (EFS) — Desk Case Study",
+        "description": "A worked example showing the exchange of futures for swaps (efs) in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/b/b5/the-exchange-of-futures-for-swaps-efs-desk-case-study.pdf"
+      }
+    ],
+    "b6": [
+      {
+        "type": "Infographic",
+        "title": "Options in Commodity Markets — Visual Map",
+        "description": "A one-page visual reference for options in commodity markets — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/b/b6/options-in-commodity-markets-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Options in Commodity Markets — Framework",
+        "description": "A structured framework for applying options in commodity markets on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/b/b6/options-in-commodity-markets-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Options in Commodity Markets — Desk Case Study",
+        "description": "A worked example showing options in commodity markets in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/b/b6/options-in-commodity-markets-desk-case-study.pdf"
+      }
+    ],
+    "b7": [
+      {
+        "type": "Infographic",
+        "title": "Term Contracts vs. Spot Trading — Visual Map",
+        "description": "A one-page visual reference for term contracts vs. spot trading — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/b/b7/term-contracts-vs-spot-trading-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Term Contracts vs. Spot Trading — Framework",
+        "description": "A structured framework for applying term contracts vs. spot trading on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/b/b7/term-contracts-vs-spot-trading-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Term Contracts vs. Spot Trading — Desk Case Study",
+        "description": "A worked example showing term contracts vs. spot trading in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/b/b7/term-contracts-vs-spot-trading-desk-case-study.pdf"
+      }
+    ],
+    "b8": [
+      {
+        "type": "Infographic",
+        "title": "The Trading Book — How Positions Stack Up — Visual Map",
+        "description": "A one-page visual reference for the trading book — how positions stack up — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/b/b8/the-trading-book-how-positions-stack-up-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "The Trading Book — How Positions Stack Up — Framework",
+        "description": "A structured framework for applying the trading book — how positions stack up on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/b/b8/the-trading-book-how-positions-stack-up-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "The Trading Book — How Positions Stack Up — Desk Case Study",
+        "description": "A worked example showing the trading book — how positions stack up in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/b/b8/the-trading-book-how-positions-stack-up-desk-case-study.pdf"
+      }
+    ]
+  },
+  "c": {
+    "c1": [
+      {
+        "type": "Infographic",
+        "title": "Vessel Classes & What They Carry — Visual Map",
+        "description": "A one-page visual reference for vessel classes & what they carry — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/c/c1/vessel-classes-what-they-carry-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Vessel Classes & What They Carry — Framework",
+        "description": "A structured framework for applying vessel classes & what they carry on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/c/c1/vessel-classes-what-they-carry-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Vessel Classes & What They Carry — Desk Case Study",
+        "description": "A worked example showing vessel classes & what they carry in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/c/c1/vessel-classes-what-they-carry-desk-case-study.pdf"
+      }
+    ],
+    "c2": [
+      {
+        "type": "Infographic",
+        "title": "How Freight Rates Are Set — Visual Map",
+        "description": "A one-page visual reference for how freight rates are set — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/c/c2/how-freight-rates-are-set-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "How Freight Rates Are Set — Framework",
+        "description": "A structured framework for applying how freight rates are set on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/c/c2/how-freight-rates-are-set-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "How Freight Rates Are Set — Desk Case Study",
+        "description": "A worked example showing how freight rates are set in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/c/c2/how-freight-rates-are-set-desk-case-study.pdf"
+      }
+    ],
+    "c3": [
+      {
+        "type": "Infographic",
+        "title": "Laytime, Demurrage & Port Economics — Visual Map",
+        "description": "A one-page visual reference for laytime, demurrage & port economics — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/c/c3/laytime-demurrage-port-economics-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Laytime, Demurrage & Port Economics — Framework",
+        "description": "A structured framework for applying laytime, demurrage & port economics on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/c/c3/laytime-demurrage-port-economics-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Laytime, Demurrage & Port Economics — Desk Case Study",
+        "description": "A worked example showing laytime, demurrage & port economics in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/c/c3/laytime-demurrage-port-economics-desk-case-study.pdf"
+      }
+    ],
+    "c4": [
+      {
+        "type": "Infographic",
+        "title": "Cargo Nominations & Scheduling — Visual Map",
+        "description": "A one-page visual reference for cargo nominations & scheduling — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/c/c4/cargo-nominations-scheduling-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Cargo Nominations & Scheduling — Framework",
+        "description": "A structured framework for applying cargo nominations & scheduling on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/c/c4/cargo-nominations-scheduling-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Cargo Nominations & Scheduling — Desk Case Study",
+        "description": "A worked example showing cargo nominations & scheduling in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/c/c4/cargo-nominations-scheduling-desk-case-study.pdf"
+      }
+    ],
+    "c5": [
+      {
+        "type": "Infographic",
+        "title": "AIS Tracking & Real-Time Flow Data — Visual Map",
+        "description": "A one-page visual reference for ais tracking & real-time flow data — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/c/c5/ais-tracking-real-time-flow-data-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "AIS Tracking & Real-Time Flow Data — Framework",
+        "description": "A structured framework for applying ais tracking & real-time flow data on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/c/c5/ais-tracking-real-time-flow-data-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "AIS Tracking & Real-Time Flow Data — Desk Case Study",
+        "description": "A worked example showing ais tracking & real-time flow data in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/c/c5/ais-tracking-real-time-flow-data-desk-case-study.pdf"
+      }
+    ],
+    "c6": [
+      {
+        "type": "Infographic",
+        "title": "The Cargo Diversion Decision — Visual Map",
+        "description": "A one-page visual reference for the cargo diversion decision — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/c/c6/the-cargo-diversion-decision-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "The Cargo Diversion Decision — Framework",
+        "description": "A structured framework for applying the cargo diversion decision on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/c/c6/the-cargo-diversion-decision-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "The Cargo Diversion Decision — Desk Case Study",
+        "description": "A worked example showing the cargo diversion decision in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/c/c6/the-cargo-diversion-decision-desk-case-study.pdf"
+      }
+    ],
+    "c7": [
+      {
+        "type": "Infographic",
+        "title": "Trade Documentation & Operations — Visual Map",
+        "description": "A one-page visual reference for trade documentation & operations — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/c/c7/trade-documentation-operations-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Trade Documentation & Operations — Framework",
+        "description": "A structured framework for applying trade documentation & operations on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/c/c7/trade-documentation-operations-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Trade Documentation & Operations — Desk Case Study",
+        "description": "A worked example showing trade documentation & operations in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/c/c7/trade-documentation-operations-desk-case-study.pdf"
+      }
+    ],
+    "c8": [
+      {
+        "type": "Infographic",
+        "title": "Freight as a Revenue Source — Visual Map",
+        "description": "A one-page visual reference for freight as a revenue source — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/c/c8/freight-as-a-revenue-source-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Freight as a Revenue Source — Framework",
+        "description": "A structured framework for applying freight as a revenue source on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/c/c8/freight-as-a-revenue-source-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Freight as a Revenue Source — Desk Case Study",
+        "description": "A worked example showing freight as a revenue source in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/c/c8/freight-as-a-revenue-source-desk-case-study.pdf"
+      }
+    ]
+  },
+  "d": {
+    "d1": [
+      {
+        "type": "Infographic",
+        "title": "How a Trader Forms a Market View — Visual Map",
+        "description": "A one-page visual reference for how a trader forms a market view — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/d/d1/how-a-trader-forms-a-market-view-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "How a Trader Forms a Market View — Framework",
+        "description": "A structured framework for applying how a trader forms a market view on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/d/d1/how-a-trader-forms-a-market-view-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "How a Trader Forms a Market View — Desk Case Study",
+        "description": "A worked example showing how a trader forms a market view in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/d/d1/how-a-trader-forms-a-market-view-desk-case-study.pdf"
+      }
+    ],
+    "d2": [
+      {
+        "type": "Infographic",
+        "title": "Reading the EIA Report — Visual Map",
+        "description": "A one-page visual reference for reading the eia report — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/d/d2/reading-the-eia-report-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Reading the EIA Report — Framework",
+        "description": "A structured framework for applying reading the eia report on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/d/d2/reading-the-eia-report-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Reading the EIA Report — Desk Case Study",
+        "description": "A worked example showing reading the eia report in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/d/d2/reading-the-eia-report-desk-case-study.pdf"
+      }
+    ],
+    "d3": [
+      {
+        "type": "Infographic",
+        "title": "The Forward Curve — Structure & Signals — Visual Map",
+        "description": "A one-page visual reference for the forward curve — structure & signals — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/d/d3/the-forward-curve-structure-signals-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "The Forward Curve — Structure & Signals — Framework",
+        "description": "A structured framework for applying the forward curve — structure & signals on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/d/d3/the-forward-curve-structure-signals-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "The Forward Curve — Structure & Signals — Desk Case Study",
+        "description": "A worked example showing the forward curve — structure & signals in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/d/d3/the-forward-curve-structure-signals-desk-case-study.pdf"
+      }
+    ],
+    "d4": [
+      {
+        "type": "Infographic",
+        "title": "Price Assessment Methodology — Visual Map",
+        "description": "A one-page visual reference for price assessment methodology — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/d/d4/price-assessment-methodology-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Price Assessment Methodology — Framework",
+        "description": "A structured framework for applying price assessment methodology on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/d/d4/price-assessment-methodology-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Price Assessment Methodology — Desk Case Study",
+        "description": "A worked example showing price assessment methodology in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/d/d4/price-assessment-methodology-desk-case-study.pdf"
+      }
+    ],
+    "d5": [
+      {
+        "type": "Infographic",
+        "title": "Supply Disruption Analysis — Visual Map",
+        "description": "A one-page visual reference for supply disruption analysis — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/d/d5/supply-disruption-analysis-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Supply Disruption Analysis — Framework",
+        "description": "A structured framework for applying supply disruption analysis on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/d/d5/supply-disruption-analysis-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Supply Disruption Analysis — Desk Case Study",
+        "description": "A worked example showing supply disruption analysis in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/d/d5/supply-disruption-analysis-desk-case-study.pdf"
+      }
+    ],
+    "d6": [
+      {
+        "type": "Infographic",
+        "title": "Positioning Data & Speculative Flows — Visual Map",
+        "description": "A one-page visual reference for positioning data & speculative flows — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/d/d6/positioning-data-speculative-flows-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Positioning Data & Speculative Flows — Framework",
+        "description": "A structured framework for applying positioning data & speculative flows on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/d/d6/positioning-data-speculative-flows-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Positioning Data & Speculative Flows — Desk Case Study",
+        "description": "A worked example showing positioning data & speculative flows in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/d/d6/positioning-data-speculative-flows-desk-case-study.pdf"
+      }
+    ],
+    "d7": [
+      {
+        "type": "Infographic",
+        "title": "Seasonal Patterns & Demand Calendars — Visual Map",
+        "description": "A one-page visual reference for seasonal patterns & demand calendars — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/d/d7/seasonal-patterns-demand-calendars-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Seasonal Patterns & Demand Calendars — Framework",
+        "description": "A structured framework for applying seasonal patterns & demand calendars on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/d/d7/seasonal-patterns-demand-calendars-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Seasonal Patterns & Demand Calendars — Desk Case Study",
+        "description": "A worked example showing seasonal patterns & demand calendars in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/d/d7/seasonal-patterns-demand-calendars-desk-case-study.pdf"
+      }
+    ],
+    "d8": [
+      {
+        "type": "Infographic",
+        "title": "Building a Market Intelligence Workflow — Visual Map",
+        "description": "A one-page visual reference for building a market intelligence workflow — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/d/d8/building-a-market-intelligence-workflow-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Building a Market Intelligence Workflow — Framework",
+        "description": "A structured framework for applying building a market intelligence workflow on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/d/d8/building-a-market-intelligence-workflow-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Building a Market Intelligence Workflow — Desk Case Study",
+        "description": "A worked example showing building a market intelligence workflow in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/d/d8/building-a-market-intelligence-workflow-desk-case-study.pdf"
+      }
+    ]
+  },
+  "e": {
+    "e1": [
+      {
+        "type": "Infographic",
+        "title": "How a Trader Thinks — Visual Map",
+        "description": "A one-page visual reference for how a trader thinks — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/e/e1/how-a-trader-thinks-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "How a Trader Thinks — Framework",
+        "description": "A structured framework for applying how a trader thinks on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/e/e1/how-a-trader-thinks-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "How a Trader Thinks — Desk Case Study",
+        "description": "A worked example showing how a trader thinks in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/e/e1/how-a-trader-thinks-desk-case-study.pdf"
+      }
+    ],
+    "e2": [
+      {
+        "type": "Infographic",
+        "title": "The Arbitrage Window — Visual Map",
+        "description": "A one-page visual reference for the arbitrage window — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/e/e2/the-arbitrage-window-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "The Arbitrage Window — Framework",
+        "description": "A structured framework for applying the arbitrage window on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/e/e2/the-arbitrage-window-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "The Arbitrage Window — Desk Case Study",
+        "description": "A worked example showing the arbitrage window in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/e/e2/the-arbitrage-window-desk-case-study.pdf"
+      }
+    ],
+    "e3": [
+      {
+        "type": "Infographic",
+        "title": "The Cargo Diversion Decision Tree — Visual Map",
+        "description": "A one-page visual reference for the cargo diversion decision tree — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/e/e3/the-cargo-diversion-decision-tree-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "The Cargo Diversion Decision Tree — Framework",
+        "description": "A structured framework for applying the cargo diversion decision tree on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/e/e3/the-cargo-diversion-decision-tree-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "The Cargo Diversion Decision Tree — Desk Case Study",
+        "description": "A worked example showing the cargo diversion decision tree in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/e/e3/the-cargo-diversion-decision-tree-desk-case-study.pdf"
+      }
+    ],
+    "e4": [
+      {
+        "type": "Infographic",
+        "title": "Timing a Hedge — Visual Map",
+        "description": "A one-page visual reference for timing a hedge — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/e/e4/timing-a-hedge-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "Timing a Hedge — Framework",
+        "description": "A structured framework for applying timing a hedge on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/e/e4/timing-a-hedge-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "Timing a Hedge — Desk Case Study",
+        "description": "A worked example showing timing a hedge in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/e/e4/timing-a-hedge-desk-case-study.pdf"
+      }
+    ],
+    "e5": [
+      {
+        "type": "Infographic",
+        "title": "The P&L Attribution Map — Visual Map",
+        "description": "A one-page visual reference for the p&l attribution map — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/e/e5/the-p-l-attribution-map-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "The P&L Attribution Map — Framework",
+        "description": "A structured framework for applying the p&l attribution map on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/e/e5/the-p-l-attribution-map-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "The P&L Attribution Map — Desk Case Study",
+        "description": "A worked example showing the p&l attribution map in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/e/e5/the-p-l-attribution-map-desk-case-study.pdf"
+      }
+    ],
+    "e6": [
+      {
+        "type": "Infographic",
+        "title": "VaR, Limits & Risk Management — Visual Map",
+        "description": "A one-page visual reference for var, limits & risk management — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/e/e6/var-limits-risk-management-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "VaR, Limits & Risk Management — Framework",
+        "description": "A structured framework for applying var, limits & risk management on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/e/e6/var-limits-risk-management-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "VaR, Limits & Risk Management — Desk Case Study",
+        "description": "A worked example showing var, limits & risk management in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/e/e6/var-limits-risk-management-desk-case-study.pdf"
+      }
+    ],
+    "e7": [
+      {
+        "type": "Infographic",
+        "title": "When the Trade Goes Wrong — Visual Map",
+        "description": "A one-page visual reference for when the trade goes wrong — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/e/e7/when-the-trade-goes-wrong-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "When the Trade Goes Wrong — Framework",
+        "description": "A structured framework for applying when the trade goes wrong on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/e/e7/when-the-trade-goes-wrong-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "When the Trade Goes Wrong — Desk Case Study",
+        "description": "A worked example showing when the trade goes wrong in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/e/e7/when-the-trade-goes-wrong-desk-case-study.pdf"
+      }
+    ],
+    "e8": [
+      {
+        "type": "Infographic",
+        "title": "A Week on the Desk — Putting It All Together — Visual Map",
+        "description": "A one-page visual reference for a week on the desk — putting it all together — key concepts, flows, and desk vocabulary on a single infographic.",
+        "fileKey": "playbook/e/e8/a-week-on-the-desk-putting-it-all-together-visual-map.pdf"
+      },
+      {
+        "type": "Framework",
+        "title": "A Week on the Desk — Putting It All Together — Framework",
+        "description": "A structured framework for applying a week on the desk — putting it all together on the desk — checklist, decision tree, or fill-in template.",
+        "fileKey": "playbook/e/e8/a-week-on-the-desk-putting-it-all-together-framework.pdf"
+      },
+      {
+        "type": "Worked Example",
+        "title": "A Week on the Desk — Putting It All Together — Desk Case Study",
+        "description": "A worked example showing a week on the desk — putting it all together in a real commercial scenario — step-by-step with desk rationale.",
+        "fileKey": "playbook/e/e8/a-week-on-the-desk-putting-it-all-together-desk-case-study.pdf"
+      }
+    ]
   }
 }

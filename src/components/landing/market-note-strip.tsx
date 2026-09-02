@@ -29,6 +29,8 @@ interface Props {
     label: string;
     href: string;
     variant?: "default" | "outline";
+    /** When true, styles the button with accentColor (e.g. sales green) instead of gray outline */
+    accent?: boolean;
   };
   /** Optional green confirmation line below description (e.g. starter-pack subscribe state) */
   subscribedNote?: string;
@@ -86,7 +88,20 @@ export function MarketNoteStrip({
                 )}
                 {secondaryCta && (
                   <Link href={secondaryCta.href} target="_blank" rel="noopener noreferrer">
-                    <Button size="lg" variant={secondaryCta.variant ?? "outline"}>
+                    <Button
+                      size="lg"
+                      variant={secondaryCta.variant ?? "outline"}
+                      className={
+                        secondaryCta.accent
+                          ? "border-transparent text-white hover:brightness-110 hover:border-transparent"
+                          : undefined
+                      }
+                      style={
+                        secondaryCta.accent
+                          ? ({ backgroundColor: accentColor, borderColor: accentColor, ["--cta-accent" as string]: accentColor } as React.CSSProperties)
+                          : undefined
+                      }
+                    >
                       {secondaryCta.label}
                     </Button>
                   </Link>
@@ -96,7 +111,20 @@ export function MarketNoteStrip({
             {!cta && secondaryCta && (
               <div className="mt-8">
                 <Link href={secondaryCta.href} target="_blank" rel="noopener noreferrer">
-                  <Button size="lg" variant={secondaryCta.variant ?? "outline"}>
+                  <Button
+                    size="lg"
+                    variant={secondaryCta.variant ?? "outline"}
+                    className={
+                      secondaryCta.accent
+                        ? "border-transparent text-white hover:brightness-110 hover:border-transparent"
+                        : undefined
+                    }
+                    style={
+                      secondaryCta.accent
+                        ? ({ backgroundColor: accentColor, borderColor: accentColor, ["--cta-accent" as string]: accentColor } as React.CSSProperties)
+                        : undefined
+                    }
+                  >
                     {secondaryCta.label}
                   </Button>
                 </Link>

@@ -1,9 +1,11 @@
 import { CHAPTERS } from "@/data/playbook";
 import playbookSections from "@/data/playbook-sections.json";
+import { DEFAULT_PLAYBOOK_HUB_HERO } from "@/data/playbook-hub-hero";
 import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
 import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
 import { DEFAULT_DESK_CHANNEL_PAGE_COPY } from "@/data/desk-channel-content";
 import { GLOSSARY_TERMS } from "@/data/glossary";
+import { DEFAULT_GLOSSARY_PAGE_CONTENT } from "@/data/glossary-content";
 import { INTERVIEW_QUESTIONS, INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/data/interview-questions";
 import { createDefaultKnowledgeTestPayload } from "@/lib/content/knowledge-test-payload";
 import { CAREER_ROLES } from "@/data/career-roadmap";
@@ -49,9 +51,9 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
     case "faq":
       return DEFAULT_FAQ_CONTENT;
     case "glossary":
-      return { terms: GLOSSARY_TERMS };
+      return { ...DEFAULT_GLOSSARY_PAGE_CONTENT, terms: GLOSSARY_TERMS };
     case "playbook":
-      return { chapters: CHAPTERS, sections: playbookSections };
+      return { chapters: CHAPTERS, sections: playbookSections, hubHero: DEFAULT_PLAYBOOK_HUB_HERO };
     case "case-studies":
       return { studies: CASE_STUDIES, details: CASE_STUDY_DETAILS };
     case "desk-channel":

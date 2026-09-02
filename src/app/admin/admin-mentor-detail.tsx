@@ -14,6 +14,10 @@ export interface AdminMentorDetail {
   name: string | null;
   email: string | null;
   company: string | null;
+  linkedIn: string | null;
+  location: string | null;
+  role: string | null;
+  commodityDesk: string | null;
   track: "career" | "sales" | "both";
   segmentTitle: string;
   status: "pending" | "active";
@@ -45,6 +49,10 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
     name: mentor.name || "",
     email: mentor.email || "",
     company: mentor.company || "",
+    linkedIn: mentor.linkedIn || "",
+    location: mentor.location || "",
+    role: mentor.role || "",
+    commodityDesk: mentor.commodityDesk || "",
     track: mentor.track,
     segmentId: mentor.segmentId,
   });
@@ -71,6 +79,10 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
         name: form.name.trim() || null,
         email: form.email.trim() || null,
         company: form.company.trim() || null,
+        linkedIn: form.linkedIn.trim() || null,
+        location: form.location.trim() || null,
+        role: form.role.trim() || null,
+        commodityDesk: form.commodityDesk.trim() || null,
         track: form.track,
         ...(mentor.isNew && { segmentId: form.segmentId }),
         ...(approve && { status: "active" }),
@@ -165,6 +177,52 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
                 placeholder="e.g. Vitol"
                 value={form.company}
                 onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg">LinkedIn</label>
+              <input
+                type="url"
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
+                placeholder="https://linkedin.com/in/..."
+                value={form.linkedIn}
+                onChange={(e) => setForm((f) => ({ ...f, linkedIn: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg">Location</label>
+              <input
+                type="text"
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
+                placeholder="e.g. Singapore"
+                value={form.location}
+                onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg">Role</label>
+              <input
+                type="text"
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
+                placeholder="e.g. Senior Crude Oil Trader"
+                value={form.role}
+                onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg">Commodity / desk</label>
+              <input
+                type="text"
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
+                placeholder="e.g. LNG, Power"
+                value={form.commodityDesk}
+                onChange={(e) => setForm((f) => ({ ...f, commodityDesk: e.target.value }))}
               />
             </div>
           </div>

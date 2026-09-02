@@ -5,6 +5,11 @@ import { formatDeskChannelCopy } from "@/data/desk-channel-content";
 import { normalizeDeskChannelPageCopy } from "@/lib/content/desk-channel-schema";
 import { BRAND_NAME } from "@/lib/brand";
 import type { GlossaryTerm } from "@/data/glossary";
+import {
+  DEFAULT_GLOSSARY_PAGE_CONTENT,
+  mergeGlossaryPageContent,
+  type GlossaryPageContent,
+} from "@/data/glossary-content";
 import type { MentorOverridesPayload } from "@/data/mentors";
 import { getPublishedPayload, tryReadPublishedPayload, getContentModulePayload } from "./repository";
 import { CHAPTERS } from "@/data/playbook";
@@ -68,10 +73,16 @@ import {
   type PublishedMentorSegment,
 } from "@/data/mentors";
 import playbookSections from "@/data/playbook-sections.json";
+import {
+  DEFAULT_PLAYBOOK_HUB_HERO,
+  mergePlaybookHubHero,
+  type PlaybookHubHeroCopy,
+} from "@/data/playbook-hub-hero";
 
 type PlaybookPayload = {
   chapters: typeof CHAPTERS;
   sections: typeof playbookSections;
+  hubHero?: Partial<PlaybookHubHeroCopy>;
 };
 
 type CaseStudiesPayload = {
@@ -426,6 +437,11 @@ export async function getPlaybookChapters() {
   return data.chapters ?? CHAPTERS;
 }
 
+export async function getPlaybookHubHero(): Promise<PlaybookHubHeroCopy> {
+  const data = await getPublishedPayload<PlaybookPayload>("playbook");
+  return mergePlaybookHubHero(data.hubHero);
+}
+
 export async function getPlaybookSections(chapterId: string): Promise<PlaybookSection[]> {
   const data = await getPublishedPayload<PlaybookPayload>("playbook");
   const sections = data.sections ?? playbookSections;
@@ -487,6 +503,15 @@ export async function getGlossaryTerms() {
   return GLOSSARY_TERMS;
 }
 
+export async function getGlossaryPageContent(): Promise<GlossaryPageContent> {
+  try {
+    const data = await getPublishedPayload<Partial<GlossaryPageContent>>("glossary");
+    return mergeGlossaryPageContent(data);
+  } catch {
+    return DEFAULT_GLOSSARY_PAGE_CONTENT;
+  }
+}
+
 export async function getInterviewQuestionsData() {
   const data = await getPublishedPayload<{
     questions: typeof INTERVIEW_QUESTIONS;
@@ -542,22 +567,23 @@ export async function getCareerRoles() {
 }
 
 export async function getResumeTemplatesData() {
-  const data = await getPublishedPayload<{
-    templates: typeof RESUME_TEMPLATES;
-    quiz: typeof PERSONA_QUIZ_QUESTIONS;
-    quizSteps?: typeof import("@/data/resume-templates").PERSONA_QUIZ_STEPS;
-    industryMap?: typeof import("@/data/resume-templates").INDUSTRY_MAP;
-    vettingSection?: Partial<import("@/data/resume-templates").ResumeVettingSection>;
-  }>("resume-templates");
+  const data = await getPublishedPayload<import("./resume-payload").ResumeAdminPayload>("resume-templates");
   const {
     PERSONA_QUIZ_STEPS,
     INDUSTRY_MAP,
     mergeResumeVettingSection,
   } = await import("@/data/resume-templates");
+  const {
+    adminQuizToQuizSteps,
+    adminTemplatesToPublic,
+  } = await import("./resume-payload");
   return {
-    templates: data.templates ?? RESUME_TEMPLATES,
+    templates: adminTemplatesToPublic(data.templates),
     quiz: data.quiz ?? PERSONA_QUIZ_QUESTIONS,
-    quizSteps: data.quizSteps ?? PERSONA_QUIZ_STEPS,
+    quizSteps:
+      data.quizSteps?.length
+        ? data.quizSteps
+        : adminQuizToQuizSteps(data.quiz),
     industryMap: mergeIndustryMap(INDUSTRY_MAP, data.industryMap),
     vettingSection: mergeResumeVettingSection(data.vettingSection),
   };

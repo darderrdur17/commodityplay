@@ -86,6 +86,10 @@ interface MentorSegmentRow {
     name: string | null;
     email: string | null;
     company: string | null;
+    linkedIn: string | null;
+    location: string | null;
+    role: string | null;
+    commodityDesk: string | null;
     track: "career" | "sales" | "both";
     status: "pending" | "active";
     isNew: boolean;
@@ -638,14 +642,16 @@ export function AdminClient({
                   </Badge>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm min-w-[1100px]">
+                  <table className="w-full text-sm min-w-[1400px]">
                     <thead>
                       <tr className="border-b border-border text-left">
                         <th className="px-4 py-2 font-semibold text-muted-fg">Mentor ID</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Status</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Name</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Email</th>
+                      <th className="px-4 py-2 font-semibold text-muted-fg">LinkedIn</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Company</th>
+                      <th className="px-4 py-2 font-semibold text-muted-fg">Role</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Headline</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Years</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Tags</th>
@@ -678,7 +684,17 @@ export function AdminClient({
                           )}
                         </td>
                         <td className="px-4 py-2.5 text-xs text-muted-fg">{m.email || "—"}</td>
+                        <td className="px-4 py-2.5 text-xs text-muted-fg max-w-[120px] truncate">
+                          {m.linkedIn ? (
+                            <a href={m.linkedIn} target="_blank" rel="noopener noreferrer" className="text-primary-800 hover:underline">
+                              Profile
+                            </a>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td className="px-4 py-2.5 text-xs text-muted-fg">{m.company || "—"}</td>
+                        <td className="px-4 py-2.5 text-xs text-muted-fg">{m.role || "—"}</td>
                         <td className="px-4 py-2.5 font-medium text-gray-800">{m.headline}</td>
                         <td className="px-4 py-2.5 text-xs text-muted-fg">{m.years}y</td>
                         <td className="px-4 py-2.5">
@@ -709,6 +725,10 @@ export function AdminClient({
                                 name: m.name,
                                 email: m.email,
                                 company: m.company,
+                                linkedIn: m.linkedIn,
+                                location: m.location,
+                                role: m.role,
+                                commodityDesk: m.commodityDesk,
                                 track: m.track,
                                 segmentTitle: seg.title,
                                 status: m.status,

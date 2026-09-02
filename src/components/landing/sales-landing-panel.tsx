@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -24,6 +25,7 @@ import type { LandingContent, LandingTestimonials } from "@/data/landing-content
 import { SALES_MARKET_NOTE } from "@/data/market-notes";
 import { SALES_PRICING_HREF } from "@/lib/pricing-routes";
 import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-notes";
+import { SALES_HERO_GREEN } from "@/lib/sales-brand-colors";
 
 const SALES_COLOR = "#0F766E";
 const SALES_DEMO_URL =
@@ -155,28 +157,9 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
   const learnRef = useRef<HTMLElement>(null);
   const router = useRouter();
   const { data: session } = useSession();
-  const [email, setEmail] = useState("");
-  const [subscribeStatus, setSubscribeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [showFeatureComparison, setShowFeatureComparison] = useState(false);
   const featureTable = content.comparison.groups;
-
-  async function handleStarterPackSubscribe(e: React.FormEvent) {
-    e.preventDefault();
-    setSubscribeStatus("loading");
-    try {
-      const res = await fetch("/api/newsletter/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) throw new Error();
-      setSubscribeStatus("success");
-      setEmail("");
-    } catch {
-      setSubscribeStatus("error");
-    }
-  }
 
   async function handlePurchase(plan: "pro" | "elite") {
     if (!session?.user) {
@@ -288,22 +271,19 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
 
       <MarketNoteStrip
         {...toMarketNoteStripProps(edgeNote, SALES_MARKET_NOTE.topics, {
-          accentColor: SALES_COLOR,
+          accentColor: SALES_HERO_GREEN,
           variant: "tags",
+          demoUrlFallback: SALES_DEMO_URL,
+          secondaryCtaAccent: true,
         })}
-        secondaryCta={{
-          label: "See demo",
-          href: SALES_DEMO_URL,
-          variant: "outline",
-        }}
       />
 
       {/* Who this is for */}
       <section className="py-16 sm:py-24 page-container">
         <Reveal className="text-center mb-12 max-w-3xl mx-auto">
-          <SectionCategoryLabel colorClass="text-teal-700">Who This Is For</SectionCategoryLabel>
+          <SectionCategoryLabel colorClass="text-teal-700">{content.whoSection.label}</SectionCategoryLabel>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">
-            Six Sales Roles. One Shared Problem.
+            {content.whoSection.headline}
           </h2>
         </Reveal>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -510,34 +490,16 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
                 ))}
               </div>
             </div>
-            <div className="relative z-10 flex flex-col justify-center gap-2.5">
-              <form onSubmit={handleStarterPackSubscribe} className="flex flex-col gap-2.5">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  disabled={subscribeStatus === "loading"}
-                  className="w-full h-12 px-4 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 text-sm outline-none focus:ring-2 focus:ring-teal-300 disabled:opacity-60"
-                />
+            <div className="relative z-10 flex flex-col justify-center">
+              <Link href="/signup?plan=starter&track=sales&callbackUrl=/?track=sales">
                 <Button
-                  type="submit"
                   size="lg"
                   className="w-full bg-white text-teal-900 hover:bg-white/90 border-0"
-                  loading={subscribeStatus === "loading"}
                 >
                   <Download className="w-4 h-4" />
                   Join Free - Upgrade Later
                 </Button>
-              </form>
-              <p className="text-xs text-teal-100/60 text-center">
-                {subscribeStatus === "success"
-                  ? "You're on the list — check your inbox!"
-                  : subscribeStatus === "error"
-                    ? "Something went wrong. Please try again."
-                    : "No spam. Unsubscribe anytime."}
-              </p>
+              </Link>
             </div>
           </div>
         </Reveal>

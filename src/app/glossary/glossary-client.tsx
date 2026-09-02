@@ -13,6 +13,8 @@ import {
 } from "@/data/glossary";
 import { getPersonaGlossaryGuide } from "@/data/glossary-persona";
 import { PERSONA_LABELS } from "@/lib/utils";
+import type { GlossaryHero, GlossaryUpgradeCta } from "@/data/glossary-content";
+import { DEFAULT_GLOSSARY_HERO, DEFAULT_GLOSSARY_UPGRADE_CTA } from "@/data/glossary-content";
 import { Reveal } from "@/components/animations";
 import { Button } from "@/components/ui/button";
 
@@ -43,9 +45,13 @@ const CATEGORY_BADGE_BG: Record<string, string> = {
 export function GlossaryClient({
   terms = GLOSSARY_TERMS,
   persona = null,
+  hero = DEFAULT_GLOSSARY_HERO,
+  upgradeCta = DEFAULT_GLOSSARY_UPGRADE_CTA,
 }: {
   terms?: GlossaryTerm[];
   persona?: string | null;
+  hero?: GlossaryHero;
+  upgradeCta?: GlossaryUpgradeCta;
 }) {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") ?? "";
@@ -125,22 +131,16 @@ export function GlossaryClient({
         <Reveal className="relative z-10">
           <div className="pill pill-dark mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            Free Resource — Starter Pack
+            {hero.eyebrow}
           </div>
-          <h1 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-3">The Desk Glossary</h1>
+          <h1 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-3">{hero.title}</h1>
           <p className="text-white/65 text-base sm:text-lg max-w-xl">
-            Commodity trading terms, explained the way a senior trader would actually explain them to a new hire on day
-            one — not Wikipedia definitions.
+            {hero.description}
           </p>
           <div className="flex items-center gap-3 mt-6 flex-wrap">
-            {[
-              "Terms",
-              `${GLOSSARY_CATEGORIES.length} Categories`,
-              "Trader explanations throughout",
-              "Always updated",
-            ].map((label) => (
+            {hero.statChips.map((label) => (
               <div key={label} className="glass-card px-4 py-2.5 text-white text-sm font-semibold">
-                {label}
+                {label === "Terms" ? `${terms.length} Terms` : label}
               </div>
             ))}
           </div>
@@ -272,16 +272,17 @@ export function GlossaryClient({
         <Reveal className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="max-w-xl">
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white mb-3">
-              Ready to go <span className="text-accent italic">deeper</span>?
+              {upgradeCta.titlePrefix}
+              <span className="text-accent italic">{upgradeCta.titleAccent}</span>
+              {upgradeCta.titleSuffix}
             </h2>
             <p className="text-white/65 text-base leading-relaxed">
-              The Desk Glossary is just the start. The full Playbook covers commodity market mechanics, desk structure,
-              career roadmaps, and deal teardowns — with the same practitioner voice throughout.
+              {upgradeCta.description}
             </p>
           </div>
-          <Link href="/signup?plan=pro" className="flex-shrink-0">
+          <Link href={upgradeCta.buttonHref} className="flex-shrink-0">
             <Button size="lg" variant="primary-dark" className="whitespace-nowrap">
-              Get the Playbook <ArrowRight className="w-4 h-4" />
+              {upgradeCta.buttonLabel} <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
         </Reveal>

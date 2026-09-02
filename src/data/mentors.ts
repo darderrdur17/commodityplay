@@ -32,6 +32,14 @@ export interface MentorProfile {
   email?: string;
   /** Admin-only company/employer of the real mentor. Never sent to any public-facing surface. */
   company?: string;
+  /** Admin-only LinkedIn profile URL. Never sent to any public-facing surface. */
+  linkedIn?: string;
+  /** Admin-only current location. Never sent to any public-facing surface. */
+  location?: string;
+  /** Admin-only current/most recent role. Never sent to any public-facing surface. */
+  role?: string;
+  /** Admin-only primary commodity/desk. Never sent to any public-facing surface. */
+  commodityDesk?: string;
   /** Which track(s) this mentor profile applies to. Defaults to "both" for legacy profiles. */
   track?: MentorTrack;
   /** Admin-only review status — never present on static defaults, never sent publicly. */
@@ -56,6 +64,10 @@ export interface MentorOverride {
   name?: string;
   email?: string;
   company?: string;
+  linkedIn?: string;
+  location?: string;
+  role?: string;
+  commodityDesk?: string;
   track?: MentorTrack;
   bio?: string;
   sampleReply?: string;

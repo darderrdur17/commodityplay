@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Fragment, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { Users, MessageSquare, Clock, Lock } from "lucide-react";
@@ -83,6 +83,7 @@ export function MentorConnectClient({
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [selectedMentor, setSelectedMentor] = useState<SelectedMentor | null>(null);
+  const askPanelRef = useRef<HTMLDivElement>(null);
 
   const isElite = userTier === "ELITE";
   const creditsRemaining = mentorCreditUsage?.remaining ?? 0;
@@ -97,6 +98,11 @@ export function MentorConnectClient({
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [focusSegment, visibleSegments.length]);
+
+  useEffect(() => {
+    if (!selectedMentor) return;
+    askPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [selectedMentor?.id]);
 
   function openMentor(mentor: PublicMentorProfile, segmentId: string, segmentTitle: string) {
     if (selectedMentor?.id === mentor.id) {
@@ -228,7 +234,7 @@ export function MentorConnectClient({
                         const isSelected = selectedMentor?.id === mentor.id;
 
                         return (
-                          <Fragment key={mentor.id}>
+                          <div key={mentor.id} className="flex flex-col min-w-0">
                           <button
                             type="button"
                             onClick={() => openMentor(mentor, seg.id, seg.title)}
@@ -261,7 +267,7 @@ export function MentorConnectClient({
 
                           <AnimatePresence mode="wait">
                             {isSelected && selectedMentor && (
-                              <div className="col-span-full">
+                              <div ref={askPanelRef} className="mt-4">
                                 <MentorAskPanel
                                   key={selectedMentor.id}
                                   mentor={selectedMentor}
@@ -283,7 +289,7 @@ export function MentorConnectClient({
                               </div>
                             )}
                           </AnimatePresence>
-                          </Fragment>
+                          </div>
                         );
                       })}
                     </div>

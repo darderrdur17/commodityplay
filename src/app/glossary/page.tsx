@@ -1,4 +1,4 @@
-import { getGlossaryTerms } from "@/lib/content/accessors";
+import { getGlossaryPageContent, getGlossaryTerms } from "@/lib/content/accessors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { auth } from "@/lib/auth";
@@ -13,6 +13,13 @@ export default async function GlossaryPage() {
     redirect("/signup?plan=starter&callbackUrl=/glossary");
   }
 
-  const [terms] = await Promise.all([getGlossaryTerms()]);
-  return <GlossaryClient terms={terms} persona={session.user.persona ?? null} />;
+  const [terms, pageContent] = await Promise.all([getGlossaryTerms(), getGlossaryPageContent()]);
+  return (
+    <GlossaryClient
+      terms={terms}
+      persona={session.user.persona ?? null}
+      hero={pageContent.hero}
+      upgradeCta={pageContent.upgradeCta}
+    />
+  );
 }

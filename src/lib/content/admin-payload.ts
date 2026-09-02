@@ -4,6 +4,7 @@ import { JOB_OPENINGS } from "@/data/job-openings";
 import { DEFAULT_DESK_CHANNEL_PAGE_COPY } from "@/data/desk-channel-content";
 import { getDefaultPayload } from "./defaults";
 import { deepMerge } from "./merge";
+import { resolveEditorResumePayload } from "./resume-payload";
 import {
   createDefaultKnowledgeTestPayload,
   normalizeKnowledgeTestPayload,
@@ -74,6 +75,10 @@ export function resolveAdminModulePayload(slug: ContentSlug, payload: unknown): 
       merged.jobs = defaults.jobs ?? JOB_OPENINGS;
     }
     return merged;
+  }
+
+  if (slug === "resume-templates") {
+    return resolveEditorResumePayload(payload);
   }
 
   return deepMerge(defaults, (payload ?? {}) as Record<string, unknown>);

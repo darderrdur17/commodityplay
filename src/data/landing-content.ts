@@ -34,6 +34,11 @@ export interface SalesWhoCard {
   outcome: string;
 }
 
+export interface SalesWhoSection {
+  label: string;
+  headline: string;
+}
+
 export interface SalesPricingTier {
   name: string;
   price: string;
@@ -133,6 +138,7 @@ export interface LandingContent {
     ctaPrimary: string;
     ctaSecondary: string;
     stats: { value: number; suffix: string; label: string; animate?: boolean }[];
+    whoSection: SalesWhoSection;
     whoCards: SalesWhoCard[];
     roi: {
       eyebrow: string;
@@ -380,6 +386,10 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
       { value: 40, suffix: "+", label: "Practitioner Q&As to learn from" },
       { value: 20, suffix: "+", label: "Years desk experience behind this content" },
     ],
+    whoSection: {
+      label: "Who This Is For",
+      headline: "Six Sales Roles. One Shared Problem.",
+    },
     whoCards: [
       { role: "ETRM & Trading Software", title: "Enterprise Software Sales", desc: "You sell Endur, RightAngle, Allegro, or a competing ETRM. The real decision is made by the trading desk.", outcome: "After the Playbook, I stopped presenting to operations and started having commercial conversations with the desk. First call conversion improved immediately." },
       { role: "Market Data & Intelligence", title: "Data Platform Sales", desc: "You sell Kpler, Vortexa, Platts, Argus, or a competing data service. Your buyers already know the market — they're testing whether you do too.", outcome: "Understanding how desks actually use AIS data changed how I demo. Win rate on enterprise accounts up 35%." },
