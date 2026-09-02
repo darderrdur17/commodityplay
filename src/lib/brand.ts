@@ -9,7 +9,7 @@ export const BRAND_SITE_URL = `https://${BRAND_DOMAIN}`;
 
 export const BRAND_EMAIL_HELLO = `hello@${BRAND_DOMAIN}`;
 
-export const BRAND_EMAIL_SUPPORT = `support@${BRAND_DOMAIN}`;
+export const BRAND_EMAIL_SUPPORT = "frances@commodityplay.ai";
 
 export const BRAND_EMAIL_LEGAL = `legal@${BRAND_DOMAIN}`;
 
