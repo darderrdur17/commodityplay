@@ -1059,8 +1059,8 @@ export function PrepLibraryBody({
                 />
               </div>
 
-              {/* Add form — mint dotted border */}
-              <div className="rounded-xl border-2 border-dashed border-teal-200 bg-teal-50/20 p-5 sm:p-6 shadow-sm">
+              {/* Add form — light green solid box */}
+              <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-5 sm:p-6 shadow-sm">
                 {salesAddTopicForm}
               </div>
 
