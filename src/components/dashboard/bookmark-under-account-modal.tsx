@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bookmark, Check, Loader2, X } from "lucide-react";
 import type { BookmarkSource } from "@prisma/client";
+import { AccountLinkedToast } from "@/components/dashboard/account-linked-toast";
 
 interface TrackedAccountOption {
   id: string;
@@ -33,7 +34,15 @@ export function BookmarkUnderAccountModal({
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [savedName, setSavedName] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const closeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
+  }, []);
 
   const loadAccounts = useCallback(async () => {
     setLoading(true);
@@ -55,6 +64,7 @@ export function BookmarkUnderAccountModal({
   useEffect(() => {
     if (open) {
       setSavedId(null);
+      setSavedName(null);
       void loadAccounts();
     }
   }, [open, loadAccounts]);
@@ -77,8 +87,10 @@ export function BookmarkUnderAccountModal({
         throw new Error("Could not save bookmark");
       }
       setSavedId(account.id);
+      setSavedName(account.name);
       onBookmarked?.(account.name);
-      setTimeout(() => onClose(), 900);
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+      closeTimer.current = setTimeout(() => onClose(), 2200);
     } catch {
       setError("Could not bookmark under that account. Please try again.");
     } finally {
@@ -90,6 +102,7 @@ export function BookmarkUnderAccountModal({
     onClose();
     setTimeout(() => {
       setSavedId(null);
+      setSavedName(null);
       setError("");
     }, 250);
   }
@@ -179,6 +192,13 @@ export function BookmarkUnderAccountModal({
             )}
 
             {error && <p className="text-xs text-red-600 mt-3">{error}</p>}
+            {savedName && (
+              <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-green-700">
+                <Check className="w-4 h-4 shrink-0" aria-hidden />
+                Account is linked!
+              </p>
+            )}
+            <AccountLinkedToast show={Boolean(savedName)} accountName={savedName} />
           </motion.div>
         </motion.div>
       )}

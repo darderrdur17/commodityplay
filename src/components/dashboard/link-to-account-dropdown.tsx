@@ -2,9 +2,10 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Link2, Loader2 } from "lucide-react";
+import { Check, Link2, Loader2 } from "lucide-react";
 import type { BookmarkSource } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { AccountLinkedToast } from "@/components/dashboard/account-linked-toast";
 
 interface TrackedAccountOption {
   id: string;
@@ -36,6 +37,13 @@ export function LinkToAccountDropdown({
   const [saving, setSaving] = useState(false);
   const [linkedAccount, setLinkedAccount] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const clearFeedbackTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (clearFeedbackTimer.current) clearTimeout(clearFeedbackTimer.current);
+    };
+  }, []);
 
   const loadAccounts = useCallback(async () => {
     setLoadingAccounts(true);
@@ -81,10 +89,11 @@ export function LinkToAccountDropdown({
       if (!res.ok) throw new Error("Failed to link");
       setLinkedAccount(account.name);
       onLinked?.(account.name);
-      setTimeout(() => {
+      if (clearFeedbackTimer.current) clearTimeout(clearFeedbackTimer.current);
+      clearFeedbackTimer.current = setTimeout(() => {
         setSelectedId("");
         setLinkedAccount(null);
-      }, 2500);
+      }, 4000);
     } catch {
       setError("Could not link to that account.");
       setSelectedId("");
@@ -160,14 +169,16 @@ export function LinkToAccountDropdown({
       {linkedAccount && (
         <p
           className={cn(
-            "text-xs font-medium",
-            variant === "on-green" ? "text-teal-100" : "text-green-700"
+            "flex items-center gap-1.5 text-xs font-semibold",
+            variant === "on-green" ? "text-white" : "text-green-700"
           )}
         >
-          Linked to {linkedAccount}
+          <Check className="w-3.5 h-3.5 shrink-0" aria-hidden />
+          Account is linked!
         </p>
       )}
       {error && <p className="text-xs text-red-600">{error}</p>}
+      <AccountLinkedToast show={Boolean(linkedAccount)} accountName={linkedAccount} />
     </div>
   );
 }

@@ -526,7 +526,7 @@ function SalesTopicCard({
             sourceId={topic.id}
             sourceTitle={topic.title}
             variant="compact"
-            className="w-full sm:max-w-[240px]"
+            className="w-full sm:max-w-xs"
             onLinked={(accountName) => onLinkedToAccount?.(topic.id, accountName)}
           />
         )}
