@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ClipboardList, Lock, Pin, Plus, Trash2, X } from "lucide-react";
+import { Check, ClipboardList, Lock, Pencil, Pin, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Reveal } from "@/components/animations";
@@ -201,15 +201,80 @@ function ContinueWhereYouLeftOff({ content }: { content: AccountIntelligenceCont
 function AccountCard({
   account,
   onDelete,
+  onUpdated,
   deleting = false,
 }: {
   account: TrackedAccountRecord;
   onDelete?: (id: string) => void;
+  onUpdated?: (account: TrackedAccountRecord) => void;
   deleting?: boolean;
 }) {
   const statusMeta = getAccountStatusMeta(account.status);
   const prepBookmarks = account.bookmarks.filter((b) => b.sourceType === "PREP_LIBRARY");
   const nudgeBookmarks = account.bookmarks.filter((b) => b.sourceType === "MARKET_NUDGE");
+  const canEdit = Boolean(onUpdated);
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(account.name);
+  const [deskType, setDeskType] = useState(account.deskType);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!editing) {
+      setName(account.name);
+      setDeskType(account.deskType);
+      setError("");
+    }
+  }, [account.name, account.deskType, editing]);
+
+  function startEdit() {
+    setName(account.name);
+    setDeskType(account.deskType);
+    setError("");
+    setEditing(true);
+  }
+
+  function cancelEdit() {
+    setName(account.name);
+    setDeskType(account.deskType);
+    setError("");
+    setEditing(false);
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    const nextName = name.trim();
+    const nextDesk = deskType.trim();
+    if (!nextName || !nextDesk) {
+      setError("Account name and desk are required.");
+      return;
+    }
+    if (nextName === account.name && nextDesk === account.deskType) {
+      setEditing(false);
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/account-intelligence/accounts/${account.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nextName, deskType: nextDesk }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Could not update this account.");
+        return;
+      }
+      onUpdated?.(data as TrackedAccountRecord);
+      setEditing(false);
+    } catch {
+      setError("Could not update this account. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <article
@@ -217,10 +282,40 @@ function AccountCard({
       className="rounded-xl border border-border bg-white p-5 sm:p-6 shadow-sm scroll-mt-28"
     >
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="min-w-0">
-          <h3 className="font-bold text-gray-900 text-base leading-snug">{account.name}</h3>
-          <p className="text-sm text-muted-fg mt-0.5">{account.deskType}</p>
-        </div>
+        {editing ? (
+          <form onSubmit={(e) => void saveEdit(e)} className="min-w-0 flex-1 space-y-2">
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Account name"
+              aria-label="Account name"
+              autoFocus
+              required
+            />
+            <Input
+              value={deskType}
+              onChange={(e) => setDeskType(e.target.value)}
+              placeholder="e.g. LNG · Trading desk"
+              aria-label="Desk or industry"
+              required
+            />
+            {error && <p className="text-xs text-red-600">{error}</p>}
+            <div className="flex items-center gap-2">
+              <Button type="submit" size="sm" loading={saving} className="h-8">
+                <Check className="w-3.5 h-3.5" />
+                Save
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={cancelEdit} disabled={saving} className="h-8">
+                Cancel
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <div className="min-w-0">
+            <h3 className="font-bold text-gray-900 text-base leading-snug">{account.name}</h3>
+            <p className="text-sm text-muted-fg mt-0.5">{account.deskType}</p>
+          </div>
+        )}
         <div className="flex items-start gap-2 shrink-0">
           <span
             className={cn(
@@ -230,11 +325,21 @@ function AccountCard({
           >
             {statusMeta.label}
           </span>
+          {canEdit && !editing && (
+            <button
+              type="button"
+              onClick={startEdit}
+              className="p-1.5 rounded-lg text-muted-fg hover:bg-teal-50 hover:text-teal-800 transition-colors"
+              aria-label={`Edit ${account.name}`}
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
           {onDelete && (
             <button
               type="button"
               onClick={() => onDelete(account.id)}
-              disabled={deleting}
+              disabled={deleting || saving}
               className="p-1.5 rounded-lg text-muted-fg hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
               aria-label={`Delete ${account.name}`}
             >
@@ -532,6 +637,10 @@ export function AccountIntelligenceSection({
     }
   }
 
+  function handleAccountUpdated(updated: TrackedAccountRecord) {
+    setAccounts((prev) => prev.map((account) => (account.id === updated.id ? updated : account)));
+  }
+
   async function handleDeleteAccount(accountId: string) {
     const account = accounts.find((a) => a.id === accountId);
     if (!account) return;
@@ -645,6 +754,7 @@ export function AccountIntelligenceSection({
                 <AccountCard
                   account={account}
                   onDelete={handleDeleteAccount}
+                  onUpdated={handleAccountUpdated}
                   deleting={deletingId === account.id}
                 />
               </Reveal>

@@ -35,17 +35,45 @@ export async function PATCH(
   }
 
   const data = parsed.data;
-  const account = await prisma.trackedAccount.update({
-    where: { id },
-    data: {
-      ...(data.name !== undefined ? { name: data.name.trim() } : {}),
-      ...(data.deskType !== undefined ? { deskType: data.deskType.trim() } : {}),
-      ...(data.status !== undefined ? { status: data.status } : {}),
-      ...(data.notes !== undefined ? { notes: data.notes?.trim() || null } : {}),
-      ...(data.lastTouch !== undefined ? { lastTouch: data.lastTouch?.trim() || null } : {}),
-      ...(data.nextStep !== undefined ? { nextStep: data.nextStep?.trim() || null } : {}),
-    },
-    include: { bookmarks: { orderBy: { createdAt: "desc" } } },
+  const nextName = data.name !== undefined ? data.name.trim() : undefined;
+  if (nextName && nextName !== existing.name) {
+    const clash = await prisma.trackedAccount.findFirst({
+      where: {
+        userId: authResult.user.id,
+        name: nextName,
+        NOT: { id },
+      },
+    });
+    if (clash) {
+      return NextResponse.json(
+        { error: "You already have an account with that name." },
+        { status: 409 }
+      );
+    }
+  }
+
+  const account = await prisma.$transaction(async (tx) => {
+    const updated = await tx.trackedAccount.update({
+      where: { id },
+      data: {
+        ...(nextName !== undefined ? { name: nextName } : {}),
+        ...(data.deskType !== undefined ? { deskType: data.deskType.trim() } : {}),
+        ...(data.status !== undefined ? { status: data.status } : {}),
+        ...(data.notes !== undefined ? { notes: data.notes?.trim() || null } : {}),
+        ...(data.lastTouch !== undefined ? { lastTouch: data.lastTouch?.trim() || null } : {}),
+        ...(data.nextStep !== undefined ? { nextStep: data.nextStep?.trim() || null } : {}),
+      },
+      include: { bookmarks: { orderBy: { createdAt: "desc" } } },
+    });
+
+    if (nextName && nextName !== existing.name) {
+      await tx.talkingPoint.updateMany({
+        where: { userId: authResult.user.id, canUseFor: existing.name },
+        data: { canUseFor: nextName },
+      });
+    }
+
+    return updated;
   });
 
   return NextResponse.json(serializeTrackedAccount(account));
