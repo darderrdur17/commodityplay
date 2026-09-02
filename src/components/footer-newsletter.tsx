@@ -2,11 +2,14 @@
 
 import React, { useState } from "react";
 
+import type { SiteFooterNewsletter } from "@/data/footer-content";
+
 interface FooterNewsletterProps {
   variant?: "light" | "dark";
+  copy: SiteFooterNewsletter;
 }
 
-export function FooterNewsletter({ variant = "light" }: FooterNewsletterProps) {
+export function FooterNewsletter({ variant = "light", copy }: FooterNewsletterProps) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -32,7 +35,7 @@ export function FooterNewsletter({ variant = "light" }: FooterNewsletterProps) {
       }
 
       setStatus("success");
-      setMessage("You're on the list!");
+      setMessage(copy.successMessage);
       setEmail("");
     } catch {
       setStatus("error");
@@ -52,10 +55,10 @@ export function FooterNewsletter({ variant = "light" }: FooterNewsletterProps) {
             isDark ? "text-white" : "text-gray-900"
           }`}
         >
-          Stay close to the desk.
+          {copy.heading}
         </span>
         <span className={`text-[13.5px] leading-snug ${isDark ? "text-white/65" : "text-muted-fg"}`}>
-          One short email. Industry happenings.
+          {copy.subtext}
         </span>
       </div>
 
@@ -65,7 +68,7 @@ export function FooterNewsletter({ variant = "light" }: FooterNewsletterProps) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="your@email.com"
+          placeholder={copy.placeholder}
           disabled={status === "loading"}
           className="w-full sm:w-[236px] bg-white border border-white/20 rounded-[7px] px-[17px] py-[11px] text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-colors disabled:opacity-60"
         />
@@ -74,7 +77,7 @@ export function FooterNewsletter({ variant = "light" }: FooterNewsletterProps) {
           disabled={status === "loading"}
           className="bg-primary-400 text-white border-none rounded-[7px] px-[22px] py-[11px] text-sm font-bold whitespace-nowrap hover:bg-primary-500 hover:-translate-y-px transition-all disabled:opacity-60"
         >
-          {status === "loading" ? "…" : "I'm in →"}
+          {status === "loading" ? "…" : copy.buttonLabel}
         </button>
       </form>
 

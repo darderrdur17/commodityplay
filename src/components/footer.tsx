@@ -74,7 +74,7 @@ export function Footer({ content }: Props) {
           ))}
         </div>
 
-        <FooterNewsletter variant="dark" />
+        <FooterNewsletter variant="dark" copy={content.newsletter} />
 
         <div
           className="py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-white/10"

@@ -8,8 +8,17 @@ const footerLinkSchema = z.object({
   action: z.enum(["link", "contact", "mailto"]).optional(),
 });
 
+const siteFooterNewsletterSchema = z.object({
+  heading: z.string().min(1),
+  subtext: z.string().min(1),
+  placeholder: z.string().min(1),
+  buttonLabel: z.string().min(1),
+  successMessage: z.string().min(1),
+});
+
 export const siteFooterSchema = z.object({
   blurb: z.string().min(1),
+  newsletter: siteFooterNewsletterSchema,
   columns: z.object({
     contents: z.array(footerLinkSchema).min(1),
     community: z.array(footerLinkSchema).min(1),

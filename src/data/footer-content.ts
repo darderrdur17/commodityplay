@@ -9,8 +9,17 @@ export interface FooterLinkItem {
   action?: FooterLinkAction;
 }
 
+export interface SiteFooterNewsletter {
+  heading: string;
+  subtext: string;
+  placeholder: string;
+  buttonLabel: string;
+  successMessage: string;
+}
+
 export interface SiteFooterContent {
   blurb: string;
+  newsletter: SiteFooterNewsletter;
   columns: {
     contents: FooterLinkItem[];
     community: FooterLinkItem[];
@@ -21,6 +30,13 @@ export interface SiteFooterContent {
 export const DEFAULT_SITE_FOOTER: SiteFooterContent = {
   blurb:
     "The definitive guide on commodity trading — for professionals breaking in, and for vendors selling into the industry.",
+  newsletter: {
+    heading: "Stay close to the desk.",
+    subtext: "One short email from the desk — industry happenings. No account needed.",
+    placeholder: "your@email.com",
+    buttonLabel: "I'm in →",
+    successMessage: "You're on the list!",
+  },
   columns: {
     contents: [
       { label: "Career Track", href: "/?track=career" },

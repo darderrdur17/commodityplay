@@ -117,6 +117,59 @@ export function SiteFooterEditor({
           onChange={(e) => patch({ blurb: e.target.value })}
         />
       </EditorField>
+      <EditorSection
+        title="Email signup strip"
+        description="Footer newsletter capture for visitors not ready to create a free account"
+        defaultOpen
+      >
+        <EditorField label="Heading">
+          <input
+            className={inputClass}
+            value={content.newsletter.heading}
+            onChange={(e) =>
+              patch({ newsletter: { ...content.newsletter, heading: e.target.value } })
+            }
+          />
+        </EditorField>
+        <EditorField label="Subtext">
+          <textarea
+            className="w-full min-h-[72px] px-3 py-2 rounded-lg border border-border text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-400 resize-y"
+            value={content.newsletter.subtext}
+            onChange={(e) =>
+              patch({ newsletter: { ...content.newsletter, subtext: e.target.value } })
+            }
+          />
+        </EditorField>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <EditorField label="Email placeholder">
+            <input
+              className={inputClass}
+              value={content.newsletter.placeholder}
+              onChange={(e) =>
+                patch({ newsletter: { ...content.newsletter, placeholder: e.target.value } })
+              }
+            />
+          </EditorField>
+          <EditorField label="Button label">
+            <input
+              className={inputClass}
+              value={content.newsletter.buttonLabel}
+              onChange={(e) =>
+                patch({ newsletter: { ...content.newsletter, buttonLabel: e.target.value } })
+              }
+            />
+          </EditorField>
+        </div>
+        <EditorField label="Success message">
+          <input
+            className={inputClass}
+            value={content.newsletter.successMessage}
+            onChange={(e) =>
+              patch({ newsletter: { ...content.newsletter, successMessage: e.target.value } })
+            }
+          />
+        </EditorField>
+      </EditorSection>
       {(Object.keys(COLUMN_LABELS) as ColumnKey[]).map((key) => (
         <ColumnEditor
           key={key}
