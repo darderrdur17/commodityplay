@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  mergeGlossaryHero,
-  mergeGlossaryUpgradeCta,
+  DEFAULT_GLOSSARY_HERO,
+  DEFAULT_GLOSSARY_UPGRADE_CTA,
   type GlossaryHero,
   type GlossaryUpgradeCta,
 } from "@/data/glossary-content";
@@ -31,24 +31,36 @@ function newTerm(): GlossaryTerm {
 }
 
 function HeroTab({ data, onChange }: { data: GlossaryPayload; onChange: (d: GlossaryPayload) => void }) {
-  const hero = mergeGlossaryHero(data.hero);
+  const stored = data.hero ?? {};
+  const defaults = DEFAULT_GLOSSARY_HERO;
+
+  function fieldValue(key: keyof GlossaryHero): string {
+    const value = stored[key];
+    if (typeof value === "string") return value;
+    return defaults[key] as string;
+  }
+
+  function statChips(): string[] {
+    if (Array.isArray(stored.statChips)) return stored.statChips;
+    return defaults.statChips;
+  }
 
   function patch(updates: Partial<GlossaryHero>) {
-    onChange({ ...data, hero: { ...hero, ...updates } });
+    onChange({ ...data, hero: { ...stored, ...updates } });
   }
 
   function patchChip(i: number, value: string) {
-    const next = [...hero.statChips];
+    const next = [...statChips()];
     next[i] = value;
     patch({ statChips: next });
   }
 
   function addChip() {
-    patch({ statChips: [...hero.statChips, ""] });
+    patch({ statChips: [...statChips(), ""] });
   }
 
   function removeChip(i: number) {
-    patch({ statChips: hero.statChips.filter((_, j) => j !== i) });
+    patch({ statChips: statChips().filter((_, j) => j !== i) });
   }
 
   return (
@@ -57,17 +69,17 @@ function HeroTab({ data, onChange }: { data: GlossaryPayload; onChange: (d: Glos
         Top blue hero strip on <strong>/glossary</strong> — eyebrow pill, headline, description, and stat chips.
       </p>
       <EditorField label="Eyebrow pill">
-        <input className={inputClass} value={hero.eyebrow} onChange={(e) => patch({ eyebrow: e.target.value })} />
+        <input className={inputClass} value={fieldValue("eyebrow")} onChange={(e) => patch({ eyebrow: e.target.value })} />
       </EditorField>
       <EditorField label="Title">
-        <input className={inputClass} value={hero.title} onChange={(e) => patch({ title: e.target.value })} />
+        <input className={inputClass} value={fieldValue("title")} onChange={(e) => patch({ title: e.target.value })} />
       </EditorField>
       <EditorField label="Description">
-        <textarea className={textareaClass} value={hero.description} onChange={(e) => patch({ description: e.target.value })} />
+        <textarea className={textareaClass} value={fieldValue("description")} onChange={(e) => patch({ description: e.target.value })} />
       </EditorField>
       <EditorField label="Stat chips">
         <div className="space-y-2">
-          {hero.statChips.map((chip, i) => (
+          {statChips().map((chip, i) => (
             <div key={i} className="flex gap-2">
               <input
                 className={cn(inputClass, "flex-1")}
@@ -90,10 +102,17 @@ function HeroTab({ data, onChange }: { data: GlossaryPayload; onChange: (d: Glos
 }
 
 function UpgradeCtaTab({ data, onChange }: { data: GlossaryPayload; onChange: (d: GlossaryPayload) => void }) {
-  const cta = mergeGlossaryUpgradeCta(data.upgradeCta);
+  const stored = data.upgradeCta ?? {};
+  const defaults = DEFAULT_GLOSSARY_UPGRADE_CTA;
+
+  function fieldValue(key: keyof GlossaryUpgradeCta): string {
+    const value = stored[key];
+    if (typeof value === "string") return value;
+    return defaults[key];
+  }
 
   function patch(updates: Partial<GlossaryUpgradeCta>) {
-    onChange({ ...data, upgradeCta: { ...cta, ...updates } });
+    onChange({ ...data, upgradeCta: { ...stored, ...updates } });
   }
 
   return (
@@ -102,22 +121,22 @@ function UpgradeCtaTab({ data, onChange }: { data: GlossaryPayload; onChange: (d
         Bottom blue CTA strip on <strong>/glossary</strong>. The accent word renders in italic (e.g. &ldquo;deeper&rdquo;).
       </p>
       <EditorField label="Title prefix">
-        <input className={inputClass} value={cta.titlePrefix} onChange={(e) => patch({ titlePrefix: e.target.value })} />
+        <input className={inputClass} value={fieldValue("titlePrefix")} onChange={(e) => patch({ titlePrefix: e.target.value })} />
       </EditorField>
       <EditorField label="Title accent (italic)">
-        <input className={inputClass} value={cta.titleAccent} onChange={(e) => patch({ titleAccent: e.target.value })} />
+        <input className={inputClass} value={fieldValue("titleAccent")} onChange={(e) => patch({ titleAccent: e.target.value })} />
       </EditorField>
       <EditorField label="Title suffix">
-        <input className={inputClass} value={cta.titleSuffix} onChange={(e) => patch({ titleSuffix: e.target.value })} />
+        <input className={inputClass} value={fieldValue("titleSuffix")} onChange={(e) => patch({ titleSuffix: e.target.value })} />
       </EditorField>
       <EditorField label="Description">
-        <textarea className={textareaClass} value={cta.description} onChange={(e) => patch({ description: e.target.value })} />
+        <textarea className={textareaClass} value={fieldValue("description")} onChange={(e) => patch({ description: e.target.value })} />
       </EditorField>
       <EditorField label="Button label">
-        <input className={inputClass} value={cta.buttonLabel} onChange={(e) => patch({ buttonLabel: e.target.value })} />
+        <input className={inputClass} value={fieldValue("buttonLabel")} onChange={(e) => patch({ buttonLabel: e.target.value })} />
       </EditorField>
       <EditorField label="Button link">
-        <input className={inputClass} value={cta.buttonHref} onChange={(e) => patch({ buttonHref: e.target.value })} />
+        <input className={inputClass} value={fieldValue("buttonHref")} onChange={(e) => patch({ buttonHref: e.target.value })} />
       </EditorField>
     </div>
   );
