@@ -29,6 +29,7 @@ import {
   dashboardAudienceFromPreview,
   filterByDashboardAudience,
   isDashboardModuleVisible,
+  shouldShowTrackBadge,
 } from "@/lib/dashboard-module-visibility";
 import type { StarterInfographic } from "@/data/starter-pack";
 import type { SalesDashboardDeliverables } from "@/lib/content/sales-dashboard-deliverables";
@@ -255,6 +256,12 @@ export function DashboardClient({
     isPreviewActive,
     effectiveTrack,
   });
+  const isAdminUnfiltered = audience === "ALL";
+  const memberTrack: "CAREER" | "SALES" | null = isAdminUnfiltered
+    ? null
+    : effectiveTrack.toUpperCase() === "SALES"
+      ? "SALES"
+      : "CAREER";
   const planHref = (tier: "pro" | "elite") =>
     isCareerTrack ? CAREER_PLAN_HREF(tier) : SALES_PLAN_HREF(tier);
   const visibleContentCards = filterByDashboardAudience(
@@ -400,7 +407,9 @@ export function DashboardClient({
     const tierBadges = (
       <div className="flex flex-wrap items-center gap-1.5">
         {tierBadge}
-        <ModuleTrackBadge track={trackLabel} />
+        {shouldShowTrackBadge({ trackLabel, memberTrack, isAdminUnfiltered }) && (
+          <ModuleTrackBadge track={trackLabel} />
+        )}
       </div>
     );
 
@@ -749,7 +758,11 @@ export function DashboardClient({
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5 mb-2">
                       <Badge variant="pro" size="sm">Pro Pack</Badge>
-                      <ModuleTrackBadge track="Career" />
+                      {shouldShowTrackBadge({
+                        trackLabel: "Career",
+                        memberTrack,
+                        isAdminUnfiltered,
+                      }) && <ModuleTrackBadge track="Career" />}
                     </div>
                     <h2 className="font-serif text-lg font-bold text-gray-900 mb-1">
                       {navigationGuides.career.label}
@@ -778,7 +791,11 @@ export function DashboardClient({
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5 mb-2">
                       <Badge variant="pro" size="sm">Pro Pack</Badge>
-                      <ModuleTrackBadge track="Sales" />
+                      {shouldShowTrackBadge({
+                        trackLabel: "Sales",
+                        memberTrack,
+                        isAdminUnfiltered,
+                      }) && <ModuleTrackBadge track="Sales" />}
                     </div>
                     <h2 className="font-serif text-lg font-bold text-gray-900 mb-1">
                       {navigationGuides.sales.label}
@@ -826,7 +843,11 @@ export function DashboardClient({
                     <p className="font-semibold text-sm text-gray-900">{link.label}</p>
                     <div className="flex flex-wrap items-center gap-1.5 mt-1">
                       <Badge variant="starter" size="sm">Free</Badge>
-                      <ModuleTrackBadge track={link.track} />
+                      {shouldShowTrackBadge({
+                        trackLabel: link.track,
+                        memberTrack,
+                        isAdminUnfiltered,
+                      }) && <ModuleTrackBadge track={link.track} />}
                     </div>
                   </div>
                 </div>
@@ -852,6 +873,11 @@ export function DashboardClient({
                     track="CAREER"
                     userTier={effectiveTier}
                     topicCount={careerTopicCount}
+                    showTrackBadge={shouldShowTrackBadge({
+                      trackLabel: "Career",
+                      memberTrack,
+                      isAdminUnfiltered,
+                    })}
                   />
                 )}
                 {renderResourceCard({
@@ -873,6 +899,11 @@ export function DashboardClient({
               track="CAREER"
               userTier={effectiveTier}
               topicCount={careerTopicCount}
+              showTrackBadge={shouldShowTrackBadge({
+                trackLabel: "Career",
+                memberTrack,
+                isAdminUnfiltered,
+              })}
             />
           )}
 
@@ -903,6 +934,11 @@ export function DashboardClient({
                     track="SALES"
                     userTier={effectiveTier}
                     topicCount={salesTopicCount}
+                    showTrackBadge={shouldShowTrackBadge({
+                      trackLabel: "Sales",
+                      memberTrack,
+                      isAdminUnfiltered,
+                    })}
                   />
                 );
               }

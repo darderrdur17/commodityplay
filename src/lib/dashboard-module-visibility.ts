@@ -34,6 +34,23 @@ export function dashboardAudienceFromPreview(opts: {
   return opts.effectiveTrack.toUpperCase() === "SALES" ? "SALES" : "CAREER";
 }
 
+/**
+ * Whether to show the Career / Sales / Both pill on a dashboard module card.
+ * Admin unfiltered (ALL) view: always show for CMS validation.
+ * Member (or admin member preview): only "Both" on shared modules.
+ */
+export function shouldShowTrackBadge(opts: {
+  trackLabel: DashboardModuleTrack;
+  memberTrack: "CAREER" | "SALES" | null;
+  isAdminUnfiltered: boolean;
+}): boolean {
+  if (opts.isAdminUnfiltered) return true;
+  if (opts.trackLabel === "Both") return true;
+  if (opts.memberTrack === "CAREER" && opts.trackLabel === "Career") return false;
+  if (opts.memberTrack === "SALES" && opts.trackLabel === "Sales") return false;
+  return false;
+}
+
 /** Sales members cannot open Career-only playbook routes. Admins still can. */
 export function memberMayAccessCareerPlaybook(opts: {
   track: string;
