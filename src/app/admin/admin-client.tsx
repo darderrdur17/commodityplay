@@ -158,6 +158,7 @@ export function AdminClient({
   const [progressTierFilter, setProgressTierFilter] = useState<string>("ALL");
   // Mentors tab filter
   const [mentorsSegFilter, setMentorsSegFilter] = useState<string>("all");
+  const [mentorSaveNotice, setMentorSaveNotice] = useState<string | null>(null);
 
   async function loadAll() {
     setLoading(true);
@@ -192,6 +193,12 @@ export function AdminClient({
       setMentorSegments(data.segments ?? []);
       setPendingMentorApps(data.pendingCount ?? 0);
     }
+  }
+
+  async function handleMentorSaved(notice: string) {
+    setMentorSaveNotice(notice);
+    await loadMentorSegments();
+    window.setTimeout(() => setMentorSaveNotice(null), 12000);
   }
 
   async function loadQAs() {
@@ -587,12 +594,16 @@ export function AdminClient({
         {activeTab === "mentors" && (
           <div className="space-y-4">
             <div className="rounded-lg border border-border bg-white px-4 py-3 text-sm text-muted-fg">
-              Each mentor has an <strong className="text-gray-800">anonymous ID</strong> (e.g. PT-01) shown publicly on Mentor Connect.
-              Name, email, and company are internal only — email and company also sync from the mentor&apos;s Account page when their login uses the same address.
-              Edit headline, <strong className="text-gray-800">bio</strong>, years, and tags below, then{" "}
-              <strong className="text-gray-800">Publish to Mentor Connect</strong> when ready.
-              Invite-only applications arrive via the hidden <code className="text-xs bg-secondary px-1 rounded">/mentor-apply</code> form.
+              After you click <strong className="text-gray-800">Save &amp; update live profile</strong>, headline, bio, years, and tags go live on Mentor Connect right away.
+              Name, email, and company stay admin-only (never shown publicly). New applications stay hidden until you click{" "}
+              <strong className="text-gray-800">Publish to Mentor Connect</strong>.
             </div>
+            {mentorSaveNotice && (
+              <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900 flex items-start gap-2.5">
+                <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{mentorSaveNotice}</span>
+              </div>
+            )}
             {pendingMentorApps > 0 && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-center gap-2.5">
                 <Clock className="w-4 h-4 flex-shrink-0" />
@@ -1175,7 +1186,7 @@ export function AdminClient({
           mentor={selectedMentor}
           segmentOptions={mentorSegmentOptions}
           onClose={() => setSelectedMentor(null)}
-          onSaved={loadMentorSegments}
+          onSaved={handleMentorSaved}
         />
       )}
     </div>

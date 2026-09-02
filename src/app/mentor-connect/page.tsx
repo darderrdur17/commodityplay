@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isMentorAccount } from "@/lib/mentor-demo";
 import { Suspense } from "react";
+import { unstable_noStore as noStore } from "next/cache";
 import {
   getMentorConnectHero,
   getMentorConnectHowItWorks,
@@ -16,6 +17,7 @@ export const metadata = { title: "Mentor Connect" };
 export const dynamic = "force-dynamic";
 
 export default async function MentorConnectPage() {
+  noStore();
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/mentor-connect");
 

@@ -37,7 +37,7 @@ interface Props {
   mentor: AdminMentorDetail;
   segmentOptions: MentorSegmentOption[];
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (notice: string) => void;
 }
 
 export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSaved }: Props) {
@@ -85,7 +85,7 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
         commodityDesk: form.commodityDesk.trim() || null,
         track: form.track,
         ...(mentor.isNew && { segmentId: form.segmentId }),
-        ...(approve && { status: "active" }),
+        ...(approve || mentor.status === "active" ? { status: "active" as const } : {}),
       }),
     });
     if (!res.ok) {
@@ -95,7 +95,21 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
       return;
     }
     setSaving(null);
-    onSaved();
+    const trackNote =
+      form.track === "both"
+        ? "Visible to Career and Sales members."
+        : form.track === "career"
+          ? "Visible to Career track members only (hidden on Sales accounts)."
+          : "Visible to Sales track members only (hidden on Career accounts).";
+    if (approve || mentor.status === "active") {
+      onSaved(
+        `${mentor.id} is live on Mentor Connect — headline, bio, years, and tags updated. ${trackNote} Name and email stay admin-only.`
+      );
+    } else {
+      onSaved(
+        `${mentor.id} saved as draft — not on Mentor Connect yet. Click Publish to Mentor Connect when ready.`
+      );
+    }
     onClose();
   }
 
@@ -124,6 +138,13 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
         </div>
 
         <div className="p-5 space-y-4">
+          {mentor.status === "pending" && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 leading-relaxed">
+              This mentor is <strong>not visible on Mentor Connect yet</strong>. Use{" "}
+              <strong>Publish to Mentor Connect</strong> when the profile is ready.
+            </div>
+          )}
+
           {mentor.isNew && (
             <div className="space-y-1.5">
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg">Segment</label>
@@ -271,10 +292,17 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
                 value={form.track}
                 onChange={(e) => setForm((f) => ({ ...f, track: e.target.value as AdminMentorDetail["track"] }))}
               >
-                <option value="both">Both</option>
-                <option value="career">Career</option>
-                <option value="sales">Sales</option>
+                <option value="both">Both — show to all members (recommended)</option>
+                <option value="career">Career track only</option>
+                <option value="sales">Sales track only</option>
               </select>
+              {form.track !== "both" && (
+                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-md px-2 py-1.5">
+                  {form.track === "career"
+                    ? "Sales members will not see this mentor on Mentor Connect."
+                    : "Career members will not see this mentor on Mentor Connect."}
+                </p>
+              )}
             </div>
           </div>
 

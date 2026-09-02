@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getResolvedMentorSegments } from "@/lib/content/accessors";
 import { getContentModulePayload, updateContentModule } from "@/lib/content/repository";
-import type { MentorOverride, MentorOverridesPayload } from "@/data/mentors";
+import { MENTOR_SEGMENTS, type MentorOverride, type MentorOverridesPayload } from "@/data/mentors";
 import {
   getMentorLiveContactsByEmail,
   getMentorLiveContactsByProfileId,
@@ -160,6 +160,15 @@ export async function PATCH(req: NextRequest) {
   if (patch.status !== undefined) nextOverride.status = patch.status;
   if (patch.segmentId !== undefined) nextOverride.segmentId = patch.segmentId;
 
+  // Keep seeded mentors live after profile edits unless admin explicitly sets pending.
+  const isSeededMentor = MENTOR_SEGMENTS.some((seg) => seg.mentors.some((m) => m.id === id));
+  if (patch.status === undefined) {
+    const priorStatus = idx >= 0 ? overrides[idx].status : undefined;
+    if (priorStatus === "active" || (isSeededMentor && priorStatus !== "pending")) {
+      nextOverride.status = "active";
+    }
+  }
+
   const nextOverrides =
     idx >= 0
       ? overrides.map((o, i) => (i === idx ? nextOverride : o))
@@ -175,7 +184,8 @@ export async function PATCH(req: NextRequest) {
     await linkMentorUserByEmail(id, patch.email);
   }
 
-  revalidatePath("/mentor-connect");
+  revalidatePath("/mentor-connect", "page");
+  revalidatePath("/mentor-connect", "layout");
 
   return NextResponse.json({ ok: true, override: nextOverride });
 }
