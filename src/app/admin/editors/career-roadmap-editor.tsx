@@ -57,7 +57,11 @@ function newRole(id: number): CareerRole {
     what: "",
     backgrounds: [],
     redFlags: [],
-    comp: [],
+    comp: [
+      { label: "Junior (0–3 yrs)", range: "" },
+      { label: "Associate / AVP (3–6 yrs)", range: "" },
+      { label: "VP / Director (6+ yrs)", range: "" },
+    ],
     upgrade: "",
   };
 }
@@ -474,6 +478,59 @@ export function CareerRoadmapEditor({
             <EditorField label="Red flags" hint="One per line">
               <textarea className={textareaClass} value={(item.redFlags ?? []).join("\n")} onChange={(e) => patchItem(i, { ...item, redFlags: e.target.value.split("\n").filter(Boolean) })} />
             </EditorField>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-gray-700">Compensation benchmarks (SGD)</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    patchItem(i, {
+                      ...item,
+                      comp: [...(item.comp ?? []), { label: "", range: "" }],
+                    })
+                  }
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add tier
+                </Button>
+              </div>
+              {(item.comp ?? []).map((tier, ti) => (
+                <div key={ti} className="flex items-center gap-2">
+                  <input
+                    className={inputClass}
+                    value={tier.label}
+                    placeholder="Tier label (e.g. Junior analyst)"
+                    onChange={(e) => {
+                      const comp = [...(item.comp ?? [])];
+                      comp[ti] = { ...tier, label: e.target.value };
+                      patchItem(i, { ...item, comp });
+                    }}
+                  />
+                  <input
+                    className={inputClass}
+                    value={tier.range}
+                    placeholder="Range (e.g. SGD 75–120k)"
+                    onChange={(e) => {
+                      const comp = [...(item.comp ?? [])];
+                      comp[ti] = { ...tier, range: e.target.value };
+                      patchItem(i, { ...item, comp });
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      patchItem(i, {
+                        ...item,
+                        comp: (item.comp ?? []).filter((_, j) => j !== ti),
+                      })
+                    }
+                    className="text-red-400 hover:text-red-600 p-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
             <EditorField label="Upgrade path">
               <textarea className={textareaClass} value={item.upgrade} onChange={(e) => patchItem(i, { ...item, upgrade: e.target.value })} />
             </EditorField>

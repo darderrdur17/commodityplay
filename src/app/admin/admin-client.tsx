@@ -20,6 +20,11 @@ import {
   isDeskChannelQueueItem,
   MENTOR_SEGMENT_TO_DESK_CATEGORY,
 } from "@/lib/mentor-share-consent";
+import {
+  AdminTableFilters,
+  matchesAdminSearch,
+  normalizeAdminSearch,
+} from "./admin-table-filters";
 
 function formatAdminMentorCreditsCell(user: AdminUserDetail): string {
   if (user.tier !== "ELITE") return "M: —";
@@ -156,7 +161,23 @@ export function AdminClient({
   >({});
   const [deskChannelBusy, setDeskChannelBusy] = useState<string | null>(null);
   // Progress tab filters
+  const [progressSearch, setProgressSearch] = useState("");
   const [progressTierFilter, setProgressTierFilter] = useState<string>("ALL");
+  const [progressTrackFilter, setProgressTrackFilter] = useState<string>("ALL");
+  // Customers tab filters
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerTierFilter, setCustomerTierFilter] = useState("ALL");
+  const [customerRoleFilter, setCustomerRoleFilter] = useState("ALL");
+  const [customerPersonaFilter, setCustomerPersonaFilter] = useState("ALL");
+  const [customerTrackFilter, setCustomerTrackFilter] = useState("ALL");
+  // Billing tab filters
+  const [billingSearch, setBillingSearch] = useState("");
+  const [billingTierFilter, setBillingTierFilter] = useState("ALL");
+  const [billingStatusFilter, setBillingStatusFilter] = useState("ALL");
+  // Waitlist tab filters
+  const [waitlistSearch, setWaitlistSearch] = useState("");
+  const [waitlistTrackFilter, setWaitlistTrackFilter] = useState("ALL");
+  const [waitlistMemberFilter, setWaitlistMemberFilter] = useState("ALL");
   // Mentors tab filter
   const [mentorsSegFilter, setMentorsSegFilter] = useState<string>("all");
   const [mentorSaveNotice, setMentorSaveNotice] = useState<string | null>(null);
@@ -316,10 +337,78 @@ export function AdminClient({
     return true;
   });
 
+  const TIER_FILTER_OPTIONS = [
+    { value: "ALL", label: "All" },
+    { value: "STARTER", label: "Starter" },
+    { value: "PRO", label: "Pro" },
+    { value: "ELITE", label: "Elite" },
+  ];
+
+  const TRACK_FILTER_OPTIONS = [
+    { value: "ALL", label: "All" },
+    { value: "CAREER", label: "Career" },
+    { value: "SALES", label: "Sales" },
+  ];
+
+  const PERSONA_FILTER_OPTIONS = [
+    { value: "ALL", label: "All" },
+    ...Object.entries(PERSONA_LABELS).map(([value, { label }]) => ({ value, label })),
+  ];
+
+  // Filtered customers
+  const filteredUsers = users.filter((u) => {
+    const q = normalizeAdminSearch(customerSearch);
+    if (!matchesAdminSearch(q, u.name, u.email, u.company, u.profession)) return false;
+    if (customerTierFilter !== "ALL" && u.tier !== customerTierFilter) return false;
+    if (customerRoleFilter === "ADMIN" && u.role !== "ADMIN") return false;
+    if (customerRoleFilter === "USER" && u.role === "ADMIN") return false;
+    if (customerPersonaFilter !== "ALL" && u.persona !== customerPersonaFilter) return false;
+    if (customerTrackFilter !== "ALL" && u.track !== customerTrackFilter) return false;
+    return true;
+  });
+
   // Filtered progress rows
-  const filteredProgress = progressTierFilter === "ALL"
-    ? progressData
-    : progressData.filter((r) => r.tier === progressTierFilter);
+  const filteredProgress = progressData.filter((r) => {
+    const q = normalizeAdminSearch(progressSearch);
+    if (!matchesAdminSearch(q, r.userName, r.userEmail)) return false;
+    if (progressTierFilter !== "ALL" && r.tier !== progressTierFilter) return false;
+    if (progressTrackFilter !== "ALL" && r.track !== progressTrackFilter) return false;
+    return true;
+  });
+
+  // Filtered billing rows
+  const filteredBillingUsers = users.filter((u) => {
+    const q = normalizeAdminSearch(billingSearch);
+    if (
+      !matchesAdminSearch(
+        q,
+        u.name,
+        u.email,
+        u.stripeCustomerId,
+        u.stripeSubscriptionId,
+        u.stripeStatus
+      )
+    ) {
+      return false;
+    }
+    if (billingTierFilter !== "ALL" && u.tier !== billingTierFilter) return false;
+    if (billingStatusFilter === "active" && u.stripeStatus !== "active") return false;
+    if (billingStatusFilter === "inactive" && (!u.stripeStatus || u.stripeStatus === "active")) {
+      return false;
+    }
+    if (billingStatusFilter === "none" && u.stripeCustomerId) return false;
+    return true;
+  });
+
+  // Filtered waitlist rows
+  const filteredWaitlist = waitlist.filter((w) => {
+    const q = normalizeAdminSearch(waitlistSearch);
+    if (!matchesAdminSearch(q, w.email, w.name, w.track, w.user?.name, w.user?.tier)) return false;
+    if (waitlistTrackFilter !== "ALL" && w.track !== waitlistTrackFilter) return false;
+    if (waitlistMemberFilter === "member" && !w.user) return false;
+    if (waitlistMemberFilter === "alerts" && w.user) return false;
+    return true;
+  });
 
   // Active billing summary
   const activeCount = users.filter((u) => u.stripeStatus === "active").length;
@@ -445,6 +534,48 @@ export function AdminClient({
 
         {/* ── Customers tab ── */}
         {activeTab === "users" && (
+          <div className="space-y-4">
+            <AdminTableFilters
+              search={customerSearch}
+              onSearchChange={setCustomerSearch}
+              searchPlaceholder="Search name, email, company…"
+              filteredCount={filteredUsers.length}
+              totalCount={users.length}
+              chips={[
+                {
+                  id: "tier",
+                  label: "Tier",
+                  value: customerTierFilter,
+                  onChange: setCustomerTierFilter,
+                  options: TIER_FILTER_OPTIONS,
+                },
+                {
+                  id: "role",
+                  label: "Role",
+                  value: customerRoleFilter,
+                  onChange: setCustomerRoleFilter,
+                  options: [
+                    { value: "ALL", label: "All" },
+                    { value: "ADMIN", label: "Admin" },
+                    { value: "USER", label: "User" },
+                  ],
+                },
+                {
+                  id: "persona",
+                  label: "Persona",
+                  value: customerPersonaFilter,
+                  onChange: setCustomerPersonaFilter,
+                  options: PERSONA_FILTER_OPTIONS,
+                },
+                {
+                  id: "track",
+                  label: "Track",
+                  value: customerTrackFilter,
+                  onChange: setCustomerTrackFilter,
+                  options: TRACK_FILTER_OPTIONS,
+                },
+              ]}
+            />
           <div className="bg-white rounded-xl border border-border overflow-hidden">
             <div className="px-4 py-3 border-b border-border bg-secondary">
               <p className="text-sm text-muted-fg">Click a row to view and edit customer details, tier, role, and credits.</p>
@@ -464,7 +595,13 @@ export function AdminClient({
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((u) => (
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-8 text-center text-muted-fg">
+                        No customers match your filters.
+                      </td>
+                    </tr>
+                  ) : filteredUsers.map((u) => (
                     <tr
                       key={u.id}
                       className="border-b border-border hover:bg-secondary/50 cursor-pointer"
@@ -506,6 +643,7 @@ export function AdminClient({
               </table>
             </div>
           </div>
+          </div>
         )}
 
         {/* ── Content CMS tab ── */}
@@ -519,24 +657,29 @@ export function AdminClient({
         {/* ── Progress Activity tab ── */}
         {activeTab === "progress" && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-sm text-muted-fg font-medium">Filter by tier:</p>
-              {["ALL", "STARTER", "PRO", "ELITE"].map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setProgressTierFilter(t)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
-                    progressTierFilter === t
-                      ? "bg-primary-400 text-white"
-                      : "bg-white text-muted-fg border border-border hover:border-primary-line"
-                  )}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+            <AdminTableFilters
+              search={progressSearch}
+              onSearchChange={setProgressSearch}
+              searchPlaceholder="Search customer name or email…"
+              filteredCount={filteredProgress.length}
+              totalCount={progressData.length}
+              chips={[
+                {
+                  id: "tier",
+                  label: "Tier",
+                  value: progressTierFilter,
+                  onChange: setProgressTierFilter,
+                  options: TIER_FILTER_OPTIONS,
+                },
+                {
+                  id: "track",
+                  label: "Track",
+                  value: progressTrackFilter,
+                  onChange: setProgressTrackFilter,
+                  options: TRACK_FILTER_OPTIONS,
+                },
+              ]}
+            />
             <div className="bg-white rounded-xl border border-border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[700px]">
@@ -556,7 +699,9 @@ export function AdminClient({
                     {filteredProgress.length === 0 ? (
                       <tr>
                         <td colSpan={3 + CHAPTERS.length} className="px-4 py-8 text-center text-muted-fg">
-                          No progress data yet.
+                          {progressData.length === 0
+                            ? "No progress data yet."
+                            : "No progress rows match your filters."}
                         </td>
                       </tr>
                     ) : (
@@ -1019,6 +1164,34 @@ export function AdminClient({
                 <p className="font-serif text-2xl font-bold text-muted-fg">{users.filter((u) => !u.stripeCustomerId).length}</p>
               </div>
             </div>
+            <AdminTableFilters
+              search={billingSearch}
+              onSearchChange={setBillingSearch}
+              searchPlaceholder="Search customer, email, Stripe ID…"
+              filteredCount={filteredBillingUsers.length}
+              totalCount={users.length}
+              chips={[
+                {
+                  id: "tier",
+                  label: "Tier",
+                  value: billingTierFilter,
+                  onChange: setBillingTierFilter,
+                  options: TIER_FILTER_OPTIONS,
+                },
+                {
+                  id: "status",
+                  label: "Stripe status",
+                  value: billingStatusFilter,
+                  onChange: setBillingStatusFilter,
+                  options: [
+                    { value: "ALL", label: "All" },
+                    { value: "active", label: "Active" },
+                    { value: "inactive", label: "Inactive" },
+                    { value: "none", label: "No billing" },
+                  ],
+                },
+              ]}
+            />
             <div className="bg-white rounded-xl border border-border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[900px]">
@@ -1033,7 +1206,13 @@ export function AdminClient({
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((u) => (
+                    {filteredBillingUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-muted-fg">
+                          No billing rows match your filters.
+                        </td>
+                      </tr>
+                    ) : filteredBillingUsers.map((u) => (
                       <tr key={u.id} className="border-b border-border">
                         <td className="px-4 py-3">
                           <p className="font-medium text-gray-900">{u.name || "-"}</p>
@@ -1080,6 +1259,33 @@ export function AdminClient({
               This is the <strong className="text-gray-800">job board waitlist</strong> — people who asked to be emailed when curated roles launch.
               Signup already creates a CommodityPlay account (see Customers). Signing up does <strong className="text-gray-800">not</strong> auto-add someone here, because job alerts need separate consent.
             </div>
+            <AdminTableFilters
+              search={waitlistSearch}
+              onSearchChange={setWaitlistSearch}
+              searchPlaceholder="Search email or name…"
+              filteredCount={filteredWaitlist.length}
+              totalCount={waitlist.length}
+              chips={[
+                {
+                  id: "track",
+                  label: "Track",
+                  value: waitlistTrackFilter,
+                  onChange: setWaitlistTrackFilter,
+                  options: TRACK_FILTER_OPTIONS,
+                },
+                {
+                  id: "member",
+                  label: "Account",
+                  value: waitlistMemberFilter,
+                  onChange: setWaitlistMemberFilter,
+                  options: [
+                    { value: "ALL", label: "All" },
+                    { value: "member", label: "Has account" },
+                    { value: "alerts", label: "Alerts only" },
+                  ],
+                },
+              ]}
+            />
             <div className="bg-white rounded-xl border border-border overflow-x-auto">
             <table className="w-full text-sm min-w-[640px]">
               <thead>
@@ -1092,13 +1298,15 @@ export function AdminClient({
                 </tr>
               </thead>
               <tbody>
-                {waitlist.length === 0 ? (
+                {filteredWaitlist.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-fg">
-                      No job board waitlist entries yet.
+                      {waitlist.length === 0
+                        ? "No job board waitlist entries yet."
+                        : "No waitlist entries match your filters."}
                     </td>
                   </tr>
-                ) : waitlist.map((w) => (
+                ) : filteredWaitlist.map((w) => (
                   <tr key={w.id} className="border-b border-border">
                     <td className="px-4 py-3">{w.email}</td>
                     <td className="px-4 py-3">{w.name || "-"}</td>

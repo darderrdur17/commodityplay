@@ -383,11 +383,9 @@ export function CareerRoadmapClient({
                 <h2 className="font-serif text-xl font-bold text-gray-900 mb-1">
                   {careerNavigationGuide?.label || "Download the Career Navigation Guide"}
                 </h2>
-                <p className="text-sm text-muted-fg">
-                  {careerNavigationGuide?.fileName
-                    ? careerNavigationGuide.fileName
-                    : "PDF deliverable — upload from Content CMS to enable download."}
-                </p>
+                {careerNavigationGuide?.fileName && (
+                  <p className="text-sm text-muted-fg">{careerNavigationGuide.fileName}</p>
+                )}
               </div>
               {careerNavigationGuide?.assetId ? (
                 <a
