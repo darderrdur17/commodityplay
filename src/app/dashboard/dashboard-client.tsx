@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import {
   BookOpen, Map, FileText, MessageSquare, BarChart3, Briefcase,
   Users, Lock, ArrowRight, TrendingUp, Award, ChevronRight,
-  CheckCircle, Shield, ExternalLink, Eye, Compass, NotebookPen, ScrollText,
+  CheckCircle, Shield, ExternalLink, Compass, NotebookPen, ScrollText,
   Calendar, Inbox, Clock, Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -118,6 +118,15 @@ const CONTENT_CARDS = [
     requiredTier: "PRO",
     color: "#3280ff",
     track: "Career",
+  },
+  {
+    slug: "career-navigation-guide",
+    icon: Compass,
+    title: "Career Navigation Guide",
+    requiredTier: "PRO",
+    color: "#3280ff",
+    track: "Career",
+    cardKind: "file" as const,
   },
   {
     slug: "interview-questions",
@@ -294,14 +303,6 @@ export function DashboardClient({
   const showCareerPrepLibrarySlot = isDashboardModuleVisible("Career", audience);
   const isStarter = effectiveTier === "STARTER";
   const isElite = hasAccess(effectiveTier, "ELITE");
-  const showCareerNavGuide =
-    hasAccess(effectiveTier, "PRO") &&
-    navigationGuides.career?.assetId &&
-    (isPreviewActive ? isCareerTrack : isAdminUser || isCareerTrack);
-  const showSalesNavGuide =
-    hasAccess(effectiveTier, "PRO") &&
-    navigationGuides.sales?.assetId &&
-    (isPreviewActive ? !isCareerTrack : isAdminUser || !isCareerTrack);
 
   const resourceCopyBySlug = Object.fromEntries(
     dashboardContent.resourceCards.map((c) => [c.slug, c.description])
@@ -377,6 +378,18 @@ export function DashboardClient({
       }
     }
     return card.href;
+  }
+
+  function resolveCareerFileCardHref(slug: string): string | null {
+    if (slug !== "career-navigation-guide") return null;
+    const asset = navigationGuides.career;
+    if (!asset?.assetId) return null;
+    return attachmentHref(`/api/content/assets/${asset.assetId}`, "download");
+  }
+
+  function isCareerFileCardReady(slug: string): boolean {
+    if (slug !== "career-navigation-guide") return true;
+    return Boolean(navigationGuides.career?.assetId);
   }
 
   function renderResourceCard({
@@ -768,80 +781,6 @@ export function DashboardClient({
         </Reveal>
       )}
 
-      {/* ── PRO PACK NAVIGATION GUIDES ── */}
-      {(showCareerNavGuide || showSalesNavGuide) && (
-        <Reveal className="mb-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {showCareerNavGuide && navigationGuides.career && (
-              <div className="rounded-xl border border-primary-line bg-primary-soft p-5 sm:p-6">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary-400/10 flex items-center justify-center flex-shrink-0">
-                    <Compass className="w-5 h-5 text-primary-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                      <Badge variant="pro" size="sm">Pro Pack</Badge>
-                      {shouldShowTrackBadge({
-                        trackLabel: "Career",
-                        memberTrack,
-                        isAdminUnfiltered,
-                      }) && <ModuleTrackBadge track="Career" />}
-                    </div>
-                    <h2 className="font-serif text-lg font-bold text-gray-900 mb-1">
-                      {navigationGuides.career.label}
-                    </h2>
-                    <p className="text-xs text-muted-fg mb-3 truncate">
-                      {navigationGuides.career.fileName}
-                    </p>
-                    <a
-                      href={attachmentHref(`/api/content/assets/${navigationGuides.career.assetId}`, "view-only")}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-primary-400 hover:text-primary-800"
-                    >
-                      <Eye className="w-4 h-4" /> View guide
-                    </a>
-                  </div>
-                </div>
-              </div>
-            )}
-            {showSalesNavGuide && navigationGuides.sales && (
-              <div className="rounded-xl border border-primary-line bg-primary-soft p-5 sm:p-6">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary-400/10 flex items-center justify-center flex-shrink-0">
-                    <Compass className="w-5 h-5 text-primary-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                      <Badge variant="pro" size="sm">Pro Pack</Badge>
-                      {shouldShowTrackBadge({
-                        trackLabel: "Sales",
-                        memberTrack,
-                        isAdminUnfiltered,
-                      }) && <ModuleTrackBadge track="Sales" />}
-                    </div>
-                    <h2 className="font-serif text-lg font-bold text-gray-900 mb-1">
-                      {navigationGuides.sales.label}
-                    </h2>
-                    <p className="text-xs text-muted-fg mb-3 truncate">
-                      {navigationGuides.sales.fileName}
-                    </p>
-                    <a
-                      href={attachmentHref(`/api/content/assets/${navigationGuides.sales.assetId}`, "view-only")}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-primary-400 hover:text-primary-800"
-                    >
-                      <Eye className="w-4 h-4" /> View guide
-                    </a>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </Reveal>
-      )}
-
       {/* ── CONTENT GRID ── */}
       <div className="mb-10">
         <Reveal className="flex items-center justify-between mb-5">
@@ -881,11 +820,23 @@ export function DashboardClient({
           {/* Tiered content — career Prep Library slots in after Pro cards, before Elite */}
           {visibleContentCards.map((card, i) => {
             const tier = (contentTiers[card.slug] || card.requiredTier) as "PRO" | "ELITE";
-            const unlocked = hasAccess(effectiveTier, tier);
+            const tierUnlocked = hasAccess(effectiveTier, tier);
+            const cardKind =
+              ("cardKind" in card ? card.cardKind : undefined) ??
+              DEFAULT_DASHBOARD_RESOURCE_CARDS.find((resource) => resource.slug === card.slug)?.cardKind ??
+              "page";
+            const isFileCard = cardKind === "file";
+            const fileReady = isFileCard ? isCareerFileCardReady(card.slug) : true;
+            const canOpen = tierUnlocked && fileReady;
+            const pendingLabel =
+              tierUnlocked && isFileCard && !fileReady ? "File coming soon" : undefined;
             const description =
               resourceCopyBySlug[card.slug] ??
               DEFAULT_MEMBER_DASHBOARD_CONTENT.resourceCards.find((c) => c.slug === card.slug)?.description ??
               "";
+            const href =
+              resolveCareerFileCardHref(card.slug) ??
+              ("href" in card ? card.href : undefined);
             const showCareerPrepLibrary =
               showCareerPrepLibrarySlot && i === firstEliteContentCardIndex;
 
@@ -909,14 +860,12 @@ export function DashboardClient({
                   icon: card.icon,
                   color: card.color,
                   tier,
-                  unlocked,
-                  href: "href" in card ? card.href : undefined,
+                  unlocked: canOpen,
+                  href,
                   delay: i * 0.05,
+                  pendingLabel,
                   trackLabel: card.track,
-                  cardKind:
-                    ("cardKind" in card ? card.cardKind : undefined) ??
-                    DEFAULT_DASHBOARD_RESOURCE_CARDS.find((resource) => resource.slug === card.slug)?.cardKind ??
-                    "page",
+                  cardKind,
                 })}
               </React.Fragment>
             );

@@ -83,6 +83,13 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
     track: "Career",
   },
   {
+    slug: "career-navigation-guide",
+    title: "Career Navigation Guide",
+    description: "PDF deliverable. Highlights that intrigue and interest us.",
+    track: "Career",
+    cardKind: "file",
+  },
+  {
     slug: "interview-questions",
     title: "Interview Questions",
     description:

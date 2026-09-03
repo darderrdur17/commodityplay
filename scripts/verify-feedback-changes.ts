@@ -198,6 +198,14 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       ?.cardKind === "file"
   );
   ok(
+    "Career Navigation Guide is a file download card",
+    DEFAULT_DASHBOARD_RESOURCE_CARDS.find((c) => c.slug === "career-navigation-guide")?.cardKind === "file"
+  );
+  ok(
+    "Career Navigation Guide is Career Pro track",
+    DEFAULT_DASHBOARD_RESOURCE_CARDS.find((c) => c.slug === "career-navigation-guide")?.track === "Career"
+  );
+  ok(
     "Mentor credits month is MTH YEAR",
     formatCreditMonthLabel(new Date(2026, 8, 1)) === "Sep 2026"
   );
