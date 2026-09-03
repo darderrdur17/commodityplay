@@ -29,6 +29,7 @@ export default async function JobOpeningsPage() {
       regions={jobs.regions}
       levels={jobs.levels}
       segments={jobs.segments}
+      hero={jobs.hero}
       requiredTier={requiredTier as "PRO" | "ELITE"}
     />
   );

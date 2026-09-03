@@ -5,6 +5,12 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Briefcase, Clock, Building2, Filter, MessageSquare } from "lucide-react";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
+import {
+  DEFAULT_JOB_OPENINGS_HERO,
+  jobOpeningsRegionCount,
+  renderJobOpeningsStatChip,
+  type JobOpeningsHero,
+} from "@/data/job-openings-content";
 import { TierGate } from "@/components/tier-gate";
 import { hasAccess } from "@/lib/utils";
 import { Reveal } from "@/components/animations";
@@ -19,6 +25,7 @@ interface Props {
   regions?: typeof JOB_REGIONS;
   levels?: typeof JOB_LEVELS;
   segments?: typeof JOB_SEGMENTS;
+  hero?: JobOpeningsHero;
   requiredTier?: "PRO" | "ELITE";
 }
 
@@ -28,6 +35,7 @@ export function JobOpeningsClient({
   regions = JOB_REGIONS,
   levels = JOB_LEVELS,
   segments = JOB_SEGMENTS,
+  hero = DEFAULT_JOB_OPENINGS_HERO,
   requiredTier = "ELITE",
 }: Props) {
   const [region, setRegion] = useState("All");
@@ -53,21 +61,21 @@ export function JobOpeningsClient({
         <Reveal className="relative z-10">
           <div className="pill pill-dark mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            Elite · Market Tracker
+            {hero.eyebrow}
           </div>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-3">
-            Market Job Openings
+            {hero.title}
           </h1>
-          <p className="text-white/65 text-base sm:text-lg max-w-xl">
-            Curated roles across commodity trading firms — updated weekly. Filter by region, level, and segment.
-          </p>
+          <p className="text-white/65 text-base sm:text-lg max-w-xl">{hero.description}</p>
           <div className="flex gap-3 mt-6 flex-wrap">
-            <div className="glass-card px-4 py-2 text-white text-sm font-semibold">
-              {jobs.length} active roles
-            </div>
-            <div className="glass-card px-4 py-2 text-white text-sm font-semibold">
-              {regions.filter((r) => r !== "All").length || regions.length} regions
-            </div>
+            {hero.statChips.map((chip) => (
+              <div key={chip} className="glass-card px-4 py-2 text-white text-sm font-semibold">
+                {renderJobOpeningsStatChip(chip, {
+                  jobCount: jobs.length,
+                  regionCount: jobOpeningsRegionCount(regions),
+                })}
+              </div>
+            ))}
           </div>
         </Reveal>
       </section>

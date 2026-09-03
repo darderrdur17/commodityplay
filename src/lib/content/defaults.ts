@@ -11,6 +11,10 @@ import { createDefaultKnowledgeTestPayload } from "@/lib/content/knowledge-test-
 import { buildDefaultCareerRoadmapPayload } from "@/lib/content/career-roadmap-payload";
 import { buildDefaultResumeAdminPayload } from "@/lib/content/resume-payload";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
+import {
+  DEFAULT_JOB_OPENINGS_HERO,
+  type JobOpeningsHero,
+} from "@/data/job-openings-content";
 import { DEFAULT_LANDING_CONTENT } from "@/data/landing-content";
 import { defaultCareerEdgeNote, defaultSalesEdgeNote } from "@/lib/content/edge-notes";
 import { DEFAULT_FAQ_CONTENT } from "@/data/faq";
@@ -60,6 +64,7 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
       return buildDefaultResumeAdminPayload();
     case "job-openings":
       return {
+        hero: DEFAULT_JOB_OPENINGS_HERO,
         jobs: JOB_OPENINGS,
         regions: JOB_REGIONS,
         levels: JOB_LEVELS,

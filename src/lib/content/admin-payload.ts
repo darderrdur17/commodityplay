@@ -63,6 +63,7 @@ export function resolveAdminModulePayload(slug: ContentSlug, payload: unknown): 
   if (slug === "job-openings") {
     if (Array.isArray(payload)) {
       return {
+        hero: defaults.hero,
         regions: defaults.regions,
         levels: defaults.levels,
         segments: defaults.segments,

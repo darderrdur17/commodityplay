@@ -48,8 +48,9 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
-const PUBLIC_PROFILE_HINT = "Shown publicly under your anonymous ID profile.";
-const INTERNAL_FIELD_HINT = "Kept internal — not shown on Mentor Connect.";
+function publicLabel(label: string) {
+  return `${label} *`;
+}
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -167,8 +168,9 @@ export default function MentorApplyPage() {
             </h1>
             <p className="text-white/65 text-lg max-w-2xl leading-relaxed">
               Fill in your details below. We will review your profile and once confirmed,
-              you&apos;ll receive an email to login account. Name, company, LinkedIn, and email
-              stay internal — other fields note when they appear on your public mentor profile.
+              you&apos;ll receive an email to login account. Fields marked with * are shown
+              publicly on Mentor Connect under your anonymous ID. Name, company, linkedin, and
+              email stay internal.
             </p>
           </Reveal>
         </div>
@@ -204,7 +206,6 @@ export default function MentorApplyPage() {
                 <Input
                   label="Full name"
                   placeholder="Alex Chen"
-                  hint={INTERNAL_FIELD_HINT}
                   error={errors.name?.message}
                   {...register("name")}
                 />
@@ -212,21 +213,18 @@ export default function MentorApplyPage() {
                   label="Email"
                   type="email"
                   placeholder="you@example.com"
-                  hint={INTERNAL_FIELD_HINT}
                   error={errors.email?.message}
                   {...register("email")}
                 />
                 <Input
                   label="LinkedIn profile"
                   placeholder="https://linkedin.com/in/yourprofile"
-                  hint={INTERNAL_FIELD_HINT}
                   error={errors.linkedIn?.message}
                   {...register("linkedIn")}
                 />
                 <Input
-                  label="Current location"
+                  label={publicLabel("Current location")}
                   placeholder="Singapore"
-                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.location?.message}
                   {...register("location")}
                 />
@@ -236,45 +234,39 @@ export default function MentorApplyPage() {
                 <Input
                   label="Company / Organisation"
                   placeholder="e.g. the entity name you are employed at"
-                  hint={INTERNAL_FIELD_HINT}
                   error={errors.company?.message}
                   {...register("company")}
                 />
                 <Input
-                  label="Current / most recent role"
+                  label={publicLabel("Current / most recent role")}
                   placeholder="e.g. Senior Crude Oil Trader"
-                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.role?.message}
                   {...register("role")}
                 />
                 <Input
-                  label="Years of experience"
+                  label={publicLabel("Years of experience")}
                   type="number"
                   min={0}
                   max={80}
                   placeholder="e.g. 12"
-                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.years?.message}
                   {...register("years")}
                 />
                 <Input
-                  label="Primary commodity / desk"
+                  label={publicLabel("Primary commodity / desk")}
                   placeholder="e.g. LNG, Power, Metals"
-                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.commodityDesk?.message}
                   {...register("commodityDesk")}
                 />
                 <Input
-                  label="Professional headline"
+                  label={publicLabel("Professional headline")}
                   placeholder="e.g. Crude Oil Trader — Ex-Supermajor"
-                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.headline?.message}
                   {...register("headline")}
                 />
                 <TextAreaField
-                  label="Tell us about your experience"
+                  label={publicLabel("Tell us about your experience")}
                   placeholder="Brief overview of your commodity trading background, desks you've worked on, and what you're best placed to mentor on..."
-                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.bio?.message}
                   {...register("bio")}
                 />
@@ -282,9 +274,8 @@ export default function MentorApplyPage() {
                 <SectionHeading>What can you mentor on?</SectionHeading>
 
                 <Input
-                  label="Mentorship subjects"
+                  label={publicLabel("Mentorship subjects")}
                   placeholder="e.g. Crude oil, Forward curves, Physical arbitrage"
-                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.tagsText?.message}
                   {...register("tagsText")}
                 />

@@ -20,6 +20,10 @@ import { INTERVIEW_QUESTIONS, INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/dat
 import { getActiveKnowledgeTestQuestions, getActiveKnowledgeTestSet } from "@/lib/content/knowledge-test-payload";
 import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-templates";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS, type JobOpening } from "@/data/job-openings";
+import {
+  DEFAULT_JOB_OPENINGS_HERO,
+  mergeJobOpeningsHero,
+} from "@/data/job-openings-content";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
 import { DEFAULT_MEMBER_DASHBOARD_CONTENT, type MemberDashboardContent } from "@/data/member-dashboard";
 import { normalizeMemberDashboardPayload } from "@/lib/content/member-dashboard-schema";
@@ -618,6 +622,7 @@ export async function getJobOpeningsData() {
     jobs = raw.length ? (raw as typeof JOB_OPENINGS) : JOB_OPENINGS;
   } else if (raw && typeof raw === "object") {
     const data = raw as {
+      hero?: Partial<typeof DEFAULT_JOB_OPENINGS_HERO>;
       jobs?: typeof JOB_OPENINGS;
       regions?: typeof JOB_REGIONS;
       levels?: typeof JOB_LEVELS;
@@ -629,13 +634,19 @@ export async function getJobOpeningsData() {
     segments = data.segments ?? JOB_SEGMENTS;
   }
 
+  const hero = mergeJobOpeningsHero(
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as { hero?: Partial<typeof DEFAULT_JOB_OPENINGS_HERO> }).hero
+      : undefined
+  );
+
   const defaultById = new Map(JOB_OPENINGS.map((job) => [job.id, job]));
   const defaultByTitleCompany = new Map(JOB_OPENINGS.map((job) => [jobHirerKey(job), job]));
   jobs = jobs.map((job) =>
     withHirerFallback(job, defaultById.get(job.id) ?? defaultByTitleCompany.get(jobHirerKey(job)))
   );
 
-  return { jobs, regions, levels, segments };
+  return { jobs, regions, levels, segments, hero };
 }
 
 export async function getContentTierForSlug(slug: string) {
