@@ -1,17 +1,13 @@
 "use client";
 
 import React from "react";
-import { SingleGuideUpload, type GuideAttachment } from "./single-guide-upload";
-
-type Payload = {
-  salesNavigationGuide?: GuideAttachment | null;
-  [key: string]: unknown;
-};
+import { DEFAULT_MEMBER_DASHBOARD_CONTENT } from "@/data/member-dashboard";
+import { normalizeMemberDashboardPayload } from "@/lib/content/member-dashboard-schema";
+import { SingleGuideUpload } from "./single-guide-upload";
 
 export function SalesNavigationGuideEditor({
   payload,
   onChange,
-  moduleSlug,
   requiredTier,
 }: {
   payload: unknown;
@@ -19,21 +15,26 @@ export function SalesNavigationGuideEditor({
   moduleSlug: string;
   requiredTier: string;
 }) {
-  const raw = (payload as Payload) ?? {};
+  const content = normalizeMemberDashboardPayload(payload ?? DEFAULT_MEMBER_DASHBOARD_CONTENT);
 
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-fg">
-        Pro Pack deliverable shown on the member dashboard for <strong>Sales track</strong> Pro and
-        Elite members. View-only PDF — not the same as the free footer Sales Guide.
+        Sales Pro / Elite dashboard card — <strong>Industry Guide for Sales</strong>. PDF download only;
+        this is not an in-app article and is stored on the member dashboard module (not Career Roadmap).
       </p>
       <SingleGuideUpload
-        guide={raw.salesNavigationGuide ?? null}
-        onChange={(g) => onChange({ ...raw, salesNavigationGuide: g })}
-        moduleSlug={moduleSlug}
+        guide={content.salesDeliverables.industryGuideForSales}
+        onChange={(g) =>
+          onChange({
+            ...content,
+            salesDeliverables: { ...content.salesDeliverables, industryGuideForSales: g },
+          })
+        }
+        moduleSlug="member-dashboard"
         requiredTier={requiredTier}
-        assetKey="career-roadmap/sales-navigation-guide"
-        defaultLabel="Sales Navigation Guide"
+        assetKey="member-dashboard/industry-guide-for-sales"
+        defaultLabel="Industry Guide for Sales"
       />
     </div>
   );

@@ -6,8 +6,15 @@ export function getCurrentMonthStart(): Date {
   return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
 }
 
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+
+/** Shared "MTH YEAR" label, e.g. "Sep 2026". */
+export function formatMonthYear(date = new Date()): string {
+  return `${SHORT_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+}
+
 export function formatCreditMonthLabel(date = new Date()): string {
-  return date.toLocaleDateString("en-SG", { month: "long", year: "numeric" });
+  return formatMonthYear(date);
 }
 
 export interface MentorCreditUsage {

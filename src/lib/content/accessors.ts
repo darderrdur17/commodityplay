@@ -18,7 +18,6 @@ import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
 import { GLOSSARY_TERMS } from "@/data/glossary";
 import { INTERVIEW_QUESTIONS, INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/data/interview-questions";
 import { getActiveKnowledgeTestQuestions, getActiveKnowledgeTestSet } from "@/lib/content/knowledge-test-payload";
-import { CAREER_ROLES } from "@/data/career-roadmap";
 import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-templates";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS, type JobOpening } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT, type LandingContent } from "@/data/landing-content";
@@ -138,10 +137,24 @@ export async function getMentorConnectHowItWorks(): Promise<MentorConnectHowItWo
 
 export async function getMemberDashboardContent(): Promise<MemberDashboardContent> {
   const cms = await tryReadPublishedPayload<Partial<MemberDashboardContent>>("member-dashboard");
-  if (cms === null) {
-    return DEFAULT_MEMBER_DASHBOARD_CONTENT;
+  const content =
+    cms === null
+      ? DEFAULT_MEMBER_DASHBOARD_CONTENT
+      : normalizeMemberDashboardPayload(cms);
+
+  if (!content.salesDeliverables.industryGuideForSales?.assetId) {
+    const guides = await getNavigationGuides();
+    if (guides.sales) {
+      return {
+        ...content,
+        salesDeliverables: {
+          ...content.salesDeliverables,
+          industryGuideForSales: guides.sales,
+        },
+      };
+    }
   }
-  return normalizeMemberDashboardPayload(cms);
+  return content;
 }
 
 export async function getSalesMarketNudgesContent(): Promise<SalesMarketNudgesContent> {
@@ -544,26 +557,9 @@ export async function getKnowledgeTestPageData() {
 }
 
 export async function getCareerRoles() {
-  const data = await getPublishedPayload<{
-    roles: typeof CAREER_ROLES;
-    functionMatrix?: typeof import("@/data/career-roadmap-extras").FUNCTION_MATRIX;
-    timeline12Month?: typeof import("@/data/career-roadmap-extras").TIMELINE_12_MONTH;
-    navigationGuide?: typeof import("@/data/career-roadmap-extras").NAVIGATION_GUIDE;
-    compBenchmarks?: typeof import("@/data/career-roadmap-extras").COMP_BENCHMARKS;
-  }>("career-roadmap");
-  const {
-    FUNCTION_MATRIX,
-    TIMELINE_12_MONTH,
-    NAVIGATION_GUIDE,
-    COMP_BENCHMARKS,
-  } = await import("@/data/career-roadmap-extras");
-  return {
-    roles: data.roles ?? CAREER_ROLES,
-    functionMatrix: data.functionMatrix ?? FUNCTION_MATRIX,
-    timeline12Month: data.timeline12Month ?? TIMELINE_12_MONTH,
-    navigationGuide: data.navigationGuide ?? NAVIGATION_GUIDE,
-    compBenchmarks: data.compBenchmarks ?? COMP_BENCHMARKS,
-  };
+  const data = await getPublishedPayload<Record<string, unknown>>("career-roadmap");
+  const { resolveCareerRoadmapPayload } = await import("./career-roadmap-payload");
+  return resolveCareerRoadmapPayload(data);
 }
 
 export async function getResumeTemplatesData() {
@@ -576,7 +572,9 @@ export async function getResumeTemplatesData() {
   const {
     adminQuizToQuizSteps,
     adminTemplatesToPublic,
+    resolvePublicResumePageCopy,
   } = await import("./resume-payload");
+  const pageCopy = resolvePublicResumePageCopy(data);
   return {
     templates: adminTemplatesToPublic(data.templates),
     quiz: data.quiz ?? PERSONA_QUIZ_QUESTIONS,
@@ -586,6 +584,7 @@ export async function getResumeTemplatesData() {
         : adminQuizToQuizSteps(data.quiz),
     industryMap: mergeIndustryMap(INDUSTRY_MAP, data.industryMap),
     vettingSection: mergeResumeVettingSection(data.vettingSection),
+    ...pageCopy,
   };
 }
 

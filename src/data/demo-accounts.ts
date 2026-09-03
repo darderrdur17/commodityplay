@@ -76,7 +76,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     persona: "VENDOR",
     mentorCredits: 0,
     resumeCredits: 0,
-    description: "Sales track Starter — glossary, starter pack, and sales dashboard (Career playbook is Career-only).",
+    description: "Sales track Starter — glossary, starter pack, and sales dashboard (Full Playbook unlocks at Pro).",
     emoji: "🤝",
     redirectTo: "/dashboard",
   },

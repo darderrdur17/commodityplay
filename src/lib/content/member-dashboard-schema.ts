@@ -82,6 +82,7 @@ function mergeResourceCards(
       title: saved.title?.trim() || def.title,
       description: saved.description.trim(),
       track: def.track,
+      cardKind: def.cardKind,
     };
   });
 }
@@ -104,6 +105,7 @@ function mergeSalesResourceCards(
       requiredTier: def.requiredTier,
       deliverableKey: saved.deliverableKey ?? def.deliverableKey,
       track: def.track,
+      cardKind: def.cardKind,
     };
   });
 }

@@ -13,6 +13,7 @@ import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
 import { PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import { mergeStarterEmailDigest, splitLegacyDigestTopicLine } from "../src/data/starter-pack";
 import { isDashboardModuleVisible, memberMayAccessCareerPlaybook } from "../src/lib/dashboard-module-visibility";
+import { formatCreditMonthLabel } from "../src/lib/mentor-credits";
 import {
   DEFAULT_DASHBOARD_RESOURCE_CARDS,
   DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS,
@@ -184,9 +185,28 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
 // ── Dashboard module track mapping ──────────────────────────────────────────
 {
   const careerOnly = DEFAULT_DASHBOARD_RESOURCE_CARDS.filter((c) => c.track === "Career").map((c) => c.slug);
-  ok("Playbook is Career-only", careerOnly.includes("playbook"));
+  const playbookCard = DEFAULT_DASHBOARD_RESOURCE_CARDS.find((c) => c.slug === "playbook");
+  const briefCard = DEFAULT_DASHBOARD_RESOURCE_CARDS.find((c) => c.slug === "career-intelligence-brief");
+  ok("Playbook is Both-track", playbookCard?.track === "Both");
   ok(
-    "Sales Pro cannot see Career playbook card",
+    "Career Intelligence Brief is an email digest (no file)",
+    briefCard?.cardKind === "email-digest"
+  );
+  ok(
+    "Industry Guide for Sales is a file download card",
+    DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS.find((c) => c.slug === "industry-guide-for-sales")
+      ?.cardKind === "file"
+  );
+  ok(
+    "Mentor credits month is MTH YEAR",
+    formatCreditMonthLabel(new Date(2026, 8, 1)) === "Sep 2026"
+  );
+  ok(
+    "Career Intelligence Brief is Career Pro+ (no Sales)",
+    briefCard?.track === "Career" && !careerOnly.includes("playbook")
+  );
+  ok(
+    "Sales Pro cannot see Career-only cards",
     !isDashboardModuleVisible("Career", "SALES") && isDashboardModuleVisible("Career", "CAREER")
   );
   ok("Sales sees Both modules", isDashboardModuleVisible("Both", "SALES"));
@@ -208,11 +228,11 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     ok(`Both card ${slug} visible to Sales`, isDashboardModuleVisible("Both", "SALES"));
     ok(`Both card ${slug} visible to Career`, isDashboardModuleVisible("Both", "CAREER"));
   }
-  ok("Admin ALL sees Career playbook", isDashboardModuleVisible("Career", "ALL"));
+  ok("Admin ALL sees Career-only cards", isDashboardModuleVisible("Career", "ALL"));
   ok("Admin ALL sees Sales tools", isDashboardModuleVisible("Sales", "ALL"));
   ok(
-    "Sales member cannot open playbook A–E",
-    !memberMayAccessCareerPlaybook({ track: "SALES", role: "USER" })
+    "Sales member can open Both-track playbook",
+    memberMayAccessCareerPlaybook({ track: "SALES", role: "USER" })
   );
   ok(
     "Career member can open playbook A–E",
@@ -221,6 +241,15 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Admin can open playbook even on Sales track",
     memberMayAccessCareerPlaybook({ track: "SALES", role: "ADMIN" })
+  );
+}
+
+// ── Mentor credits month label ─────────────────────────────────────────────
+{
+  const label = formatCreditMonthLabel(new Date(2026, 8, 1));
+  ok(
+    "Mentor credits month is abbreviated (Sep 2026)",
+    label === "Sep 2026"
   );
 }
 

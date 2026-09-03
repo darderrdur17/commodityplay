@@ -51,7 +51,7 @@ export function shouldShowTrackBadge(opts: {
   return false;
 }
 
-/** Sales members cannot open Career-only playbook routes. Admins still can. */
+/** Full Playbook is Both-track — Career and Sales members can open playbook routes. */
 export function memberMayAccessCareerPlaybook(opts: {
   track: string;
   role?: string | null;
@@ -62,5 +62,5 @@ export function memberMayAccessCareerPlaybook(opts: {
       : opts.track.toUpperCase() === "SALES"
         ? "SALES"
         : "CAREER";
-  return isDashboardModuleVisible("Career", audience);
+  return isDashboardModuleVisible("Both", audience);
 }

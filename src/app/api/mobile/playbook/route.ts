@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const user = await getMobileUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!memberMayAccessCareerPlaybook({ track: user.track, role: user.role })) {
-    return NextResponse.json({ error: "Playbook is Career track only" }, { status: 403 });
+    return NextResponse.json({ error: "Playbook is not available for this account" }, { status: 403 });
   }
 
   const requiredTier = await getContentTierForSlug("playbook");

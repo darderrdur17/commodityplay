@@ -1182,7 +1182,7 @@ export function PrepLibraryBody({
               />
             </div>
 
-            <div className="rounded-xl border-2 border-dashed border-primary-200 bg-primary-50/10 p-5 sm:p-6 shadow-sm">
+            <div className="rounded-xl border-2 border-dashed border-primary-400 bg-primary-soft p-5 sm:p-6 shadow-sm">
               {careerAddTopicForm}
             </div>
 

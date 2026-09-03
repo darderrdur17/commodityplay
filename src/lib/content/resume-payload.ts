@@ -2,12 +2,141 @@ import { PERSONA_ARCHETYPES } from "@/data/persona-archetypes";
 import {
   INDUSTRY_MAP,
   PERSONA_QUIZ_STEPS,
+  POSITIONING_PRINCIPLE,
   RESUME_TEMPLATES,
   RESUME_VETTING_SECTION,
+  TEMPLATE_CARD_DETAILS,
   mergeResumeVettingSection,
   type PersonaQuizStep,
   type ResumeTemplate,
+  type TemplateCardDetails,
 } from "@/data/resume-templates";
+
+export interface ResumePageHero {
+  eyebrow: string;
+  title: string;
+  titleAccent: string;
+  description: string;
+  stats: { num: string; label: string }[];
+}
+
+export interface ResumeSectionCopy {
+  eyebrow: string;
+  title: string;
+  description: string;
+}
+
+export interface ResumeQuizSectionCopy extends ResumeSectionCopy {
+  finderTitle: string;
+  finderSub: string;
+}
+
+export const DEFAULT_RESUME_PAGE_HERO: ResumePageHero = {
+  eyebrow: "Pro Pack · Resume Templates",
+  title: "Your Resume,",
+  titleAccent: "Positioned Right.",
+  description:
+    "Five archetype-specific templates built for how the commodity trading industry actually reads a CV. Take the quiz to find your archetype — then download the template built for your exact positioning challenge.",
+  stats: [
+    { num: "5", label: "Archetypes covered" },
+    { num: "Word", label: "Download-ready .docx" },
+    { num: "Free", label: "Resume vetting with Pro" },
+  ],
+};
+
+export const DEFAULT_RESUME_QUIZ_SECTION: ResumeQuizSectionCopy = {
+  eyebrow: "Step 1",
+  title: "Find Your Archetype",
+  description:
+    "Five questions. Tells you exactly which template fits your background — and what your specific positioning challenge is.",
+  finderTitle: "Archetype Finder",
+  finderSub: "5 questions · 2 minutes · Instant result",
+};
+
+export const DEFAULT_RESUME_INDUSTRY_MAP_SECTION: ResumeSectionCopy = {
+  eyebrow: "Step 2 — Understand the Landscape",
+  title: "Where Does Your Role Sit?",
+  description:
+    "Commodity trading is not one function — it is a set of closely connected roles across six zones. Understanding where you sit shapes how your resume must be written.",
+};
+
+export const DEFAULT_RESUME_TEMPLATES_SECTION: ResumeSectionCopy = {
+  eyebrow: "Step 3 — Download Your Template",
+  title: "The 5 Archetype Templates",
+  description:
+    "Each template is built for a specific positioning challenge — not a generic CV layout. Download the one that matches your archetype.",
+};
+
+function mergePageHero(
+  cms: Partial<ResumePageHero> | null | undefined,
+  defaults: ResumePageHero = DEFAULT_RESUME_PAGE_HERO
+): ResumePageHero {
+  const raw = cms ?? {};
+  return {
+    eyebrow: raw.eyebrow?.trim() || defaults.eyebrow,
+    title: raw.title?.trim() || defaults.title,
+    titleAccent: raw.titleAccent?.trim() || defaults.titleAccent,
+    description: raw.description?.trim() || defaults.description,
+    stats: raw.stats?.length ? raw.stats : defaults.stats,
+  };
+}
+
+function mergeSectionCopy(
+  cms: Partial<ResumeSectionCopy> | null | undefined,
+  defaults: ResumeSectionCopy
+): ResumeSectionCopy {
+  const raw = cms ?? {};
+  return {
+    eyebrow: raw.eyebrow?.trim() || defaults.eyebrow,
+    title: raw.title?.trim() || defaults.title,
+    description: raw.description?.trim() || defaults.description,
+  };
+}
+
+function mergeQuizSection(
+  cms: Partial<ResumeQuizSectionCopy> | null | undefined
+): ResumeQuizSectionCopy {
+  const raw = cms ?? {};
+  const base = mergeSectionCopy(raw, DEFAULT_RESUME_QUIZ_SECTION);
+  return {
+    ...base,
+    finderTitle: raw.finderTitle?.trim() || DEFAULT_RESUME_QUIZ_SECTION.finderTitle,
+    finderSub: raw.finderSub?.trim() || DEFAULT_RESUME_QUIZ_SECTION.finderSub,
+  };
+}
+
+function mergePositioningPrinciple(
+  cms: Partial<{ title: string; body: string }> | null | undefined
+): { title: string; body: string } {
+  const raw = cms ?? {};
+  return {
+    title: raw.title?.trim() || POSITIONING_PRINCIPLE.title,
+    body: raw.body?.trim() || POSITIONING_PRINCIPLE.body,
+  };
+}
+
+function mergeTemplateCardDetails(
+  cms: Record<string, Partial<TemplateCardDetails>> | null | undefined
+): Record<string, TemplateCardDetails> {
+  const next: Record<string, TemplateCardDetails> = { ...TEMPLATE_CARD_DETAILS };
+  if (!cms) return next;
+  for (const [id, patch] of Object.entries(cms)) {
+    const base = next[id];
+    if (!base) {
+      if (patch.title && patch.whoThisIsFor && patch.highlights && patch.previewTagline && patch.previewSections) {
+        next[id] = patch as TemplateCardDetails;
+      }
+      continue;
+    }
+    next[id] = {
+      ...base,
+      ...patch,
+      highlights: patch.highlights?.length ? patch.highlights : base.highlights,
+      previewSections: patch.previewSections?.length ? patch.previewSections : base.previewSections,
+    };
+  }
+  return next;
+}
 
 /** Admin editor — persona type row */
 export interface ResumeAdminPersona {
@@ -52,6 +181,12 @@ export interface ResumeAdminPayload {
   /** @deprecated Legacy CMS key — use vettingSection */
   vetting?: Partial<typeof RESUME_VETTING_SECTION>;
   industryMap?: typeof INDUSTRY_MAP;
+  pageHero?: Partial<ResumePageHero>;
+  quizSection?: Partial<ResumeQuizSectionCopy>;
+  industryMapSection?: Partial<ResumeSectionCopy>;
+  templatesSection?: Partial<ResumeSectionCopy>;
+  positioningPrinciple?: Partial<{ title: string; body: string }>;
+  templateCardDetails?: Record<string, Partial<TemplateCardDetails>>;
 }
 
 /** Seed admin tabs from live resume page content (archetypes, quiz, templates, vetting). */
@@ -90,6 +225,12 @@ export function buildDefaultResumeAdminPayload(): ResumeAdminPayload {
     templates,
     industryMap: INDUSTRY_MAP,
     vettingSection: RESUME_VETTING_SECTION,
+    pageHero: DEFAULT_RESUME_PAGE_HERO,
+    quizSection: DEFAULT_RESUME_QUIZ_SECTION,
+    industryMapSection: DEFAULT_RESUME_INDUSTRY_MAP_SECTION,
+    templatesSection: DEFAULT_RESUME_TEMPLATES_SECTION,
+    positioningPrinciple: POSITIONING_PRINCIPLE,
+    templateCardDetails: TEMPLATE_CARD_DETAILS,
   };
 }
 
@@ -179,5 +320,22 @@ export function resolveEditorResumePayload(payload: unknown): ResumeAdminPayload
     templates,
     industryMap: stored.industryMap?.length ? stored.industryMap : seeded.industryMap,
     vettingSection: mergeResumeVettingSection(stored.vettingSection ?? stored.vetting),
+    pageHero: mergePageHero(stored.pageHero),
+    quizSection: mergeQuizSection(stored.quizSection),
+    industryMapSection: mergeSectionCopy(stored.industryMapSection, DEFAULT_RESUME_INDUSTRY_MAP_SECTION),
+    templatesSection: mergeSectionCopy(stored.templatesSection, DEFAULT_RESUME_TEMPLATES_SECTION),
+    positioningPrinciple: mergePositioningPrinciple(stored.positioningPrinciple),
+    templateCardDetails: mergeTemplateCardDetails(stored.templateCardDetails),
+  };
+}
+
+export function resolvePublicResumePageCopy(payload: ResumeAdminPayload) {
+  return {
+    pageHero: mergePageHero(payload.pageHero),
+    quizSection: mergeQuizSection(payload.quizSection),
+    industryMapSection: mergeSectionCopy(payload.industryMapSection, DEFAULT_RESUME_INDUSTRY_MAP_SECTION),
+    templatesSection: mergeSectionCopy(payload.templatesSection, DEFAULT_RESUME_TEMPLATES_SECTION),
+    positioningPrinciple: mergePositioningPrinciple(payload.positioningPrinciple),
+    templateCardDetails: mergeTemplateCardDetails(payload.templateCardDetails),
   };
 }

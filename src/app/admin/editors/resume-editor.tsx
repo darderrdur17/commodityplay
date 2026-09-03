@@ -8,7 +8,17 @@ import {
   mergeResumeVettingSection,
   type ResumeVettingSection,
 } from "@/data/resume-templates";
-import { resolveEditorResumePayload } from "@/lib/content/resume-payload";
+import {
+  DEFAULT_RESUME_INDUSTRY_MAP_SECTION,
+  DEFAULT_RESUME_PAGE_HERO,
+  DEFAULT_RESUME_QUIZ_SECTION,
+  DEFAULT_RESUME_TEMPLATES_SECTION,
+  resolveEditorResumePayload,
+  type ResumePageHero,
+  type ResumeQuizSectionCopy,
+  type ResumeSectionCopy,
+} from "@/lib/content/resume-payload";
+import { POSITIONING_PRINCIPLE, TEMPLATE_CARD_DETAILS, INDUSTRY_MAP, type IndustryMapZone, type TemplateCardDetails } from "@/data/resume-templates";
 import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -48,6 +58,13 @@ interface ResumePayload {
   vettingSection?: Partial<ResumeVettingSection>;
   /** @deprecated Legacy vetting config — merged into vettingSection on read */
   vetting?: Partial<ResumeVettingSection>;
+  pageHero?: Partial<ResumePageHero>;
+  quizSection?: Partial<ResumeQuizSectionCopy>;
+  industryMapSection?: Partial<ResumeSectionCopy>;
+  templatesSection?: Partial<ResumeSectionCopy>;
+  positioningPrinciple?: Partial<{ title: string; body: string }>;
+  templateCardDetails?: Record<string, Partial<TemplateCardDetails>>;
+  industryMap?: IndustryMapZone[];
 }
 
 // ─── Sub-editors ─────────────────────────────────────────────────────────────
@@ -309,12 +326,191 @@ function ResumeVettingTab({ data, onChange }: { data: ResumePayload; onChange: (
   );
 }
 
+function ResumeHeroTab({ data, onChange }: { data: ResumePayload; onChange: (d: ResumePayload) => void }) {
+  const hero: ResumePageHero = {
+    ...DEFAULT_RESUME_PAGE_HERO,
+    ...(data.pageHero ?? {}),
+    stats: data.pageHero?.stats?.length ? data.pageHero.stats : DEFAULT_RESUME_PAGE_HERO.stats,
+  };
+
+  function patch(updates: Partial<ResumePageHero>) {
+    onChange({ ...data, pageHero: { ...hero, ...updates } });
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-fg">Blue strip at the top of <strong>/resume-templates</strong>.</p>
+      <EditorField label="Eyebrow">
+        <input className={inputClass} value={hero.eyebrow} onChange={(e) => patch({ eyebrow: e.target.value })} />
+      </EditorField>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <EditorField label="Title">
+          <input className={inputClass} value={hero.title} onChange={(e) => patch({ title: e.target.value })} />
+        </EditorField>
+        <EditorField label="Title accent (italic)">
+          <input className={inputClass} value={hero.titleAccent} onChange={(e) => patch({ titleAccent: e.target.value })} />
+        </EditorField>
+      </div>
+      <EditorField label="Description">
+        <textarea className={textareaClass} value={hero.description} onChange={(e) => patch({ description: e.target.value })} />
+      </EditorField>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-gray-700">Stat cards</p>
+          <Button variant="outline" size="sm" onClick={() => patch({ stats: [...hero.stats, { num: "", label: "" }] })}>
+            <Plus className="w-3.5 h-3.5" /> Add stat
+          </Button>
+        </div>
+        {hero.stats.map((stat, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input className={cn(inputClass, "w-28")} value={stat.num} onChange={(e) => {
+              const stats = [...hero.stats];
+              stats[i] = { ...stat, num: e.target.value };
+              patch({ stats });
+            }} />
+            <input className={inputClass} value={stat.label} onChange={(e) => {
+              const stats = [...hero.stats];
+              stats[i] = { ...stat, label: e.target.value };
+              patch({ stats });
+            }} />
+            <button type="button" onClick={() => patch({ stats: hero.stats.filter((_, j) => j !== i) })} className="text-red-400 hover:text-red-600 p-1">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ResumeSectionsTab({ data, onChange }: { data: ResumePayload; onChange: (d: ResumePayload) => void }) {
+  const quiz: ResumeQuizSectionCopy = { ...DEFAULT_RESUME_QUIZ_SECTION, ...data.quizSection };
+  const map: ResumeSectionCopy = { ...DEFAULT_RESUME_INDUSTRY_MAP_SECTION, ...data.industryMapSection };
+  const templates: ResumeSectionCopy = { ...DEFAULT_RESUME_TEMPLATES_SECTION, ...data.templatesSection };
+  const principle = { ...POSITIONING_PRINCIPLE, ...data.positioningPrinciple };
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-gray-700">Quiz section</p>
+        <EditorField label="Eyebrow"><input className={inputClass} value={quiz.eyebrow} onChange={(e) => onChange({ ...data, quizSection: { ...quiz, eyebrow: e.target.value } })} /></EditorField>
+        <EditorField label="Title"><input className={inputClass} value={quiz.title} onChange={(e) => onChange({ ...data, quizSection: { ...quiz, title: e.target.value } })} /></EditorField>
+        <EditorField label="Description"><textarea className={textareaClass} value={quiz.description} onChange={(e) => onChange({ ...data, quizSection: { ...quiz, description: e.target.value } })} /></EditorField>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <EditorField label="Finder title"><input className={inputClass} value={quiz.finderTitle} onChange={(e) => onChange({ ...data, quizSection: { ...quiz, finderTitle: e.target.value } })} /></EditorField>
+          <EditorField label="Finder subtitle"><input className={inputClass} value={quiz.finderSub} onChange={(e) => onChange({ ...data, quizSection: { ...quiz, finderSub: e.target.value } })} /></EditorField>
+        </div>
+      </div>
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-gray-700">Industry map section</p>
+        <EditorField label="Eyebrow"><input className={inputClass} value={map.eyebrow} onChange={(e) => onChange({ ...data, industryMapSection: { ...map, eyebrow: e.target.value } })} /></EditorField>
+        <EditorField label="Title"><input className={inputClass} value={map.title} onChange={(e) => onChange({ ...data, industryMapSection: { ...map, title: e.target.value } })} /></EditorField>
+        <EditorField label="Description"><textarea className={textareaClass} value={map.description} onChange={(e) => onChange({ ...data, industryMapSection: { ...map, description: e.target.value } })} /></EditorField>
+      </div>
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-gray-700">Templates section</p>
+        <EditorField label="Eyebrow"><input className={inputClass} value={templates.eyebrow} onChange={(e) => onChange({ ...data, templatesSection: { ...templates, eyebrow: e.target.value } })} /></EditorField>
+        <EditorField label="Title"><input className={inputClass} value={templates.title} onChange={(e) => onChange({ ...data, templatesSection: { ...templates, title: e.target.value } })} /></EditorField>
+        <EditorField label="Description"><textarea className={textareaClass} value={templates.description} onChange={(e) => onChange({ ...data, templatesSection: { ...templates, description: e.target.value } })} /></EditorField>
+      </div>
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-gray-700">Positioning principle</p>
+        <EditorField label="Title"><input className={inputClass} value={principle.title} onChange={(e) => onChange({ ...data, positioningPrinciple: { ...principle, title: e.target.value } })} /></EditorField>
+        <EditorField label="Body"><textarea className={textareaClass} value={principle.body} onChange={(e) => onChange({ ...data, positioningPrinciple: { ...principle, body: e.target.value } })} /></EditorField>
+      </div>
+    </div>
+  );
+}
+
+function ResumeIndustryMapTab({ data, onChange }: { data: ResumePayload; onChange: (d: ResumePayload) => void }) {
+  const zones: IndustryMapZone[] = data.industryMap?.length ? data.industryMap : INDUSTRY_MAP;
+
+  function patch(i: number, zone: IndustryMapZone) {
+    const next = [...zones];
+    next[i] = zone;
+    onChange({ ...data, industryMap: next });
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-fg">{zones.length} zones</p>
+        <Button variant="outline" size="sm" onClick={() => onChange({ ...data, industryMap: [...zones, { zone: "", title: "", color: "#0830a0", roles: [] }] })}>
+          <Plus className="w-3.5 h-3.5" /> Add zone
+        </Button>
+      </div>
+      {zones.map((zone, i) => (
+        <EditorRow key={`${zone.zone}-${i}`} summary={<span className="font-medium">{zone.title || zone.zone || "(untitled zone)"}</span>} onDelete={() => onChange({ ...data, industryMap: zones.filter((_, j) => j !== i) })}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <EditorField label="Zone id"><input className={inputClass} value={zone.zone} onChange={(e) => patch(i, { ...zone, zone: e.target.value })} /></EditorField>
+            <EditorField label="Title"><input className={inputClass} value={zone.title} onChange={(e) => patch(i, { ...zone, title: e.target.value })} /></EditorField>
+            <EditorField label="Color"><input className={inputClass} value={zone.color} onChange={(e) => patch(i, { ...zone, color: e.target.value })} /></EditorField>
+          </div>
+          <EditorField label="Roles" hint="One per line. Optional tag after | e.g. Scheduler | Ops">
+            <textarea
+              className={textareaClass}
+              value={zone.roles.map((r) => (r.tag ? `${r.name} | ${r.tag}` : r.name)).join("\n")}
+              onChange={(e) =>
+                patch(i, {
+                  ...zone,
+                  roles: e.target.value.split("\n").filter(Boolean).map((line) => {
+                    const [name, tag] = line.split("|").map((s) => s.trim());
+                    return { name, ...(tag ? { tag } : {}) };
+                  }),
+                })
+              }
+            />
+          </EditorField>
+        </EditorRow>
+      ))}
+    </div>
+  );
+}
+
+function ResumeTemplateCardsTab({ data, onChange }: { data: ResumePayload; onChange: (d: ResumePayload) => void }) {
+  const cards = { ...TEMPLATE_CARD_DETAILS, ...data.templateCardDetails };
+  const ids = Object.keys(cards);
+
+  function patch(id: string, updates: Partial<TemplateCardDetails>) {
+    onChange({
+      ...data,
+      templateCardDetails: {
+        ...cards,
+        [id]: { ...cards[id], ...updates },
+      },
+    });
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-fg">Card copy on the public resume page — who it is for, highlights, and preview tagline.</p>
+      {ids.map((id) => {
+        const card = cards[id];
+        return (
+          <EditorRow key={id} summary={<span className="font-medium">{card.title || id}</span>}>
+            <EditorField label="Title"><input className={inputClass} value={card.title} onChange={(e) => patch(id, { title: e.target.value })} /></EditorField>
+            <EditorField label="Who this is for"><textarea className={textareaClass} value={card.whoThisIsFor} onChange={(e) => patch(id, { whoThisIsFor: e.target.value })} /></EditorField>
+            <EditorField label="Highlights" hint="One per line">
+              <textarea className={textareaClass} value={(card.highlights ?? []).join("\n")} onChange={(e) => patch(id, { highlights: e.target.value.split("\n").filter(Boolean) })} />
+            </EditorField>
+            <EditorField label="Preview tagline"><input className={inputClass} value={card.previewTagline} onChange={(e) => patch(id, { previewTagline: e.target.value })} /></EditorField>
+          </EditorRow>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Main editor ─────────────────────────────────────────────────────────────
 
 const TABS = [
+  { id: "hero", label: "Top blue strip" },
   { id: "personas", label: "Persona Types" },
   { id: "quiz", label: "Persona Quiz" },
+  { id: "sections", label: "Page sections" },
+  { id: "industry", label: "Industry map" },
   { id: "templates", label: "Resume Templates" },
+  { id: "cards", label: "Template cards" },
   { id: "vetting", label: "Resume Vetting" },
 ] as const;
 
@@ -367,9 +563,13 @@ export function ResumeEditor({
         ))}
       </div>
 
+      {activeTab === "hero" && <ResumeHeroTab data={data} onChange={handleChange} />}
       {activeTab === "personas" && <PersonaTypesTab data={data} onChange={handleChange} />}
       {activeTab === "quiz" && <PersonaQuizTab data={data} onChange={handleChange} />}
+      {activeTab === "sections" && <ResumeSectionsTab data={data} onChange={handleChange} />}
+      {activeTab === "industry" && <ResumeIndustryMapTab data={data} onChange={handleChange} />}
       {activeTab === "templates" && <ResumeTemplatesTab data={data} onChange={handleChange} moduleSlug={moduleSlug} requiredTier={requiredTier} />}
+      {activeTab === "cards" && <ResumeTemplateCardsTab data={data} onChange={handleChange} />}
       {activeTab === "vetting" && <ResumeVettingTab data={data} onChange={handleChange} />}
     </div>
   );

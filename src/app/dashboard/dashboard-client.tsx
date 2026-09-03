@@ -8,7 +8,7 @@ import {
   BookOpen, Map, FileText, MessageSquare, BarChart3, Briefcase,
   Users, Lock, ArrowRight, TrendingUp, Award, ChevronRight,
   CheckCircle, Shield, ExternalLink, Eye, Compass, NotebookPen, ScrollText,
-  Calendar, Inbox, Clock,
+  Calendar, Inbox, Clock, Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -90,7 +90,16 @@ const CONTENT_CARDS = [
     href: "/playbook",
     requiredTier: "PRO",
     color: "#3280ff",
+    track: "Both",
+  },
+  {
+    slug: "career-intelligence-brief",
+    icon: Mail,
+    title: "Career Intelligence Brief",
+    requiredTier: "PRO",
+    color: "#3280ff",
     track: "Career",
+    cardKind: "email-digest" as const,
   },
   {
     slug: "resume-templates",
@@ -168,10 +177,11 @@ const CONTENT_CARDS = [
   slug: string;
   icon: typeof BookOpen;
   title: string;
-  href: string;
+  href?: string;
   requiredTier: "PRO" | "ELITE";
   color: string;
   track: ModuleTrack;
+  cardKind?: "page" | "file" | "email-digest";
 }>;
 
 const SALES_CARD_ICONS: Record<string, typeof FileText> = {
@@ -190,7 +200,7 @@ const SALES_CARD_COLORS: Record<string, string> = {
 
 const QUICK_LINKS = [
   { label: "Desk Glossary", href: "/glossary", free: true, track: "Both" as const },
-  { label: "Chapter A Preview", href: "/playbook/a", free: true, track: "Career" as const },
+  { label: "Chapter A Preview", href: "/playbook/a", free: true, track: "Both" as const },
   { label: "Job Board Waitlist", href: "/waitlist", free: true, track: "Both" as const },
 ];
 
@@ -280,7 +290,7 @@ export function DashboardClient({
   );
   const showSalesTrackCards = visibleSalesCards.length > 0;
   const showPlaybookProgress =
-    hasAccess(effectiveTier, "PRO") && isDashboardModuleVisible("Career", audience);
+    hasAccess(effectiveTier, "PRO") && isDashboardModuleVisible("Both", audience);
   const showCareerPrepLibrarySlot = isDashboardModuleVisible("Career", audience);
   const isStarter = effectiveTier === "STARTER";
   const isElite = hasAccess(effectiveTier, "ELITE");
@@ -363,7 +373,7 @@ export function DashboardClient({
     if (card.deliverableKey) {
       const asset = salesDeliverables[card.deliverableKey];
       if (asset?.assetId) {
-        return attachmentHref(`/api/content/assets/${asset.assetId}`, "view-only");
+        return attachmentHref(`/api/content/assets/${asset.assetId}`, "download");
       }
     }
     return card.href;
@@ -381,6 +391,7 @@ export function DashboardClient({
     pendingLabel,
     accessLabel,
     trackLabel,
+    cardKind = "page",
   }: {
     title: string;
     description: string;
@@ -388,11 +399,12 @@ export function DashboardClient({
     color: string;
     tier: "PRO" | "ELITE";
     unlocked: boolean;
-    href: string;
+    href?: string;
     delay?: number;
     pendingLabel?: string;
     accessLabel?: string;
     trackLabel: ModuleTrack;
+    cardKind?: "page" | "file" | "email-digest";
   }) {
     const locked = !unlocked;
     const tierBadge = (
@@ -437,9 +449,20 @@ export function DashboardClient({
             {unlocked ? (
               <>
                 {tierBadges}
-                <Link href={href} className="text-xs text-primary-400 font-medium hover:text-primary-500 flex items-center gap-0.5">
-                  Open <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
+                {cardKind === "email-digest" ? (
+                  <span className="text-xs text-muted-fg">Inbox digest</span>
+                ) : href && cardKind === "file" ? (
+                  <a
+                    href={href}
+                    className="text-xs text-primary-400 font-medium hover:text-primary-500 flex items-center gap-0.5"
+                  >
+                    Download <ChevronRight className="w-3.5 h-3.5" />
+                  </a>
+                ) : href ? (
+                  <Link href={href} className="text-xs text-primary-400 font-medium hover:text-primary-500 flex items-center gap-0.5">
+                    Open <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                ) : null}
               </>
             ) : pendingLabel ? (
               <>
@@ -659,7 +682,7 @@ export function DashboardClient({
                 </div>
               </div>
               {"eyebrow" in stat && stat.eyebrow && (
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-fg mb-1">
+                <p className="text-[10px] font-semibold tracking-wide text-muted-fg mb-1">
                   {stat.eyebrow}
                 </p>
               )}
@@ -887,9 +910,13 @@ export function DashboardClient({
                   color: card.color,
                   tier,
                   unlocked,
-                  href: card.href,
+                  href: "href" in card ? card.href : undefined,
                   delay: i * 0.05,
                   trackLabel: card.track,
+                  cardKind:
+                    ("cardKind" in card ? card.cardKind : undefined) ??
+                    DEFAULT_DASHBOARD_RESOURCE_CARDS.find((resource) => resource.slug === card.slug)?.cardKind ??
+                    "page",
                 })}
               </React.Fragment>
             );
@@ -956,6 +983,7 @@ export function DashboardClient({
                     delay: (visibleContentCards.length + i) * 0.05,
                     pendingLabel,
                     trackLabel: card.track,
+                    cardKind: card.cardKind ?? "page",
                   })}
                 </React.Fragment>
               );

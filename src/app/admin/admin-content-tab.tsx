@@ -50,7 +50,8 @@ interface SidebarItem {
   label: string;
   track?: TrackLabel;
   tier?: string;
-  editorVariant?: "default" | "career-nav" | "sales-nav" | "track-captions";
+  editorVariant?: "default" | "career-nav" | "sales-nav" | "industry-guide" | "track-captions";
+  listSlug?: string;
 }
 
 interface SidebarGroup {
@@ -91,11 +92,18 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "Pro Pack",
     tier: "PRO",
     items: [
-      { slug: "playbook", label: "Full Playbook", track: "Career", tier: "PRO" },
+      { slug: "playbook", label: "Full Playbook", track: "Both", tier: "PRO" },
       { slug: "resume-templates", label: "Resume", track: "Career", tier: "PRO" },
       { slug: "career-roadmap", label: "Career Roadmap", track: "Career", tier: "PRO" },
       { slug: "career-roadmap", label: "Career Navigation Guide", track: "Career", tier: "PRO", editorVariant: "career-nav" },
-      { slug: "career-roadmap", label: "Sales Navigation Guide", track: "Sales", tier: "PRO", editorVariant: "sales-nav" },
+      {
+        slug: "member-dashboard",
+        label: "Industry Guide for Sales",
+        track: "Sales",
+        tier: "PRO",
+        editorVariant: "industry-guide",
+        listSlug: "industry-guide-for-sales",
+      },
       { slug: "interview-questions", label: "Interview Questions", track: "Career", tier: "PRO" },
       { slug: "knowledge-test", label: "Market Knowledge Test", track: "Both", tier: "PRO" },
       { slug: "sales-market-nudges", label: "Sales Market Nudges", track: "Sales", tier: "PRO" },
@@ -250,6 +258,9 @@ function ModuleEditor({
       case "footer-guides":
         return <FooterGuidesEditor payload={payload} onChange={setPayload} moduleSlug={slug} />;
       case "member-dashboard":
+        if (editorVariant === "industry-guide") {
+          return <SalesNavigationGuideEditor {...editorProps} />;
+        }
         return <MemberDashboardEditor {...editorProps} />;
       case "sales-market-nudges":
         return <SalesMarketNudgesEditor {...editorProps} />;
@@ -378,7 +389,7 @@ function SidebarGroupSection({
                   )}
                   {mod && (
                     <span className="text-[11px] text-muted-fg">
-                      {item.slug} · v{mod.version}
+                      {item.listSlug ?? item.slug} · v{mod.version}
                     </span>
                   )}
                   {!mod && <span className="text-[11px] text-muted-fg italic">{item.slug} (not seeded)</span>}

@@ -14,6 +14,9 @@ export interface DashboardPromoBox {
 /** Career / Sales / Both — same labels shown as bubbles on dashboard module cards. */
 export type DashboardModuleTrack = "Career" | "Sales" | "Both";
 
+/** How the unlocked card behaves — page route, file download, or inbox digest. */
+export type DashboardCardKind = "page" | "file" | "email-digest";
+
 /** Editable description under each resource card title on /dashboard. */
 export interface DashboardResourceCardCopy {
   slug: string;
@@ -21,6 +24,8 @@ export interface DashboardResourceCardCopy {
   description: string;
   /** Product track. Code-owned — CMS may edit title/description but not this. */
   track: DashboardModuleTrack;
+  /** Code-owned delivery pattern. */
+  cardKind?: DashboardCardKind;
 }
 
 /** Sales-track-only cards in the dashboard grid (Career members never see these). */
@@ -55,7 +60,14 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
     title: "Full Playbook",
     description:
       "{chapterCount} chapters, {sectionCount} sections — industry foundations through commercial decision-making.",
+    track: "Both",
+  },
+  {
+    slug: "career-intelligence-brief",
+    title: "Career Intelligence Brief",
+    description: "Biweekly email digest on market note that builds you professionally",
     track: "Career",
+    cardKind: "email-digest",
   },
   {
     slug: "resume-templates",
@@ -127,6 +139,7 @@ export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardC
     href: "/library",
     deliverableKey: "industryGuideForSales",
     track: "Sales",
+    cardKind: "file",
   },
   {
     slug: "sales-prep-library",

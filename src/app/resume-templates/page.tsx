@@ -38,6 +38,12 @@ export default async function ResumeTemplatesPage() {
       assetUrls={assetUrls}
       requiredTier={requiredTier as "PRO" | "ELITE"}
       vettingSection={data.vettingSection}
+      pageHero={data.pageHero}
+      quizSection={data.quizSection}
+      industryMapSection={data.industryMapSection}
+      templatesSection={data.templatesSection}
+      positioningPrinciple={data.positioningPrinciple}
+      templateCardDetails={data.templateCardDetails}
     />
   );
 }

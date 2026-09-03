@@ -9,7 +9,19 @@ import { Button } from "@/components/ui/button";
 import { TierGate } from "@/components/tier-gate";
 import { Reveal } from "@/components/animations";
 import { CAREER_ROLES, type CareerRole } from "@/data/career-roadmap";
-import type { FunctionMatrixRow, TimelineQuarter, NavigationGuide, CompBenchmarks } from "@/data/career-roadmap-extras";
+import type { FunctionMatrixRow, TimelineQuarter, CompBenchmarks } from "@/data/career-roadmap-extras";
+import type {
+  CareerRoadmapPageHero,
+  CareerRoadmapSectionCopy,
+  GuideAttachment,
+} from "@/lib/content/career-roadmap-payload";
+import {
+  DEFAULT_CAREER_ROADMAP_HERO,
+  DEFAULT_FUNCTION_MATRIX_SECTION,
+  DEFAULT_TIMELINE_SECTION,
+  interpolateRoleCount,
+} from "@/lib/content/career-roadmap-payload";
+import { attachmentHref } from "@/lib/content/attachments";
 import { getPersonaCareerGuide, getRecommendedRoleSlugs } from "@/data/persona-career";
 import { PERSONA_LABELS } from "@/lib/utils";
 import { PERSONA_ARCHETYPES } from "@/data/persona-archetypes";
@@ -34,8 +46,11 @@ interface Props {
   roles?: CareerRole[];
   functionMatrix?: FunctionMatrixRow[];
   timeline12Month?: TimelineQuarter[];
-  navigationGuide?: NavigationGuide;
   compBenchmarks?: CompBenchmarks;
+  pageHero?: CareerRoadmapPageHero;
+  functionMatrixSection?: CareerRoadmapSectionCopy;
+  timelineSection?: CareerRoadmapSectionCopy;
+  careerNavigationGuide?: GuideAttachment | null;
   requiredTier?: "PRO" | "ELITE";
 }
 
@@ -45,8 +60,11 @@ export function CareerRoadmapClient({
   roles = CAREER_ROLES,
   functionMatrix = [],
   timeline12Month = [],
-  navigationGuide,
   compBenchmarks,
+  pageHero = DEFAULT_CAREER_ROADMAP_HERO,
+  functionMatrixSection = DEFAULT_FUNCTION_MATRIX_SECTION,
+  timelineSection = DEFAULT_TIMELINE_SECTION,
+  careerNavigationGuide = null,
   requiredTier = "PRO",
 }: Props) {
   const [activeSlug, setActiveSlug] = useState(roles[0]?.slug ?? "");
@@ -75,23 +93,18 @@ export function CareerRoadmapClient({
         <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3280ff 0%, transparent 70%)" }} />
         <Reveal className="relative z-10">
           <div className="pill pill-dark mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" /> Pro Pack · Differentiated Roles
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" /> {pageHero.eyebrow}
           </div>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-3">
-            Career Roadmap. <span className="text-accent italic">Role by Role.</span>
+            {pageHero.title} <span className="text-accent italic">{pageHero.titleAccent}</span>
           </h1>
           <p className="text-white/65 text-base sm:text-lg max-w-xl">
-            {roles.length} entry blueprints for downstream commodity trading. The paths that actually work, the filters that actually eliminate candidates, and the upgrade move for each role — built from 20+ years inside the industry.
+            {interpolateRoleCount(pageHero.description, roles.length)}
           </p>
           <div className="flex flex-wrap gap-3 mt-6">
-            {[
-              { num: String(roles.length), label: "Role blueprints" },
-              { num: "4", label: "Markets: SG · LN · ME · NA" },
-              { num: "Live", label: "Job board — coming soon" },
-              { num: "SGD", label: "Comp benchmarks" },
-            ].map((s) => (
+            {pageHero.stats.map((s) => (
               <div key={s.label} className="glass-card px-4 py-2.5 text-white text-sm">
-                <span className="font-serif font-bold text-lg block">{s.num}</span>
+                <span className="font-serif font-bold text-lg block">{interpolateRoleCount(s.num, roles.length)}</span>
                 <span className="text-white/60 text-xs">{s.label}</span>
               </div>
             ))}
@@ -139,10 +152,10 @@ export function CareerRoadmapClient({
         {functionMatrix.length > 0 && (
           <section className="mb-12">
             <Reveal className="mb-6">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">At a glance</p>
-              <h2 className="font-serif text-2xl font-bold text-gray-900 mb-2">The Function Matrix</h2>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">{functionMatrixSection.eyebrow}</p>
+              <h2 className="font-serif text-2xl font-bold text-gray-900 mb-2">{functionMatrixSection.title}</h2>
               <p className="text-muted-fg text-sm max-w-2xl">
-                Ten roles across five dimensions. Use this to identify your strongest entry angle before reading the full blueprints below.
+                {functionMatrixSection.description}
               </p>
             </Reveal>
             <div className="overflow-x-auto rounded-xl border border-border">
@@ -304,10 +317,10 @@ export function CareerRoadmapClient({
         {timeline12Month.length > 0 && (
           <section className="mt-16">
             <Reveal className="mb-8 text-center max-w-2xl mx-auto">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">The plan</p>
-              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 mb-2">12-Month Action Plan</h2>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">{timelineSection.eyebrow}</p>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{timelineSection.title}</h2>
               <p className="text-muted-fg text-sm">
-                Specific knowledge targets and actions calibrated to where a serious candidate actually is, quarter by quarter.
+                {timelineSection.description}
               </p>
             </Reveal>
             <div className="max-w-3xl mx-auto space-y-8">
@@ -360,38 +373,41 @@ export function CareerRoadmapClient({
           </section>
         )}
 
-        {/* Career Navigation Guide */}
-        {navigationGuide && navigationGuide.sections.length > 0 && (
-          <section className="mt-16">
-            <Reveal className="mb-8 max-w-2xl">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">
-                {navigationGuide.eyebrow}
-              </p>
-              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                {navigationGuide.title}
-              </h2>
-              <p className="text-muted-fg text-sm leading-relaxed">{navigationGuide.description}</p>
-            </Reveal>
-            <div className="space-y-5">
-              {navigationGuide.sections.map((section, index) => (
-                <Reveal key={section.title} delay={index * 0.05}>
-                  <div className="rounded-2xl border border-border bg-white p-6 sm:p-7">
-                    <h3 className="font-serif text-lg font-bold text-gray-900 mb-3">{section.title}</h3>
-                    <p className="text-sm text-gray-700 leading-relaxed mb-4">{section.body}</p>
-                    <ul className="space-y-2">
-                      {section.bullets.map((bullet) => (
-                        <li key={bullet.slice(0, 48)} className="text-sm text-gray-700 flex gap-2.5">
-                          <span className="text-primary-400 flex-shrink-0 mt-0.5">·</span>
-                          <span>{bullet}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </Reveal>
-              ))}
+        <section className="mt-16">
+          <Reveal>
+            <div className="rounded-2xl border border-primary-line bg-primary-soft/50 p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-1">
+                  Career Navigation Guide
+                </p>
+                <h2 className="font-serif text-xl font-bold text-gray-900 mb-1">
+                  {careerNavigationGuide?.label || "Download the Career Navigation Guide"}
+                </h2>
+                <p className="text-sm text-muted-fg">
+                  {careerNavigationGuide?.fileName
+                    ? careerNavigationGuide.fileName
+                    : "PDF deliverable — upload from Content CMS to enable download."}
+                </p>
+              </div>
+              {careerNavigationGuide?.assetId ? (
+                <a
+                  href={attachmentHref(`/api/content/assets/${careerNavigationGuide.assetId}`, "download")}
+                  download={careerNavigationGuide.fileName || "career-navigation-guide.pdf"}
+                >
+                  <Button>
+                    <Download className="w-4 h-4" />
+                    Download PDF
+                  </Button>
+                </a>
+              ) : (
+                <Button disabled>
+                  <Download className="w-4 h-4" />
+                  PDF coming soon
+                </Button>
+              )}
             </div>
-          </section>
-        )}
+          </Reveal>
+        </section>
 
         {/* Comp benchmarks */}
         {compBenchmarks && compBenchmarks.cards.length > 0 && (

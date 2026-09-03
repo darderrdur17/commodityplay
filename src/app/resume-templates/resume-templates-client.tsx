@@ -38,6 +38,15 @@ import {
   type TemplateCardDetails,
   type ResumeVettingSection,
 } from "@/data/resume-templates";
+import {
+  DEFAULT_RESUME_INDUSTRY_MAP_SECTION,
+  DEFAULT_RESUME_PAGE_HERO,
+  DEFAULT_RESUME_QUIZ_SECTION,
+  DEFAULT_RESUME_TEMPLATES_SECTION,
+  type ResumePageHero,
+  type ResumeQuizSectionCopy,
+  type ResumeSectionCopy,
+} from "@/lib/content/resume-payload";
 import { PERSONA_ARCHETYPES } from "@/data/persona-archetypes";
 import { scorePersonaQuiz, type PersonaId } from "@/lib/persona-quiz";
 import { personaIdToApi } from "@/lib/persona-map";
@@ -57,6 +66,12 @@ interface Props {
   assetUrls?: Record<string, string>;
   requiredTier?: "PRO" | "ELITE";
   vettingSection?: ResumeVettingSection;
+  pageHero?: ResumePageHero;
+  quizSection?: ResumeQuizSectionCopy;
+  industryMapSection?: ResumeSectionCopy;
+  templatesSection?: ResumeSectionCopy;
+  positioningPrinciple?: { title: string; body: string };
+  templateCardDetails?: Record<string, TemplateCardDetails>;
 }
 
 const ARCHETYPE_ICONS: Record<PersonaId, React.ElementType> = {
@@ -311,6 +326,12 @@ export function ResumeTemplatesClient({
   assetUrls = {},
   requiredTier = "PRO",
   vettingSection = RESUME_VETTING_SECTION,
+  pageHero = DEFAULT_RESUME_PAGE_HERO,
+  quizSection = DEFAULT_RESUME_QUIZ_SECTION,
+  industryMapSection = DEFAULT_RESUME_INDUSTRY_MAP_SECTION,
+  templatesSection = DEFAULT_RESUME_TEMPLATES_SECTION,
+  positioningPrinciple = POSITIONING_PRINCIPLE,
+  templateCardDetails = TEMPLATE_CARD_DETAILS,
 }: Props) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -434,21 +455,16 @@ export function ResumeTemplatesClient({
         <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-10 bg-primary-400 blur-3xl" />
         <Reveal className="relative z-10">
           <div className="pill pill-dark mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" /> Pro Pack · Resume Templates
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" /> {pageHero.eyebrow}
           </div>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-3">
-            Your Resume, <span className="text-accent italic">Positioned Right.</span>
+            {pageHero.title} <span className="text-accent italic">{pageHero.titleAccent}</span>
           </h1>
           <p className="text-white/65 text-base sm:text-lg max-w-xl mb-6">
-            Five archetype-specific templates built for how the commodity trading industry actually reads a CV. Take the
-            quiz to find your archetype — then download the template built for your exact positioning challenge.
+            {pageHero.description}
           </p>
           <div className="flex flex-wrap gap-3">
-            {[
-              { num: "5", label: "Archetypes covered" },
-              { num: "Word", label: "Download-ready .docx" },
-              { num: "Free", label: "Resume vetting with Pro" },
-            ].map((s) => (
+            {pageHero.stats.map((s) => (
               <div key={s.label} className="glass-card px-4 py-2.5 text-white text-sm">
                 <span className="font-serif font-bold text-lg block">{s.num}</span>
                 <span className="text-white/60 text-xs">{s.label}</span>
@@ -462,11 +478,10 @@ export function ResumeTemplatesClient({
         {/* Step 1 — Persona quiz */}
         <section id="quiz" className="mb-10">
           <Reveal className="text-center mb-7">
-            <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">Step 1</p>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Find Your Archetype</h2>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">{quizSection.eyebrow}</p>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{quizSection.title}</h2>
             <p className="text-sm text-muted-fg max-w-md mx-auto">
-              Five questions. Tells you exactly which template fits your background — and what your specific
-              positioning challenge is.
+              {quizSection.description}
             </p>
           </Reveal>
 
@@ -476,8 +491,8 @@ export function ResumeTemplatesClient({
                 <Sparkles className="w-5 h-5 text-accent" />
               </div>
               <div>
-                <p className="font-serif font-bold text-white">Archetype Finder</p>
-                <p className="text-white/60 text-xs">5 questions · 2 minutes · Instant result</p>
+                <p className="font-serif font-bold text-white">{quizSection.finderTitle}</p>
+                <p className="text-white/60 text-xs">{quizSection.finderSub}</p>
               </div>
             </div>
             <div className="h-1 bg-secondary">
@@ -638,12 +653,11 @@ export function ResumeTemplatesClient({
           <section className="mb-10">
             <Reveal className="mb-6">
               <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">
-                Step 2 — Understand the Landscape
+                {industryMapSection.eyebrow}
               </p>
-              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Where Does Your Role Sit?</h2>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{industryMapSection.title}</h2>
               <p className="text-muted-fg text-sm max-w-2xl">
-                Commodity trading is not one function — it is a set of closely connected roles across six zones.
-                Understanding where you sit shapes how your resume must be written.
+                {industryMapSection.description}
               </p>
             </Reveal>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -696,8 +710,8 @@ export function ResumeTemplatesClient({
                 <Info className="w-4 h-4 text-white" />
               </div>
               <div>
-                <p className="font-bold text-sm text-primary-900 mb-1">{POSITIONING_PRINCIPLE.title}</p>
-                <p className="text-sm text-gray-700 leading-relaxed">{POSITIONING_PRINCIPLE.body}</p>
+                <p className="font-bold text-sm text-primary-900 mb-1">{positioningPrinciple.title}</p>
+                <p className="text-sm text-gray-700 leading-relaxed">{positioningPrinciple.body}</p>
               </div>
             </Reveal>
           </section>
@@ -707,19 +721,18 @@ export function ResumeTemplatesClient({
         <section id="templates" className="mb-10">
           <Reveal className="mb-6">
             <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">
-              Step 3 — Download Your Template
+              {templatesSection.eyebrow}
             </p>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 mb-2">The 5 Archetype Templates</h2>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{templatesSection.title}</h2>
             <p className="text-muted-fg text-sm max-w-2xl">
-              Each template is built for a specific positioning challenge — not a generic CV layout. Download the one
-              that matches your archetype.
+              {templatesSection.description}
             </p>
           </Reveal>
 
           <div className="space-y-5">
             {templates.map((t) => {
               const arch = PERSONA_ARCHETYPES[t.id as PersonaId];
-              const details = TEMPLATE_CARD_DETAILS[t.id];
+              const details = templateCardDetails[t.id] ?? TEMPLATE_CARD_DETAILS[t.id];
               const Icon = ARCHETYPE_ICONS[t.id as PersonaId];
               const isRecommended = recommended?.id === t.id;
 

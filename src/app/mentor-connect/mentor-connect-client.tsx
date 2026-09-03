@@ -185,7 +185,7 @@ export function MentorConnectClient({
                   : "Elite only"}
             </div>
             {isElite && mentorCreditUsage && (
-              <div className="glass-card px-4 py-2.5 text-white/80 text-xs font-semibold uppercase tracking-widest">
+              <div className="glass-card px-4 py-2.5 text-white/80 text-xs font-semibold tracking-wide">
                 {mentorCreditUsage.monthLabel}
               </div>
             )}

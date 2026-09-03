@@ -8,20 +8,8 @@ import { GLOSSARY_TERMS } from "@/data/glossary";
 import { DEFAULT_GLOSSARY_PAGE_CONTENT } from "@/data/glossary-content";
 import { INTERVIEW_QUESTIONS, INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/data/interview-questions";
 import { createDefaultKnowledgeTestPayload } from "@/lib/content/knowledge-test-payload";
-import { CAREER_ROLES } from "@/data/career-roadmap";
-import {
-  FUNCTION_MATRIX,
-  TIMELINE_12_MONTH,
-  NAVIGATION_GUIDE,
-  COMP_BENCHMARKS,
-} from "@/data/career-roadmap-extras";
-import {
-  RESUME_TEMPLATES,
-  PERSONA_QUIZ_QUESTIONS,
-  PERSONA_QUIZ_STEPS,
-  INDUSTRY_MAP,
-  RESUME_VETTING_SECTION,
-} from "@/data/resume-templates";
+import { buildDefaultCareerRoadmapPayload } from "@/lib/content/career-roadmap-payload";
+import { buildDefaultResumeAdminPayload } from "@/lib/content/resume-payload";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
 import { DEFAULT_LANDING_CONTENT } from "@/data/landing-content";
 import { defaultCareerEdgeNote, defaultSalesEdgeNote } from "@/lib/content/edge-notes";
@@ -67,21 +55,9 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
     case "knowledge-test":
       return createDefaultKnowledgeTestPayload();
     case "career-roadmap":
-      return {
-        roles: CAREER_ROLES,
-        functionMatrix: FUNCTION_MATRIX,
-        timeline12Month: TIMELINE_12_MONTH,
-        navigationGuide: NAVIGATION_GUIDE,
-        compBenchmarks: COMP_BENCHMARKS,
-      };
+      return buildDefaultCareerRoadmapPayload();
     case "resume-templates":
-      return {
-        templates: RESUME_TEMPLATES,
-        quiz: PERSONA_QUIZ_QUESTIONS,
-        quizSteps: PERSONA_QUIZ_STEPS,
-        industryMap: INDUSTRY_MAP,
-        vettingSection: RESUME_VETTING_SECTION,
-      };
+      return buildDefaultResumeAdminPayload();
     case "job-openings":
       return {
         jobs: JOB_OPENINGS,
