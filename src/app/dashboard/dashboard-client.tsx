@@ -17,7 +17,6 @@ import { TIER_LABELS, hasAccess, formatDate } from "@/lib/utils";
 import { resolveMemberPersonaLabel } from "@/lib/persona-display";
 import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
-import { attachmentHref } from "@/lib/content/attachments";
 import type { NavigationGuideAttachment } from "@/lib/content/accessors";
 import {
   DEFAULT_DASHBOARD_RESOURCE_CARDS,
@@ -34,6 +33,11 @@ import {
 import type { StarterInfographic } from "@/data/starter-pack";
 import type { SalesDashboardDeliverables } from "@/lib/content/sales-dashboard-deliverables";
 import type { ContentStats } from "@/lib/content/content-stats";
+import {
+  isDashboardFileReady,
+  resolveDashboardFileDownloadHref,
+  type DashboardDeliverableKey,
+} from "@/lib/dashboard-file-deliverables";
 import {
   formatMentorCreditsUsedLabel,
   type MentorCreditUsage,
@@ -127,6 +131,7 @@ const CONTENT_CARDS = [
     color: "#3280ff",
     track: "Career",
     cardKind: "file" as const,
+    deliverableKey: "careerNavigationGuide" as const,
   },
   {
     slug: "interview-questions",
@@ -191,6 +196,7 @@ const CONTENT_CARDS = [
   color: string;
   track: ModuleTrack;
   cardKind?: "page" | "file" | "email-digest";
+  deliverableKey?: DashboardDeliverableKey;
 }>;
 
 const SALES_CARD_ICONS: Record<string, typeof FileText> = {
@@ -370,26 +376,19 @@ export function DashboardClient({
     (card) => (contentTiers[card.slug] || card.requiredTier) === "ELITE"
   );
 
-  function resolveSalesCardHref(card: DashboardSalesResourceCardCopy): string | null {
-    if (card.deliverableKey) {
-      const asset = salesDeliverables[card.deliverableKey];
-      if (asset?.assetId) {
-        return attachmentHref(`/api/content/assets/${asset.assetId}`, "download");
-      }
+  const fileDeliverableSources = {
+    careerNavigationGuide: navigationGuides.career,
+    salesDeliverables,
+  };
+
+  function resolveDeliverableHref(
+    deliverableKey: DashboardDeliverableKey | undefined,
+    fallback?: string
+  ): string | undefined {
+    if (deliverableKey) {
+      return resolveDashboardFileDownloadHref(deliverableKey, fileDeliverableSources) ?? fallback;
     }
-    return card.href;
-  }
-
-  function resolveCareerFileCardHref(slug: string): string | null {
-    if (slug !== "career-navigation-guide") return null;
-    const asset = navigationGuides.career;
-    if (!asset?.assetId) return null;
-    return attachmentHref(`/api/content/assets/${asset.assetId}`, "download");
-  }
-
-  function isCareerFileCardReady(slug: string): boolean {
-    if (slug !== "career-navigation-guide") return true;
-    return Boolean(navigationGuides.career?.assetId);
+    return fallback;
   }
 
   function renderResourceCard({
@@ -821,12 +820,15 @@ export function DashboardClient({
           {visibleContentCards.map((card, i) => {
             const tier = (contentTiers[card.slug] || card.requiredTier) as "PRO" | "ELITE";
             const tierUnlocked = hasAccess(effectiveTier, tier);
+            const cardDef = DEFAULT_DASHBOARD_RESOURCE_CARDS.find((resource) => resource.slug === card.slug);
             const cardKind =
               ("cardKind" in card ? card.cardKind : undefined) ??
-              DEFAULT_DASHBOARD_RESOURCE_CARDS.find((resource) => resource.slug === card.slug)?.cardKind ??
+              cardDef?.cardKind ??
               "page";
+            const deliverableKey =
+              ("deliverableKey" in card ? card.deliverableKey : undefined) ?? cardDef?.deliverableKey;
             const isFileCard = cardKind === "file";
-            const fileReady = isFileCard ? isCareerFileCardReady(card.slug) : true;
+            const fileReady = isDashboardFileReady(deliverableKey, fileDeliverableSources);
             const canOpen = tierUnlocked && fileReady;
             const pendingLabel =
               tierUnlocked && isFileCard && !fileReady ? "File coming soon" : undefined;
@@ -834,9 +836,10 @@ export function DashboardClient({
               resourceCopyBySlug[card.slug] ??
               DEFAULT_MEMBER_DASHBOARD_CONTENT.resourceCards.find((c) => c.slug === card.slug)?.description ??
               "";
-            const href =
-              resolveCareerFileCardHref(card.slug) ??
-              ("href" in card ? card.href : undefined);
+            const href = resolveDeliverableHref(
+              deliverableKey,
+              "href" in card ? card.href : cardDef?.href
+            );
             const showCareerPrepLibrary =
               showCareerPrepLibrarySlot && i === firstEliteContentCardIndex;
 
@@ -892,13 +895,11 @@ export function DashboardClient({
                 DEFAULT_MEMBER_DASHBOARD_CONTENT.salesResourceCards.find((c) => c.slug === card.slug)
                   ?.description ??
                 "";
-              const href = resolveSalesCardHref(card) ?? card.href;
+              const href = resolveDeliverableHref(card.deliverableKey, card.href) ?? card.href;
               const Icon = SALES_CARD_ICONS[card.slug] ?? FileText;
               const color = SALES_CARD_COLORS[card.slug] ?? "#3280ff";
               const tierUnlocked = hasAccess(effectiveTier, tier);
-              const fileReady = card.deliverableKey
-                ? Boolean(salesDeliverables[card.deliverableKey]?.assetId)
-                : true;
+              const fileReady = isDashboardFileReady(card.deliverableKey, fileDeliverableSources);
               const canOpen = tierUnlocked && fileReady;
               const pendingLabel =
                 tierUnlocked && card.deliverableKey && !fileReady ? "File coming soon" : undefined;

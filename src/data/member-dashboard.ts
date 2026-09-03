@@ -17,6 +17,11 @@ export type DashboardModuleTrack = "Career" | "Sales" | "Both";
 /** How the unlocked card behaves — page route, file download, or inbox digest. */
 export type DashboardCardKind = "page" | "file" | "email-digest";
 
+export type DashboardDeliverableKey =
+  | "careerNavigationGuide"
+  | "salesEdgeNote"
+  | "industryGuideForSales";
+
 /** Editable description under each resource card title on /dashboard. */
 export interface DashboardResourceCardCopy {
   slug: string;
@@ -26,6 +31,10 @@ export interface DashboardResourceCardCopy {
   track: DashboardModuleTrack;
   /** Code-owned delivery pattern. */
   cardKind?: DashboardCardKind;
+  /** When set, unlocked Pro+ members open the uploaded CMS file instead of href. */
+  deliverableKey?: DashboardDeliverableKey;
+  /** Fallback route when no file is uploaded yet. */
+  href?: string;
 }
 
 /** Sales-track-only cards in the dashboard grid (Career members never see these). */
@@ -34,7 +43,7 @@ export interface DashboardSalesResourceCardCopy extends DashboardResourceCardCop
   /** Route when unlocked — e.g. /mentor-connect?segment=sales-advisory */
   href: string;
   /** When set, unlocked Pro+ members open the uploaded file instead of href. */
-  deliverableKey?: "salesEdgeNote" | "industryGuideForSales";
+  deliverableKey?: Extract<DashboardDeliverableKey, "salesEdgeNote" | "industryGuideForSales">;
   /** When true, this card is rendered separately as a PrepLibraryCard in the UI. */
   isPrepLibrary?: boolean;
 }
@@ -88,6 +97,8 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
     description: "PDF deliverable. Highlights that intrigue and interest us.",
     track: "Career",
     cardKind: "file",
+    deliverableKey: "careerNavigationGuide",
+    href: "/career-roadmap",
   },
   {
     slug: "interview-questions",

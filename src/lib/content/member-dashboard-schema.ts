@@ -83,6 +83,8 @@ function mergeResourceCards(
       description: saved.description.trim(),
       track: def.track,
       cardKind: def.cardKind,
+      deliverableKey: def.deliverableKey,
+      href: def.href,
     };
   });
 }

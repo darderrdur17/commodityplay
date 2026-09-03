@@ -18,6 +18,15 @@ import {
   DEFAULT_DASHBOARD_RESOURCE_CARDS,
   DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS,
 } from "../src/data/member-dashboard";
+import { DEFAULT_SITE_FOOTER } from "../src/data/footer-content";
+import { mergeSiteFooterContent } from "../src/lib/content/footer-schema";
+import {
+  isDashboardFileReady,
+  resolveDashboardFileDownloadHref,
+  type DashboardDeliverableKey,
+} from "../src/lib/dashboard-file-deliverables";
+import fs from "node:fs";
+import path from "node:path";
 
 let failed = 0;
 function ok(name: string, pass: boolean, detail?: string) {
@@ -197,6 +206,93 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS.find((c) => c.slug === "industry-guide-for-sales")
       ?.cardKind === "file"
   );
+  const careerNavCard = DEFAULT_DASHBOARD_RESOURCE_CARDS.find(
+    (c) => c.slug === "career-navigation-guide"
+  );
+  ok(
+    "Career Navigation Guide is a Career Pro file card",
+    Boolean(
+      careerNavCard?.cardKind === "file" &&
+        careerNavCard.track === "Career" &&
+        careerNavCard.deliverableKey === "careerNavigationGuide"
+    )
+  );
+  ok(
+    "Career Navigation Guide card copy matches brief",
+    Boolean(careerNavCard?.description.includes("PDF deliverable"))
+  );
+  ok(
+    "Footer Career Track links to career landing (not roadmap)",
+    DEFAULT_SITE_FOOTER.columns.contents.find((l) => l.label === "Career Track")?.href ===
+      "/?track=career"
+  );
+  {
+    const footer = mergeSiteFooterContent({});
+    const access = footer.columns.access.map((l) => l.label);
+    const mentorIdx = access.findIndex((l) => l === "Be a Mentor");
+    const memberIdx = access.findIndex((l) => l === "Be a Member");
+    ok(
+      "Footer Be a Mentor sits directly under Be a Member",
+      mentorIdx === memberIdx + 1 && footer.columns.access[mentorIdx]?.href === "/mentor-apply"
+    );
+  }
+  {
+    const contactModal = fs.readFileSync(
+      path.join(process.cwd(), "src/components/landing/contact-modal.tsx"),
+      "utf8"
+    );
+    ok("Contact modal has no Or email fallback line", !contactModal.includes("Or email"));
+  }
+  {
+    const adminClient = fs.readFileSync(
+      path.join(process.cwd(), "src/app/admin/admin-client.tsx"),
+      "utf8"
+    );
+    ok(
+      "Admin customers/progress/billing/waitlist use shared AdminTableFilters",
+      adminClient.includes("AdminTableFilters") &&
+        adminClient.includes('activeTab === "users"') &&
+        adminClient.includes('activeTab === "progress"') &&
+        adminClient.includes('activeTab === "billing"') &&
+        adminClient.includes('activeTab === "waitlist"')
+    );
+  }
+  {
+    const roadmapEditor = fs.readFileSync(
+      path.join(process.cwd(), "src/app/admin/editors/career-roadmap-editor.tsx"),
+      "utf8"
+    );
+    ok(
+      "Career roadmap CMS supports per-role comp editing",
+      roadmapEditor.includes("Compensation benchmarks (SGD)") &&
+        roadmapEditor.includes('activeTab === "comp"')
+    );
+  }
+  {
+    const href = resolveDashboardFileDownloadHref("industryGuideForSales", {
+      careerNavigationGuide: null,
+      salesDeliverables: {
+        salesEdgeNote: null,
+        industryGuideForSales: {
+          label: "Industry Guide",
+          fileName: "guide.pdf",
+          assetId: "asset-123",
+          mimeType: "application/pdf",
+        },
+      },
+    });
+    ok(
+      "Shared file deliverable resolver returns download href when asset exists",
+      Boolean(href?.includes("/api/content/assets/asset-123") && href.includes("download"))
+    );
+    ok(
+      "Shared file deliverable resolver reports not ready without asset",
+      !isDashboardFileReady("careerNavigationGuide", {
+        careerNavigationGuide: null,
+        salesDeliverables: { salesEdgeNote: null, industryGuideForSales: null },
+      })
+    );
+  }
   ok(
     "Career Navigation Guide is a file download card",
     DEFAULT_DASHBOARD_RESOURCE_CARDS.find((c) => c.slug === "career-navigation-guide")?.cardKind === "file"
