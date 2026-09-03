@@ -60,18 +60,32 @@ function TextAreaField({
   label,
   hint,
   error,
+  fieldVisibility,
   ...props
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label: string;
   hint?: string;
   error?: string;
+  fieldVisibility?: "internal" | "public";
 }) {
   const inputId = label.toLowerCase().replace(/\s+/g, "-");
   return (
     <div className="w-full space-y-1.5">
-      <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
-        {label}
-      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
+          {label}
+        </label>
+        {fieldVisibility === "internal" && (
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-fg bg-secondary px-1.5 py-0.5 rounded">
+            Internal only
+          </span>
+        )}
+        {fieldVisibility === "public" && (
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-primary-400 bg-primary-400/10 px-1.5 py-0.5 rounded">
+            Public on Mentor Connect
+          </span>
+        )}
+      </div>
       <textarea
         id={inputId}
         className={cn(
@@ -164,9 +178,9 @@ export default function MentorApplyPage() {
             </h1>
             <p className="text-white/65 text-lg max-w-2xl leading-relaxed">
               Fill in your details below. We will review your profile and once confirmed,
-              you&apos;ll receive an email to login account. Selected profile fields are shown
-              publicly on Mentor Connect under your anonymous ID. Name, company, LinkedIn, and
-              email stay internal.
+              you&apos;ll receive an email to login account. Each field below is labelled{" "}
+              <span className="text-white/90 font-medium">Public on Mentor Connect</span> or{" "}
+              <span className="text-white/90 font-medium">Internal only</span>.
             </p>
           </Reveal>
         </div>
@@ -201,12 +215,14 @@ export default function MentorApplyPage() {
 
                 <Input
                   label="Full name"
+                  fieldVisibility="internal"
                   placeholder="Alex Chen"
                   error={errors.name?.message}
                   {...register("name")}
                 />
                 <Input
                   label="Email"
+                  fieldVisibility="internal"
                   type="email"
                   placeholder="you@example.com"
                   error={errors.email?.message}
@@ -214,13 +230,15 @@ export default function MentorApplyPage() {
                 />
                 <Input
                   label="LinkedIn profile"
+                  fieldVisibility="internal"
                   placeholder="https://linkedin.com/in/yourprofile"
-                  hint="Helps us understand your professional background."
+                  hint="Used for our review only — never shown on Mentor Connect."
                   error={errors.linkedIn?.message}
                   {...register("linkedIn")}
                 />
                 <Input
                   label="Current location"
+                  fieldVisibility="internal"
                   placeholder="Singapore"
                   error={errors.location?.message}
                   {...register("location")}
@@ -230,18 +248,21 @@ export default function MentorApplyPage() {
 
                 <Input
                   label="Company / organisation"
+                  fieldVisibility="internal"
                   placeholder="e.g. Vitol, Trafigura, Glencore"
                   error={errors.company?.message}
                   {...register("company")}
                 />
                 <Input
                   label="Current / most recent role"
+                  fieldVisibility="internal"
                   placeholder="e.g. Senior Crude Oil Trader"
                   error={errors.role?.message}
                   {...register("role")}
                 />
                 <Input
                   label="Years of experience"
+                  fieldVisibility="public"
                   type="number"
                   min={0}
                   max={80}
@@ -251,19 +272,21 @@ export default function MentorApplyPage() {
                 />
                 <Input
                   label="Primary commodity / desk"
+                  fieldVisibility="internal"
                   placeholder="e.g. LNG, Power, Metals"
                   error={errors.commodityDesk?.message}
                   {...register("commodityDesk")}
                 />
                 <Input
                   label="Professional headline"
+                  fieldVisibility="public"
                   placeholder="e.g. Crude Oil Trader — Ex-Supermajor"
-                  hint="Shown publicly on Mentor Connect under your anonymous mentor profile."
                   error={errors.headline?.message}
                   {...register("headline")}
                 />
                 <TextAreaField
                   label="Tell us about your experience"
+                  fieldVisibility="public"
                   placeholder="Brief overview of your commodity trading background, desks you've worked on, and what you're best placed to mentor on..."
                   error={errors.bio?.message}
                   {...register("bio")}
@@ -273,8 +296,9 @@ export default function MentorApplyPage() {
 
                 <Input
                   label="Mentorship subjects"
+                  fieldVisibility="public"
                   placeholder="e.g. Crude oil, Forward curves, Physical arbitrage"
-                  hint="Shown publicly on Mentor Connect. Click a suggested topic or type your own."
+                  hint="Click a suggested topic or type your own."
                   error={errors.tagsText?.message}
                   {...register("tagsText")}
                 />
@@ -309,10 +333,6 @@ export default function MentorApplyPage() {
                 <Button type="submit" className="w-full" size="lg" loading={isSubmitting}>
                   <Send className="w-4 h-4" /> Submit application
                 </Button>
-
-                <p className="text-xs text-muted-fg text-center leading-relaxed pt-1">
-                  Your application will be reviewed privately. Public-facing profile information should only be displayed with your approval.
-                </p>
               </form>
             </div>
           </Reveal>
