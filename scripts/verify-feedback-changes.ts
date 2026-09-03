@@ -235,6 +235,22 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       "Footer Be a Mentor sits directly under Be a Member",
       mentorIdx === memberIdx + 1 && footer.columns.access[mentorIdx]?.href === "/mentor-apply"
     );
+    const cmsMentorAsContact = mergeSiteFooterContent({
+      columns: {
+        contents: DEFAULT_SITE_FOOTER.columns.contents,
+        community: DEFAULT_SITE_FOOTER.columns.community,
+        access: [
+          { label: "Be a Member", href: "/pricing" },
+          { label: "Be a Mentor", href: "#contact", action: "contact" },
+          { label: "Be a Partner", href: "#contact", action: "contact" },
+        ],
+      },
+    });
+    const mentorLink = cmsMentorAsContact.columns.access.find((l) => l.label === "Be a Mentor");
+    ok(
+      "CMS Be a Mentor with contact action still routes to mentor sign-up",
+      mentorLink?.href === "/mentor-apply" && mentorLink.action !== "contact"
+    );
   }
   {
     const contactModal = fs.readFileSync(

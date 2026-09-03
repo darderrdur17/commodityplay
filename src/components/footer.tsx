@@ -26,7 +26,10 @@ export function Footer({ content }: Props) {
     const className =
       "block w-full text-left py-2.5 text-sm font-medium text-white/70 hover:text-white transition-colors";
 
-    if (link.action === "contact" || link.href === "#contact") {
+    const isContactAction =
+      link.href === "#contact" ||
+      (link.action === "contact" && !link.href.startsWith("/") && !link.href.startsWith("mailto:"));
+    if (isContactAction) {
       return (
         <button type="button" onClick={() => setContactOpen(true)} className={className}>
           {link.label}

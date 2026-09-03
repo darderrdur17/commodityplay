@@ -34,19 +34,17 @@ function normalizeFooterLink(link: FooterLinkItem): FooterLinkItem {
   if (/^job board$/i.test(label) && /job-openings/i.test(link.href)) {
     return { ...link, href: "/waitlist" };
   }
+  // Always a real page — never inherit CMS "contact" action from Support/Partner copies.
   if (/^be a mentor$/i.test(label)) {
-    return { ...link, href: MENTOR_APPLY_HREF };
+    return { ...BE_A_MENTOR_LINK };
   }
   return link;
 }
 
 function ensureBeAMentorLink(links: FooterLinkItem[]): FooterLinkItem[] {
   const normalized = links.map(normalizeFooterLink);
-  let mentor = normalized.find((l) => /^be a mentor$/i.test(l.label.trim()));
+  const mentor = BE_A_MENTOR_LINK;
   const withoutMentor = normalized.filter((l) => !/^be a mentor$/i.test(l.label.trim()));
-  if (!mentor) {
-    mentor = BE_A_MENTOR_LINK;
-  }
   const memberIdx = withoutMentor.findIndex((l) => /^be a member$/i.test(l.label.trim()));
   const insertAt = memberIdx >= 0 ? memberIdx + 1 : 0;
   return [...withoutMentor.slice(0, insertAt), mentor, ...withoutMentor.slice(insertAt)];
