@@ -60,30 +60,26 @@ function TextAreaField({
   label,
   hint,
   error,
-  fieldVisibility,
+  visibility,
   ...props
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label: string;
   hint?: string;
   error?: string;
-  fieldVisibility?: "internal" | "public";
+  visibility?: "internal" | "public";
 }) {
   const inputId = label.toLowerCase().replace(/\s+/g, "-");
   return (
     <div className="w-full space-y-1.5">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
           {label}
         </label>
-        {fieldVisibility === "internal" && (
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-fg bg-secondary px-1.5 py-0.5 rounded">
-            Internal only
-          </span>
+        {visibility === "internal" && (
+          <span className="text-[11px] font-medium text-muted-fg">Internal</span>
         )}
-        {fieldVisibility === "public" && (
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-primary-400 bg-primary-400/10 px-1.5 py-0.5 rounded">
-            Public on Mentor Connect
-          </span>
+        {visibility === "public" && (
+          <span className="text-[11px] font-medium text-primary-400">Public on Mentor Connect</span>
         )}
       </div>
       <textarea
@@ -178,9 +174,9 @@ export default function MentorApplyPage() {
             </h1>
             <p className="text-white/65 text-lg max-w-2xl leading-relaxed">
               Fill in your details below. We will review your profile and once confirmed,
-              you&apos;ll receive an email to login account. Each field below is labelled{" "}
-              <span className="text-white/90 font-medium">Public on Mentor Connect</span> or{" "}
-              <span className="text-white/90 font-medium">Internal only</span>.
+              you&apos;ll receive an email to login account. Selected profile fields are shown
+              publicly on Mentor Connect under your anonymous ID. Name, company, LinkedIn, and
+              email stay internal.
             </p>
           </Reveal>
         </div>
@@ -215,14 +211,14 @@ export default function MentorApplyPage() {
 
                 <Input
                   label="Full name"
-                  fieldVisibility="internal"
+                  visibility="internal"
                   placeholder="Alex Chen"
                   error={errors.name?.message}
                   {...register("name")}
                 />
                 <Input
                   label="Email"
-                  fieldVisibility="internal"
+                  visibility="internal"
                   type="email"
                   placeholder="you@example.com"
                   error={errors.email?.message}
@@ -230,15 +226,15 @@ export default function MentorApplyPage() {
                 />
                 <Input
                   label="LinkedIn profile"
-                  fieldVisibility="internal"
+                  visibility="internal"
                   placeholder="https://linkedin.com/in/yourprofile"
-                  hint="Used for our review only — never shown on Mentor Connect."
+                  hint="Helps us understand your professional background."
                   error={errors.linkedIn?.message}
                   {...register("linkedIn")}
                 />
                 <Input
                   label="Current location"
-                  fieldVisibility="internal"
+                  visibility="public"
                   placeholder="Singapore"
                   error={errors.location?.message}
                   {...register("location")}
@@ -247,22 +243,22 @@ export default function MentorApplyPage() {
                 <SectionHeading>Professional background</SectionHeading>
 
                 <Input
-                  label="Company / organisation"
-                  fieldVisibility="internal"
-                  placeholder="e.g. Vitol, Trafigura, Glencore"
+                  label="Company / Organisation"
+                  visibility="internal"
+                  placeholder="e.g. the entity you are employed by"
                   error={errors.company?.message}
                   {...register("company")}
                 />
                 <Input
                   label="Current / most recent role"
-                  fieldVisibility="internal"
+                  visibility="public"
                   placeholder="e.g. Senior Crude Oil Trader"
                   error={errors.role?.message}
                   {...register("role")}
                 />
                 <Input
                   label="Years of experience"
-                  fieldVisibility="public"
+                  visibility="public"
                   type="number"
                   min={0}
                   max={80}
@@ -272,21 +268,21 @@ export default function MentorApplyPage() {
                 />
                 <Input
                   label="Primary commodity / desk"
-                  fieldVisibility="internal"
+                  visibility="public"
                   placeholder="e.g. LNG, Power, Metals"
                   error={errors.commodityDesk?.message}
                   {...register("commodityDesk")}
                 />
                 <Input
                   label="Professional headline"
-                  fieldVisibility="public"
+                  visibility="public"
                   placeholder="e.g. Crude Oil Trader — Ex-Supermajor"
                   error={errors.headline?.message}
                   {...register("headline")}
                 />
                 <TextAreaField
                   label="Tell us about your experience"
-                  fieldVisibility="public"
+                  visibility="public"
                   placeholder="Brief overview of your commodity trading background, desks you've worked on, and what you're best placed to mentor on..."
                   error={errors.bio?.message}
                   {...register("bio")}
@@ -296,9 +292,9 @@ export default function MentorApplyPage() {
 
                 <Input
                   label="Mentorship subjects"
-                  fieldVisibility="public"
+                  visibility="public"
                   placeholder="e.g. Crude oil, Forward curves, Physical arbitrage"
-                  hint="Click a suggested topic or type your own."
+                  hint="Click a suggested topic to add it to the field, or type your own."
                   error={errors.tagsText?.message}
                   {...register("tagsText")}
                 />

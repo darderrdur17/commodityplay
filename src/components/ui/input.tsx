@@ -5,36 +5,26 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   label?: string;
   error?: string;
   hint?: string;
-  /** Mentor apply form — shows whether the field is public on Mentor Connect or internal only. */
-  fieldVisibility?: "internal" | "public";
-}
-
-function FieldVisibilityBadge({ kind }: { kind: "internal" | "public" }) {
-  if (kind === "internal") {
-    return (
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-fg bg-secondary px-1.5 py-0.5 rounded">
-        Internal only
-      </span>
-    );
-  }
-  return (
-    <span className="text-[10px] font-semibold uppercase tracking-wide text-primary-400 bg-primary-400/10 px-1.5 py-0.5 rounded">
-      Public on Mentor Connect
-    </span>
-  );
+  /** Mentor apply and similar forms — shows whether the field is internal or public. */
+  visibility?: "internal" | "public";
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, label, error, hint, id, fieldVisibility, ...props }, ref) => {
+  ({ className, type, label, error, hint, id, visibility, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
     return (
       <div className="w-full space-y-1.5">
         {label && (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
               {label}
             </label>
-            {fieldVisibility && <FieldVisibilityBadge kind={fieldVisibility} />}
+            {visibility === "internal" && (
+              <span className="text-[11px] font-medium text-muted-fg">Internal</span>
+            )}
+            {visibility === "public" && (
+              <span className="text-[11px] font-medium text-primary-400">Public on Mentor Connect</span>
+            )}
           </div>
         )}
         <input
