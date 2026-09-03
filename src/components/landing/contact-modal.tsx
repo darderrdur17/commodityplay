@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BRAND_EMAIL_SUPPORT, BRAND_NAME } from "@/lib/brand";
+import { BRAND_NAME } from "@/lib/brand";
 
 interface Props {
   open: boolean;
@@ -125,15 +125,6 @@ export function ContactModal({ open, onClose }: Props) {
                     <Send className="w-4 h-4" />
                     Send message
                   </Button>
-                  <p className="text-[11px] text-muted-fg text-center">
-                    Or email{" "}
-                    <a
-                      href={`mailto:${BRAND_EMAIL_SUPPORT}`}
-                      className="text-primary-400 hover:underline"
-                    >
-                      {BRAND_EMAIL_SUPPORT}
-                    </a>
-                  </p>
                   <p className="text-[11px] text-muted-fg text-center">
                     {BRAND_NAME} · Singapore
                   </p>

@@ -26,19 +26,37 @@ export const siteFooterSchema = z.object({
   }),
 });
 
+const MENTOR_APPLY_HREF = "/mentor-apply";
+const BE_A_MENTOR_LINK: FooterLinkItem = { label: "Be a Mentor", href: MENTOR_APPLY_HREF };
+
 function normalizeFooterLink(link: FooterLinkItem): FooterLinkItem {
   const label = link.label.trim();
   if (/^job board$/i.test(label) && /job-openings/i.test(link.href)) {
     return { ...link, href: "/waitlist" };
   }
+  if (/^be a mentor$/i.test(label)) {
+    return { ...link, href: MENTOR_APPLY_HREF };
+  }
   return link;
+}
+
+function ensureBeAMentorLink(links: FooterLinkItem[]): FooterLinkItem[] {
+  const normalized = links.map(normalizeFooterLink);
+  let mentor = normalized.find((l) => /^be a mentor$/i.test(l.label.trim()));
+  const withoutMentor = normalized.filter((l) => !/^be a mentor$/i.test(l.label.trim()));
+  if (!mentor) {
+    mentor = BE_A_MENTOR_LINK;
+  }
+  const memberIdx = withoutMentor.findIndex((l) => /^be a member$/i.test(l.label.trim()));
+  const insertAt = memberIdx >= 0 ? memberIdx + 1 : 0;
+  return [...withoutMentor.slice(0, insertAt), mentor, ...withoutMentor.slice(insertAt)];
 }
 
 function normalizeFooterColumns(columns: SiteFooterContent["columns"]): SiteFooterContent["columns"] {
   return {
     contents: columns.contents.map(normalizeFooterLink),
     community: columns.community.map(normalizeFooterLink),
-    access: columns.access.map(normalizeFooterLink),
+    access: ensureBeAMentorLink(columns.access),
   };
 }
 

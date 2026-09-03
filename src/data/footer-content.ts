@@ -51,6 +51,7 @@ export const DEFAULT_SITE_FOOTER: SiteFooterContent = {
     ],
     access: [
       { label: "Be a Member", href: CAREER_PRICING_HREF },
+      { label: "Be a Mentor", href: "/mentor-apply" },
       { label: "Be a Partner", href: "#contact", action: "contact" },
       { label: "Team Licenses", href: `mailto:${BRAND_EMAIL_HELLO}`, action: "mailto" },
       { label: "Sign Up", href: "/signup" },
