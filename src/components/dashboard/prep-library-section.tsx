@@ -804,16 +804,16 @@ export function PrepLibraryBody({
   }, [highlightId, topicGroups, monthYearFilter]);
 
   const salesAddTopicForm = (
-    <form onSubmit={handleSave} className="space-y-5">
+    <form onSubmit={handleSave} className="space-y-3">
       <div className="flex items-center gap-2">
         <div className={theme.iconWrapClass}>
           <BarChart3 className={theme.iconClass} />
         </div>
-        <h3 className="font-semibold text-gray-900">{theme.formHeader}</h3>
+        <h3 className="font-semibold text-sm text-gray-900">{theme.formHeader}</h3>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="space-y-1.5">
+      <div className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-3">
+        <div className="md:col-span-2 xl:col-span-2 space-y-1">
           <label htmlFor="prep-topic-title-SALES" className={labelClass}>
             Topic title
           </label>
@@ -822,11 +822,11 @@ export function PrepLibraryBody({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={theme.placeholders.title}
-            className="h-10"
+            className="h-9 text-sm"
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="md:col-span-4 xl:col-span-5 space-y-1">
           <label htmlFor="prep-key-points-SALES" className={labelClass}>
             Key points
           </label>
@@ -837,7 +837,7 @@ export function PrepLibraryBody({
             placeholder={theme.placeholders.keyPoints}
             rows={2}
             className={cn(
-              "flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm min-h-[40px]",
+              "flex w-full rounded-lg border border-border bg-white px-3 py-1.5 text-sm min-h-[36px]",
               "placeholder:text-muted-fg resize-none",
               "focus:outline-none focus:ring-2 focus:border-transparent",
               theme.textareaFocusClass,
@@ -846,7 +846,7 @@ export function PrepLibraryBody({
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="md:col-span-3 xl:col-span-3 space-y-1">
           <label htmlFor="prep-category-SALES" className={labelClass}>
             Category
           </label>
@@ -855,11 +855,11 @@ export function PrepLibraryBody({
             value={categoryInput}
             onChange={(e) => setCategoryInput(e.target.value)}
             placeholder={theme.placeholders.category}
-            className="h-10"
+            className="h-9 text-sm"
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="md:col-span-3 xl:col-span-2 space-y-1">
           <label htmlFor="prep-can-use-for-SALES" className={labelClass}>
             Can use for
           </label>
@@ -868,7 +868,7 @@ export function PrepLibraryBody({
             value={canUseFor}
             onChange={(e) => setCanUseFor(e.target.value)}
             placeholder={theme.placeholders.canUseFor}
-            className="h-10"
+            className="h-9 text-sm"
           />
         </div>
       </div>
@@ -876,9 +876,10 @@ export function PrepLibraryBody({
       <Button
         type="submit"
         disabled={!title.trim() || !keyPointsRaw.trim()}
-        className={cn("gap-1.5", theme.saveButtonClass)}
+        size="sm"
+        className={cn("gap-1.5 h-9", theme.saveButtonClass)}
       >
-        <Plus className="w-4 h-4" />
+        <Plus className="w-3.5 h-3.5" />
         {theme.saveButtonLabel}
       </Button>
       {saveError && <p className="text-xs text-red-600">{saveError}</p>}
@@ -886,16 +887,16 @@ export function PrepLibraryBody({
   );
 
   const careerAddTopicForm = (
-    <form onSubmit={handleSave} className="space-y-4">
+    <form onSubmit={handleSave} className="space-y-3">
       <div className="flex items-center gap-2">
         <div className={theme.iconWrapClass}>
           <BarChart3 className={theme.iconClass} />
         </div>
-        <h3 className="font-semibold text-gray-900">{theme.formHeader}</h3>
+        <h3 className="font-semibold text-sm text-gray-900">{theme.formHeader}</h3>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="sm:col-span-2 space-y-1.5">
+      <div className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-3">
+        <div className="md:col-span-2 xl:col-span-2 space-y-1">
           <label htmlFor={`prep-topic-title-${track}`} className={labelClass}>
             Topic title
           </label>
@@ -904,11 +905,11 @@ export function PrepLibraryBody({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={theme.placeholders.title}
-            className="h-10"
+            className="h-9 text-sm"
           />
         </div>
 
-        <div className="sm:col-span-2 space-y-1.5">
+        <div className="md:col-span-4 xl:col-span-5 space-y-1">
           <label htmlFor={`prep-key-points-${track}`} className={labelClass}>
             Key points
           </label>
@@ -917,9 +918,9 @@ export function PrepLibraryBody({
             value={keyPointsRaw}
             onChange={(e) => setKeyPointsRaw(e.target.value)}
             placeholder={theme.placeholders.keyPoints}
-            rows={3}
+            rows={2}
             className={cn(
-              "flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm",
+              "flex w-full rounded-lg border border-border bg-white px-3 py-1.5 text-sm min-h-[36px]",
               "placeholder:text-muted-fg resize-none",
               "focus:outline-none focus:ring-2 focus:border-transparent",
               theme.textareaFocusClass,
@@ -928,7 +929,7 @@ export function PrepLibraryBody({
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="md:col-span-3 xl:col-span-3 space-y-1">
           <label htmlFor={`prep-category-${track}`} className={labelClass}>
             Category
           </label>
@@ -937,79 +938,75 @@ export function PrepLibraryBody({
             value={categoryInput}
             onChange={(e) => setCategoryInput(e.target.value)}
             placeholder={theme.placeholders.category}
-            className="h-10"
+            className="h-9 text-sm"
           />
         </div>
 
-        {track === "CAREER" && (
-          <div className="space-y-1.5">
-            <label htmlFor={`prep-source-${track}`} className={labelClass}>
-              Source <span className="font-normal normal-case tracking-normal">(optional)</span>
-            </label>
-            <Input
-              id={`prep-source-${track}`}
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              placeholder={theme.placeholders.source}
-              className="h-10"
-            />
-          </div>
-        )}
-
-        {track === "CAREER" && (
-          <>
-            <div className="sm:col-span-2 space-y-3">
-              <span className={labelClass}>Prep status</span>
-              <div className="flex gap-2 flex-wrap">
-                {PREP_STATUS_PRESETS.map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    onClick={() => {
-                      setPrepStatus(status);
-                      setCustomPrepStatus("");
-                    }}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150",
-                      prepStatus === status && !customPrepStatus.trim()
-                        ? status === "Learning it"
-                          ? "bg-gray-200 border-gray-300 text-gray-700"
-                          : status === "Interview-ready"
-                          ? "bg-amber-100 border-amber-300 text-amber-700"
-                          : "bg-green-100 border-green-300 text-green-700"
-                        : "bg-white border-border text-muted-fg hover:border-gray-300"
-                    )}
-                  >
-                    {status}
-                  </button>
-                ))}
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor={`prep-custom-status-${track}`} className={labelClass}>
-                  Or name your own
-                </label>
-                <Input
-                  id={`prep-custom-status-${track}`}
-                  value={customPrepStatus}
-                  onChange={(e) => setCustomPrepStatus(e.target.value)}
-                  placeholder="e.g. Revisit before final round"
-                  className="h-10"
-                  maxLength={50}
-                />
-              </div>
-            </div>
-          </>
-        )}
+        <div className="md:col-span-3 xl:col-span-2 space-y-1">
+          <label htmlFor={`prep-source-${track}`} className={labelClass}>
+            Source <span className="font-normal normal-case tracking-normal">(optional)</span>
+          </label>
+          <Input
+            id={`prep-source-${track}`}
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            placeholder={theme.placeholders.source}
+            className="h-9 text-sm"
+          />
+        </div>
       </div>
 
-      <Button
-        type="submit"
-        disabled={!title.trim() || !keyPointsRaw.trim()}
-        className={cn("gap-1.5", theme.saveButtonClass)}
-      >
-        <Plus className="w-4 h-4" />
-        {theme.saveButtonLabel}
-      </Button>
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 pt-0.5">
+        <div className="space-y-1.5 flex-1 min-w-[200px]">
+          <span className={labelClass}>Prep status</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {PREP_STATUS_PRESETS.map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => {
+                  setPrepStatus(status);
+                  setCustomPrepStatus("");
+                }}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all duration-150",
+                  prepStatus === status && !customPrepStatus.trim()
+                    ? status === "Learning it"
+                      ? "bg-gray-200 border-gray-300 text-gray-700"
+                      : status === "Interview-ready"
+                      ? "bg-amber-100 border-amber-300 text-amber-700"
+                      : "bg-green-100 border-green-300 text-green-700"
+                    : "bg-white border-border text-muted-fg hover:border-gray-300"
+                )}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-1 flex-1 min-w-[180px] sm:max-w-[240px]">
+          <label htmlFor={`prep-custom-status-${track}`} className={labelClass}>
+            Or name your own
+          </label>
+          <Input
+            id={`prep-custom-status-${track}`}
+            value={customPrepStatus}
+            onChange={(e) => setCustomPrepStatus(e.target.value)}
+            placeholder="e.g. Revisit before final round"
+            className="h-9 text-sm"
+            maxLength={50}
+          />
+        </div>
+        <Button
+          type="submit"
+          disabled={!title.trim() || !keyPointsRaw.trim()}
+          size="sm"
+          className={cn("gap-1.5 shrink-0 h-9", theme.saveButtonClass)}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          {theme.saveButtonLabel}
+        </Button>
+      </div>
       {saveError && <p className="text-xs text-red-600">{saveError}</p>}
     </form>
   );
@@ -1060,7 +1057,7 @@ export function PrepLibraryBody({
               </div>
 
               {/* Add form — light green solid box */}
-              <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-5 sm:p-6 shadow-sm">
+              <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-4 sm:p-5 shadow-sm">
                 {salesAddTopicForm}
               </div>
 
@@ -1182,7 +1179,7 @@ export function PrepLibraryBody({
               />
             </div>
 
-            <div className="rounded-xl border-2 border-dashed border-primary-400 bg-primary-soft p-5 sm:p-6 shadow-sm">
+            <div className="rounded-xl border-2 border-dashed border-primary-400 bg-primary-soft p-4 sm:p-5 shadow-sm">
               {careerAddTopicForm}
             </div>
 

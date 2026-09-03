@@ -50,7 +50,7 @@ type FormData = z.infer<typeof schema>;
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="font-serif text-lg font-bold text-gray-900 pt-2 first:pt-0 border-t border-border first:border-t-0 mt-6 first:mt-0">
+    <h2 className="font-serif text-lg font-bold text-primary-400 pt-2 first:pt-0 border-t border-border first:border-t-0 mt-6 first:mt-0">
       {children}
     </h2>
   );
@@ -160,10 +160,13 @@ export default function MentorApplyPage() {
               <ShieldCheck className="w-3 h-3" /> Invitation only
             </div>
             <h1 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-4">
-              Mentor sign-up
+              Mentor Application
             </h1>
-            <p className="text-white/65 text-lg max-w-2xl">
-              Fill in your details below and our team will review your profile. Once approved, you will receive an email to access your account.
+            <p className="text-white/65 text-lg max-w-2xl leading-relaxed">
+              Fill in your details below. We will review your profile and once confirmed,
+              you&apos;ll receive an email to login account. Selected profile fields are shown
+              publicly on Mentor Connect under your anonymous ID. Name, company, LinkedIn, and
+              email stay internal.
             </p>
           </Reveal>
         </div>
@@ -197,20 +200,20 @@ export default function MentorApplyPage() {
                 <SectionHeading>Your details</SectionHeading>
 
                 <Input
-                  label="Full name *"
+                  label="Full name"
                   placeholder="Alex Chen"
                   error={errors.name?.message}
                   {...register("name")}
                 />
                 <Input
-                  label="Email *"
+                  label="Email"
                   type="email"
                   placeholder="you@example.com"
                   error={errors.email?.message}
                   {...register("email")}
                 />
                 <Input
-                  label="LinkedIn profile *"
+                  label="LinkedIn profile"
                   placeholder="https://linkedin.com/in/yourprofile"
                   hint="Helps us understand your professional background."
                   error={errors.linkedIn?.message}
@@ -226,19 +229,19 @@ export default function MentorApplyPage() {
                 <SectionHeading>Professional background</SectionHeading>
 
                 <Input
-                  label="Company / organisation *"
+                  label="Company / organisation"
                   placeholder="e.g. Vitol, Trafigura, Glencore"
                   error={errors.company?.message}
                   {...register("company")}
                 />
                 <Input
-                  label="Current / most recent role *"
+                  label="Current / most recent role"
                   placeholder="e.g. Senior Crude Oil Trader"
                   error={errors.role?.message}
                   {...register("role")}
                 />
                 <Input
-                  label="Years of experience *"
+                  label="Years of experience"
                   type="number"
                   min={0}
                   max={80}
@@ -253,9 +256,9 @@ export default function MentorApplyPage() {
                   {...register("commodityDesk")}
                 />
                 <Input
-                  label="Professional headline *"
+                  label="Professional headline"
                   placeholder="e.g. Crude Oil Trader — Ex-Supermajor"
-                  hint="This may be shown publicly on Mentor Connect under your anonymous mentor profile."
+                  hint="Shown publicly on Mentor Connect under your anonymous mentor profile."
                   error={errors.headline?.message}
                   {...register("headline")}
                 />
@@ -269,9 +272,9 @@ export default function MentorApplyPage() {
                 <SectionHeading>What can you mentor on?</SectionHeading>
 
                 <Input
-                  label="Mentorship subjects *"
+                  label="Mentorship subjects"
                   placeholder="e.g. Crude oil, Forward curves, Physical arbitrage"
-                  hint="Click a suggested topic to add it to the field, or type your own."
+                  hint="Shown publicly on Mentor Connect. Click a suggested topic or type your own."
                   error={errors.tagsText?.message}
                   {...register("tagsText")}
                 />
@@ -295,7 +298,8 @@ export default function MentorApplyPage() {
                     {...register("confirmAccurate")}
                   />
                   <span className="text-sm text-gray-700 leading-relaxed">
-                    I confirm that the information provided is accurate and I&apos;m open to being contacted regarding participation as an anonymous mentor on CommodityPlay. *
+                    I confirm that the information provided is accurate and I&apos;m open to being
+                    contacted regarding participation as an anonymous mentor on CommodityPlay.
                   </span>
                 </label>
                 {errors.confirmAccurate && (
