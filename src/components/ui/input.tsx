@@ -5,27 +5,17 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   label?: string;
   error?: string;
   hint?: string;
-  /** Mentor apply and similar forms — shows whether the field is internal or public. */
-  visibility?: "internal" | "public";
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, label, error, hint, id, visibility, ...props }, ref) => {
+  ({ className, type, label, error, hint, id, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
     return (
       <div className="w-full space-y-1.5">
         {label && (
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
-              {label}
-            </label>
-            {visibility === "internal" && (
-              <span className="text-[11px] font-medium text-muted-fg">Internal</span>
-            )}
-            {visibility === "public" && (
-              <span className="text-[11px] font-medium text-primary-400">Public on Mentor Connect</span>
-            )}
-          </div>
+          <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
+            {label}
+          </label>
         )}
         <input
           id={inputId}

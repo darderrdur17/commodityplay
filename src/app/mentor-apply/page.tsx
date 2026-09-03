@@ -48,6 +48,9 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
+const PUBLIC_PROFILE_HINT = "Shown publicly under your anonymous ID profile.";
+const INTERNAL_FIELD_HINT = "Kept internal — not shown on Mentor Connect.";
+
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="font-serif text-lg font-bold text-primary-400 pt-2 first:pt-0 border-t border-border first:border-t-0 mt-6 first:mt-0">
@@ -60,28 +63,18 @@ function TextAreaField({
   label,
   hint,
   error,
-  visibility,
   ...props
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label: string;
   hint?: string;
   error?: string;
-  visibility?: "internal" | "public";
 }) {
   const inputId = label.toLowerCase().replace(/\s+/g, "-");
   return (
     <div className="w-full space-y-1.5">
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
-          {label}
-        </label>
-        {visibility === "internal" && (
-          <span className="text-[11px] font-medium text-muted-fg">Internal</span>
-        )}
-        {visibility === "public" && (
-          <span className="text-[11px] font-medium text-primary-400">Public on Mentor Connect</span>
-        )}
-      </div>
+      <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
+        {label}
+      </label>
       <textarea
         id={inputId}
         className={cn(
@@ -174,9 +167,8 @@ export default function MentorApplyPage() {
             </h1>
             <p className="text-white/65 text-lg max-w-2xl leading-relaxed">
               Fill in your details below. We will review your profile and once confirmed,
-              you&apos;ll receive an email to login account. Selected profile fields are shown
-              publicly on Mentor Connect under your anonymous ID. Name, company, LinkedIn, and
-              email stay internal.
+              you&apos;ll receive an email to login account. Name, company, LinkedIn, and email
+              stay internal — other fields note when they appear on your public mentor profile.
             </p>
           </Reveal>
         </div>
@@ -211,31 +203,30 @@ export default function MentorApplyPage() {
 
                 <Input
                   label="Full name"
-                  visibility="internal"
                   placeholder="Alex Chen"
+                  hint={INTERNAL_FIELD_HINT}
                   error={errors.name?.message}
                   {...register("name")}
                 />
                 <Input
                   label="Email"
-                  visibility="internal"
                   type="email"
                   placeholder="you@example.com"
+                  hint={INTERNAL_FIELD_HINT}
                   error={errors.email?.message}
                   {...register("email")}
                 />
                 <Input
                   label="LinkedIn profile"
-                  visibility="internal"
                   placeholder="https://linkedin.com/in/yourprofile"
-                  hint="Helps us understand your professional background."
+                  hint={INTERNAL_FIELD_HINT}
                   error={errors.linkedIn?.message}
                   {...register("linkedIn")}
                 />
                 <Input
                   label="Current location"
-                  visibility="public"
                   placeholder="Singapore"
+                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.location?.message}
                   {...register("location")}
                 />
@@ -244,46 +235,46 @@ export default function MentorApplyPage() {
 
                 <Input
                   label="Company / Organisation"
-                  visibility="internal"
-                  placeholder="e.g. the entity you are employed by"
+                  placeholder="e.g. the entity name you are employed at"
+                  hint={INTERNAL_FIELD_HINT}
                   error={errors.company?.message}
                   {...register("company")}
                 />
                 <Input
                   label="Current / most recent role"
-                  visibility="public"
                   placeholder="e.g. Senior Crude Oil Trader"
+                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.role?.message}
                   {...register("role")}
                 />
                 <Input
                   label="Years of experience"
-                  visibility="public"
                   type="number"
                   min={0}
                   max={80}
                   placeholder="e.g. 12"
+                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.years?.message}
                   {...register("years")}
                 />
                 <Input
                   label="Primary commodity / desk"
-                  visibility="public"
                   placeholder="e.g. LNG, Power, Metals"
+                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.commodityDesk?.message}
                   {...register("commodityDesk")}
                 />
                 <Input
                   label="Professional headline"
-                  visibility="public"
                   placeholder="e.g. Crude Oil Trader — Ex-Supermajor"
+                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.headline?.message}
                   {...register("headline")}
                 />
                 <TextAreaField
                   label="Tell us about your experience"
-                  visibility="public"
                   placeholder="Brief overview of your commodity trading background, desks you've worked on, and what you're best placed to mentor on..."
+                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.bio?.message}
                   {...register("bio")}
                 />
@@ -292,9 +283,8 @@ export default function MentorApplyPage() {
 
                 <Input
                   label="Mentorship subjects"
-                  visibility="public"
                   placeholder="e.g. Crude oil, Forward curves, Physical arbitrage"
-                  hint="Click a suggested topic to add it to the field, or type your own."
+                  hint={PUBLIC_PROFILE_HINT}
                   error={errors.tagsText?.message}
                   {...register("tagsText")}
                 />
