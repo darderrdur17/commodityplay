@@ -238,7 +238,7 @@ export default function MentorApplyPage() {
                   {...register("company")}
                 />
                 <Input
-                  label={publicLabel("Current / most recent role")}
+                  label="Current / most recent role"
                   placeholder="e.g. Senior Crude Oil Trader"
                   error={errors.role?.message}
                   {...register("role")}
