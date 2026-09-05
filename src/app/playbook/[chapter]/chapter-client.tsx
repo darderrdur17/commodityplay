@@ -391,7 +391,7 @@ function AssetPanel({ assets, locked, assetUrls }: { assets: ContentAttachment[]
                 </a>
               ) : (
                 <span className="mt-3 inline-flex items-center gap-1 text-xs text-muted-fg">
-                  Upload in admin CMS
+                  Coming soon
                 </span>
               )}
             </div>

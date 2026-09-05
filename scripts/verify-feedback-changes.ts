@@ -308,6 +308,31 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
         salesDeliverables: { salesEdgeNote: null, industryGuideForSales: null },
       })
     );
+    ok(
+      "Industry Guide for Sales is not ready without an uploaded PDF",
+      !isDashboardFileReady("industryGuideForSales", {
+        careerNavigationGuide: null,
+        salesDeliverables: { salesEdgeNote: null, industryGuideForSales: null },
+      })
+    );
+  }
+  {
+    const chapterClient = fs.readFileSync(
+      path.join(process.cwd(), "src/app/playbook/[chapter]/chapter-client.tsx"),
+      "utf8"
+    );
+    ok(
+      "Playbook section files show Coming soon when no PDF is uploaded",
+      chapterClient.includes("Coming soon") && !chapterClient.includes("Upload in admin CMS")
+    );
+    const slots = fs.readFileSync(
+      path.join(process.cwd(), "src/lib/content/playbook-section-assets.ts"),
+      "utf8"
+    );
+    ok(
+      "Playbook sections always reserve three phased PDF slots",
+      slots.includes("ensurePlaybookSectionAssets") && slots.includes("Infographic")
+    );
   }
   ok(
     "Career Navigation Guide is a file download card",

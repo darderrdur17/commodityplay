@@ -215,20 +215,22 @@ export async function getPlaybookChapterAssets(chapterId: string): Promise<Recor
   const map: Record<string, ContentAttachment[]> = {};
 
   const { PLAYBOOK_ASSETS, getSectionAssets } = await import("@/data/playbook-assets");
+  const { ensurePlaybookSectionAssets } = await import("@/lib/content/playbook-section-assets");
+  const sections = await getPlaybookSections(chapterId);
   const defaultSectionIds = Object.keys(PLAYBOOK_ASSETS[chapterId] ?? {});
   const cmsSectionIds = chapter?.sections?.map((s) => s.id) ?? [];
   const allSectionIds = [...new Set([...defaultSectionIds, ...cmsSectionIds])];
 
   for (const sectionId of allSectionIds) {
     const cmsSection = chapter?.sections?.find((s) => s.id === sectionId);
-    if (cmsSection?.assets?.length) {
-      map[sectionId] = cmsSection.assets;
-      continue;
-    }
-    const defaults = getSectionAssets(chapterId, sectionId);
-    if (defaults.length) {
-      map[sectionId] = defaults.map((a) => ({ ...a, delivery: "download" as const }));
-    }
+    const sectionTitle = sections.find((s) => s.id === sectionId)?.title ?? sectionId;
+    const raw = cmsSection?.assets?.length
+      ? cmsSection.assets
+      : getSectionAssets(chapterId, sectionId).map((a) => ({
+          ...a,
+          delivery: "download" as const,
+        }));
+    map[sectionId] = ensurePlaybookSectionAssets(chapterId, sectionId, sectionTitle, raw);
   }
 
   return map;

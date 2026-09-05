@@ -383,10 +383,13 @@ export function DashboardClient({
 
   function resolveDeliverableHref(
     deliverableKey: DashboardDeliverableKey | undefined,
-    fallback?: string
+    fallback?: string,
+    cardKind?: "page" | "file" | "email-digest"
   ): string | undefined {
     if (deliverableKey) {
-      return resolveDashboardFileDownloadHref(deliverableKey, fileDeliverableSources) ?? fallback;
+      const fileHref = resolveDashboardFileDownloadHref(deliverableKey, fileDeliverableSources);
+      if (cardKind === "file") return fileHref ?? undefined;
+      return fileHref ?? fallback;
     }
     return fallback;
   }
@@ -463,6 +466,8 @@ export function DashboardClient({
                 {tierBadges}
                 {cardKind === "email-digest" ? (
                   <span className="text-xs text-muted-fg">Inbox digest</span>
+                ) : pendingLabel ? (
+                  <span className="text-xs text-muted-fg">{pendingLabel}</span>
                 ) : href && cardKind === "file" ? (
                   <a
                     href={href}
@@ -829,16 +834,16 @@ export function DashboardClient({
               ("deliverableKey" in card ? card.deliverableKey : undefined) ?? cardDef?.deliverableKey;
             const isFileCard = cardKind === "file";
             const fileReady = isDashboardFileReady(deliverableKey, fileDeliverableSources);
-            const canOpen = tierUnlocked && fileReady;
             const pendingLabel =
-              tierUnlocked && isFileCard && !fileReady ? "File coming soon" : undefined;
+              tierUnlocked && isFileCard && !fileReady ? "Coming soon" : undefined;
             const description =
               resourceCopyBySlug[card.slug] ??
               DEFAULT_MEMBER_DASHBOARD_CONTENT.resourceCards.find((c) => c.slug === card.slug)?.description ??
               "";
             const href = resolveDeliverableHref(
               deliverableKey,
-              "href" in card ? card.href : cardDef?.href
+              "href" in card ? card.href : cardDef?.href,
+              cardKind
             );
             const showCareerPrepLibrary =
               showCareerPrepLibrarySlot && i === firstEliteContentCardIndex;
@@ -863,7 +868,7 @@ export function DashboardClient({
                   icon: card.icon,
                   color: card.color,
                   tier,
-                  unlocked: canOpen,
+                  unlocked: tierUnlocked,
                   href,
                   delay: i * 0.05,
                   pendingLabel,
@@ -895,14 +900,13 @@ export function DashboardClient({
                 DEFAULT_MEMBER_DASHBOARD_CONTENT.salesResourceCards.find((c) => c.slug === card.slug)
                   ?.description ??
                 "";
-              const href = resolveDeliverableHref(card.deliverableKey, card.href) ?? card.href;
+              const href = resolveDeliverableHref(card.deliverableKey, card.href, card.cardKind);
               const Icon = SALES_CARD_ICONS[card.slug] ?? FileText;
               const color = SALES_CARD_COLORS[card.slug] ?? "#3280ff";
               const tierUnlocked = hasAccess(effectiveTier, tier);
               const fileReady = isDashboardFileReady(card.deliverableKey, fileDeliverableSources);
-              const canOpen = tierUnlocked && fileReady;
               const pendingLabel =
-                tierUnlocked && card.deliverableKey && !fileReady ? "File coming soon" : undefined;
+                tierUnlocked && card.cardKind === "file" && !fileReady ? "Coming soon" : undefined;
 
               if (card.isPrepLibrary) {
                 return (
@@ -928,7 +932,7 @@ export function DashboardClient({
                     icon: Icon,
                     color,
                     tier,
-                    unlocked: canOpen,
+                    unlocked: tierUnlocked,
                     href,
                     delay: (visibleContentCards.length + i) * 0.05,
                     pendingLabel,

@@ -400,7 +400,7 @@ export function CareerRoadmapClient({
               ) : (
                 <Button disabled>
                   <Download className="w-4 h-4" />
-                  PDF coming soon
+                  Coming soon
                 </Button>
               )}
             </div>

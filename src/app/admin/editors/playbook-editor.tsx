@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { getSectionAssets } from "@/data/playbook-assets";
 import { mergePlaybookHubHero, type PlaybookHubHeroCopy } from "@/data/playbook-hub-hero";
 import type { ContentAttachment } from "@/lib/content/attachments";
-import { slugifyFileName } from "@/lib/content/attachments";
+import { ensurePlaybookSectionAssets } from "@/lib/content/playbook-section-assets";
 import {
   EditorField,
   EditorRow,
@@ -48,48 +48,6 @@ interface PlaybookPayload {
   hubHero?: Partial<PlaybookHubHeroCopy>;
 }
 
-const REFERENCE_ASSET_TYPES = ["Infographic", "Framework", "Worked Example"] as const;
-
-function defaultAttachment(
-  chapterId: string,
-  sectionId: string,
-  type: (typeof REFERENCE_ASSET_TYPES)[number],
-  title: string
-): ContentAttachment {
-  const slug = slugifyFileName(title) || type.toLowerCase().replace(/\s+/g, "-");
-  return {
-    id: `${sectionId}-${slug}`,
-    type,
-    title,
-    description: "",
-    fileKey: `playbook/${chapterId}/${sectionId}/${slug}.pdf`,
-    delivery: "download",
-  };
-}
-
-function ensureSectionAssets(
-  chapterId: string,
-  sectionId: string,
-  sectionTitle: string,
-  assets: ContentAttachment[]
-): ContentAttachment[] {
-  const byType = new Map<string, ContentAttachment>();
-  for (const asset of assets) {
-    if (asset.type) byType.set(asset.type, asset);
-  }
-  for (const fallback of getSectionAssets(chapterId, sectionId)) {
-    if (fallback.type && !byType.has(fallback.type)) {
-      byType.set(fallback.type, { ...fallback, delivery: "download" as const });
-    }
-  }
-
-  return REFERENCE_ASSET_TYPES.map((type) => {
-    const existing = byType.get(type);
-    if (existing) return existing;
-    return defaultAttachment(chapterId, sectionId, type, `${sectionTitle} — ${type}`);
-  });
-}
-
 function sectionAssets(chapterId: string, sec: PlaybookSectionData): ContentAttachment[] {
   const raw = sec.assets?.length
     ? sec.assets
@@ -97,7 +55,7 @@ function sectionAssets(chapterId: string, sec: PlaybookSectionData): ContentAtta
         ...a,
         delivery: "download" as const,
       }));
-  return ensureSectionAssets(chapterId, sec.id, sec.title, raw);
+  return ensurePlaybookSectionAssets(chapterId, sec.id, sec.title, raw);
 }
 
 function newSection(chapterId: string, idx: number): PlaybookSectionData {
@@ -135,7 +93,7 @@ function SectionAssetsEditor({
   requiredTier: string;
 }) {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const slots = ensureSectionAssets(chapterId, sectionId, sectionTitle, assets);
+  const slots = ensurePlaybookSectionAssets(chapterId, sectionId, sectionTitle, assets);
 
   function patchAsset(i: number, asset: ContentAttachment) {
     const next = [...slots];
