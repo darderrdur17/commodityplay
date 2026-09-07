@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { Users, MessageSquare, Clock, Lock } from "lucide-react";
@@ -83,7 +83,6 @@ export function MentorConnectClient({
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [selectedMentor, setSelectedMentor] = useState<SelectedMentor | null>(null);
-  const askPanelRef = useRef<HTMLDivElement>(null);
 
   const isElite = userTier === "ELITE";
   const creditsRemaining = mentorCreditUsage?.remaining ?? 0;
@@ -101,8 +100,17 @@ export function MentorConnectClient({
 
   useEffect(() => {
     if (!selectedMentor) return;
-    askPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [selectedMentor?.id]);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") clearMentorSelection();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [selectedMentor]);
 
   function openMentor(mentor: PublicMentorProfile, segmentId: string, segmentTitle: string) {
     if (selectedMentor?.id === mentor.id) {
@@ -209,13 +217,13 @@ export function MentorConnectClient({
       </div>
 
       <TierGate requiredTier="ELITE" userTier={userTier}>
-        {/* Mentor browse + inline ask panel — full width */}
+        {/* Mentor browse — ask form opens as a Contact Us-style popup */}
         <section className="mb-14">
           <Reveal className="mb-8">
             <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">Browse mentors</p>
             <h2 className="font-serif text-2xl font-bold text-gray-900">{visibleMentorCount} Practitioners. {visibleSegmentCount} Segments.</h2>
             <p className="text-sm text-muted-fg mt-2">
-              Tap a mentor to open the question panel right here — no scrolling to the bottom of the page.
+              Tap a mentor to ask one question in a popup — same pattern as Contact Us.
             </p>
           </Reveal>
 
@@ -234,10 +242,11 @@ export function MentorConnectClient({
                         const isSelected = selectedMentor?.id === mentor.id;
 
                         return (
-                          <div key={mentor.id} className="flex flex-col min-w-0">
                           <button
+                            key={mentor.id}
                             type="button"
                             onClick={() => openMentor(mentor, seg.id, seg.title)}
+                            aria-haspopup="dialog"
                             aria-expanded={isSelected}
                             className={`text-left rounded-xl border bg-white p-4 h-full transition-all hover:-translate-y-1 hover:border-primary-line hover:shadow-md ${
                               isSelected
@@ -264,32 +273,6 @@ export function MentorConnectClient({
                               {isSelected ? "Writing question…" : "Ask one question"}
                             </p>
                           </button>
-
-                          <AnimatePresence mode="wait">
-                            {isSelected && selectedMentor && (
-                              <div ref={askPanelRef} className="mt-4">
-                                <MentorAskPanel
-                                  key={selectedMentor.id}
-                                  mentor={selectedMentor}
-                                  question={question}
-                                  memberShareOptIn={memberShareOptIn}
-                                  submitting={submitting}
-                                  submitted={submitted}
-                                  error={error}
-                                  mentorCredits={creditsRemaining}
-                                  onQuestionChange={setQuestion}
-                                  onMemberShareOptInChange={setMemberShareOptIn}
-                                  onClose={clearMentorSelection}
-                                  onSubmit={handleSubmit}
-                                  onAskAnother={() => {
-                                    setSubmitted(false);
-                                    clearMentorSelection();
-                                  }}
-                                />
-                              </div>
-                            )}
-                          </AnimatePresence>
-                          </div>
                         );
                       })}
                     </div>
@@ -371,6 +354,29 @@ export function MentorConnectClient({
             </div>
           </Reveal>
         </section>
+
+        <AnimatePresence>
+          {selectedMentor && (
+            <MentorAskPanel
+              key={selectedMentor.id}
+              mentor={selectedMentor}
+              question={question}
+              memberShareOptIn={memberShareOptIn}
+              submitting={submitting}
+              submitted={submitted}
+              error={error}
+              mentorCredits={creditsRemaining}
+              onQuestionChange={setQuestion}
+              onMemberShareOptInChange={setMemberShareOptIn}
+              onClose={clearMentorSelection}
+              onSubmit={handleSubmit}
+              onAskAnother={() => {
+                setSubmitted(false);
+                clearMentorSelection();
+              }}
+            />
+          )}
+        </AnimatePresence>
       </TierGate>
     </div>
   );

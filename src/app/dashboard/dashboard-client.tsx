@@ -688,7 +688,7 @@ export function DashboardClient({
           <StaggerItem key={stat.label}>
             <div className="bg-white rounded-xl border border-border p-4 sm:p-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-fg">
+                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-primary-400">
                   {stat.label}
                 </p>
                 <div

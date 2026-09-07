@@ -13,6 +13,7 @@ import {
 import { TierGate } from "@/components/tier-gate";
 import { Reveal } from "@/components/animations";
 import { Button } from "@/components/ui/button";
+import { ContactModal } from "@/components/landing/contact-modal";
 
 interface Props {
   userTier: string;
@@ -32,6 +33,7 @@ export function DeskChannelClient({
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<DeskCategory | "all">("all");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [contactOpen, setContactOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return questions.filter((q) => {
@@ -98,14 +100,20 @@ export function DeskChannelClient({
               </button>
             ))}
           </div>
-          <div className="hidden lg:block mt-6 p-4 rounded-xl bg-primary-800 text-white">
+          <div className="mt-6 p-4 rounded-xl bg-primary-800 text-white">
             <p className="font-serif font-bold text-sm mb-1">Can&apos;t find your question?</p>
-            <p className="text-xs text-white/60 mb-3">Submit a question to vetted practitioners.</p>
-            <Link href="#ask-practitioner">
-              <Button size="sm" variant="primary-dark" className="w-full">
-                Ask a Question →
-              </Button>
-            </Link>
+            <p className="text-xs text-white/60 mb-3">
+              Feel free to submit the question/s over for our review.
+            </p>
+            <Button
+              size="sm"
+              variant="primary-dark"
+              className="w-full"
+              type="button"
+              onClick={() => setContactOpen(true)}
+            >
+              Ask a Question →
+            </Button>
           </div>
         </aside>
 
@@ -247,6 +255,7 @@ export function DeskChannelClient({
         </div>
       </section>
       </TierGate>
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
     </div>
   );
 }
