@@ -340,10 +340,11 @@ function HeroTab({ data, onChange }: { data: StarterPayload; onChange: (d: Start
 // ─── Upgrade CTA ──────────────────────────────────────────────────────────────
 
 function UpgradeCtaTab({ data, onChange }: { data: StarterPayload; onChange: (d: StarterPayload) => void }) {
-  const cta = mergeStarterUpgradeCta(data.upgradeCta);
+  const stored = data.upgradeCta ?? {};
+  const cta = mergeStarterUpgradeCta(stored);
 
   function patch(updates: Partial<StarterUpgradeCta>) {
-    onChange({ ...data, upgradeCta: { ...cta, ...updates } });
+    onChange({ ...data, upgradeCta: { ...stored, ...updates } });
   }
 
   return (

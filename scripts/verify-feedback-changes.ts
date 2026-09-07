@@ -260,6 +260,23 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     ok("Contact modal has no Or email fallback line", !contactModal.includes("Or email"));
   }
   {
+    const mentorApply = fs.readFileSync(
+      path.join(process.cwd(), "src/app/mentor-apply/page.tsx"),
+      "utf8"
+    );
+    ok("Mentor years placeholder is e.g. 20", mentorApply.includes('placeholder="e.g. 20"'));
+    ok(
+      "Mentor commodity focus placeholder lists Gasoil and Base Metals",
+      mentorApply.includes("Primary commodity focus") &&
+        mentorApply.includes("e.g. Gasoil, LNG, Power, Base Metals")
+    );
+    ok(
+      "Mentor experience placeholder uses market background and desks / functions",
+      mentorApply.includes("commodity market background") &&
+        mentorApply.includes("desks / functions")
+    );
+  }
+  {
     const adminClient = fs.readFileSync(
       path.join(process.cwd(), "src/app/admin/admin-client.tsx"),
       "utf8"

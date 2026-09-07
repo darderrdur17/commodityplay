@@ -16,9 +16,9 @@ import {
 // ─── Base UI primitives ───────────────────────────────────────────────────────
 
 export const inputClass =
-  "w-full h-9 px-3 rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary-400";
+  "w-full h-9 px-3 rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400";
 export const textareaClass =
-  "w-full min-h-[72px] px-3 py-2 rounded-lg border border-border text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-400 resize-y";
+  "w-full min-h-[72px] px-3 py-2 rounded-lg border border-border text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 resize-y";
 
 export function EditorField({
   label,
@@ -30,11 +30,11 @@ export function EditorField({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block space-y-1.5">
+    <div className="block space-y-1.5">
       <span className="text-xs font-semibold text-gray-700">{label}</span>
       {hint && <span className="block text-[11px] text-muted-fg">{hint}</span>}
       {children}
-    </label>
+    </div>
   );
 }
 

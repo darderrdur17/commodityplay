@@ -70,7 +70,7 @@ function TextAreaField({
   hint?: string;
   error?: string;
 }) {
-  const inputId = label.toLowerCase().replace(/\s+/g, "-");
+  const inputId = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return (
     <div className="w-full space-y-1.5">
       <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
@@ -81,7 +81,7 @@ function TextAreaField({
         className={cn(
           "flex min-h-[96px] w-full rounded-lg border border-border bg-white px-3 py-2 text-sm",
           "placeholder:text-muted-fg",
-          "focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent",
+          "focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400",
           "disabled:cursor-not-allowed disabled:opacity-50",
           "transition-all duration-200 resize-y leading-relaxed",
           error && "border-red-400 focus:ring-red-400"
@@ -248,13 +248,13 @@ export default function MentorApplyPage() {
                   type="number"
                   min={0}
                   max={80}
-                  placeholder="e.g. 12"
+                  placeholder="e.g. 20"
                   error={errors.years?.message}
                   {...register("years")}
                 />
                 <Input
-                  label={publicLabel("Primary commodity / desk")}
-                  placeholder="e.g. LNG, Power, Metals"
+                  label={publicLabel("Primary commodity focus")}
+                  placeholder="e.g. Gasoil, LNG, Power, Base Metals"
                   error={errors.commodityDesk?.message}
                   {...register("commodityDesk")}
                 />
@@ -266,7 +266,7 @@ export default function MentorApplyPage() {
                 />
                 <TextAreaField
                   label={publicLabel("Tell us about your experience")}
-                  placeholder="Brief overview of your commodity trading background, desks you've worked on, and what you're best placed to mentor on..."
+                  placeholder="Brief overview of your commodity market background, desks / functions you've worked on, and you're best placed to mentor on..."
                   error={errors.bio?.message}
                   {...register("bio")}
                 />

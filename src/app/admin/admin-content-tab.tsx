@@ -287,7 +287,7 @@ function ModuleEditor({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-border overflow-hidden">
+    <div className="bg-white rounded-xl border border-border">
       <SaveBar
         slug={slug}
         version={version}
