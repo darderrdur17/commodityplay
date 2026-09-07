@@ -220,10 +220,9 @@ export function MentorConnectClient({
         {/* Mentor browse — ask form opens as a Contact Us-style popup */}
         <section className="mb-14">
           <Reveal className="mb-8">
-            <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">Browse mentors</p>
-            <h2 className="font-serif text-2xl font-bold text-gray-900">{visibleMentorCount} Practitioners. {visibleSegmentCount} Segments.</h2>
-            <p className="text-sm text-muted-fg mt-2">
-              Tap a mentor to ask one question in a popup — same pattern as Contact Us.
+            <h2 className="font-serif text-2xl font-bold text-primary-400">Browse Mentors</h2>
+            <p className="text-sm text-primary-400 mt-2">
+              Tap a mentor to ask one question in a pop up
             </p>
           </Reveal>
 
