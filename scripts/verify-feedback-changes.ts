@@ -514,6 +514,14 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       byteLength: 13 * 1024 * 1024,
     })
   );
+  const stampSource = fs.readFileSync(
+    path.join(__dirname, "../src/lib/content/pdf-watermark.ts"),
+    "utf8"
+  );
+  ok(
+    "PDF stamp stays in the footer (no center diagonal)",
+    !stampSource.includes("degrees(") && !stampSource.includes("rotate:")
+  );
 }
 
 async function verifyPdfStampWrites() {

@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 /** Skip stamping huge files so the asset route stays within function time. */
 export const MAX_WATERMARK_BYTES = 12 * 1024 * 1024;
@@ -21,8 +21,9 @@ export function isPdfAsset(fileName: string, mimeType: string): boolean {
 }
 
 /**
- * Paid PDFs (Pro/Elite) get a member license stamp at serve time.
- * Copyright footer is applied separately to every PDF under the size cap.
+ * Paid PDFs (Pro/Elite) get a member license line in the footer at serve time.
+ * Copyright footer is applied to every PDF under the size cap.
+ * No center/diagonal stamp — it sits on top of the content.
  * CMS uploads stay original on disk.
  */
 export function shouldWatermarkPaidPdf(input: {
@@ -86,7 +87,7 @@ export async function stampPaidPdfWatermark(
     const pages = pdf.getPages();
 
     for (const page of pages) {
-      const { width, height } = page.getSize();
+      const { width } = page.getSize();
       const footerSize = 7;
       const footerColor = rgb(0.42, 0.45, 0.52);
 
@@ -111,17 +112,6 @@ export async function stampPaidPdfWatermark(
           font,
           color: footerColor,
           opacity: 0.72,
-        });
-
-        const diagonalSize = Math.min(16, Math.max(10, width / 42));
-        page.drawText(licenseLine, {
-          x: width * 0.12,
-          y: height * 0.38,
-          size: diagonalSize,
-          font,
-          color: rgb(0.55, 0.58, 0.62),
-          opacity: 0.11,
-          rotate: degrees(32),
         });
       }
     }
