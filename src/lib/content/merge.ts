@@ -327,6 +327,12 @@ export function resolveSalesContent(
       label: cmsString(cms?.whoSection?.label, defaults.sales.whoSection.label),
       headline: cmsString(cms?.whoSection?.headline, defaults.sales.whoSection.headline),
     },
+    learn: {
+      eyebrow: cmsString(cms?.learn?.eyebrow, defaults.sales.learn.eyebrow),
+      headline: cmsString(cms?.learn?.headline, defaults.sales.learn.headline),
+      description: cmsString(cms?.learn?.description, defaults.sales.learn.description),
+      items: resolveEditableList(defaults.sales.learn.items, cms?.learn?.items),
+    },
   };
 }
 

@@ -153,6 +153,13 @@ export interface LandingContent {
     pricing: SalesPricingTier[];
     /** Feature Comparison table shown on the Sales Track landing page (Pro vs Elite). */
     comparison: FeatureComparisonTable;
+    /** Accordion on the Sales landing “What you’ll learn” section. */
+    learn: {
+      eyebrow: string;
+      headline: string;
+      description: string;
+      items: { num: string; title: string; desc: string }[];
+    };
   };
   stats: { value: number; suffix: string; label: string }[];
   groundLevelView: {
@@ -417,6 +424,44 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
     },
     pricing: SALES_PRICING_TIERS_DEFAULT,
     comparison: buildSalesComparison(SALES_PRICING_TIERS_DEFAULT),
+    learn: {
+      eyebrow: "What You'll Learn",
+      headline: "The Commercial Context Your Buyers Live In.",
+      description:
+        "A working understanding of how commodity trading desks make money, manage risk, and evaluate vendors.",
+      items: [
+        {
+          num: "01",
+          title: "How the desk actually makes money",
+          desc: "The six revenue levers — flat price, spread, freight, timing, quality, and optionality. Where each function in a trading firm contributes to P&L, and where they lose it. The vocabulary traders use to describe commercial performance.",
+        },
+        {
+          num: "02",
+          title: "How trading desks use data and intelligence",
+          desc: "How desks consume Platts, Argus, Kpler, Vortexa, and the Baltic Exchange. What signals matter, how frequently they're checked, and what decisions they support. If you sell data or intelligence tools, this is your discovery framework.",
+        },
+        {
+          num: "03",
+          title: "How operations and scheduling work",
+          desc: "The cargo lifecycle — nomination, NOR, laytime, demurrage, B/L, and vessel scheduling. What an ETRM system does and why it matters. The language of operations teams who control implementation and adoption of your product.",
+        },
+        {
+          num: "04",
+          title: "How risk and compliance think",
+          desc: "VaR, position limits, basis risk, counterparty credit, sanctions — the constraints that shape every commercial decision. If your product touches risk or compliance functions, you need to understand these frameworks before your first meeting.",
+        },
+        {
+          num: "05",
+          title: "How to map your solution to their P&L",
+          desc: "The 15 Asia case studies in the Pro tier are real market events with commercial impact analysis. Reading them teaches you how traders think about market signals and decisions — and how to connect your solution to that exact thinking.",
+        },
+        {
+          num: "06",
+          title: "The language that builds immediate credibility",
+          desc: "The Desk Channel's 40 Q&As are real questions from real practitioners with real answers. Reading them tells you what trading professionals care about, how they frame problems, and which vocabulary signals that you understand their world.",
+        },
+      ],
+    },
   },
   stats: [
     { value: 196, suffix: "", label: "Glossary (trading-related) terms" },

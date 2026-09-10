@@ -50,45 +50,14 @@ const PAIN_POINTS = [
   },
 ];
 
-const LEARN_ITEMS = [
-  {
-    num: "01",
-    title: "How the desk actually makes money",
-    desc: "The six revenue levers — flat price, spread, freight, timing, quality, and optionality. Where each function in a trading firm contributes to P&L, and where they lose it. The vocabulary traders use to describe commercial performance.",
-  },
-  {
-    num: "02",
-    title: "How trading desks use data and intelligence",
-    desc: "How desks consume Platts, Argus, Kpler, Vortexa, and the Baltic Exchange. What signals matter, how frequently they're checked, and what decisions they support. If you sell data or intelligence tools, this is your discovery framework.",
-  },
-  {
-    num: "03",
-    title: "How operations and scheduling work",
-    desc: "The cargo lifecycle — nomination, NOR, laytime, demurrage, B/L, and vessel scheduling. What an ETRM system does and why it matters. The language of operations teams who control implementation and adoption of your product.",
-  },
-  {
-    num: "04",
-    title: "How risk and compliance think",
-    desc: "VaR, position limits, basis risk, counterparty credit, sanctions — the constraints that shape every commercial decision. If your product touches risk or compliance functions, you need to understand these frameworks before your first meeting.",
-  },
-  {
-    num: "05",
-    title: "How to map your solution to their P&L",
-    desc: "The 15 Asia case studies in the Pro tier are real market events with commercial impact analysis. Reading them teaches you how traders think about market signals and decisions — and how to connect your solution to that exact thinking.",
-  },
-  {
-    num: "06",
-    title: "The language that builds immediate credibility",
-    desc: "The Desk Channel's 40 Q&As are real questions from real practitioners with real answers. Reading them tells you what trading professionals care about, how they frame problems, and which vocabulary signals that you understand their world.",
-  },
-];
+type SalesLearnItem = LandingContent["sales"]["learn"]["items"][number];
 
 function LearnAccordionItem({
   item,
   isOpen,
   onToggle,
 }: {
-  item: (typeof LEARN_ITEMS)[number];
+  item: SalesLearnItem;
   isOpen: boolean;
   onToggle: () => void;
 }) {
@@ -126,15 +95,15 @@ function LearnAccordionItem({
   );
 }
 
-function LearnAccordion() {
+function LearnAccordion({ items }: { items: SalesLearnItem[] }) {
   /** All items start collapsed — user expands on tap/click. */
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
     <div className="grid w-full min-w-0 grid-cols-1 md:grid-cols-2 gap-4 items-start">
-      {LEARN_ITEMS.map((item, i) => (
+      {items.map((item, i) => (
         <LearnAccordionItem
-          key={item.num}
+          key={`${item.num}-${item.title}`}
           item={item}
           isOpen={openIndex === i}
           onToggle={() => setOpenIndex((prev) => (prev === i ? null : i))}
@@ -255,16 +224,16 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
       <section ref={learnRef} id="sales-learn" className="py-16 sm:py-24 bg-secondary border-y border-border">
         <div className="page-container">
           <Reveal className="text-center mb-12 max-w-3xl mx-auto">
-            <SectionCategoryLabel colorClass="text-teal-700">What You&apos;ll Learn</SectionCategoryLabel>
+            <SectionCategoryLabel colorClass="text-teal-700">{content.learn.eyebrow}</SectionCategoryLabel>
             <h2 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              The Commercial Context Your Buyers Live In.
+              {content.learn.headline}
             </h2>
             <p className="text-muted-fg text-base sm:text-lg leading-relaxed">
-              A working understanding of how commodity trading desks make money, manage risk, and evaluate vendors.
+              {content.learn.description}
             </p>
           </Reveal>
           <Reveal delay={0.1} className="w-full min-w-0">
-            <LearnAccordion />
+            <LearnAccordion items={content.learn.items} />
           </Reveal>
         </div>
       </section>

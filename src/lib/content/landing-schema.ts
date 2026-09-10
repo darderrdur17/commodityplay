@@ -126,6 +126,22 @@ export const landingContentSchema = z.object({
     }),
     pricing: z.array(salesPricingTierSchema).min(1),
     comparison: featureComparisonTableSchema.default(() => DEFAULT_LANDING_CONTENT.sales.comparison),
+    learn: z
+      .object({
+        eyebrow: z.string().min(1),
+        headline: z.string().min(1),
+        description: z.string().min(1),
+        items: z
+          .array(
+            z.object({
+              num: z.string().min(1),
+              title: z.string().min(1),
+              desc: z.string().min(1),
+            })
+          )
+          .min(1),
+      })
+      .default(() => DEFAULT_LANDING_CONTENT.sales.learn),
   }),
   stats: z.array(salesStatSchema),
   groundLevelView: z.object({

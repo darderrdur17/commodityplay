@@ -15,6 +15,11 @@ import { mergeStarterEmailDigest, splitLegacyDigestTopicLine } from "../src/data
 import { isDashboardModuleVisible, memberMayAccessCareerPlaybook } from "../src/lib/dashboard-module-visibility";
 import { formatCreditMonthLabel } from "../src/lib/mentor-credits";
 import {
+  formatMemberWatermarkLine,
+  sanitizeWatermarkText,
+  shouldWatermarkPaidPdf,
+} from "../src/lib/content/pdf-watermark";
+import {
   DEFAULT_DASHBOARD_RESOURCE_CARDS,
   DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS,
 } from "../src/data/member-dashboard";
@@ -412,6 +417,72 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Mentor credits month is abbreviated (Sep 2026)",
     label === "Sep 2026"
+  );
+}
+
+// ── Sales landing What You'll Learn is CMS-editable ────────────────────────
+{
+  const merged = mergeLandingContent(DEFAULT_LANDING_CONTENT, {
+    sales: {
+      learn: {
+        eyebrow: "What You'll Learn",
+        headline: "Edited commercial headline.",
+        description: "Edited description for vendors.",
+        items: [
+          { num: "01", title: "Edited topic", desc: "Edited body copy for the accordion." },
+        ],
+      },
+    },
+  } as never);
+  ok(
+    "Sales What You'll Learn headline persists on public merge",
+    merged.sales.learn.headline === "Edited commercial headline." &&
+      merged.sales.learn.items[0]?.title === "Edited topic"
+  );
+
+  const save = prepareLandingContentForSave(
+    mergeLandingContent(DEFAULT_LANDING_CONTENT, {} as never)
+  );
+  ok(
+    "Landing save still validates with What You'll Learn",
+    save.success,
+    save.success ? "" : formatLandingValidationErrors(save) ?? ""
+  );
+}
+
+// ── Paid PDF watermark policy ──────────────────────────────────────────────
+{
+  const member = { name: "Sarah Wong", email: "pro.switcher@demo.com" };
+  ok(
+    "Paid Pro PDF is watermarked for a signed-in member",
+    shouldWatermarkPaidPdf({
+      fileName: "career-navigation-guide.pdf",
+      mimeType: "application/pdf",
+      requiredTier: "PRO",
+      isPublicUnpaid: false,
+      byteLength: 1024,
+      member,
+    })
+  );
+  ok(
+    "Starter / public PDFs are not watermarked",
+    !shouldWatermarkPaidPdf({
+      fileName: "career-guide.pdf",
+      mimeType: "application/pdf",
+      requiredTier: "STARTER",
+      isPublicUnpaid: true,
+      byteLength: 1024,
+      member,
+    })
+  );
+  const line = formatMemberWatermarkLine(member, new Date("2026-09-10T00:00:00.000Z"));
+  ok(
+    "Watermark line includes member identity",
+    line.includes("Sarah Wong") && line.includes("pro.switcher@demo.com") && line.includes("2026-09-10")
+  );
+  ok(
+    "Watermark text is WinAnsi-safe",
+    sanitizeWatermarkText("Priya Sharma café").includes("Priya Sharma")
   );
 }
 

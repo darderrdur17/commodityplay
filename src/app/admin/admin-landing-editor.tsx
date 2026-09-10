@@ -962,6 +962,123 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
         </div>
       </Section>
 
+      <Section
+        title="Sales Track — What You'll Learn"
+        description="Accordion on the Sales landing page — eyebrow, headline, description, and the six topic cards"
+        defaultOpen
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Section label">
+            <TextInput
+              value={content.sales.learn.eyebrow}
+              onChange={(v) =>
+                patch("sales", { ...content.sales, learn: { ...content.sales.learn, eyebrow: v } })
+              }
+            />
+          </Field>
+          <Field label="Headline">
+            <TextInput
+              value={content.sales.learn.headline}
+              onChange={(v) =>
+                patch("sales", { ...content.sales, learn: { ...content.sales.learn, headline: v } })
+              }
+            />
+          </Field>
+        </div>
+        <Field label="Description">
+          <TextInput
+            value={content.sales.learn.description}
+            onChange={(v) =>
+              patch("sales", { ...content.sales, learn: { ...content.sales.learn, description: v } })
+            }
+            multiline
+            rows={3}
+          />
+        </Field>
+        <div className="space-y-4">
+          {content.sales.learn.items.map((item, i) => (
+            <div key={`learn-${i}`} className="p-3 rounded-lg border border-border space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-muted-fg uppercase">Topic {i + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (content.sales.learn.items.length <= 1) return;
+                    patch("sales", {
+                      ...content.sales,
+                      learn: {
+                        ...content.sales.learn,
+                        items: content.sales.learn.items.filter((_, idx) => idx !== i),
+                      },
+                    });
+                  }}
+                  disabled={content.sales.learn.items.length <= 1}
+                  className="text-xs text-muted-fg hover:text-red-600 disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[80px_1fr]">
+                <Field label="Number">
+                  <TextInput
+                    value={item.num}
+                    onChange={(v) => {
+                      const items = [...content.sales.learn.items];
+                      items[i] = { ...item, num: v };
+                      patch("sales", { ...content.sales, learn: { ...content.sales.learn, items } });
+                    }}
+                  />
+                </Field>
+                <Field label="Title">
+                  <TextInput
+                    value={item.title}
+                    onChange={(v) => {
+                      const items = [...content.sales.learn.items];
+                      items[i] = { ...item, title: v };
+                      patch("sales", { ...content.sales, learn: { ...content.sales.learn, items } });
+                    }}
+                  />
+                </Field>
+              </div>
+              <Field label="Body">
+                <TextInput
+                  value={item.desc}
+                  onChange={(v) => {
+                    const items = [...content.sales.learn.items];
+                    items[i] = { ...item, desc: v };
+                    patch("sales", { ...content.sales, learn: { ...content.sales.learn, items } });
+                  }}
+                  multiline
+                  rows={4}
+                />
+              </Field>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            patch("sales", {
+              ...content.sales,
+              learn: {
+                ...content.sales.learn,
+                items: [
+                  ...content.sales.learn.items,
+                  {
+                    num: String(content.sales.learn.items.length + 1).padStart(2, "0"),
+                    title: "",
+                    desc: "",
+                  },
+                ],
+              },
+            })
+          }
+          className={smallButtonClass}
+        >
+          <Plus className="w-3.5 h-3.5" /> Add topic
+        </button>
+      </Section>
+
       <Section title="Sales — Commercial Case (ROI)" description="Dark ROI section on sales track">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Eyebrow">

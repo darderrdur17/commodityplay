@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getMobileUser, hasTierAccess } from "@/lib/mobile-auth";
+import { getMobileUser } from "@/lib/mobile-auth";
 import { resolveContentAssetMimeType } from "@/lib/content/asset-files";
 import { getContentAsset } from "@/lib/content/repository";
 import { hasAccess } from "@/lib/utils";
+import {
+  shouldWatermarkPaidPdf,
+  stampPaidPdfWatermark,
+} from "@/lib/content/pdf-watermark";
+
+export const maxDuration = 30;
 
 export async function GET(
   req: NextRequest,
@@ -45,7 +51,25 @@ export async function GET(
     forceView ||
     (!forceDownload && (mimeType.startsWith("image/") || mimeType === "application/pdf"));
 
-  return new NextResponse(new Uint8Array(asset.data), {
+  const member = {
+    name: mobileUser?.name ?? session?.user?.name ?? null,
+    email: mobileUser?.email ?? session?.user?.email ?? null,
+  };
+  let bytes = new Uint8Array(asset.data);
+  if (
+    shouldWatermarkPaidPdf({
+      fileName: asset.fileName,
+      mimeType,
+      requiredTier: asset.requiredTier,
+      isPublicUnpaid: Boolean(isPublicFooterGuide || isPublicStarterThumb),
+      byteLength: bytes.byteLength,
+      member,
+    })
+  ) {
+    bytes = new Uint8Array(await stampPaidPdfWatermark(bytes, member));
+  }
+
+  return new NextResponse(bytes, {
     headers: {
       "Content-Type": mimeType,
       "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${asset.fileName.replace(/"/g, "")}"`,
