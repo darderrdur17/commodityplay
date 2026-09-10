@@ -16,10 +16,14 @@ import { isDashboardModuleVisible, memberMayAccessCareerPlaybook } from "../src/
 import { formatCreditMonthLabel } from "../src/lib/mentor-credits";
 import { isPaymentsLive } from "../src/lib/payments";
 import {
+  PDF_COPYRIGHT_FOOTER,
   formatMemberWatermarkLine,
   sanitizeWatermarkText,
+  shouldStampPdfFooter,
   shouldWatermarkPaidPdf,
+  stampPaidPdfWatermark,
 } from "../src/lib/content/pdf-watermark";
+import { PDFDocument } from "pdf-lib";
 import {
   DEFAULT_DASHBOARD_RESOURCE_CARDS,
   DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS,
@@ -485,6 +489,55 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     "Watermark text is WinAnsi-safe",
     sanitizeWatermarkText("Priya Sharma café").includes("Priya Sharma")
   );
+  ok("PDF footer copy is Copyright reserved", PDF_COPYRIGHT_FOOTER === "Copyright reserved");
+  ok(
+    "Starter PDF still gets a copyright footer",
+    shouldStampPdfFooter({
+      fileName: "career-guide.pdf",
+      mimeType: "application/pdf",
+      byteLength: 1024,
+    }) &&
+      !shouldWatermarkPaidPdf({
+        fileName: "career-guide.pdf",
+        mimeType: "application/pdf",
+        requiredTier: "STARTER",
+        isPublicUnpaid: true,
+        byteLength: 1024,
+        member,
+      })
+  );
+  ok(
+    "Oversized PDFs skip stamping",
+    !shouldStampPdfFooter({
+      fileName: "huge.pdf",
+      mimeType: "application/pdf",
+      byteLength: 13 * 1024 * 1024,
+    })
+  );
+}
+
+async function verifyPdfStampWrites() {
+  const blank = await PDFDocument.create();
+  blank.addPage();
+  const raw = new Uint8Array(await blank.save());
+  const copyrightOnly = await stampPaidPdfWatermark(
+    raw,
+    { name: null, email: null },
+    new Date("2026-09-10T00:00:00.000Z"),
+    { includeLicense: false }
+  );
+  ok(
+    "Copyright-only stamp writes a new PDF",
+    copyrightOnly.byteLength > 0 && copyrightOnly.byteLength !== raw.byteLength
+  );
+  const licensed = await stampPaidPdfWatermark(raw, {
+    name: "Sarah Wong",
+    email: "pro.switcher@demo.com",
+  });
+  ok(
+    "Paid stamp is larger than copyright-only",
+    licensed.byteLength > copyrightOnly.byteLength
+  );
 }
 
 {
@@ -494,5 +547,12 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   );
 }
 
-console.log(failed === 0 ? "\n✅ All feedback/CMS checks passed." : `\n❌ ${failed} check(s) failed.`);
-process.exit(failed === 0 ? 0 : 1);
+void verifyPdfStampWrites()
+  .then(() => {
+    console.log(failed === 0 ? "\n✅ All feedback/CMS checks passed." : `\n❌ ${failed} check(s) failed.`);
+    process.exit(failed === 0 ? 0 : 1);
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

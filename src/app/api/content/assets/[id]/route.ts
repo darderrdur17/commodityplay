@@ -5,6 +5,7 @@ import { resolveContentAssetMimeType } from "@/lib/content/asset-files";
 import { getContentAsset } from "@/lib/content/repository";
 import { hasAccess } from "@/lib/utils";
 import {
+  shouldStampPdfFooter,
   shouldWatermarkPaidPdf,
   stampPaidPdfWatermark,
 } from "@/lib/content/pdf-watermark";
@@ -56,17 +57,20 @@ export async function GET(
     email: mobileUser?.email ?? session?.user?.email ?? null,
   };
   let bytes = new Uint8Array(asset.data);
-  if (
-    shouldWatermarkPaidPdf({
-      fileName: asset.fileName,
-      mimeType,
-      requiredTier: asset.requiredTier,
-      isPublicUnpaid: Boolean(isPublicFooterGuide || isPublicStarterThumb),
-      byteLength: bytes.byteLength,
-      member,
-    })
-  ) {
-    bytes = new Uint8Array(await stampPaidPdfWatermark(bytes, member));
+  const stampInput = {
+    fileName: asset.fileName,
+    mimeType,
+    requiredTier: asset.requiredTier,
+    isPublicUnpaid: Boolean(isPublicFooterGuide || isPublicStarterThumb),
+    byteLength: bytes.byteLength,
+    member,
+  };
+  if (shouldStampPdfFooter(stampInput)) {
+    bytes = new Uint8Array(
+      await stampPaidPdfWatermark(bytes, member, new Date(), {
+        includeLicense: shouldWatermarkPaidPdf(stampInput),
+      })
+    );
   }
 
   return new NextResponse(bytes, {
