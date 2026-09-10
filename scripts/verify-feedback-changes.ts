@@ -515,7 +515,7 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     })
   );
   const stampSource = fs.readFileSync(
-    path.join(__dirname, "../src/lib/content/pdf-watermark.ts"),
+    path.join(process.cwd(), "src/lib/content/pdf-watermark.ts"),
     "utf8"
   );
   ok(
