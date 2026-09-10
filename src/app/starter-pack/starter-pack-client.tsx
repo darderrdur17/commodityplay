@@ -12,6 +12,7 @@ import type { StarterInfographic, StarterPackHero, StarterUpgradeCta } from "@/d
 import { attachmentHref, resolveAttachmentUrl } from "@/lib/content/attachments";
 import { StarterPackModal } from "@/components/landing/starter-pack-modal";
 import { startCheckout } from "@/lib/start-checkout";
+import { isPaymentsLive } from "@/lib/payments";
 import { PAGE_HERO_TOP, PAGE_HERO_BOTTOM, PAGE_CTA_PY } from "@/lib/layout-constants";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 
@@ -54,6 +55,14 @@ export function StarterPackClient({
   }
 
   async function handleUpgradePro() {
+    if (!isPaymentsLive()) {
+      if (!session?.user) {
+        router.push(`/signup?plan=pro&callbackUrl=${encodeURIComponent("/account")}`);
+        return;
+      }
+      router.push("/account");
+      return;
+    }
     if (!session?.user) {
       router.push(`/signup?plan=pro&callbackUrl=${encodeURIComponent(CAREER_PLAN_HREF("pro"))}`);
       return;
@@ -153,13 +162,17 @@ export function StarterPackClient({
                         </>
                       )}
                     </a>
+                  ) : isLoggedIn && !url ? (
+                    <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-muted-fg">
+                      Coming soon
+                    </span>
                   ) : (
                     <button
                       type="button"
                       onClick={handleDownloadGate}
                       className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-400 hover:text-primary-800 transition-colors"
                     >
-                      <Download className="w-4 h-4" /> {isLoggedIn ? "Get Starter Pack" : "Download free"}
+                      <Download className="w-4 h-4" /> Download free
                     </button>
                   )}
                 </div>

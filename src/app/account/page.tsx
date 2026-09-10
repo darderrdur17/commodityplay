@@ -7,6 +7,7 @@ import { Reveal } from "@/components/animations";
 import { TIER_LABELS, formatDate } from "@/lib/utils";
 import { resolveMemberPersonaLabel } from "@/lib/persona-display";
 import { AccountBillingSection } from "@/components/account/account-billing-section";
+import { isCheckoutConfigured } from "@/lib/payments";
 import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
 import { formatMentorCreditsUsedLabel } from "@/lib/mentor-credits";
 import { isMentorAccount } from "@/lib/mentor-demo";
@@ -141,7 +142,7 @@ export default async function AccountPage() {
             stripeStatus={user.stripeStatus}
             stripeCurrentPeriodEnd={user.stripeCurrentPeriodEnd}
             hasStripeCustomer={Boolean(user.stripeCustomerId)}
-            paymentsEnabled={Boolean(process.env.STRIPE_SECRET_KEY)}
+            paymentsEnabled={isCheckoutConfigured()}
           />
         )}
 

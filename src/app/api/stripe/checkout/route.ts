@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getStripe, getStripePrices, createOrRetrieveCustomer } from "@/lib/stripe";
+import { isCheckoutConfigured } from "@/lib/payments";
 import { z } from "zod";
 
 const schema = z.object({
@@ -13,8 +14,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return NextResponse.json({ error: "Payments are not configured" }, { status: 503 });
+  if (!isCheckoutConfigured()) {
+    return NextResponse.json(
+      { error: "Payments are not live yet. Checkout will open when paid files are ready." },
+      { status: 503 }
+    );
   }
 
   const body = await req.json();

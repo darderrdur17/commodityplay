@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { isCheckoutConfigured } from "@/lib/payments";
 import { z } from "zod";
 
 const schema = z.object({
@@ -14,8 +15,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return NextResponse.json({ error: "Payments are not configured" }, { status: 503 });
+  if (!isCheckoutConfigured()) {
+    return NextResponse.json(
+      { error: "Payments are not live yet." },
+      { status: 503 }
+    );
   }
 
   const body = await req.json().catch(() => ({}));

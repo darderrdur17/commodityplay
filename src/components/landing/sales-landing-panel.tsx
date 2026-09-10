@@ -14,6 +14,7 @@ import { SectionCategoryLabel } from "@/components/landing/section-category-labe
 import { MembersStrip } from "@/components/landing/members-strip";
 import { MarketNoteStrip } from "@/components/landing/market-note-strip";
 import { startCheckout } from "@/lib/start-checkout";
+import { isPaymentsLive } from "@/lib/payments";
 import { cn } from "@/lib/utils";
 import {
   LANDING_HERO_TOP,
@@ -131,6 +132,10 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
   const featureTable = content.comparison.groups;
 
   async function handlePurchase(plan: "pro" | "elite") {
+    if (!isPaymentsLive()) {
+      onOpenContactModal();
+      return;
+    }
     if (!session?.user) {
       router.push(`/signup?plan=${plan}&track=sales&callbackUrl=/?track=sales`);
       return;

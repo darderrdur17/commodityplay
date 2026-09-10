@@ -14,6 +14,7 @@ import { PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import { mergeStarterEmailDigest, splitLegacyDigestTopicLine } from "../src/data/starter-pack";
 import { isDashboardModuleVisible, memberMayAccessCareerPlaybook } from "../src/lib/dashboard-module-visibility";
 import { formatCreditMonthLabel } from "../src/lib/mentor-credits";
+import { isPaymentsLive } from "../src/lib/payments";
 import {
   formatMemberWatermarkLine,
   sanitizeWatermarkText,
@@ -483,6 +484,13 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Watermark text is WinAnsi-safe",
     sanitizeWatermarkText("Priya Sharma café").includes("Priya Sharma")
+  );
+}
+
+{
+  ok(
+    "Payment gateway stays closed unless NEXT_PUBLIC_PAYMENTS_ENABLED=true",
+    isPaymentsLive() === (process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === "true")
   );
 }
 

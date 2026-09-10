@@ -37,7 +37,7 @@ export function AccountBillingSection({
   stripeStatus,
   stripeCurrentPeriodEnd,
   hasStripeCustomer,
-  paymentsEnabled = true,
+  paymentsEnabled = false,
 }: AccountBillingSectionProps) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
