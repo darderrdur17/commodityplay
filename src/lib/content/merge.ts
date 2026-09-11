@@ -333,6 +333,13 @@ export function resolveSalesContent(
       description: cmsString(cms?.learn?.description, defaults.sales.learn.description),
       items: resolveEditableList(defaults.sales.learn.items, cms?.learn?.items),
     },
+    trackTools: {
+      eyebrow: cmsString(cms?.trackTools?.eyebrow, defaults.sales.trackTools.eyebrow),
+      features: resolveEditableList(
+        defaults.sales.trackTools.features,
+        cms?.trackTools?.features
+      ),
+    },
   };
 }
 

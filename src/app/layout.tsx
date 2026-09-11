@@ -4,9 +4,9 @@ import { Roboto } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/nav";
 import { FooterWrapper } from "@/components/footer-wrapper";
+import { SiteChrome } from "@/components/site-chrome";
 import { SessionProvider } from "@/components/session-provider";
 import { Toaster } from "@/components/ui/toaster";
-import { NAV_OFFSET } from "@/lib/layout-constants";
 import { BRAND_NAME, BRAND_SITE_URL } from "@/lib/brand";
 
 const inter = Inter({
@@ -92,9 +92,9 @@ export default async function RootLayout({
     <html lang="en" className={`${inter.variable} ${roboto.variable}`}>
       <body className="font-sans antialiased bg-white text-gray-800 min-h-screen flex flex-col overflow-x-hidden">
         <SessionProvider>
-          <Nav />
-          <main className="flex-1" style={{ paddingTop: NAV_OFFSET }}>{children}</main>
-          <FooterWrapper />
+          <SiteChrome nav={<Nav />} footer={<FooterWrapper />}>
+            {children}
+          </SiteChrome>
           <Toaster />
         </SessionProvider>
       </body>

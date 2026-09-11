@@ -45,12 +45,11 @@ export const CAREER_MARKET_NOTE = {
   ] satisfies MarketNoteTopic[],
 };
 
-/** Sales track market note strip */
+/** Sales track market note strip — feature titles/captions live on landing CMS `sales.trackTools`. */
 export const SALES_MARKET_NOTE = {
   eyebrow: "Sales Track Only",
-  title: "Sales Market Nudges | Prep Library | Account Intelligence Tracker",
-  description:
-    "Use market nudges in your next conversation with your customer — and relate the context with them easier by saving the talking points under your personal Prep Library. Track the desks you're engaging, and see what's moving in their markets before your next call — a separate enhanced tool from your Prep Library.",
+  title: "Sales Track tools",
+  description: "",
   topics: [
     { tag: "Crude Oil", tagColor: "#2563eb", tagBg: "#dbeafe", title: "OPEC+ cut → Budget mood at major firms" },
     { tag: "Freight", tagColor: "#b45309", tagBg: "#fef3c7", title: "VLCC Rate Spike → Maritime tech opportunity window" },

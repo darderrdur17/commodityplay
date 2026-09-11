@@ -7,11 +7,14 @@ import { Reveal } from "@/components/animations";
 import { Button } from "@/components/ui/button";
 
 import type { MarketNoteTopic } from "@/data/market-notes";
+import type { SalesTrackFeature } from "@/data/landing-content";
 
 interface Props {
   eyebrow: string;
   title: string;
   description: string;
+  /** When set, the left column is a title + caption list instead of a single headline. */
+  features?: SalesTrackFeature[];
   topics: MarketNoteTopic[];
   accentColor?: string;
   /** Career/starter: simple bullet list. Sales: tagged rows. */
@@ -40,6 +43,7 @@ export function MarketNoteStrip({
   eyebrow,
   title,
   description,
+  features,
   topics,
   accentColor = "#3280ff",
   variant = "tags",
@@ -63,10 +67,25 @@ export function MarketNoteStrip({
               />
               {eyebrow}
             </p>
-            <h2 className="font-serif text-[clamp(28px,3.5vw,40px)] font-bold text-primary-800 leading-[1.15] mb-5">
-              {title}
-            </h2>
-            <p className="text-[15px] text-muted-fg leading-relaxed max-w-lg">{description}</p>
+            {features && features.length > 0 ? (
+              <ul className="space-y-4 max-w-lg">
+                {features.map((feature, i) => (
+                  <li key={`${feature.title}-${i}`}>
+                    <h3 className="font-serif text-lg sm:text-xl font-semibold text-primary-800 leading-snug">
+                      {feature.title}
+                    </h3>
+                    <p className="mt-1 text-sm text-primary-400 leading-relaxed">{feature.desc}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <>
+                <h2 className="font-serif text-[clamp(28px,3.5vw,40px)] font-bold text-primary-800 leading-[1.15] mb-5">
+                  {title}
+                </h2>
+                <p className="text-[15px] text-muted-fg leading-relaxed max-w-lg">{description}</p>
+              </>
+            )}
             {subscribedNote && (
               <p className="mt-5 flex items-center gap-2 text-sm font-medium text-green-700">
                 <span aria-hidden>✓</span>

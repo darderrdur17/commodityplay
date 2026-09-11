@@ -142,6 +142,19 @@ export const landingContentSchema = z.object({
           .min(1),
       })
       .default(() => DEFAULT_LANDING_CONTENT.sales.learn),
+    trackTools: z
+      .object({
+        eyebrow: z.string().min(1),
+        features: z
+          .array(
+            z.object({
+              title: z.string().min(1),
+              desc: z.string().min(1),
+            })
+          )
+          .min(1),
+      })
+      .default(() => DEFAULT_LANDING_CONTENT.sales.trackTools),
   }),
   stats: z.array(salesStatSchema),
   groundLevelView: z.object({

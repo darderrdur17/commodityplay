@@ -39,6 +39,17 @@ export interface SalesWhoSection {
   headline: string;
 }
 
+/** One Sales Track tools row (Market Nudges section) — title + caption, CMS-editable. */
+export interface SalesTrackFeature {
+  title: string;
+  desc: string;
+}
+
+export interface SalesTrackToolsSection {
+  eyebrow: string;
+  features: SalesTrackFeature[];
+}
+
 export interface SalesPricingTier {
   name: string;
   price: string;
@@ -160,6 +171,8 @@ export interface LandingContent {
       description: string;
       items: { num: string; title: string; desc: string }[];
     };
+    /** Sales Track Only tools list on the landing Market Nudges / tools strip. */
+    trackTools: SalesTrackToolsSection;
   };
   stats: { value: number; suffix: string; label: string }[];
   groundLevelView: {
@@ -459,6 +472,35 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
           num: "06",
           title: "The language that builds immediate credibility",
           desc: "The Desk Channel's 40 Q&As are real questions from real practitioners with real answers. Reading them tells you what trading professionals care about, how they frame problems, and which vocabulary signals that you understand their world.",
+        },
+      ],
+    },
+    trackTools: {
+      eyebrow: "Sales Track Only",
+      features: [
+        {
+          title: "Sales Nudges",
+          desc: "Market Talking Points",
+        },
+        {
+          title: "Prep Library",
+          desc: "Bookmark the talking points prior meetings",
+        },
+        {
+          title: "Account Intelligence Track",
+          desc: "Link market talking points to specific accounts",
+        },
+        {
+          title: "Mentor Connect",
+          desc: "Ask practitioners your sales-prep questions, anonymously.",
+        },
+        {
+          title: "Desk Channel",
+          desc: "Practitioner Q&As that show how desks frame commercial problems.",
+        },
+        {
+          title: "Market Role Movements",
+          desc: "Track which firms are growing and hiring — your next target accounts.",
         },
       ],
     },

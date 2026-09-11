@@ -92,31 +92,33 @@ export function WeeklyEdgeNoteEditor({
       <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-violet-100 text-violet-700 text-xs font-semibold">
         {trackLabel}
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <EditorField label="Badge / Eyebrow">
-          <input className={inputClass} value={data.eyebrow} onChange={(e) => patch({ eyebrow: e.target.value })} />
-        </EditorField>
-        {!showDemoButton && (
-          <EditorField label="Frequency note">
-            <input
-              className={inputClass}
-              value={data.frequencyNote}
-              onChange={(e) => patch({ frequencyNote: e.target.value })}
+      {!showDemoButton && (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <EditorField label="Badge / Eyebrow">
+              <input className={inputClass} value={data.eyebrow} onChange={(e) => patch({ eyebrow: e.target.value })} />
+            </EditorField>
+            <EditorField label="Frequency note">
+              <input
+                className={inputClass}
+                value={data.frequencyNote}
+                onChange={(e) => patch({ frequencyNote: e.target.value })}
+              />
+            </EditorField>
+          </div>
+          <EditorField label="Headline">
+            <input className={inputClass} value={data.title} onChange={(e) => patch({ title: e.target.value })} />
+          </EditorField>
+          <EditorField label="Body copy">
+            <textarea
+              className={textareaClass}
+              rows={4}
+              value={data.description}
+              onChange={(e) => patch({ description: e.target.value })}
             />
           </EditorField>
-        )}
-      </div>
-      <EditorField label="Headline">
-        <input className={inputClass} value={data.title} onChange={(e) => patch({ title: e.target.value })} />
-      </EditorField>
-      <EditorField label="Body copy">
-        <textarea
-          className={textareaClass}
-          rows={4}
-          value={data.description}
-          onChange={(e) => patch({ description: e.target.value })}
-        />
-      </EditorField>
+        </>
+      )}
       {showDemoButton && (
         <div className="grid gap-3 sm:grid-cols-2">
           <EditorField label="See demo — button label">

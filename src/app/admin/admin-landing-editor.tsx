@@ -1079,6 +1079,134 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
         </button>
       </Section>
 
+      <Section
+        title="Sales Track Only — Tools"
+        description="Feature list on the sales landing Market Nudges strip — each item is a title (dark green) plus a short caption (blue). Add, remove, or reorder by editing the list."
+        defaultOpen
+      >
+        <Field label="Section kicker">
+          <TextInput
+            value={content.sales.trackTools.eyebrow}
+            onChange={(v) =>
+              patch("sales", {
+                ...content.sales,
+                trackTools: { ...content.sales.trackTools, eyebrow: v },
+              })
+            }
+          />
+        </Field>
+        <div className="space-y-4">
+          {content.sales.trackTools.features.map((feature, i) => (
+            <div key={`track-tool-${i}`} className="p-3 rounded-lg border border-border space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-muted-fg uppercase">Feature {i + 1}</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (i === 0) return;
+                      const features = [...content.sales.trackTools.features];
+                      const prev = features[i - 1];
+                      features[i - 1] = features[i];
+                      features[i] = prev;
+                      patch("sales", {
+                        ...content.sales,
+                        trackTools: { ...content.sales.trackTools, features },
+                      });
+                    }}
+                    disabled={i === 0}
+                    className="text-xs text-muted-fg hover:text-primary-400 disabled:opacity-40"
+                  >
+                    Up
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const features = [...content.sales.trackTools.features];
+                      if (i >= features.length - 1) return;
+                      const next = features[i + 1];
+                      features[i + 1] = features[i];
+                      features[i] = next;
+                      patch("sales", {
+                        ...content.sales,
+                        trackTools: { ...content.sales.trackTools, features },
+                      });
+                    }}
+                    disabled={i >= content.sales.trackTools.features.length - 1}
+                    className="text-xs text-muted-fg hover:text-primary-400 disabled:opacity-40"
+                  >
+                    Down
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (content.sales.trackTools.features.length <= 1) return;
+                      patch("sales", {
+                        ...content.sales,
+                        trackTools: {
+                          ...content.sales.trackTools,
+                          features: content.sales.trackTools.features.filter((_, idx) => idx !== i),
+                        },
+                      });
+                    }}
+                    disabled={content.sales.trackTools.features.length <= 1}
+                    className="text-xs text-muted-fg hover:text-red-600 disabled:opacity-40"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <Field label="Title">
+                <TextInput
+                  value={feature.title}
+                  onChange={(v) => {
+                    const features = [...content.sales.trackTools.features];
+                    features[i] = { ...feature, title: v };
+                    patch("sales", {
+                      ...content.sales,
+                      trackTools: { ...content.sales.trackTools, features },
+                    });
+                  }}
+                />
+              </Field>
+              <Field label="Caption">
+                <TextInput
+                  value={feature.desc}
+                  onChange={(v) => {
+                    const features = [...content.sales.trackTools.features];
+                    features[i] = { ...feature, desc: v };
+                    patch("sales", {
+                      ...content.sales,
+                      trackTools: { ...content.sales.trackTools, features },
+                    });
+                  }}
+                  multiline
+                  rows={2}
+                />
+              </Field>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            patch("sales", {
+              ...content.sales,
+              trackTools: {
+                ...content.sales.trackTools,
+                features: [
+                  ...content.sales.trackTools.features,
+                  { title: "", desc: "" },
+                ],
+              },
+            })
+          }
+          className={smallButtonClass}
+        >
+          <Plus className="w-3.5 h-3.5" /> Add feature
+        </button>
+      </Section>
+
       <Section title="Sales — Commercial Case (ROI)" description="Dark ROI section on sales track">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Eyebrow">

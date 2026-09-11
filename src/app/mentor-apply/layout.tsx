@@ -15,6 +15,10 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Site header/footer are omitted for this route via `SiteChrome` in the root layout
+ * (`/mentor-apply` only — not a global hide).
+ */
 export default function MentorApplyLayout({ children }: { children: React.ReactNode }) {
   return children;
 }

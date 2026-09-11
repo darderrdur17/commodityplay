@@ -455,6 +455,124 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   );
 }
 
+// ── Sales Track Only tools (Market Nudges feature list) ────────────────────
+{
+  const expectedTitles = [
+    "Sales Nudges",
+    "Prep Library",
+    "Account Intelligence Track",
+    "Mentor Connect",
+    "Desk Channel",
+    "Market Role Movements",
+  ];
+  const defaults = DEFAULT_LANDING_CONTENT.sales.trackTools;
+  ok(
+    "Default Sales Track tools has 6 features",
+    defaults.eyebrow === "Sales Track Only" &&
+      defaults.features.length === 6 &&
+      expectedTitles.every((title, i) => defaults.features[i]?.title === title)
+  );
+  ok(
+    "Default Sales Nudges caption is Market Talking Points",
+    defaults.features[0]?.desc === "Market Talking Points"
+  );
+
+  const mergedEmpty = mergeLandingContent(DEFAULT_LANDING_CONTENT, {} as never);
+  ok(
+    "Empty CMS merge still seeds Sales Track tools",
+    mergedEmpty.sales.trackTools.features.map((f) => f.title).join("|") ===
+      expectedTitles.join("|")
+  );
+
+  const legacyPayload = {
+    ...DEFAULT_LANDING_CONTENT,
+    sales: {
+      ...DEFAULT_LANDING_CONTENT.sales,
+    },
+  };
+  delete (legacyPayload.sales as { trackTools?: unknown }).trackTools;
+  const legacySave = prepareLandingContentForSave(legacyPayload);
+  ok(
+    "Legacy landing JSON without trackTools still validates",
+    legacySave.success,
+    legacySave.success ? "" : formatLandingValidationErrors(legacySave) ?? ""
+  );
+
+  const legacyMerge = mergeLandingContent(DEFAULT_LANDING_CONTENT, {
+    sales: {
+      headline: "Legacy headline still loads",
+      description: "Legacy paragraph still loads.",
+    },
+  } as never);
+  ok(
+    "Legacy sales headline/paragraph load and tools default",
+    legacyMerge.sales.headline === "Legacy headline still loads" &&
+      legacyMerge.sales.description === "Legacy paragraph still loads." &&
+      legacyMerge.sales.trackTools.features.length === 6
+  );
+
+  const edited = mergeLandingContent(DEFAULT_LANDING_CONTENT, {
+    sales: {
+      trackTools: {
+        eyebrow: "Sales Track Only",
+        features: [
+          { title: "Sales Nudges", desc: "Edited talking points caption." },
+        ],
+      },
+    },
+  } as never);
+  ok(
+    "Sales Track tools list is fully CMS-owned (replace, not keyed merge)",
+    edited.sales.trackTools.features.length === 1 &&
+      edited.sales.trackTools.features[0]?.desc === "Edited talking points caption."
+  );
+
+  const landingEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/admin-landing-editor.tsx"),
+    "utf8"
+  );
+  ok(
+    "Admin landing editor wires Sales Track tools title + caption fields",
+    landingEditor.includes("Sales Track Only — Tools") &&
+      landingEditor.includes("content.sales.trackTools") &&
+      landingEditor.includes("Add feature")
+  );
+
+  const salesPanel = fs.readFileSync(
+    path.join(process.cwd(), "src/components/landing/sales-landing-panel.tsx"),
+    "utf8"
+  );
+  ok(
+    "Public sales landing uses CMS trackTools, not the pipe headline",
+    salesPanel.includes("content.trackTools.features") &&
+      salesPanel.includes("content.trackTools.eyebrow") &&
+      !salesPanel.includes("Sales Market Nudges | Prep Library")
+  );
+
+  const marketStrip = fs.readFileSync(
+    path.join(process.cwd(), "src/components/landing/market-note-strip.tsx"),
+    "utf8"
+  );
+  ok(
+    "Market Nudges strip renders feature titles in dark green and captions in blue",
+    marketStrip.includes("text-primary-800") &&
+      marketStrip.includes("text-primary-400") &&
+      marketStrip.includes("features && features.length > 0")
+  );
+
+  const siteChrome = fs.readFileSync(
+    path.join(process.cwd(), "src/components/site-chrome.tsx"),
+    "utf8"
+  );
+  const rootLayout = fs.readFileSync(path.join(process.cwd(), "src/app/layout.tsx"), "utf8");
+  ok(
+    "Mentor apply omits site header/footer via SiteChrome",
+    siteChrome.includes('"/mentor-apply"') &&
+      rootLayout.includes("SiteChrome") &&
+      !rootLayout.includes("paddingTop: NAV_OFFSET")
+  );
+}
+
 // ── Paid PDF watermark policy ──────────────────────────────────────────────
 {
   const member = { name: "Sarah Wong", email: "pro.switcher@demo.com" };
