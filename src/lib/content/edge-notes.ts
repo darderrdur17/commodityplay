@@ -88,6 +88,7 @@ export function toMarketNoteStripProps(
     accentColor?: string;
     variant?: "bullets" | "tags";
     demoUrlFallback?: string;
+    demoOnClick?: () => void;
     secondaryCtaAccent?: boolean;
   }
 ) {
@@ -98,6 +99,7 @@ export function toMarketNoteStripProps(
   const topics = note.topics?.length ? note.topics : fallbackTopics;
   const demoUrl = note.demoButtonUrl?.trim() || options?.demoUrlFallback?.trim() || "";
   const demoLabel = note.demoButtonLabel?.trim() || "See demo";
+  const demoOnClick = options?.demoOnClick;
 
   return {
     eyebrow: note.eyebrow,
@@ -114,11 +116,11 @@ export function toMarketNoteStripProps(
           },
         }
       : {}),
-    ...(demoUrl
+    ...(demoOnClick || demoUrl
       ? {
           secondaryCta: {
             label: demoLabel,
-            href: demoUrl,
+            ...(demoOnClick ? { onClick: demoOnClick } : { href: demoUrl }),
             variant: "outline" as const,
             accent: options?.secondaryCtaAccent,
           },

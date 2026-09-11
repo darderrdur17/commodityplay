@@ -548,6 +548,11 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       salesPanel.includes("content.trackTools.eyebrow") &&
       !salesPanel.includes("Sales Market Nudges | Prep Library")
   );
+  ok(
+    "See demo on Sales landing opens Contact Us",
+    salesPanel.includes("demoOnClick: onOpenContactModal") &&
+      !salesPanel.includes("SALES_DEMO_URL")
+  );
 
   const marketStrip = fs.readFileSync(
     path.join(process.cwd(), "src/components/landing/market-note-strip.tsx"),

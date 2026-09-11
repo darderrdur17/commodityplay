@@ -151,7 +151,7 @@ export function LandingEditorWrapper({
       {showSalesNote && (
         <EditorSection
           title="Sales Market Strip"
-          description="See demo button and Recent Topics card on the sales landing tools section. Feature titles and captions are edited above under Sales Track Only — Tools. Saves to salesEdgeNote."
+          description="See demo opens Contact Us. Recent Topics card is edited here. Feature titles and captions are above under Sales Track Only — Tools. Saves to salesEdgeNote."
         >
           <WeeklyEdgeNoteEditor
             note={salesEdgeNote}

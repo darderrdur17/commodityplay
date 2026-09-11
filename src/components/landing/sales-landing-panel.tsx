@@ -29,9 +29,6 @@ import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-
 import { SALES_HERO_GREEN } from "@/lib/sales-brand-colors";
 
 const SALES_COLOR = "#0F766E";
-const SALES_DEMO_URL =
-  process.env.NEXT_PUBLIC_SALES_DEMO_URL?.trim() ||
-  "mailto:hello@commodityplay.com?subject=Sales%20demo%20request";
 
 const PAIN_POINTS = [
   {
@@ -247,7 +244,7 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
         {...toMarketNoteStripProps(edgeNote, SALES_MARKET_NOTE.topics, {
           accentColor: SALES_HERO_GREEN,
           variant: "tags",
-          demoUrlFallback: SALES_DEMO_URL,
+          demoOnClick: onOpenContactModal,
           secondaryCtaAccent: true,
         })}
         eyebrow={content.trackTools.eyebrow}

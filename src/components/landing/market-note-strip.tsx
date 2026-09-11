@@ -9,6 +9,15 @@ import { Button } from "@/components/ui/button";
 import type { MarketNoteTopic } from "@/data/market-notes";
 import type { SalesTrackFeature } from "@/data/landing-content";
 
+type SecondaryCta = {
+  label: string;
+  href?: string;
+  onClick?: () => void;
+  variant?: "default" | "outline";
+  /** When true, styles the button with accentColor (e.g. sales green) instead of gray outline */
+  accent?: boolean;
+};
+
 interface Props {
   eyebrow: string;
   title: string;
@@ -28,13 +37,7 @@ interface Props {
     loading?: boolean;
     variant?: "default" | "outline";
   };
-  secondaryCta?: {
-    label: string;
-    href: string;
-    variant?: "default" | "outline";
-    /** When true, styles the button with accentColor (e.g. sales green) instead of gray outline */
-    accent?: boolean;
-  };
+  secondaryCta?: SecondaryCta;
   /** Optional green confirmation line below description (e.g. starter-pack subscribe state) */
   subscribedNote?: string;
 }
@@ -109,47 +112,13 @@ export function MarketNoteStrip({
                   </Button>
                 )}
                 {secondaryCta && (
-                  <Link href={secondaryCta.href} target="_blank" rel="noopener noreferrer">
-                    <Button
-                      size="lg"
-                      variant={secondaryCta.variant ?? "outline"}
-                      className={
-                        secondaryCta.accent
-                          ? "border-transparent text-white hover:brightness-110 hover:border-transparent"
-                          : undefined
-                      }
-                      style={
-                        secondaryCta.accent
-                          ? ({ backgroundColor: accentColor, borderColor: accentColor, ["--cta-accent" as string]: accentColor } as React.CSSProperties)
-                          : undefined
-                      }
-                    >
-                      {secondaryCta.label}
-                    </Button>
-                  </Link>
+                  <AccentSecondaryButton cta={secondaryCta} accentColor={accentColor} />
                 )}
               </div>
             )}
             {!cta && secondaryCta && (
               <div className="mt-8">
-                <Link href={secondaryCta.href} target="_blank" rel="noopener noreferrer">
-                  <Button
-                    size="lg"
-                    variant={secondaryCta.variant ?? "outline"}
-                    className={
-                      secondaryCta.accent
-                        ? "border-transparent text-white hover:brightness-110 hover:border-transparent"
-                        : undefined
-                    }
-                    style={
-                      secondaryCta.accent
-                        ? ({ backgroundColor: accentColor, borderColor: accentColor, ["--cta-accent" as string]: accentColor } as React.CSSProperties)
-                        : undefined
-                    }
-                  >
-                    {secondaryCta.label}
-                  </Button>
-                </Link>
+                <AccentSecondaryButton cta={secondaryCta} accentColor={accentColor} />
               </div>
             )}
           </Reveal>
@@ -209,5 +178,43 @@ export function MarketNoteStrip({
         </div>
       </div>
     </section>
+  );
+}
+
+function AccentSecondaryButton({
+  cta,
+  accentColor,
+}: {
+  cta: SecondaryCta;
+  accentColor: string;
+}) {
+  const button = (
+    <Button
+      size="lg"
+      type="button"
+      variant={cta.variant ?? "outline"}
+      onClick={cta.onClick}
+      className={
+        cta.accent
+          ? "border-transparent text-white hover:brightness-110 hover:border-transparent"
+          : undefined
+      }
+      style={
+        cta.accent
+          ? ({ backgroundColor: accentColor, borderColor: accentColor, ["--cta-accent" as string]: accentColor } as React.CSSProperties)
+          : undefined
+      }
+    >
+      {cta.label}
+    </Button>
+  );
+
+  if (cta.onClick) return button;
+  if (!cta.href) return null;
+
+  return (
+    <Link href={cta.href} target="_blank" rel="noopener noreferrer">
+      {button}
+    </Link>
   );
 }

@@ -121,19 +121,14 @@ export function WeeklyEdgeNoteEditor({
       )}
       {showDemoButton && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <EditorField label="See demo — button label">
+          <EditorField
+            label="See demo — button label"
+            hint="Opens the Contact Us popup on the public Sales landing."
+          >
             <input
               className={inputClass}
               value={data.demoButtonLabel ?? "See demo"}
               onChange={(e) => patch({ demoButtonLabel: e.target.value })}
-            />
-          </EditorField>
-          <EditorField label="See demo — URL" hint="Leave blank to use NEXT_PUBLIC_SALES_DEMO_URL">
-            <input
-              className={inputClass}
-              value={data.demoButtonUrl ?? ""}
-              onChange={(e) => patch({ demoButtonUrl: e.target.value })}
-              placeholder="https:// or mailto:"
             />
           </EditorField>
         </div>
