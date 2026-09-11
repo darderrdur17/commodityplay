@@ -71,7 +71,10 @@ export function MarketNoteStrip({
               <ul className="space-y-4 max-w-lg">
                 {features.map((feature, i) => (
                   <li key={`${feature.title}-${i}`}>
-                    <h3 className="font-serif text-lg sm:text-xl font-semibold text-primary-800 leading-snug">
+                    <h3
+                      className="font-serif text-2xl sm:text-3xl font-semibold leading-snug"
+                      style={{ color: accentColor }}
+                    >
                       {feature.title}
                     </h3>
                     <p className="mt-1 text-sm text-primary-400 leading-relaxed">{feature.desc}</p>
