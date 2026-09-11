@@ -1081,7 +1081,7 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
 
       <Section
         title="Sales Track Only — Tools"
-        description="Feature list on the sales landing Market Nudges strip — each item is a title (dark green) plus a short caption (blue). Add, remove, or reorder by editing the list."
+        description="Accordion on the sales landing tools strip. Headline, intro, titles, and expandable captions are CMS-owned. Recent Topics stay on the right. Add, remove, or reorder rows below."
         defaultOpen
       >
         <Field label="Section kicker">
@@ -1093,6 +1093,30 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
                 trackTools: { ...content.sales.trackTools, eyebrow: v },
               })
             }
+          />
+        </Field>
+        <Field label="Headline">
+          <TextInput
+            value={content.sales.trackTools.headline}
+            onChange={(v) =>
+              patch("sales", {
+                ...content.sales,
+                trackTools: { ...content.sales.trackTools, headline: v },
+              })
+            }
+          />
+        </Field>
+        <Field label="Intro">
+          <TextInput
+            value={content.sales.trackTools.description}
+            onChange={(v) =>
+              patch("sales", {
+                ...content.sales,
+                trackTools: { ...content.sales.trackTools, description: v },
+              })
+            }
+            multiline
+            rows={2}
           />
         </Field>
         <div className="space-y-4">
@@ -1169,7 +1193,7 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
                   }}
                 />
               </Field>
-              <Field label="Caption">
+              <Field label="Expandable caption">
                 <TextInput
                   value={feature.desc}
                   onChange={(v) => {

@@ -59,6 +59,31 @@ export function resolveEditableList<T>(defaults: T[], cms?: T[]): T[] {
   return cms && cms.length > 0 ? cms : defaults;
 }
 
+const LEGACY_SALES_TRACK_SEED: { title: string; desc: string }[] = [
+  { title: "Sales Nudges", desc: "Market Talking Points" },
+  { title: "Prep Library", desc: "Bookmark the talking points prior meetings" },
+  { title: "Account Intelligence Track", desc: "Link market talking points to specific accounts" },
+  { title: "Mentor Connect", desc: "Ask practitioners your sales-prep questions, anonymously." },
+  { title: "Desk Channel", desc: "Practitioner Q&As that show how desks frame commercial problems." },
+  { title: "Market Role Movements", desc: "Track which firms are growing and hiring — your next target accounts." },
+];
+
+/** First accordion seed (title was Sales Nudges, caption was the tool name). */
+export function resolveSalesTrackToolsFeatures(
+  defaults: LandingContent["sales"]["trackTools"]["features"],
+  cms?: LandingContent["sales"]["trackTools"]["features"]
+): LandingContent["sales"]["trackTools"]["features"] {
+  if (!cms?.length) return defaults;
+  const isUneditedSeed =
+    cms.length === LEGACY_SALES_TRACK_SEED.length &&
+    cms.every(
+      (row, i) =>
+        row.title === LEGACY_SALES_TRACK_SEED[i]?.title &&
+        row.desc === LEGACY_SALES_TRACK_SEED[i]?.desc
+    );
+  return isUneditedSeed ? defaults : cms;
+}
+
 /** Same as mergeByKey but repo defaults win over CMS on conflicting fields. */
 export function mergeByKeyDefaultsWin<T>(
   defaults: T[],
@@ -335,7 +360,9 @@ export function resolveSalesContent(
     },
     trackTools: {
       eyebrow: cmsString(cms?.trackTools?.eyebrow, defaults.sales.trackTools.eyebrow),
-      features: resolveEditableList(
+      headline: cmsString(cms?.trackTools?.headline, defaults.sales.trackTools.headline),
+      description: cmsString(cms?.trackTools?.description, defaults.sales.trackTools.description),
+      features: resolveSalesTrackToolsFeatures(
         defaults.sales.trackTools.features,
         cms?.trackTools?.features
       ),

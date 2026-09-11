@@ -248,6 +248,8 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
           secondaryCtaAccent: true,
         })}
         eyebrow={content.trackTools.eyebrow}
+        title={content.trackTools.headline}
+        description={content.trackTools.description}
         features={content.trackTools.features}
       />
 

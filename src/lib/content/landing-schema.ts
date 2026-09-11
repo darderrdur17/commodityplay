@@ -145,6 +145,8 @@ export const landingContentSchema = z.object({
     trackTools: z
       .object({
         eyebrow: z.string().min(1),
+        headline: z.string().min(1).default(() => DEFAULT_LANDING_CONTENT.sales.trackTools.headline),
+        description: z.string().min(1).default(() => DEFAULT_LANDING_CONTENT.sales.trackTools.description),
         features: z
           .array(
             z.object({

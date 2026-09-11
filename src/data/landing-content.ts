@@ -39,7 +39,7 @@ export interface SalesWhoSection {
   headline: string;
 }
 
-/** One Sales Track tools row (Market Nudges section) — title + caption, CMS-editable. */
+/** One Sales Track tools row (Market Nudges section) — title + expandable caption. */
 export interface SalesTrackFeature {
   title: string;
   desc: string;
@@ -47,6 +47,8 @@ export interface SalesTrackFeature {
 
 export interface SalesTrackToolsSection {
   eyebrow: string;
+  headline: string;
+  description: string;
   features: SalesTrackFeature[];
 }
 
@@ -477,30 +479,32 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
     },
     trackTools: {
       eyebrow: "Sales Track Only",
+      headline: "Sales Intelligence",
+      description: "Six tools, one purpose — sound like you read the desk this morning.",
       features: [
         {
-          title: "Sales Nudges",
-          desc: "Market Talking Points",
+          title: "Market Talking Points",
+          desc: "Short, current lines you can drop into a client conversation without sounding rehearsed.",
         },
         {
           title: "Prep Library",
-          desc: "Bookmark the talking points prior meetings",
+          desc: "Bookmark the talking points that worked, so they're one tap away before your next meeting.",
         },
         {
           title: "Account Intelligence Track",
-          desc: "Link market talking points to specific accounts",
+          desc: "Link market talking points to specific accounts, so prep compounds instead of resetting every call.",
         },
         {
           title: "Mentor Connect",
-          desc: "Ask practitioners your sales-prep questions, anonymously.",
+          desc: "Ask practitioners your sales-prep questions, anonymously — no dumb-question anxiety.",
         },
         {
           title: "Desk Channel",
-          desc: "Practitioner Q&As that show how desks frame commercial problems.",
+          desc: "Practitioner Q&As showing how desks actually frame commercial problems.",
         },
         {
           title: "Market Role Movements",
-          desc: "Track which firms are growing and hiring — your next target accounts.",
+          desc: "Track which firms are growing and hiring — your next target accounts, before your competitors notice.",
         },
       ],
     },

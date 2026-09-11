@@ -458,7 +458,7 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
 // ── Sales Track Only tools (Market Nudges feature list) ────────────────────
 {
   const expectedTitles = [
-    "Sales Nudges",
+    "Market Talking Points",
     "Prep Library",
     "Account Intelligence Track",
     "Mentor Connect",
@@ -469,12 +469,13 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Default Sales Track tools has 6 features",
     defaults.eyebrow === "Sales Track Only" &&
+      defaults.headline === "Sales Intelligence" &&
       defaults.features.length === 6 &&
       expectedTitles.every((title, i) => defaults.features[i]?.title === title)
   );
   ok(
-    "Default Sales Nudges caption is Market Talking Points",
-    defaults.features[0]?.desc === "Market Talking Points"
+    "Default Market Talking Points caption is the expandable desk line",
+    defaults.features[0]?.desc.includes("client conversation")
   );
 
   const mergedEmpty = mergeLandingContent(DEFAULT_LANDING_CONTENT, {} as never);
@@ -527,15 +528,38 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       edited.sales.trackTools.features[0]?.desc === "Edited talking points caption."
   );
 
+  const uneditedSeed = mergeLandingContent(DEFAULT_LANDING_CONTENT, {
+    sales: {
+      trackTools: {
+        eyebrow: "Sales Track Only",
+        features: [
+          { title: "Sales Nudges", desc: "Market Talking Points" },
+          { title: "Prep Library", desc: "Bookmark the talking points prior meetings" },
+          { title: "Account Intelligence Track", desc: "Link market talking points to specific accounts" },
+          { title: "Mentor Connect", desc: "Ask practitioners your sales-prep questions, anonymously." },
+          { title: "Desk Channel", desc: "Practitioner Q&As that show how desks frame commercial problems." },
+          { title: "Market Role Movements", desc: "Track which firms are growing and hiring — your next target accounts." },
+        ],
+      },
+    },
+  } as never);
+  ok(
+    "Unedited first-seed tools list upgrades to accordion copy",
+    uneditedSeed.sales.trackTools.headline === "Sales Intelligence" &&
+      uneditedSeed.sales.trackTools.features[0]?.title === "Market Talking Points"
+  );
+
   const landingEditor = fs.readFileSync(
     path.join(process.cwd(), "src/app/admin/admin-landing-editor.tsx"),
     "utf8"
   );
   ok(
-    "Admin landing editor wires Sales Track tools title + caption fields",
+    "Admin landing editor wires Sales Track tools headline + expandable captions",
     landingEditor.includes("Sales Track Only — Tools") &&
       landingEditor.includes("content.sales.trackTools") &&
-      landingEditor.includes("Add feature")
+      landingEditor.includes("Add feature") &&
+      landingEditor.includes("Expandable caption") &&
+      landingEditor.includes("trackTools.headline")
   );
 
   const salesPanel = fs.readFileSync(
@@ -546,6 +570,7 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     "Public sales landing uses CMS trackTools, not the pipe headline",
     salesPanel.includes("content.trackTools.features") &&
       salesPanel.includes("content.trackTools.eyebrow") &&
+      salesPanel.includes("content.trackTools.headline") &&
       !salesPanel.includes("Sales Market Nudges | Prep Library")
   );
   ok(
@@ -559,11 +584,10 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     "utf8"
   );
   ok(
-    "Market Nudges titles match Six Sales Roles type, in button green, captions in blue",
-    marketStrip.includes("text-3xl sm:text-4xl font-bold") &&
-      marketStrip.includes("style={{ color: accentColor }}") &&
-      marketStrip.includes("text-primary-400") &&
-      marketStrip.includes("features && features.length > 0")
+    "Sales Track tools render as an expandable accordion beside Recent Topics",
+    marketStrip.includes("SalesTrackToolsCard") &&
+      marketStrip.includes("aria-expanded") &&
+      marketStrip.includes("Recent Topics")
   );
 
   const siteChrome = fs.readFileSync(
