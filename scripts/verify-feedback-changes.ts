@@ -559,8 +559,8 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     "utf8"
   );
   ok(
-    "Market Nudges strip renders larger titles in the button green and captions in blue",
-    marketStrip.includes("text-2xl sm:text-3xl") &&
+    "Market Nudges titles match Six Sales Roles type, in button green, captions in blue",
+    marketStrip.includes("text-3xl sm:text-4xl font-bold") &&
       marketStrip.includes("style={{ color: accentColor }}") &&
       marketStrip.includes("text-primary-400") &&
       marketStrip.includes("features && features.length > 0")

@@ -71,16 +71,24 @@ export function MarketNoteStrip({
               {eyebrow}
             </p>
             {features && features.length > 0 ? (
-              <ul className="space-y-4 max-w-lg">
+              <ul className="max-w-lg divide-y divide-gray-200/90">
                 {features.map((feature, i) => (
-                  <li key={`${feature.title}-${i}`}>
-                    <h3
-                      className="font-serif text-2xl sm:text-3xl font-semibold leading-snug"
+                  <li key={`${feature.title}-${i}`} className="flex gap-4 py-5 first:pt-1">
+                    <span
+                      className="mt-1.5 w-8 shrink-0 font-serif text-sm font-bold tabular-nums"
                       style={{ color: accentColor }}
                     >
-                      {feature.title}
-                    </h3>
-                    <p className="mt-1 text-sm text-primary-400 leading-relaxed">{feature.desc}</p>
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0">
+                      <h3
+                        className="font-serif text-3xl sm:text-4xl font-bold leading-[1.15]"
+                        style={{ color: accentColor }}
+                      >
+                        {feature.title}
+                      </h3>
+                      <p className="mt-1.5 text-[15px] text-primary-400 leading-relaxed">{feature.desc}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
