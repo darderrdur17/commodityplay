@@ -16,6 +16,12 @@ import { isDashboardModuleVisible, memberMayAccessCareerPlaybook } from "../src/
 import { formatCreditMonthLabel } from "../src/lib/mentor-credits";
 import { isPaymentsLive } from "../src/lib/payments";
 import {
+  DEFAULT_SALES_MARKET_NUDGES_CONTENT,
+  formatBriefPeriodLabel,
+  formatBriefUpdatedAt,
+  groupBriefsByMonthYear,
+} from "../src/data/sales-market-nudges";
+import {
   PDF_COPYRIGHT_FOOTER,
   formatMemberWatermarkLine,
   sanitizeWatermarkText,
@@ -639,6 +645,33 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Admin Sales Nudges can manage brief categories",
     nudgesEditor.includes("Brief categories") && nudgesEditor.includes("briefCategories")
+  );
+  ok(
+    "Green card heading is This Week — Talking Points on member and admin",
+    nudgesSection.includes("This Week — Talking Points") &&
+      nudgesEditor.includes('title="This Week — Talking Points"') &&
+      !nudgesSection.includes("This Week — Market Nudges") &&
+      !nudgesEditor.includes("This Week — Market Nudges")
+  );
+  ok(
+    "Member briefs use updatedAt, not Updated Mon",
+    nudgesSection.includes("formatBriefUpdatedAt") &&
+      !nudgesSection.includes("updatedLabel") &&
+      nudgesEditor.includes('type="date"')
+  );
+
+  ok(
+    "Brief filter chips use short month (Aug 2026)",
+    formatBriefPeriodLabel(8, 2026) === "Aug 2026" &&
+      formatBriefPeriodLabel(7, 2026) === "Jul 2026" &&
+      groupBriefsByMonthYear(DEFAULT_SALES_MARKET_NUDGES_CONTENT.intelligenceBriefs)[0]
+        ?.label === "Aug 2026"
+  );
+  ok(
+    "Brief card date formats as day + short month (3 Aug)",
+    formatBriefUpdatedAt("2026-08-03") === "3 Aug" &&
+      formatBriefUpdatedAt(undefined) === null &&
+      DEFAULT_SALES_MARKET_NUDGES_CONTENT.intelligenceBriefs.every((b) => Boolean(b.updatedAt))
   );
 }
 

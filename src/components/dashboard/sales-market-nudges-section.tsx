@@ -9,6 +9,7 @@ import { hasAccess } from "@/lib/utils";
 import { FOR_PRO_ACCESS, UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
+  formatBriefUpdatedAt,
   groupBriefsByMonthYear,
   type IntelligenceBrief,
   type MarketNudgeItem,
@@ -196,6 +197,7 @@ function IntelligenceBriefCard({
   memberStatus: MemberNudgeStatus;
   onStatusChange: (status: MemberNudgeStatus) => void;
 }) {
+  const updated = formatBriefUpdatedAt(brief.updatedAt);
   return (
     <article
       id={marketNudgeElementId(brief.id)}
@@ -212,9 +214,7 @@ function IntelligenceBriefCard({
           <h3 className="font-semibold text-base text-[#065F46]">{brief.title}</h3>
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
-          {brief.updatedLabel && (
-            <span className="text-[11px] text-muted-fg">{brief.updatedLabel}</span>
-          )}
+          {updated && <span className="text-[11px] text-muted-fg">{updated}</span>}
           <MemberStatusSelect value={memberStatus} onChange={onStatusChange} />
         </div>
       </div>
@@ -393,7 +393,7 @@ export function SalesMarketNudgesSection({
           <div className="blur-sm pointer-events-none select-none p-6 space-y-6" aria-hidden>
             <div className="rounded-xl p-6 text-white bg-[#065F46]">
               <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">
-                This Week — Market Nudges
+                This Week — Talking Points
               </p>
               <p className="text-sm">{content.weeklyNudges[0]?.text}</p>
             </div>
@@ -447,7 +447,7 @@ export function SalesMarketNudgesSection({
           id="weekly-nudges-heading"
           className="text-xs font-bold uppercase tracking-widest text-white/90"
         >
-          ⚡ This Week — Market Nudges
+          ⚡ This Week — Talking Points
         </h2>
         <ul className="space-y-4">
           {visibleWeeklyNudges.length === 0 ? (

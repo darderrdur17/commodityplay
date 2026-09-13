@@ -15,6 +15,9 @@ export interface IntelligenceBrief {
   year: number;
   description: string;
   discoveryQuestions: string[];
+  /** ISO calendar date `YYYY-MM-DD` shown on member cards as "3 Sep". */
+  updatedAt?: string;
+  /** Legacy free-text label; ignored on member cards when `updatedAt` is missing. */
   updatedLabel?: string;
   /** Hidden from member page when true; still editable in admin. */
   archived?: boolean;
@@ -55,7 +58,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
       category: "Crude",
       month: 8,
       year: 2026,
-      updatedLabel: "Updated Mon",
+      updatedAt: "2026-08-03",
       description:
         "Brent held above $82 as OPEC+ compliance tightened and Atlantic basin differentials widened. Gulf Coast export flows remain the swing factor for WTI–Brent.",
       discoveryQuestions: [
@@ -69,7 +72,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
       category: "Gasoline",
       month: 8,
       year: 2026,
-      updatedLabel: "Updated Mon",
+      updatedAt: "2026-08-03",
       description:
         "RBOB crack spreads compressed as refinery run rates climbed ahead of driving season. East Coast inventory builds are easing near-term tightness.",
       discoveryQuestions: [
@@ -83,7 +86,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
       category: "Copper",
       month: 8,
       year: 2026,
-      updatedLabel: "Updated Mon",
+      updatedAt: "2026-08-03",
       description:
         "LME copper held firm on China stimulus signals and tight warehouse stocks in Asia. Time spreads are signalling immediate deliverability risk in key locations.",
       discoveryQuestions: [
@@ -97,7 +100,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
       category: "LNG",
       month: 8,
       year: 2026,
-      updatedLabel: "Updated Mon",
+      updatedAt: "2026-08-03",
       description:
         "JKM–TTF spread compression accelerated as European storage filled and Asian buyers slowed spot procurement. Freight rates are the new swing variable.",
       discoveryQuestions: [
@@ -111,7 +114,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
       category: "Crude",
       month: 7,
       year: 2026,
-      updatedLabel: "Updated Mon",
+      updatedAt: "2026-07-06",
       description:
         "WTI–Brent spread widened on strong US export flows. Gulf Coast differentials remain the key signal for Atlantic basin balance.",
       discoveryQuestions: [
@@ -125,7 +128,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
       category: "LNG",
       month: 7,
       year: 2026,
-      updatedLabel: "Updated Mon",
+      updatedAt: "2026-07-06",
       description:
         "TTF rallied on unplanned maintenance while JKM lagged, widening the spread. Spot procurement slowed across North Asia.",
       discoveryQuestions: [
@@ -147,10 +150,7 @@ export function groupBriefsByMonthYear(
 
   const groups = new Map<string, IntelligenceBrief[]>();
   for (const brief of sorted) {
-    const label = new Date(brief.year, brief.month - 1, 1).toLocaleDateString("en-GB", {
-      month: "long",
-      year: "numeric",
-    });
+    const label = formatBriefPeriodLabel(brief.month, brief.year);
     const bucket = groups.get(label) ?? [];
     bucket.push(brief);
     groups.set(label, bucket);
@@ -166,9 +166,42 @@ export function groupBriefsByMonthYear(
 
 export function formatBriefPeriodLabel(month: number, year: number): string {
   return new Date(year, month - 1, 1).toLocaleDateString("en-GB", {
-    month: "long",
+    month: "short",
     year: "numeric",
   });
+}
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** First Monday of `month` (1–12) as `YYYY-MM-DD`, for seed/default briefs. */
+export function defaultBriefUpdatedAt(year: number, month: number): string {
+  const first = new Date(year, month - 1, 1);
+  const dow = first.getDay();
+  const add = dow === 0 ? 1 : dow === 1 ? 0 : 8 - dow;
+  const monday = new Date(year, month - 1, 1 + add);
+  const y = monday.getFullYear();
+  const m = String(monday.getMonth() + 1).padStart(2, "0");
+  const d = String(monday.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** Member-facing date, e.g. "3 Sep". Returns null if `updatedAt` is missing or invalid. */
+export function formatBriefUpdatedAt(updatedAt?: string): string | null {
+  if (!updatedAt) return null;
+  const match = ISO_DATE.exec(updatedAt.trim());
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 export const DEFAULT_BRIEF_CATEGORIES = ["Crude", "Gasoline", "Copper", "LNG"] as const;

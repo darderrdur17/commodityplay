@@ -22,6 +22,10 @@ const intelligenceBriefSchema = z.object({
   year: z.number().int().min(2020).max(2100),
   description: z.string().min(1).max(1000),
   discoveryQuestions: z.array(z.string().min(1).max(300)).min(1).max(6),
+  updatedAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+    .optional(),
   updatedLabel: z.string().max(40).optional(),
   archived: z.boolean().optional().default(false),
 });

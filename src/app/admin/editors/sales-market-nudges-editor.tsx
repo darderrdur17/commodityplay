@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import { Archive, ArchiveRestore, Plus, Trash2 } from "lucide-react";
 import {
   DEFAULT_SALES_MARKET_NUDGES_CONTENT,
+  defaultBriefUpdatedAt,
   formatBriefPeriodLabel,
   type IntelligenceBrief,
   type MarketNudgeItem,
@@ -170,7 +171,7 @@ export function SalesMarketNudgesEditor({
           year: now.getFullYear(),
           description: "",
           discoveryQuestions: ["", ""],
-          updatedLabel: "Updated Mon",
+          updatedAt: defaultBriefUpdatedAt(now.getFullYear(), now.getMonth() + 1),
         },
       ],
     });
@@ -239,7 +240,7 @@ export function SalesMarketNudgesEditor({
       </EditorSection>
 
       <EditorSection
-        title="This Week — Market Nudges"
+        title="This Week — Talking Points"
         description="Shown in the dark green card at the top of the page. Archive old nudges when drafting a new weekly set."
         defaultOpen
       >
@@ -420,14 +421,14 @@ export function SalesMarketNudgesEditor({
                     onChange={(e) => updateBrief(i, { year: Number(e.target.value) })}
                   />
                 </EditorField>
-                <EditorField label="Updated label (optional)">
+                <EditorField label="Updated date">
                   <input
                     className={inputClass}
-                    value={brief.updatedLabel ?? ""}
+                    type="date"
+                    value={brief.updatedAt ?? ""}
                     onChange={(e) =>
-                      updateBrief(i, { updatedLabel: e.target.value || undefined })
+                      updateBrief(i, { updatedAt: e.target.value || undefined })
                     }
-                    placeholder="Updated Mon"
                   />
                 </EditorField>
               </div>
