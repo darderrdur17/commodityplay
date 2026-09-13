@@ -27,6 +27,10 @@ export interface SalesMarketNudgesContent {
   eyebrow: string;
   title: string;
   description: string;
+  /** Green card heading on the member page. */
+  weeklyHeading: string;
+  /** Briefs section heading on the member page. */
+  briefsHeading: string;
   weeklyNudges: MarketNudgeItem[];
   intelligenceBriefs: IntelligenceBrief[];
   /** Admin-managed commodity categories used to tag and filter briefs. */
@@ -38,6 +42,8 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
   title: "What's Moving, Briefed for You.",
   description:
     "Practitioner-framed market briefs, refreshed weekly — plus a nudge whenever a move affects one of your tracked accounts. This is your Intelligence layer.",
+  weeklyHeading: "This Week — Talking Points",
+  briefsHeading: "Talking Points",
   briefCategories: ["Crude", "Gasoline", "Copper", "LNG"],
   weeklyNudges: [
     {
@@ -185,6 +191,14 @@ export function defaultBriefUpdatedAt(year: number, month: number): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Member-facing date, e.g. "3 Sep". Falls back to the first Monday of the brief month. */
+export function formatBriefCardDate(brief: Pick<IntelligenceBrief, "updatedAt" | "month" | "year">): string | null {
+  return (
+    formatBriefUpdatedAt(brief.updatedAt) ??
+    formatBriefUpdatedAt(defaultBriefUpdatedAt(brief.year, brief.month))
+  );
+}
+
 /** Member-facing date, e.g. "3 Sep". Returns null if `updatedAt` is missing or invalid. */
 export function formatBriefUpdatedAt(updatedAt?: string): string | null {
   if (!updatedAt) return null;
@@ -201,7 +215,21 @@ export function formatBriefUpdatedAt(updatedAt?: string): string | null {
   ) {
     return null;
   }
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const shortMonths = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ] as const;
+  return `${day} ${shortMonths[month - 1]}`;
 }
 
 export const DEFAULT_BRIEF_CATEGORIES = ["Crude", "Gasoline", "Copper", "LNG"] as const;

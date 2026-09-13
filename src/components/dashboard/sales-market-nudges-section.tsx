@@ -9,7 +9,7 @@ import { hasAccess } from "@/lib/utils";
 import { FOR_PRO_ACCESS, UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
-  formatBriefUpdatedAt,
+  formatBriefCardDate,
   groupBriefsByMonthYear,
   type IntelligenceBrief,
   type MarketNudgeItem,
@@ -197,7 +197,7 @@ function IntelligenceBriefCard({
   memberStatus: MemberNudgeStatus;
   onStatusChange: (status: MemberNudgeStatus) => void;
 }) {
-  const updated = formatBriefUpdatedAt(brief.updatedAt);
+  const updated = formatBriefCardDate(brief);
   return (
     <article
       id={marketNudgeElementId(brief.id)}
@@ -447,7 +447,7 @@ export function SalesMarketNudgesSection({
           id="weekly-nudges-heading"
           className="text-xs font-bold uppercase tracking-widest text-white/90"
         >
-          ⚡ This Week — Talking Points
+          ⚡ {content.weeklyHeading}
         </h2>
         <ul className="space-y-4">
           {visibleWeeklyNudges.length === 0 ? (
@@ -495,7 +495,7 @@ export function SalesMarketNudgesSection({
           id="intelligence-briefs-heading"
           className="text-sm font-semibold text-gray-900 mb-4"
         >
-          📄 Intelligence Briefs
+          📄 {content.briefsHeading}
         </h2>
         <div className="mb-5">
           <ChipFilterBar

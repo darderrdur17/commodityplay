@@ -34,6 +34,8 @@ export const salesMarketNudgesSchema = z.object({
   eyebrow: z.string().min(1).max(80),
   title: z.string().min(1).max(200),
   description: z.string().min(1).max(600),
+  weeklyHeading: z.string().max(80).optional(),
+  briefsHeading: z.string().max(80).optional(),
   weeklyNudges: z.array(marketNudgeSchema),
   intelligenceBriefs: z.array(intelligenceBriefSchema),
   briefCategories: z.array(z.string().min(1).max(80)).optional(),
@@ -74,6 +76,10 @@ export function normalizeSalesMarketNudgesPayload(payload: unknown): SalesMarket
       eyebrow: parsed.data.eyebrow.trim(),
       title: parsed.data.title.trim(),
       description: parsed.data.description.trim(),
+      weeklyHeading:
+        parsed.data.weeklyHeading?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyHeading,
+      briefsHeading:
+        parsed.data.briefsHeading?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.briefsHeading,
       weeklyNudges: withArchivedDefaults(mergeNudges(parsed.data.weeklyNudges)),
       intelligenceBriefs: withArchivedDefaults(mergeBriefs(parsed.data.intelligenceBriefs)),
       briefCategories: resolveBriefCategories(
@@ -88,6 +94,8 @@ export function normalizeSalesMarketNudgesPayload(payload: unknown): SalesMarket
     eyebrow: partial.eyebrow?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.eyebrow,
     title: partial.title?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.title,
     description: partial.description?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.description,
+    weeklyHeading: partial.weeklyHeading?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyHeading,
+    briefsHeading: partial.briefsHeading?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.briefsHeading,
     weeklyNudges: withArchivedDefaults(mergeNudges(partial.weeklyNudges)),
     intelligenceBriefs: withArchivedDefaults(mergeBriefs(partial.intelligenceBriefs)),
     briefCategories: resolveBriefCategories(partial.briefCategories, partial.intelligenceBriefs),

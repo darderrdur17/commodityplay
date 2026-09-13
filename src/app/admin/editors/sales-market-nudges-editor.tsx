@@ -214,6 +214,22 @@ export function SalesMarketNudgesEditor({
             onChange={(e) => patch({ ...content, description: e.target.value })}
           />
         </EditorField>
+        <EditorField label="This week card heading">
+          <input
+            className={inputClass}
+            value={content.weeklyHeading}
+            onChange={(e) => patch({ ...content, weeklyHeading: e.target.value })}
+            placeholder="This Week — Talking Points"
+          />
+        </EditorField>
+        <EditorField label="Briefs section heading">
+          <input
+            className={inputClass}
+            value={content.briefsHeading}
+            onChange={(e) => patch({ ...content, briefsHeading: e.target.value })}
+            placeholder="Talking Points"
+          />
+        </EditorField>
       </EditorSection>
 
       <EditorSection
@@ -322,7 +338,7 @@ export function SalesMarketNudgesEditor({
       </EditorSection>
 
       <EditorSection
-        title="Intelligence Briefs"
+        title="Talking Points"
         description="Grouped by month/year on the member page sidebar. Archive past briefs when publishing new weekly content."
         defaultOpen
       >

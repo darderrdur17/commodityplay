@@ -17,10 +17,15 @@ import { formatCreditMonthLabel } from "../src/lib/mentor-credits";
 import { isPaymentsLive } from "../src/lib/payments";
 import {
   DEFAULT_SALES_MARKET_NUDGES_CONTENT,
+  formatBriefCardDate,
   formatBriefPeriodLabel,
   formatBriefUpdatedAt,
   groupBriefsByMonthYear,
 } from "../src/data/sales-market-nudges";
+import {
+  normalizeSalesMarketNudgesPayload,
+  parseSalesMarketNudgesPayload,
+} from "../src/lib/content/sales-market-nudges-schema";
 import {
   PDF_COPYRIGHT_FOOTER,
   formatMemberWatermarkLine,
@@ -647,15 +652,19 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     nudgesEditor.includes("Brief categories") && nudgesEditor.includes("briefCategories")
   );
   ok(
-    "Green card heading is This Week — Talking Points on member and admin",
-    nudgesSection.includes("This Week — Talking Points") &&
-      nudgesEditor.includes('title="This Week — Talking Points"') &&
-      !nudgesSection.includes("This Week — Market Nudges") &&
-      !nudgesEditor.includes("This Week — Market Nudges")
+    "Weekly and briefs headings are CMS-editable",
+    nudgesEditor.includes("weeklyHeading") &&
+      nudgesEditor.includes("briefsHeading") &&
+      nudgesSection.includes("content.weeklyHeading") &&
+      nudgesSection.includes("content.briefsHeading") &&
+      DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyHeading === "This Week — Talking Points" &&
+      DEFAULT_SALES_MARKET_NUDGES_CONTENT.briefsHeading === "Talking Points" &&
+      !nudgesSection.includes("Intelligence Briefs") &&
+      !nudgesSection.includes("This Week — Market Nudges")
   );
   ok(
-    "Member briefs use updatedAt, not Updated Mon",
-    nudgesSection.includes("formatBriefUpdatedAt") &&
+    "Member briefs use card date helper, not Updated Mon",
+    nudgesSection.includes("formatBriefCardDate") &&
       !nudgesSection.includes("updatedLabel") &&
       nudgesEditor.includes('type="date"')
   );
@@ -671,7 +680,31 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     "Brief card date formats as day + short month (3 Aug)",
     formatBriefUpdatedAt("2026-08-03") === "3 Aug" &&
       formatBriefUpdatedAt(undefined) === null &&
+      formatBriefCardDate({ month: 8, year: 2026 }) === "3 Aug" &&
+      formatBriefCardDate({ updatedAt: "2026-09-03", month: 8, year: 2026 }) === "3 Sep" &&
+      formatBriefUpdatedAt("2026-09-03") === "3 Sep" &&
       DEFAULT_SALES_MARKET_NUDGES_CONTENT.intelligenceBriefs.every((b) => Boolean(b.updatedAt))
+  );
+  ok(
+    "Legacy CMS without headings and blank headings still save and default",
+    parseSalesMarketNudgesPayload(DEFAULT_SALES_MARKET_NUDGES_CONTENT).success &&
+      parseSalesMarketNudgesPayload({
+        ...DEFAULT_SALES_MARKET_NUDGES_CONTENT,
+        weeklyHeading: "",
+        briefsHeading: "",
+      }).success &&
+      normalizeSalesMarketNudgesPayload({
+        eyebrow: "SALES MARKET NUDGES",
+        title: DEFAULT_SALES_MARKET_NUDGES_CONTENT.title,
+        description: DEFAULT_SALES_MARKET_NUDGES_CONTENT.description,
+        weeklyNudges: DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyNudges,
+        intelligenceBriefs: DEFAULT_SALES_MARKET_NUDGES_CONTENT.intelligenceBriefs,
+      }).weeklyHeading === "This Week — Talking Points" &&
+      normalizeSalesMarketNudgesPayload({
+        ...DEFAULT_SALES_MARKET_NUDGES_CONTENT,
+        weeklyHeading: "   ",
+        briefsHeading: "",
+      }).briefsHeading === "Talking Points"
   );
 }
 
