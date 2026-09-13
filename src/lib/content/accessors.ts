@@ -469,14 +469,19 @@ export async function getPlaybookSections(chapterId: string): Promise<PlaybookSe
 }
 
 export async function getCaseStudiesList() {
-  const data = await getPublishedPayload<CaseStudiesPayload>("case-studies");
-  return data.studies ?? CASE_STUDIES;
+  const data = await getPublishedPayload<CaseStudiesPayload | CaseStudyCard[]>("case-studies");
+  if (Array.isArray(data)) return data.length ? data : CASE_STUDIES;
+  return data.studies?.length ? data.studies : CASE_STUDIES;
 }
 
 export async function getCaseStudyBySlug(slug: string) {
-  const data = await getPublishedPayload<CaseStudiesPayload>("case-studies");
-  const studies = data.studies ?? CASE_STUDIES;
-  const details = data.details ?? CASE_STUDY_DETAILS;
+  const data = await getPublishedPayload<CaseStudiesPayload | CaseStudyCard[]>("case-studies");
+  const studies = Array.isArray(data)
+    ? data
+    : data.studies?.length
+      ? data.studies
+      : CASE_STUDIES;
+  const details = Array.isArray(data) ? CASE_STUDY_DETAILS : data.details ?? CASE_STUDY_DETAILS;
   const card = studies.find((c) => c.slug === slug);
   if (!card) return null;
   return { card, sections: details[slug] || null };

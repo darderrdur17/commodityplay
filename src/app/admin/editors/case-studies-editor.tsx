@@ -4,21 +4,27 @@ import React from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EditorField, EditorRow, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
+import type { CaseStudyCard, CaseStudySection } from "@/data/case-studies";
 
-interface CaseStudyCard {
-  slug: string;
-  id: string;
-  category: string;
-  title: string;
-  catchLine: string;
-  description: string;
-  readMinutes: number;
-  status: "published" | "coming-soon";
-  hasFullContent: boolean;
-  track?: "career" | "sales" | "both";
+type StudyCard = CaseStudyCard & { track?: "career" | "sales" | "both" };
+
+interface CaseStudiesPayload {
+  studies: StudyCard[];
+  details: Record<string, CaseStudySection[]>;
 }
 
-function newCase(): CaseStudyCard {
+function readPayload(payload: unknown): CaseStudiesPayload {
+  if (Array.isArray(payload)) {
+    return { studies: payload as StudyCard[], details: {} };
+  }
+  const data = (payload ?? {}) as Partial<CaseStudiesPayload>;
+  return {
+    studies: Array.isArray(data.studies) ? data.studies : [],
+    details: data.details && typeof data.details === "object" ? data.details : {},
+  };
+}
+
+function newCase(): StudyCard {
   return {
     slug: "",
     id: `cs-${Date.now()}`,
@@ -29,6 +35,16 @@ function newCase(): CaseStudyCard {
     readMinutes: 5,
     status: "coming-soon",
     hasFullContent: false,
+  };
+}
+
+function newSection(index: number): CaseStudySection {
+  const n = String(index + 1).padStart(2, "0");
+  return {
+    id: `section-${Date.now()}-${index}`,
+    label: `${n} · Section`,
+    title: "",
+    paragraphs: [""],
   };
 }
 
@@ -43,21 +59,39 @@ export function CaseStudiesEditor({
   moduleSlug: string;
   requiredTier: string;
 }) {
-  const items: CaseStudyCard[] = Array.isArray(payload) ? (payload as CaseStudyCard[]) : [];
+  const { studies: items, details } = readPayload(payload);
 
-  function patchItem(i: number, item: CaseStudyCard) {
+  function emit(nextStudies: StudyCard[], nextDetails = details) {
+    onChange({ studies: nextStudies, details: nextDetails });
+  }
+
+  function patchItem(i: number, item: StudyCard) {
     const next = [...items];
+    const prev = next[i];
     next[i] = item;
-    onChange(next);
+    const nextDetails = { ...details };
+    if (prev && prev.slug && item.slug && prev.slug !== item.slug && nextDetails[prev.slug]) {
+      nextDetails[item.slug] = nextDetails[prev.slug]!;
+      delete nextDetails[prev.slug];
+    }
+    emit(next, nextDetails);
   }
 
   function deleteItem(i: number) {
     if (!confirm("Delete this case study?")) return;
-    onChange(items.filter((_, j) => j !== i));
+    const removed = items[i];
+    const nextDetails = { ...details };
+    if (removed?.slug) delete nextDetails[removed.slug];
+    emit(items.filter((_, j) => j !== i), nextDetails);
   }
 
   function addItem() {
-    onChange([...items, newCase()]);
+    emit([...items, newCase()]);
+  }
+
+  function patchSections(slug: string, sections: CaseStudySection[]) {
+    if (!slug) return;
+    emit(items, { ...details, [slug]: sections });
   }
 
   return (
@@ -70,55 +104,132 @@ export function CaseStudiesEditor({
       </div>
 
       <div className="space-y-2">
-        {items.map((item, i) => (
-          <EditorRow
-            key={item.id}
-            summary={
-              <span>
-                <span className="font-medium">{item.title || "(untitled)"}</span>
-                <span className="ml-2 text-xs text-muted-fg">{item.category}</span>
-                <span className={`ml-2 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${item.status === "published" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                  {item.status}
+        {items.map((item, i) => {
+          const sections = item.slug ? details[item.slug] ?? [] : [];
+          return (
+            <EditorRow
+              key={item.id}
+              summary={
+                <span>
+                  <span className="font-medium">{item.title || "(untitled)"}</span>
+                  <span className="ml-2 text-xs text-muted-fg">{item.category}</span>
+                  <span className={`ml-2 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${item.status === "published" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                    {item.status}
+                  </span>
                 </span>
-              </span>
-            }
-            onDelete={() => deleteItem(i)}
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <EditorField label="Title">
-                <input className={inputClass} value={item.title} onChange={(e) => patchItem(i, { ...item, title: e.target.value })} />
+              }
+              onDelete={() => deleteItem(i)}
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <EditorField label="Title">
+                  <input className={inputClass} value={item.title} onChange={(e) => patchItem(i, { ...item, title: e.target.value })} />
+                </EditorField>
+                <EditorField label="Category">
+                  <input className={inputClass} value={item.category} onChange={(e) => patchItem(i, { ...item, category: e.target.value })} />
+                </EditorField>
+                <EditorField label="Slug">
+                  <input className={inputClass} value={item.slug} onChange={(e) => patchItem(i, { ...item, slug: e.target.value })} />
+                </EditorField>
+                <EditorField label="Read time (minutes)">
+                  <input type="number" className={inputClass} value={item.readMinutes} onChange={(e) => patchItem(i, { ...item, readMinutes: Number(e.target.value) })} />
+                </EditorField>
+                <EditorField label="Status">
+                  <select className={inputClass} value={item.status} onChange={(e) => patchItem(i, { ...item, status: e.target.value as StudyCard["status"] })}>
+                    <option value="published">Published</option>
+                    <option value="coming-soon">Coming soon</option>
+                  </select>
+                </EditorField>
+              </div>
+              <EditorField label="Catch line">
+                <input className={inputClass} value={item.catchLine} onChange={(e) => patchItem(i, { ...item, catchLine: e.target.value })} />
               </EditorField>
-              <EditorField label="Category">
-                <input className={inputClass} value={item.category} onChange={(e) => patchItem(i, { ...item, category: e.target.value })} />
+              <EditorField label="Description">
+                <textarea className={textareaClass} value={item.description} onChange={(e) => patchItem(i, { ...item, description: e.target.value })} />
               </EditorField>
-              <EditorField label="Slug">
-                <input className={inputClass} value={item.slug} onChange={(e) => patchItem(i, { ...item, slug: e.target.value })} />
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <input type="checkbox" checked={item.hasFullContent} onChange={(e) => patchItem(i, { ...item, hasFullContent: e.target.checked })} />
+                Has full content
+              </label>
+              <EditorField label="Track">
+                <TrackToggle value={item.track ?? "both"} onChange={(v) => patchItem(i, { ...item, track: v })} />
               </EditorField>
-              <EditorField label="Read time (minutes)">
-                <input type="number" className={inputClass} value={item.readMinutes} onChange={(e) => patchItem(i, { ...item, readMinutes: Number(e.target.value) })} />
-              </EditorField>
-              <EditorField label="Status">
-                <select className={inputClass} value={item.status} onChange={(e) => patchItem(i, { ...item, status: e.target.value as CaseStudyCard["status"] })}>
-                  <option value="published">Published</option>
-                  <option value="coming-soon">Coming soon</option>
-                </select>
-              </EditorField>
-            </div>
-            <EditorField label="Catch line">
-              <input className={inputClass} value={item.catchLine} onChange={(e) => patchItem(i, { ...item, catchLine: e.target.value })} />
-            </EditorField>
-            <EditorField label="Description">
-              <textarea className={textareaClass} value={item.description} onChange={(e) => patchItem(i, { ...item, description: e.target.value })} />
-            </EditorField>
-            <label className="flex items-center gap-2 text-xs cursor-pointer">
-              <input type="checkbox" checked={item.hasFullContent} onChange={(e) => patchItem(i, { ...item, hasFullContent: e.target.checked })} />
-              Has full content
-            </label>
-            <EditorField label="Track">
-              <TrackToggle value={item.track ?? "both"} onChange={(v) => patchItem(i, { ...item, track: v })} />
-            </EditorField>
-          </EditorRow>
-        ))}
+
+              <div className="rounded-lg border border-border p-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-gray-900">Article body</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!item.slug}
+                    onClick={() => patchSections(item.slug, [...sections, newSection(sections.length)])}
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add section
+                  </Button>
+                </div>
+                {!item.slug && (
+                  <p className="text-xs text-muted-fg">Set a slug first to edit the full article.</p>
+                )}
+                {sections.map((section, si) => (
+                  <div key={section.id} className="rounded-md border border-border/70 p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-bold uppercase text-muted-fg">Section {si + 1}</p>
+                      <button
+                        type="button"
+                        className="text-xs text-muted-fg hover:text-red-600"
+                        onClick={() =>
+                          patchSections(
+                            item.slug,
+                            sections.filter((_, j) => j !== si)
+                          )
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <EditorField label="Label">
+                      <input
+                        className={inputClass}
+                        value={section.label}
+                        onChange={(e) => {
+                          const next = [...sections];
+                          next[si] = { ...section, label: e.target.value };
+                          patchSections(item.slug, next);
+                        }}
+                      />
+                    </EditorField>
+                    <EditorField label="Title">
+                      <input
+                        className={inputClass}
+                        value={section.title}
+                        onChange={(e) => {
+                          const next = [...sections];
+                          next[si] = { ...section, title: e.target.value };
+                          patchSections(item.slug, next);
+                        }}
+                      />
+                    </EditorField>
+                    <EditorField label="Paragraphs (blank line between paragraphs)">
+                      <textarea
+                        className={textareaClass}
+                        rows={6}
+                        value={section.paragraphs.join("\n\n")}
+                        onChange={(e) => {
+                          const next = [...sections];
+                          next[si] = {
+                            ...section,
+                            paragraphs: e.target.value.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean),
+                          };
+                          patchSections(item.slug, next);
+                        }}
+                      />
+                    </EditorField>
+                  </div>
+                ))}
+              </div>
+            </EditorRow>
+          );
+        })}
         {items.length === 0 && (
           <p className="text-center text-sm text-muted-fg py-8">No case studies yet.</p>
         )}

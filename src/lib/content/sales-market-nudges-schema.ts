@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   DEFAULT_SALES_MARKET_NUDGES_CONTENT,
+  resolveBriefCategories,
   type IntelligenceBrief,
   type MarketNudgeItem,
   type SalesMarketNudgesContent,
@@ -31,6 +32,7 @@ export const salesMarketNudgesSchema = z.object({
   description: z.string().min(1).max(600),
   weeklyNudges: z.array(marketNudgeSchema),
   intelligenceBriefs: z.array(intelligenceBriefSchema),
+  briefCategories: z.array(z.string().min(1).max(80)).optional(),
 });
 
 export function parseSalesMarketNudgesPayload(payload: unknown) {
@@ -70,6 +72,10 @@ export function normalizeSalesMarketNudgesPayload(payload: unknown): SalesMarket
       description: parsed.data.description.trim(),
       weeklyNudges: withArchivedDefaults(mergeNudges(parsed.data.weeklyNudges)),
       intelligenceBriefs: withArchivedDefaults(mergeBriefs(parsed.data.intelligenceBriefs)),
+      briefCategories: resolveBriefCategories(
+        parsed.data.briefCategories,
+        parsed.data.intelligenceBriefs
+      ),
     };
   }
 
@@ -80,6 +86,7 @@ export function normalizeSalesMarketNudgesPayload(payload: unknown): SalesMarket
     description: partial.description?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.description,
     weeklyNudges: withArchivedDefaults(mergeNudges(partial.weeklyNudges)),
     intelligenceBriefs: withArchivedDefaults(mergeBriefs(partial.intelligenceBriefs)),
+    briefCategories: resolveBriefCategories(partial.briefCategories, partial.intelligenceBriefs),
   };
 }
 

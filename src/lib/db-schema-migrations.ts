@@ -242,4 +242,25 @@ DO $$ BEGIN
     FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+CREATE TABLE IF NOT EXISTS "UserMarketNudgeStatus" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "sourceId" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "UserMarketNudgeStatus_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "UserMarketNudgeStatus_userId_kind_sourceId_key"
+  ON "UserMarketNudgeStatus"("userId", "kind", "sourceId");
+CREATE INDEX IF NOT EXISTS "UserMarketNudgeStatus_userId_idx" ON "UserMarketNudgeStatus"("userId");
+
+DO $$ BEGIN
+  ALTER TABLE "UserMarketNudgeStatus" ADD CONSTRAINT "UserMarketNudgeStatus_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 `;

@@ -1,6 +1,7 @@
 import { DESK_QA } from "@/data/desk-channel";
 import { INTERVIEW_QUESTIONS } from "@/data/interview-questions";
 import { JOB_OPENINGS } from "@/data/job-openings";
+import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
 import { DEFAULT_DESK_CHANNEL_PAGE_COPY } from "@/data/desk-channel-content";
 import { getDefaultPayload } from "./defaults";
 import { deepMerge } from "./merge";
@@ -74,6 +75,25 @@ export function resolveAdminModulePayload(slug: ContentSlug, payload: unknown): 
     const stored = (payload as { jobs?: unknown[] } | null)?.jobs;
     if (!Array.isArray(stored) || stored.length === 0) {
       merged.jobs = defaults.jobs ?? JOB_OPENINGS;
+    }
+    return merged;
+  }
+
+  if (slug === "case-studies") {
+    if (Array.isArray(payload)) {
+      return {
+        studies: payload.length ? payload : CASE_STUDIES,
+        details: CASE_STUDY_DETAILS,
+      };
+    }
+    const merged = deepMerge(defaults, (payload ?? {}) as Record<string, unknown>);
+    const stored = (payload as { studies?: unknown[] } | null)?.studies;
+    if (!Array.isArray(stored) || stored.length === 0) {
+      merged.studies = defaults.studies ?? CASE_STUDIES;
+    }
+    const storedDetails = (payload as { details?: Record<string, unknown> } | null)?.details;
+    if (!storedDetails || Object.keys(storedDetails).length === 0) {
+      merged.details = defaults.details ?? CASE_STUDY_DETAILS;
     }
     return merged;
   }

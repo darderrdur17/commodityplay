@@ -165,7 +165,7 @@ export function SalesMarketNudgesEditor({
         {
           id: newBriefId(),
           title: "New Brief",
-          category: "Crude",
+          category: content.briefCategories[0] || "Crude",
           month: now.getMonth() + 1,
           year: now.getFullYear(),
           description: "",
@@ -185,10 +185,10 @@ export function SalesMarketNudgesEditor({
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-muted-fg bg-secondary/50 rounded-lg px-3 py-2">
+        <p className="text-xs text-muted-fg bg-secondary/50 rounded-lg px-3 py-2">
         Edit weekly market nudges and intelligence briefs for{" "}
-        <code className="text-[11px]">/dashboard/sales-market-nudges</code>. Briefs appear under
-        Intelligence Briefs filtered by month and year.
+        <code className="text-[11px]">/dashboard/sales-market-nudges</code>. Members can filter
+        briefs by month and by the categories you define below.
       </p>
 
       <EditorSection title="Page hero" defaultOpen>
@@ -211,6 +211,29 @@ export function SalesMarketNudgesEditor({
             className={textareaClass}
             value={content.description}
             onChange={(e) => patch({ ...content, description: e.target.value })}
+          />
+        </EditorField>
+      </EditorSection>
+
+      <EditorSection
+        title="Brief categories"
+        description="Commodity labels (Crude, Gasoline, LNG, etc.) used on each intelligence brief and as the member category filter."
+        defaultOpen
+      >
+        <EditorField label="Categories (one per line)">
+          <textarea
+            className={textareaClass}
+            rows={4}
+            value={content.briefCategories.join("\n")}
+            onChange={(e) =>
+              patch({
+                ...content,
+                briefCategories: e.target.value
+                  .split("\n")
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              })
+            }
           />
         </EditorField>
       </EditorSection>
@@ -359,11 +382,20 @@ export function SalesMarketNudgesEditor({
                   />
                 </EditorField>
                 <EditorField label="Category">
-                  <input
+                  <select
                     className={inputClass}
                     value={brief.category}
                     onChange={(e) => updateBrief(i, { category: e.target.value })}
-                  />
+                  >
+                    {!content.briefCategories.includes(brief.category) && brief.category && (
+                      <option value={brief.category}>{brief.category}</option>
+                    )}
+                    {content.briefCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
                 </EditorField>
                 <EditorField label="Month">
                   <select

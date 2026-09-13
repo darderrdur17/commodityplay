@@ -26,6 +26,8 @@ export interface SalesMarketNudgesContent {
   description: string;
   weeklyNudges: MarketNudgeItem[];
   intelligenceBriefs: IntelligenceBrief[];
+  /** Admin-managed commodity categories used to tag and filter briefs. */
+  briefCategories: string[];
 }
 
 export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
@@ -33,6 +35,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
   title: "What's Moving, Briefed for You.",
   description:
     "Practitioner-framed market briefs, refreshed weekly — plus a nudge whenever a move affects one of your tracked accounts. This is your Intelligence layer.",
+  briefCategories: ["Crude", "Gasoline", "Copper", "LNG"],
   weeklyNudges: [
     {
       id: "jkm-ttf-spread",
@@ -166,4 +169,16 @@ export function formatBriefPeriodLabel(month: number, year: number): string {
     month: "long",
     year: "numeric",
   });
+}
+
+export const DEFAULT_BRIEF_CATEGORIES = ["Crude", "Gasoline", "Copper", "LNG"] as const;
+
+export function resolveBriefCategories(
+  stored?: string[],
+  briefs?: IntelligenceBrief[]
+): string[] {
+  const fromCms = (stored ?? []).map((c) => c.trim()).filter(Boolean);
+  if (fromCms.length) return Array.from(new Set(fromCms));
+  const fromBriefs = [...new Set((briefs ?? []).map((b) => b.category.trim()).filter(Boolean))];
+  return fromBriefs.length ? fromBriefs : [...DEFAULT_BRIEF_CATEGORIES];
 }

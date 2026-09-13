@@ -21,6 +21,13 @@ import {
   marketNudgeElementId,
 } from "@/lib/bookmark-navigation";
 import { useBookmarkHighlight } from "@/hooks/use-bookmark-highlight";
+import {
+  MEMBER_NUDGE_STATUS_LABELS,
+  MEMBER_NUDGE_STATUSES,
+  statusKey,
+  type MarketNudgeKind,
+  type MemberNudgeStatus,
+} from "@/lib/sales-nudge-member-status";
 const ROYAL = "#1a4fd6";
 const CTA_BLUE = "#3280ff";
 
@@ -107,14 +114,87 @@ function NudgeText({ nudge }: { nudge: MarketNudgeItem }) {
   );
 }
 
+function ChipFilterBar({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { id: string; label: string; count?: number }[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  if (options.length === 0) return null;
+  return (
+    <nav aria-label={label} className="flex flex-wrap gap-2">
+      <p className="sr-only">{label}</p>
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          onClick={() => onChange(option.id)}
+          className={cn(
+            "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+            value === option.id
+              ? "bg-[#065F46]/10 text-[#065F46]"
+              : "bg-secondary text-muted-fg hover:bg-secondary/80 hover:text-gray-900"
+          )}
+        >
+          {option.label}
+          {typeof option.count === "number" && (
+            <span className="ml-1 opacity-70">({option.count})</span>
+          )}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function MemberStatusSelect({
+  value,
+  onChange,
+  tone = "light",
+}: {
+  value: MemberNudgeStatus;
+  onChange: (status: MemberNudgeStatus) => void;
+  tone?: "light" | "on-green";
+}) {
+  return (
+    <label className="shrink-0">
+      <span className="sr-only">Talking point status</span>
+      <select
+        className={cn(
+          "rounded-md border text-[11px] font-medium px-2 py-1.5",
+          tone === "on-green"
+            ? "border-white/20 bg-white/10 text-white"
+            : "border-border bg-white text-gray-800"
+        )}
+        value={value}
+        onChange={(e) => onChange(e.target.value as MemberNudgeStatus)}
+      >
+        {MEMBER_NUDGE_STATUSES.map((status) => (
+          <option key={status} value={status}>
+            {MEMBER_NUDGE_STATUS_LABELS[status]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 function IntelligenceBriefCard({
   brief,
   showLinkToAccount = false,
   highlighted = false,
+  memberStatus,
+  onStatusChange,
 }: {
   brief: IntelligenceBrief;
   showLinkToAccount?: boolean;
   highlighted?: boolean;
+  memberStatus: MemberNudgeStatus;
+  onStatusChange: (status: MemberNudgeStatus) => void;
 }) {
   return (
     <article
@@ -125,12 +205,18 @@ function IntelligenceBriefCard({
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
-        <h3 className="font-semibold text-base text-[#065F46]">
-          {brief.title}
-        </h3>
-        {brief.updatedLabel && (
-          <span className="text-[11px] text-muted-fg shrink-0">{brief.updatedLabel}</span>
-        )}
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#065F46] mb-1">
+            {brief.category}
+          </p>
+          <h3 className="font-semibold text-base text-[#065F46]">{brief.title}</h3>
+        </div>
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          {brief.updatedLabel && (
+            <span className="text-[11px] text-muted-fg">{brief.updatedLabel}</span>
+          )}
+          <MemberStatusSelect value={memberStatus} onChange={onStatusChange} />
+        </div>
       </div>
       <p className="text-sm text-muted-fg leading-relaxed mb-4 flex-1">{brief.description}</p>
       <div className="pt-3 border-t border-border/60 space-y-3">
@@ -209,14 +295,68 @@ export function SalesMarketNudgesSection({
 }) {
   const unlocked = hasAccess(userTier, requiredTier);
   const hasElite = hasAccess(userTier, "ELITE");
-  const briefGroups = useMemo(
-    () => groupBriefsByMonthYear(content.intelligenceBriefs),
-    [content.intelligenceBriefs]
-  );
-  const [monthYearFilter, setMonthYearFilter] = useState<string>(
-    briefGroups[0]?.label ?? ""
-  );
+  const [monthYearFilter, setMonthYearFilter] = useState("");
   const { highlightId, isHighlighted } = useBookmarkHighlight(true);
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<MemberNudgeStatus>("ACTIVE");
+  const [memberStatuses, setMemberStatuses] = useState<Record<string, MemberNudgeStatus>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/sales-market-nudges/status")
+      .then((res) => (res.ok ? res.json() : { statuses: {} }))
+      .then((data: { statuses?: Record<string, string> }) => {
+        if (cancelled) return;
+        const next: Record<string, MemberNudgeStatus> = {};
+        for (const [key, value] of Object.entries(data.statuses ?? {})) {
+          if (value === "ACTIVE" || value === "EXPIRED" || value === "ARCHIVED") {
+            next[key] = value;
+          }
+        }
+        setMemberStatuses(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function itemStatus(kind: MarketNudgeKind, sourceId: string): MemberNudgeStatus {
+    return memberStatuses[statusKey(kind, sourceId)] ?? "ACTIVE";
+  }
+
+  async function setItemStatus(kind: MarketNudgeKind, sourceId: string, status: MemberNudgeStatus) {
+    const key = statusKey(kind, sourceId);
+    const previous = memberStatuses[key];
+    setMemberStatuses((curr) => ({ ...curr, [key]: status }));
+    const res = await fetch("/api/sales-market-nudges/status", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind, sourceId, status }),
+    });
+    if (!res.ok) {
+      setMemberStatuses((curr) => {
+        const next = { ...curr };
+        if (previous) next[key] = previous;
+        else delete next[key];
+        return next;
+      });
+    }
+  }
+
+  const categories = content.briefCategories?.length
+    ? content.briefCategories
+    : [...new Set(content.intelligenceBriefs.map((b) => b.category).filter(Boolean))];
+
+  const briefsForFilters = content.intelligenceBriefs.filter(
+    (brief) =>
+      itemStatus("INTELLIGENCE_BRIEF", brief.id) === statusFilter &&
+      (categoryFilter === "all" || brief.category === categoryFilter)
+  );
+  const briefGroups = useMemo(
+    () => groupBriefsByMonthYear(briefsForFilters),
+    [briefsForFilters]
+  );
 
   useEffect(() => {
     if (!briefGroups.some((g) => g.label === monthYearFilter)) {
@@ -242,6 +382,10 @@ export function SalesMarketNudgesSection({
     briefGroups[0]?.briefs ??
     [];
 
+  const visibleWeeklyNudges = content.weeklyNudges.filter(
+    (nudge) => itemStatus("WEEKLY_NUDGE", nudge.id) === statusFilter
+  );
+
   if (!unlocked) {
     return (
       <Reveal>
@@ -255,7 +399,12 @@ export function SalesMarketNudgesSection({
             </div>
             <div className="grid grid-cols-2 gap-4">
               {content.intelligenceBriefs.slice(0, 2).map((brief) => (
-                <IntelligenceBriefCard key={brief.id} brief={brief} />
+                <IntelligenceBriefCard
+                  key={brief.id}
+                  brief={brief}
+                  memberStatus="ACTIVE"
+                  onStatusChange={() => undefined}
+                />
               ))}
             </div>
           </div>
@@ -279,6 +428,15 @@ export function SalesMarketNudgesSection({
         </p>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">{content.title}</h1>
         <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">{content.description}</p>
+        <ChipFilterBar
+          label="Filter talking points by status"
+          value={statusFilter}
+          onChange={(value) => setStatusFilter(value as MemberNudgeStatus)}
+          options={MEMBER_NUDGE_STATUSES.map((status) => ({
+            id: status,
+            label: MEMBER_NUDGE_STATUS_LABELS[status],
+          }))}
+        />
       </header>
 
       <section
@@ -292,7 +450,10 @@ export function SalesMarketNudgesSection({
           ⚡ This Week — Market Nudges
         </h2>
         <ul className="space-y-4">
-          {content.weeklyNudges.map((nudge) => (
+          {visibleWeeklyNudges.length === 0 ? (
+            <li className="text-sm text-white/80">No {MEMBER_NUDGE_STATUS_LABELS[statusFilter].toLowerCase()} nudges.</li>
+          ) : (
+            visibleWeeklyNudges.map((nudge) => (
             <li
               key={nudge.id}
               id={marketNudgeElementId(nudge.id)}
@@ -304,17 +465,25 @@ export function SalesMarketNudgesSection({
               <p className="text-sm text-white/95 leading-relaxed flex-1">
                 <NudgeText nudge={nudge} />
               </p>
-              {hasElite && (
-                <LinkToAccountDropdown
-                  sourceType="MARKET_NUDGE"
-                  sourceId={nudge.id}
-                  sourceTitle={getNudgeBookmarkTitle(nudge)}
-                  variant="on-green"
-                  className="shrink-0 sm:min-w-[200px]"
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0">
+                <MemberStatusSelect
+                  value={itemStatus("WEEKLY_NUDGE", nudge.id)}
+                  onChange={(status) => void setItemStatus("WEEKLY_NUDGE", nudge.id, status)}
+                  tone="on-green"
                 />
-              )}
+                {hasElite && (
+                  <LinkToAccountDropdown
+                    sourceType="MARKET_NUDGE"
+                    sourceId={nudge.id}
+                    sourceTitle={getNudgeBookmarkTitle(nudge)}
+                    variant="on-green"
+                    className="shrink-0 sm:min-w-[200px]"
+                  />
+                )}
+              </div>
             </li>
-          ))}
+            ))
+          )}
         </ul>
       </section>
 
@@ -324,10 +493,25 @@ export function SalesMarketNudgesSection({
       >
         <h2
           id="intelligence-briefs-heading"
-          className="text-sm font-semibold text-gray-900 mb-5"
+          className="text-sm font-semibold text-gray-900 mb-4"
         >
           📄 Intelligence Briefs
         </h2>
+        <div className="mb-5">
+          <ChipFilterBar
+            label="Filter briefs by category"
+            value={categoryFilter}
+            onChange={setCategoryFilter}
+            options={[
+              { id: "all", label: "All" },
+              ...categories.map((category) => ({
+                id: category,
+                label: category,
+                count: content.intelligenceBriefs.filter((b) => b.category === category).length,
+              })),
+            ]}
+          />
+        </div>
 
         <MonthYearFilterBar
           groups={briefGroups}
@@ -355,6 +539,10 @@ export function SalesMarketNudgesSection({
                       brief={brief}
                       showLinkToAccount={hasElite}
                       highlighted={isHighlighted(marketNudgeElementId(brief.id))}
+                      memberStatus={itemStatus("INTELLIGENCE_BRIEF", brief.id)}
+                      onStatusChange={(status) =>
+                        void setItemStatus("INTELLIGENCE_BRIEF", brief.id, status)
+                      }
                     />
                   </Reveal>
                 ))}

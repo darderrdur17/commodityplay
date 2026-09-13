@@ -603,6 +603,45 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   );
 }
 
+{
+  const caseEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/case-studies-editor.tsx"),
+    "utf8"
+  );
+  ok(
+    "Case studies admin reads payload.studies not a top-level array",
+    caseEditor.includes("studies: Array.isArray(data.studies)") &&
+      caseEditor.includes("onChange({ studies: nextStudies, details: nextDetails })")
+  );
+  const adminPayload = fs.readFileSync(
+    path.join(process.cwd(), "src/lib/content/admin-payload.ts"),
+    "utf8"
+  );
+  ok(
+    "Admin payload merge fills case-studies from repo defaults",
+    adminPayload.includes('slug === "case-studies"') && adminPayload.includes("CASE_STUDIES")
+  );
+
+  const nudgesSection = fs.readFileSync(
+    path.join(process.cwd(), "src/components/dashboard/sales-market-nudges-section.tsx"),
+    "utf8"
+  );
+  ok(
+    "Sales nudges member page filters by category and personal status",
+    nudgesSection.includes("categoryFilter") &&
+      nudgesSection.includes("statusFilter") &&
+      nudgesSection.includes("Filter briefs by category")
+  );
+  const nudgesEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/sales-market-nudges-editor.tsx"),
+    "utf8"
+  );
+  ok(
+    "Admin Sales Nudges can manage brief categories",
+    nudgesEditor.includes("Brief categories") && nudgesEditor.includes("briefCategories")
+  );
+}
+
 // ── Paid PDF watermark policy ──────────────────────────────────────────────
 {
   const member = { name: "Sarah Wong", email: "pro.switcher@demo.com" };
