@@ -73,6 +73,7 @@ const HANDLERS: Partial<Record<ContentSlug, Handler>> = {
     return NextResponse.json({
       questions: data.questions,
       testSets: data.liveSets,
+      upcomingSets: data.upcomingSets,
       hero: data.hero,
       activeSetLabel: data.activeSetLabel,
     });

@@ -50,7 +50,8 @@ const KNOWLEDGE_IMPORT_EXAMPLE = JSON.stringify(
       {
         id: "april-2026",
         label: "April 2026 rolling test",
-        published: true,
+        published: false,
+        releaseDate: "2026-04-06",
         questions: [],
       },
     ],
@@ -161,6 +162,12 @@ export function KnowledgeTestEditor({
     commitSets(testSets.map((s) => (s.id === id ? { ...s, published } : s)));
   }
 
+  function setReleaseDate(id: string, releaseDate: string) {
+    commitSets(
+      testSets.map((s) => (s.id === id ? { ...s, releaseDate: releaseDate || undefined } : s))
+    );
+  }
+
   function importJson(parsed: unknown): { ok: true } | { ok: false; error: string } {
     if (Array.isArray(parsed)) {
       patchQuestions(parsed as KnowledgeQuestion[]);
@@ -222,7 +229,7 @@ export function KnowledgeTestEditor({
       </EditorSection>
 
       <JsonImportSection
-        description="Import a full rolling test (testSets with published flags, optional activeTestSetId) or questions for the set you're editing."
+        description="Import a full rolling test (testSets with published flags, optional releaseDate and activeTestSetId) or questions for the set you're editing."
         exampleJson={KNOWLEDGE_IMPORT_EXAMPLE}
         exampleFileName="knowledge-test-example.json"
         onImport={importJson}
@@ -233,7 +240,9 @@ export function KnowledgeTestEditor({
           <div>
             <p className="text-sm font-semibold text-gray-900">Rolling test sets</p>
             <p className="text-xs text-muted-fg">
-              Publish as many banks as you like. Members can take every published set; finishing one does not block the others.
+              Publish as many banks as you like. Members can take every published set under Available now; finishing one does not block the others.
+              Unpublished sets with a release date appear on the member page as Upcoming (preview only — they cannot start until you Publish).
+              Publishing is still manual in the release week. Drafts with no date stay hidden.
               Older CMS that only set <code className="text-[11px] bg-white px-1 rounded">activeTestSetId</code> still treats that set as live.
               {liveCount > 0 ? ` ${liveCount} live now.` : " None live yet."}
             </p>
@@ -259,6 +268,11 @@ export function KnowledgeTestEditor({
                   Published
                 </Badge>
               )}
+              {!set.published && set.releaseDate && (
+                <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                  Upcoming
+                </Badge>
+              )}
               <button
                 type="button"
                 className="inline-flex items-center gap-1 text-primary-400 hover:underline"
@@ -266,6 +280,16 @@ export function KnowledgeTestEditor({
               >
                 <Star className="w-3 h-3" /> {set.published ? "Unpublish" : "Publish"}
               </button>
+              <label className="inline-flex items-center gap-1 text-[11px] text-muted-fg">
+                <span className="sr-only">Release date</span>
+                <input
+                  type="date"
+                  className="h-7 rounded-md border border-border bg-white px-2 text-[11px]"
+                  value={set.releaseDate ?? ""}
+                  onChange={(e) => setReleaseDate(set.id, e.target.value)}
+                  title="Release date shown to members while unpublished"
+                />
+              </label>
               {testSets.length > 1 && (
                 <button type="button" className="text-red-500 hover:underline" onClick={() => deleteTestSet(set.id)}>
                   Delete
@@ -314,7 +338,11 @@ export function KnowledgeTestEditor({
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-fg">
               Editing <strong>{editingSet?.label ?? "set"}</strong> · {items.length} questions
-              {editingSet?.published ? " · published for members" : " · draft (not on site)"}
+              {editingSet?.published
+                ? " · published for members"
+                : editingSet?.releaseDate
+                  ? ` · upcoming (${editingSet.releaseDate})`
+                  : " · draft (not on site)"}
             </p>
             <Button variant="outline" size="sm" onClick={addItem}>
               <Plus className="w-3.5 h-3.5" /> Add question
@@ -389,8 +417,9 @@ export function KnowledgeTestEditor({
             <p>
               Use <strong>Rolling test sets</strong> to keep several banks. Edit questions or <strong>Import JSON</strong>{" "}
               (template includes <code className="text-[11px] bg-white px-1 rounded">testSets</code> +{" "}
-              <code className="text-[11px] bg-white px-1 rounded">activeTestSetId</code>), toggle{" "}
-              <strong>Publish</strong> on each set members should see, then <strong>Save</strong>. Upload File does not load test questions.
+              <code className="text-[11px] bg-white px-1 rounded">activeTestSetId</code>), set a{" "}
+              <strong>release date</strong> for upcoming banks, toggle{" "}
+              <strong>Publish</strong> on each set members should take, then <strong>Save</strong>. Upload File does not load test questions.
             </p>
           </div>
         </>

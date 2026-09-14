@@ -21,7 +21,7 @@ export default async function KnowledgeTestPage() {
 
   if (!user) redirect("/login");
 
-  const [{ questions, activeSetLabel, liveSets, hero }, requiredTier] = await Promise.all([
+  const [{ questions, activeSetLabel, liveSets, upcomingSets, hero }, requiredTier] = await Promise.all([
     getKnowledgeTestPageData(),
     getContentTierForSlug("knowledge-test"),
   ]);
@@ -43,6 +43,7 @@ export default async function KnowledgeTestPage() {
       questions={questions}
       activeSetLabel={activeSetLabel}
       liveSets={liveSets}
+      upcomingSets={upcomingSets}
       initialResults={initialResults}
       requiredTier={requiredTier as "PRO" | "ELITE"}
       hero={hero}

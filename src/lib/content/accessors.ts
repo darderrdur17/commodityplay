@@ -24,6 +24,7 @@ import {
 import {
   getActiveKnowledgeTestQuestions,
   getLiveKnowledgeTestSets,
+  getUpcomingKnowledgeTestSets,
   memberKnowledgeTestHeroVars,
   mergeKnowledgeTestHero,
 } from "@/lib/content/knowledge-test-payload";
@@ -569,11 +570,13 @@ export async function getKnowledgeTestPageData() {
     label: set.label,
     questions: set.questions,
   }));
+  const upcomingSets = getUpcomingKnowledgeTestSets(data);
   const heroVars = memberKnowledgeTestHeroVars(liveSets);
   return {
     questions: liveSets[0]?.questions ?? [],
     activeSetLabel: heroVars.activeSetLabel,
     liveSets,
+    upcomingSets,
     hero: mergeKnowledgeTestHero(data?.hero),
   };
 }

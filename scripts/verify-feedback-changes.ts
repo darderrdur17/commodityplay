@@ -18,7 +18,11 @@ import {
   DEFAULT_KNOWLEDGE_TEST_SET_ID,
   createDefaultKnowledgeTestPayload,
   formatKnowledgeTestHeroCopy,
+  formatKnowledgeTestReleaseCopy,
+  formatKnowledgeTestWeekLabel,
   getLiveKnowledgeTestSets,
+  getUpcomingKnowledgeTestSets,
+  groupUpcomingKnowledgeTestSetsByWeek,
   mergeKnowledgeTestHero,
   normalizeKnowledgeTestPayload,
 } from "../src/lib/content/knowledge-test-payload";
@@ -1279,6 +1283,147 @@ async function verifyPdfStampWrites() {
     getLiveKnowledgeTestSets(nSets).length === 4
   );
 
+  const scheduled = normalizeKnowledgeTestPayload({
+    testSets: [
+      { id: "default", label: "Default bank", published: true, questions: [{ id: "a" }] },
+      {
+        id: "oct-w1a",
+        label: "Oct Week 1",
+        published: false,
+        releaseDate: "2026-10-06",
+        questions: [{ id: "b" }],
+      },
+      {
+        id: "oct-w1b",
+        label: "Oct Week 1 extra",
+        published: false,
+        releaseDate: "2026-10-08",
+        questions: [{ id: "c" }],
+      },
+      {
+        id: "oct-w2",
+        label: "Oct Week 2",
+        published: false,
+        releaseDate: "2026-10-13",
+        questions: [{ id: "d" }],
+      },
+      { id: "draft", label: "Draft", published: false, questions: [{ id: "e" }] },
+      {
+        id: "nov",
+        label: "Nov Week 1",
+        published: false,
+        releaseDate: "2026-11-02",
+        questions: [{ id: "f" }],
+      },
+    ],
+  });
+  const upcoming = getUpcomingKnowledgeTestSets(scheduled);
+  const weekGroups = groupUpcomingKnowledgeTestSetsByWeek(upcoming);
+  const sameWeek = weekGroups.find((g) => g.sets.length === 2);
+  ok(
+    "Unpublished sets with a release date list as upcoming, drafts without a date stay hidden",
+    upcoming.map((s) => s.id).join(",") === "oct-w1a,oct-w1b,oct-w2,nov" &&
+      !upcoming.some((s) => s.id === "draft") &&
+      getLiveKnowledgeTestSets(scheduled).map((s) => s.id).join(",") === "default"
+  );
+  ok(
+    "Two upcoming sets in the same calendar week both remain visible",
+    Boolean(sameWeek) &&
+      sameWeek!.sets.map((s) => s.id).join(",") === "oct-w1a,oct-w1b" &&
+      sameWeek!.weekLabel === formatKnowledgeTestWeekLabel("2026-10-05") &&
+      formatKnowledgeTestReleaseCopy("2026-10-06") === "Releasing 6 Oct 2026"
+  );
+  ok(
+    "Upcoming listing scales to N scheduled banks and sorts by release date",
+    upcoming.length === 4 &&
+      weekGroups.length === 3 &&
+      upcoming[0]?.releaseDate === "2026-10-06" &&
+      upcoming[upcoming.length - 1]?.id === "nov"
+  );
+  ok(
+    "Invalid or impossible release dates do not list as upcoming",
+    getUpcomingKnowledgeTestSets(
+      normalizeKnowledgeTestPayload({
+        testSets: [
+          { id: "bad", label: "Bad", published: false, releaseDate: "soon", questions: [{ id: "q" }] },
+          { id: "leap", label: "Leap", published: false, releaseDate: "2026-02-31", questions: [{ id: "q" }] },
+        ],
+      })
+    ).length === 0
+  );
+  ok(
+    "ISO datetimes coerce to a calendar release date",
+    getUpcomingKnowledgeTestSets(
+      normalizeKnowledgeTestPayload({
+        testSets: [
+          {
+            id: "iso",
+            label: "ISO",
+            published: false,
+            releaseDate: "2026-10-06T00:00:00.000Z",
+            questions: [{ id: "q" }],
+          },
+        ],
+      })
+    )[0]?.releaseDate === "2026-10-06"
+  );
+  ok(
+    "Two unpublished banks on the same day both remain visible",
+    groupUpcomingKnowledgeTestSetsByWeek(
+      getUpcomingKnowledgeTestSets(
+        normalizeKnowledgeTestPayload({
+          testSets: [
+            { id: "a", label: "A", published: false, releaseDate: "2026-10-06", questions: [{ id: "q1" }] },
+            { id: "b", label: "B", published: false, releaseDate: "2026-10-06", questions: [{ id: "q2" }] },
+          ],
+        })
+      )
+    )[0]?.sets.map((s) => s.id).join(",") === "a,b"
+  );
+  ok(
+    "Empty scheduled shells are kept (not replaced by the default question bank)",
+    (() => {
+      const shells = normalizeKnowledgeTestPayload({
+        testSets: [
+          { id: "default", label: "Default bank", published: true, questions: [] },
+          { id: "oct", label: "Oct", published: false, releaseDate: "2026-10-06", questions: [] },
+        ],
+      });
+      return (
+        shells.testSets?.length === 2 &&
+        shells.testSets[1]?.releaseDate === "2026-10-06" &&
+        (shells.testSets[0]?.questions?.length ?? 0) === 0
+      );
+    })()
+  );
+  ok(
+    "Published banks with a release date stay takeable, not upcoming",
+    (() => {
+      const mixed = normalizeKnowledgeTestPayload({
+        testSets: [
+          {
+            id: "default",
+            label: "Default bank",
+            published: true,
+            releaseDate: "2026-10-06",
+            questions: [{ id: "a" }],
+          },
+        ],
+      });
+      return (
+        getLiveKnowledgeTestSets(mixed).length === 1 && getUpcomingKnowledgeTestSets(mixed).length === 0
+      );
+    })()
+  );
+  ok(
+    "Published banks without a release date stay takeable (legacy Default bank)",
+    getLiveKnowledgeTestSets(
+      normalizeKnowledgeTestPayload({
+        testSets: [{ id: "default", label: "Default bank", published: true, questions: [{ id: "a" }] }],
+      })
+    ).length === 1
+  );
+
   const encodedA = encodeKnowledgeTestGapAreas({
     testSetId: "default",
     answers: { q1: 0 },
@@ -1317,12 +1462,18 @@ async function verifyPdfStampWrites() {
     "Admin can publish multiple knowledge-test sets independently",
     ktEditor.includes("setPublished") &&
       ktEditor.includes("Publish as many banks") &&
+      ktEditor.includes("setReleaseDate") &&
+      ktEditor.includes('type="date"') &&
+      ktEditor.includes("preview only") &&
       !ktEditor.includes("Members only see the live set")
   );
   ok(
     "Members can continue with another live knowledge-test set",
     ktClient.includes("Continue with another set") &&
       ktClient.includes("liveSets") &&
+      ktClient.includes("upcomingSets") &&
+      ktClient.includes("Available now") &&
+      ktClient.includes("Upcoming") &&
       ktClient.includes("/api/knowledge-test/results")
   );
   ok(

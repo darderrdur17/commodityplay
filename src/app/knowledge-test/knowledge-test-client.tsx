@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { CheckCircle, XCircle, ArrowRight, BarChart3 } from "lucide-react";
+import { CheckCircle, XCircle, ArrowRight, BarChart3, Calendar } from "lucide-react";
 import { TierGate } from "@/components/tier-gate";
 import { Reveal } from "@/components/animations";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,11 @@ import { KNOWLEDGE_TEST, scoreKnowledgeTest, type KnowledgeQuestion } from "@/da
 import {
   DEFAULT_KNOWLEDGE_TEST_HERO,
   formatKnowledgeTestHeroCopy,
+  formatKnowledgeTestReleaseCopy,
+  groupUpcomingKnowledgeTestSetsByWeek,
   memberKnowledgeTestHeroVars,
   type KnowledgeTestHeroCopy,
+  type UpcomingKnowledgeTestSet,
 } from "@/lib/content/knowledge-test-payload";
 import type { KnowledgeTestStoredResult } from "@/lib/content/knowledge-test-results";
 
@@ -31,6 +34,7 @@ interface Props {
   questions?: KnowledgeQuestion[];
   activeSetLabel?: string;
   liveSets?: MemberKnowledgeTestSet[];
+  upcomingSets?: UpcomingKnowledgeTestSet[];
   initialResults?: Record<string, KnowledgeTestStoredResult>;
   requiredTier?: "PRO" | "ELITE";
   hero?: KnowledgeTestHeroCopy;
@@ -63,12 +67,13 @@ export function KnowledgeTestClient({
   questions = KNOWLEDGE_TEST,
   activeSetLabel,
   liveSets,
+  upcomingSets = [],
   initialResults,
   requiredTier = "PRO",
   hero = DEFAULT_KNOWLEDGE_TEST_HERO,
 }: Props) {
   const sets = useMemo<MemberKnowledgeTestSet[]>(() => {
-    if (liveSets?.length) return liveSets;
+    if (Array.isArray(liveSets)) return liveSets;
     return [{ id: "default", label: activeSetLabel || "Default bank", questions }];
   }, [liveSets, questions, activeSetLabel]);
 
@@ -136,6 +141,8 @@ export function KnowledgeTestClient({
   }
 
   const otherLiveSets = sets.filter((s) => s.id !== selected?.id);
+  const upcomingWeeks = groupUpcomingKnowledgeTestSetsByWeek(upcomingSets);
+  const showAvailablePicker = sets.length > 1 || upcomingSets.length > 0;
 
   return (
     <div className="page-container py-8 sm:py-10 max-w-2xl">
@@ -153,33 +160,75 @@ export function KnowledgeTestClient({
       </section>
 
       <TierGate requiredTier={requiredTier} userTier={userTier}>
-        {sets.length > 1 && (
-          <div className="mb-6 rounded-xl border border-border bg-white p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-2">Live test sets</p>
-            <p className="text-sm text-muted-fg mb-3">
-              {completedCount} of {sets.length} completed. Finish one, then take another fresh set.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {sets.map((set) => {
-                const done = Boolean(attempts[set.id]?.submitted);
-                const active = set.id === selected?.id;
-                return (
-                  <button
-                    key={set.id}
-                    type="button"
-                    onClick={() => openSet(set.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                      active
-                        ? "bg-primary-800 text-white border-primary-800"
-                        : "bg-white text-gray-800 border-border hover:border-primary-line"
-                    }`}
-                  >
-                    {set.label}
-                    {done ? " · done" : ""}
-                  </button>
-                );
-              })}
-            </div>
+        {(showAvailablePicker || upcomingSets.length > 0) && (
+          <div className="mb-6 space-y-4">
+            {showAvailablePicker && (
+              <div className="rounded-xl border border-border bg-white p-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-2">Available now</p>
+                {sets.length > 0 ? (
+                  <>
+                    <p className="text-sm text-muted-fg mb-3">
+                      {completedCount} of {sets.length} completed. Finish one, then take another fresh set.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {sets.map((set) => {
+                        const done = Boolean(attempts[set.id]?.submitted);
+                        const active = set.id === selected?.id;
+                        return (
+                          <button
+                            key={set.id}
+                            type="button"
+                            onClick={() => openSet(set.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                              active
+                                ? "bg-primary-800 text-white border-primary-800"
+                                : "bg-white text-gray-800 border-border hover:border-primary-line"
+                            }`}
+                          >
+                            {set.label}
+                            {done ? " · done" : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-fg">No published sets to take yet. Upcoming banks are listed below.</p>
+                )}
+              </div>
+            )}
+
+            {upcomingSets.length > 0 && (
+              <div className="rounded-xl border border-dashed border-border bg-secondary/30 p-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-1">Upcoming</p>
+                <p className="text-sm text-muted-fg mb-3">
+                  Scheduled banks you can see ahead of time. They open when Frances publishes them — you cannot start them yet.
+                </p>
+                <div className="space-y-4">
+                  {upcomingWeeks.map((week) => (
+                    <div key={week.weekStartIso}>
+                      <p className="text-[11px] font-semibold text-gray-800 mb-2">{week.weekLabel}</p>
+                      <ul className="space-y-2">
+                        {week.sets.map((set, index) => (
+                          <li
+                            key={`${set.id}-${set.releaseDate}-${index}`}
+                            className="flex items-start gap-2 rounded-lg border border-border bg-white px-3 py-2"
+                          >
+                            <Calendar className="w-3.5 h-3.5 text-muted-fg mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{set.label}</p>
+                              <p className="text-xs text-muted-fg">
+                                {formatKnowledgeTestReleaseCopy(set.releaseDate) ?? "Release date set"}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
