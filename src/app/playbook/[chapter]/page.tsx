@@ -5,6 +5,7 @@ import { getContentTierForSlug, getPlaybookChapters, getPlaybookSections, getPla
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { hasAccess } from "@/lib/utils";
+import { isPlaybookChapterReleasingSoon } from "@/lib/content/playbook-payload";
 import { memberMayAccessCareerPlaybook } from "@/lib/dashboard-module-visibility";
 import { ChapterClient } from "./chapter-client";
 
@@ -42,6 +43,11 @@ export default async function ChapterPage({ params }: { params: Promise<{ chapte
     redirect("/pricing?locked=playbook");
   }
 
+  const isAdminPreview = user.role === "ADMIN";
+  if (isPlaybookChapterReleasingSoon(chapterData) && !isAdminPreview) {
+    redirect("/playbook");
+  }
+
   const sections = await getPlaybookSections(chapter);
   const [assetUrls, sectionAssetsMap] = await Promise.all([
     getPlaybookAssetUrls(),
@@ -57,6 +63,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ chapte
       hasPlaybookAccess={hasPlaybookAccess}
       assetUrls={assetUrls}
       sectionAssetsMap={sectionAssetsMap}
+      skipReleasingSoonNav={!isAdminPreview}
     />
   );
 }

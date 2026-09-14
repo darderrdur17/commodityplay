@@ -7,7 +7,7 @@ import {
   getGlossaryTerms,
   getInterviewQuestionsData,
   getJobOpeningsData,
-  getKnowledgeTestQuestions,
+  getKnowledgeTestPageData,
   getPlaybookChapters,
   getResumeTemplateAssetUrls,
   getResumeTemplatesData,
@@ -17,6 +17,7 @@ import { getModuleMeta } from "@/lib/content/modules";
 import { getPublishedPayload } from "@/lib/content/repository";
 import { resolvePlaybookPayload } from "@/lib/content/playbook-payload";
 import { requireMobileContentAccess } from "@/lib/mobile-content";
+import { isPlaybookChapterReleasingSoon } from "@/lib/content/playbook-payload";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -27,13 +28,29 @@ const HANDLERS: Partial<Record<ContentSlug, Handler>> = {
     const terms = await getGlossaryTerms();
     return NextResponse.json({ terms });
   },
-  playbook: async () => {
+  playbook: async (req) => {
     const chapters = await getPlaybookChapters();
     const payload = await getPublishedPayload<unknown>("playbook");
     const resolved = resolvePlaybookPayload(payload);
+    const access = await requireMobileContentAccess(req, "playbook");
+    const isAdminUser = Boolean(access.user && access.user.role === "ADMIN");
+    const sections = Object.fromEntries(
+      Object.entries(resolved.sections).filter(([id]) => {
+        const chapter = chapters.find((c) => c.id === id);
+        if (!chapter || !isPlaybookChapterReleasingSoon(chapter)) return true;
+        return isAdminUser;
+      })
+    );
+    const publicChapters = isAdminUser
+      ? chapters
+      : chapters.map((c) =>
+          isPlaybookChapterReleasingSoon(c)
+            ? { ...c, sections: [], keyTakeaways: [] }
+            : c
+        );
     return NextResponse.json({
-      chapters,
-      sections: resolved.sections,
+      chapters: publicChapters,
+      sections,
     });
   },
   "resume-templates": async () => {
@@ -52,8 +69,13 @@ const HANDLERS: Partial<Record<ContentSlug, Handler>> = {
     return NextResponse.json(data);
   },
   "knowledge-test": async () => {
-    const questions = await getKnowledgeTestQuestions();
-    return NextResponse.json({ questions });
+    const data = await getKnowledgeTestPageData();
+    return NextResponse.json({
+      questions: data.questions,
+      testSets: data.liveSets,
+      hero: data.hero,
+      activeSetLabel: data.activeSetLabel,
+    });
   },
   "case-studies": async (req) => {
     const detailSlug = req.nextUrl.searchParams.get("detail");

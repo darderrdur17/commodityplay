@@ -13,11 +13,37 @@ import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
 import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import playbookSections from "../src/data/playbook-sections.json";
 import { resolvePlaybookPayload } from "../src/lib/content/playbook-payload";
+import {
+  DEFAULT_INTERVIEW_QUESTIONS_HERO,
+  INTERVIEW_QUESTIONS,
+  formatInterviewHeroCopy,
+  mergeInterviewQuestionsHero,
+} from "../src/data/interview-questions";
+import {
+  countNewThisMonth,
+  formatInterviewMemberDate,
+  getBankLastRefreshedIso,
+  getQuestionFreshnessBadge,
+  parseIsoDateOnly,
+  selectCurrentMarketQuestions,
+} from "../src/lib/content/interview-questions-freshness";
+import {
+  DEFAULT_KNOWLEDGE_TEST_HERO,
+  formatKnowledgeTestHeroCopy,
+  getLiveKnowledgeTestSets,
+  mergeKnowledgeTestHero,
+  normalizeKnowledgeTestPayload,
+} from "../src/lib/content/knowledge-test-payload";
+import {
+  isDashboardCardAccessible,
+  isDashboardModuleVisible,
+  memberMayAccessCareerPlaybook,
+  partitionAccessibleFirst,
+} from "../src/lib/dashboard-module-visibility";
 import { LEGACY_SALES_TALKING_POINT_TITLES, SALES_MARKET_NOTE } from "../src/data/market-notes";
 import { defaultSalesEdgeNote, resolveSalesTalkingPoints } from "../src/lib/content/edge-notes";
 import { SALES_SECTION_MINT } from "../src/lib/sales-brand-colors";
 import { mergeStarterEmailDigest, splitLegacyDigestTopicLine } from "../src/data/starter-pack";
-import { isDashboardModuleVisible, memberMayAccessCareerPlaybook } from "../src/lib/dashboard-module-visibility";
 import { formatCreditMonthLabel } from "../src/lib/mentor-credits";
 import { isPaymentsLive } from "../src/lib/payments";
 import {
@@ -731,6 +757,19 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       !playbookEditor.includes("ch.readTime")
   );
   ok(
+    "Playbook hub lists releasing-soon chapters without a Read link",
+    playbookHub.includes("Releasing soon") &&
+      playbookHub.includes("isPlaybookChapterReleasingSoon") &&
+      !playbookHub.includes('letter >= "F"') &&
+      !playbookHub.includes("letter === \"F\"")
+  );
+  ok(
+    "Playbook admin can publish or mark releasing soon per chapter",
+    playbookEditor.includes("Hub listing") &&
+      playbookEditor.includes("releasing-soon") &&
+      playbookEditor.includes("Live — members can read")
+  );
+  ok(
     "Admin landing Chapter Coverage can add chapters",
     landingEditor.includes("Add chapter") &&
       landingEditor.includes("chapterCoverage.chapters") &&
@@ -804,6 +843,25 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Playbook merge is not hardcoded to a fixed chapter count",
     extraPlaybook.chapters.some((ch) => ch.id === "j") && extraPlaybook.chapters.length === CHAPTERS.length + 1
+  );
+  ok(
+    "Playbook chapters without a CMS status flag default by letter (A–E live, F+ releasing soon)",
+    extraPlaybook.chapters.find((ch) => ch.id === "a")?.status === "live" &&
+      extraPlaybook.chapters.find((ch) => ch.id === "j")?.status === "releasing-soon"
+  );
+  const publishedF = resolvePlaybookPayload({
+    chapters: [{ id: "f", letter: "F", title: "Trade Finance", status: "live", sections: [] }],
+  });
+  ok(
+    "Admin live flag publishes a letter-F chapter",
+    publishedF.chapters[0]?.status === "live"
+  );
+  const soonEarly = resolvePlaybookPayload({
+    chapters: [{ id: "a", letter: "A", title: "Draft", status: "releasing-soon", sections: [] }],
+  });
+  ok(
+    "Admin can mark an early chapter releasing soon",
+    soonEarly.chapters[0]?.status === "releasing-soon"
   );
 }
 
@@ -1002,6 +1060,268 @@ async function verifyPdfStampWrites() {
   ok(
     "Payment gateway stays closed unless NEXT_PUBLIC_PAYMENTS_ENABLED=true",
     isPaymentsLive() === (process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === "true")
+  );
+}
+
+{
+  ok("Interview date formats as day + short month + year", formatInterviewMemberDate("2026-09-08") === "8 Sep 2026");
+  ok("Invalid interview dates do not throw", parseIsoDateOnly("not-a-date") === null && formatInterviewMemberDate(undefined) === null);
+  ok(
+    "Undated interview questions have no freshness badge",
+    getQuestionFreshnessBadge({}, new Date("2026-09-14")) === null
+  );
+  ok(
+    "Added within 30 days is New, not Revisit",
+    getQuestionFreshnessBadge({ addedAt: "2026-09-01", updatedAt: "2026-09-10" }, new Date("2026-09-14")) === "new"
+  );
+  ok(
+    "Updated but not newly added is Revisit",
+    getQuestionFreshnessBadge({ addedAt: "2026-01-01", updatedAt: "2026-09-01" }, new Date("2026-09-14")) === "revisit"
+  );
+  ok(
+    "New-this-month counts calendar month adds",
+    countNewThisMonth([{ addedAt: "2026-09-08" }, { addedAt: "2026-08-01" }], new Date("2026-09-14")) === 1
+  );
+
+  const pod = selectCurrentMarketQuestions(INTERVIEW_QUESTIONS, new Date("2026-09-14"));
+  ok("Current Market pod has 3 commercial questions", pod.length === 3 && pod.every((q) => q.tab === "commercial"));
+  ok(
+    "Flagged current-market questions fill the pod",
+    pod.every((q) => q.currentMarket) && pod.some((q) => q.id === "iv-c-cm-01")
+  );
+  ok("Bank last refreshed uses latest ISO date", getBankLastRefreshedIso(INTERVIEW_QUESTIONS) === "2026-09-08");
+
+  const extraFlagged = INTERVIEW_QUESTIONS.filter((q) => q.tab === "commercial").slice(0, 5).map((q, i) => ({
+    ...q,
+    currentMarket: true,
+    id: `rot-${i}`,
+  }));
+  const sept = selectCurrentMarketQuestions(extraFlagged, new Date("2026-09-01")).map((q) => q.id).join(",");
+  const oct = selectCurrentMarketQuestions(extraFlagged, new Date("2026-10-01")).map((q) => q.id).join(",");
+  ok("Current Market pod rotates by calendar month when more than 3 are flagged", sept !== oct && sept.split(",").length === 3);
+
+  const clientSrc = fs.readFileSync(
+    path.join(__dirname, "../src/app/interview-questions/interview-questions-client.tsx"),
+    "utf8"
+  );
+  ok(
+    "Member interview page does not ship mockup simulate/reset controls",
+    !clientSrc.includes("Simulate") && !clientSrc.includes("Reset to today")
+  );
+}
+
+{
+  const knowledgeClient = fs.readFileSync(
+    path.join(process.cwd(), "src/app/knowledge-test/knowledge-test-client.tsx"),
+    "utf8"
+  );
+  const knowledgeEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/knowledge-test-editor.tsx"),
+    "utf8"
+  );
+  const interviewClient = fs.readFileSync(
+    path.join(process.cwd(), "src/app/interview-questions/interview-questions-client.tsx"),
+    "utf8"
+  );
+  const interviewEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/interview-editor.tsx"),
+    "utf8"
+  );
+  ok(
+    "Knowledge Test hero is CMS-backed with default merge",
+    knowledgeClient.includes("formatKnowledgeTestHeroCopy") &&
+      knowledgeEditor.includes("Page hero strip") &&
+      mergeKnowledgeTestHero({}).title === DEFAULT_KNOWLEDGE_TEST_HERO.title &&
+      mergeKnowledgeTestHero({ title: "  " }).title === DEFAULT_KNOWLEDGE_TEST_HERO.title &&
+      mergeKnowledgeTestHero({ title: "Custom KT" }).title === "Custom KT" &&
+      formatKnowledgeTestHeroCopy(DEFAULT_KNOWLEDGE_TEST_HERO.eyebrow, {
+        questionCount: 20,
+        activeSetLabel: "Default bank",
+      }).includes("20") &&
+      normalizeKnowledgeTestPayload({}).hero?.title === DEFAULT_KNOWLEDGE_TEST_HERO.title
+  );
+  {
+    const q = [
+      { id: "1", question: "Q", options: ["a", "b", "c", "d"], correctIndex: 0, explanation: "e", topic: "t" },
+    ];
+    const legacy = normalizeKnowledgeTestPayload({
+      testSets: [
+        { id: "a", label: "A", questions: q },
+        { id: "b", label: "B", questions: q },
+      ],
+      activeTestSetId: "b",
+    });
+    const liveLegacy = getLiveKnowledgeTestSets(legacy);
+    ok(
+      "Legacy activeTestSetId still selects a single live bank",
+      liveLegacy.length === 1 && liveLegacy[0]?.id === "b"
+    );
+    const multi = getLiveKnowledgeTestSets({
+      testSets: [
+        { id: "a", label: "A", questions: q, published: true },
+        { id: "b", label: "B", questions: q, published: true },
+        { id: "c", label: "C", questions: q, published: false },
+      ],
+      activeTestSetId: "a",
+    });
+    ok(
+      "Frances can publish several knowledge test banks at once",
+      multi.map((s) => s.id).join(",") === "a,b"
+    );
+  }
+  ok(
+    "Knowledge Test member UI and admin support multiple published sets",
+    knowledgeClient.includes("liveSets") &&
+      knowledgeClient.includes("Continue with another set") &&
+      knowledgeEditor.includes("Publish as many banks") &&
+      knowledgeEditor.includes("setPublished")
+  );
+  ok(
+    "Interview Questions hero is CMS-backed with default merge",
+    interviewClient.includes("formatInterviewHeroCopy") &&
+      interviewEditor.includes("Page hero strip") &&
+      interviewEditor.includes("Added date") &&
+      interviewEditor.includes("Current market") &&
+      interviewEditor.includes("Bank last refreshed") &&
+      interviewClient.includes("new this month") &&
+      mergeInterviewQuestionsHero({}).title === DEFAULT_INTERVIEW_QUESTIONS_HERO.title &&
+      mergeInterviewQuestionsHero({ description: "" }).description ===
+        DEFAULT_INTERVIEW_QUESTIONS_HERO.description &&
+      formatInterviewHeroCopy(DEFAULT_INTERVIEW_QUESTIONS_HERO.eyebrow, 50).includes("50")
+  );
+
+  const dashboardClient = fs.readFileSync(
+    path.join(process.cwd(), "src/app/dashboard/dashboard-client.tsx"),
+    "utf8"
+  );
+  const sorted = partitionAccessibleFirst(
+    [
+      { id: "locked-elite", accessible: false },
+      { id: "open-playbook", accessible: true },
+      { id: "coming-soon", accessible: false },
+      { id: "open-nudges", accessible: true },
+    ],
+    (item) => item.accessible
+  );
+  ok(
+    "Dashboard sorts accessible cards before locked/coming-soon",
+    sorted.map((c) => c.id).join(",") === "open-playbook,open-nudges,locked-elite,coming-soon" &&
+      dashboardClient.includes("partitionAccessibleFirst") &&
+      dashboardClient.includes("bg-gray-50") &&
+      isDashboardCardAccessible({ unlocked: true }) === true &&
+      isDashboardCardAccessible({ unlocked: true, pendingLabel: "Coming soon" }) === false &&
+      isDashboardCardAccessible({ unlocked: false }) === false
+  );
+  ok(
+    "Sales vs Career dashboard visibility is unchanged by card sort",
+    isDashboardModuleVisible("Sales", "SALES") &&
+      !isDashboardModuleVisible("Career", "SALES") &&
+      isDashboardModuleVisible("Both", "SALES")
+  );
+}
+
+// ── Knowledge Test: multiple live sets ──────────────────────────────────────
+{
+  const def = createDefaultKnowledgeTestPayload();
+  ok(
+    "Default knowledge-test payload keeps Default bank live",
+    def.testSets?.[0]?.id === DEFAULT_KNOWLEDGE_TEST_SET_ID &&
+      def.testSets?.[0]?.published === true &&
+      getLiveKnowledgeTestSets(def).length === 1
+  );
+
+  const legacy = normalizeKnowledgeTestPayload({
+    activeTestSetId: "default",
+    testSets: [
+      { id: "default", label: "Default bank", questions: [{ id: "a" }] },
+      { id: "set-2", label: "Test set 2", questions: [{ id: "b" }] },
+    ],
+  });
+  const legacyLive = getLiveKnowledgeTestSets(legacy);
+  ok(
+    "Legacy activeTestSetId only publishes that one set",
+    legacyLive.length === 1 &&
+      legacyLive[0]?.id === "default" &&
+      legacy.testSets?.find((s) => s.id === "set-2")?.published === false
+  );
+
+  const multi = normalizeKnowledgeTestPayload({
+    hero: { title: "Frances hero" },
+    activeTestSetId: "default",
+    testSets: [
+      { id: "default", label: "Default bank", published: true, questions: [{ id: "a" }] },
+      { id: "set-2", label: "Test set 2", published: true, questions: [{ id: "b" }] },
+      { id: "set-3", label: "Draft", published: false, questions: [{ id: "c" }] },
+    ],
+  });
+  ok(
+    "Multiple published sets are live; drafts stay hidden",
+    getLiveKnowledgeTestSets(multi).map((s) => s.id).join(",") === "default,set-2" &&
+      mergeKnowledgeTestHero(multi.hero).title === "Frances hero"
+  );
+
+  const nSets = normalizeKnowledgeTestPayload({
+    testSets: Array.from({ length: 5 }, (_, i) => ({
+      id: `set-${i}`,
+      label: `Set ${i}`,
+      published: i < 4,
+      questions: [{ id: `q-${i}` }],
+    })),
+  });
+  ok(
+    "Live sets scale beyond two banks",
+    getLiveKnowledgeTestSets(nSets).length === 4
+  );
+
+  const encodedA = encodeKnowledgeTestGapAreas({
+    testSetId: "default",
+    answers: { q1: 0 },
+    topics: ["Pricing"],
+  });
+  const encodedB = encodeKnowledgeTestGapAreas({
+    testSetId: "set-2",
+    answers: { q2: 1 },
+    topics: ["LNG"],
+  });
+  const latest = latestKnowledgeTestResultsBySet(
+    [
+      { score: 12, totalQ: 20, gapAreas: encodedA, completedAt: "2026-01-01" },
+      { score: 18, totalQ: 20, gapAreas: encodedB, completedAt: "2026-01-02" },
+      { score: 14, totalQ: 20, gapAreas: encodedA, completedAt: "2026-01-03" },
+    ],
+    "default"
+  );
+  ok(
+    "Knowledge test scores stay per-set and do not overwrite",
+    latest.default?.score === 14 &&
+      latest["set-2"]?.score === 18 &&
+      latest.default?.answers.q1 === 0 &&
+      latest["set-2"]?.answers.q2 === 1
+  );
+
+  const ktEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/knowledge-test-editor.tsx"),
+    "utf8"
+  );
+  const ktClient = fs.readFileSync(
+    path.join(process.cwd(), "src/app/knowledge-test/knowledge-test-client.tsx"),
+    "utf8"
+  );
+  ok(
+    "Admin can publish multiple knowledge-test sets independently",
+    ktEditor.includes("setPublished") &&
+      ktEditor.includes("Publish as many banks") &&
+      !ktEditor.includes("Members only see the live set")
+  );
+  ok(
+    "Members can continue with another live knowledge-test set",
+    ktClient.includes("Continue with another set") &&
+      ktClient.includes("liveSets") &&
+      ktClient.includes("/api/knowledge-test/results")
+  );
+  ok(
+    "Knowledge Test blue hero strip remains CMS-editable",
+    ktEditor.includes("Page hero strip") && ktClient.includes("formatKnowledgeTestHeroCopy")
   );
 }
 

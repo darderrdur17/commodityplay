@@ -30,6 +30,8 @@ export default async function InterviewQuestionsPage() {
       categories={data.categories}
       tabs={data.tabs}
       requiredTier={requiredTier as "PRO" | "ELITE"}
+      hero={data.hero}
+      lastRefreshed={data.lastRefreshed}
     />
   );
 }

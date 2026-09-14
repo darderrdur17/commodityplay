@@ -10,11 +10,23 @@ import {
   INTERVIEW_CATEGORIES,
   INTERVIEW_TABS,
   INTERVIEW_DIFFICULTIES,
+  DEFAULT_INTERVIEW_QUESTIONS_HERO,
+  formatInterviewHeroCopy,
   type InterviewQuestion,
   type InterviewTab,
   type InterviewTabMeta,
   type InterviewDifficulty,
+  type InterviewQuestionsHeroCopy,
 } from "@/data/interview-questions";
+import {
+  countNewThisMonth,
+  formatInterviewMemberDate,
+  getBankLastRefreshedIso,
+  getCurrentMarketUpdatedIso,
+  getQuestionFreshnessBadge,
+  selectCurrentMarketQuestions,
+  type InterviewFreshnessBadge,
+} from "@/lib/content/interview-questions-freshness";
 
 interface Props {
   userTier: string;
@@ -22,6 +34,8 @@ interface Props {
   categories?: string[];
   tabs?: InterviewTabMeta[];
   requiredTier?: "PRO" | "ELITE";
+  hero?: InterviewQuestionsHeroCopy;
+  lastRefreshed?: string;
 }
 
 const TAB_LABELS: Record<InterviewTab, string> = {
@@ -31,12 +45,123 @@ const TAB_LABELS: Record<InterviewTab, string> = {
   elimination: "Elimination questions",
 };
 
+function FreshnessBadge({ badge }: { badge: InterviewFreshnessBadge | null }) {
+  if (!badge) return null;
+  if (badge === "new") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 shrink-0">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+        New
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-800 shrink-0">
+      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+      Revisit
+    </span>
+  );
+}
+
+function QuestionCard({
+  q,
+  isOpen,
+  reviewed,
+  onToggle,
+  compact,
+}: {
+  q: InterviewQuestion;
+  isOpen: boolean;
+  reviewed: boolean;
+  onToggle: () => void;
+  compact?: boolean;
+}) {
+  const badge = getQuestionFreshnessBadge(q);
+  return (
+    <div className={`overflow-hidden ${compact ? "bg-transparent" : "rounded-xl border border-border bg-white"}`}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-start gap-3 p-5 text-left hover:bg-secondary/40 transition-colors"
+      >
+        {!compact && <MessageSquare className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5" />}
+        <div className="flex-1 min-w-0">
+          {!compact && (
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <p className="text-xs text-muted-fg">{q.category}</p>
+              {q.difficulty && (
+                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                  q.difficulty === "easy" ? "bg-green-50 text-green-700"
+                    : q.difficulty === "med" ? "bg-amber-50 text-amber-800"
+                      : "bg-red-50 text-red-700"
+                }`}>
+                  {q.difficulty}
+                </span>
+              )}
+              {reviewed && (
+                <span className="text-[10px] text-primary-400 font-semibold">Reviewed</span>
+              )}
+            </div>
+          )}
+          <p className="font-medium text-gray-900 pr-2">{q.question}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <FreshnessBadge badge={badge} />
+          <ChevronDown className={`w-5 h-5 text-muted-fg flex-shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        </div>
+      </button>
+      {isOpen && (
+        <div className="px-5 pb-5 border-t border-border pt-4 ml-8 space-y-4">
+          {q.tab === "elimination" ? (
+            <>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-red-600 mb-2">Weak answer</p>
+                <p className="text-sm text-gray-600 italic">{q.weakAnswer}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-green-700 mb-2">Strong answer</p>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{q.modelAnswer}</p>
+              </div>
+              {q.why && (
+                <div className="flex gap-2 text-sm bg-amber-50 text-amber-900 rounded-lg p-3">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span><strong>Why this filters:</strong> {q.why}</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {q.framework && q.tab !== "behavioural" && (
+                <div className="text-sm bg-primary-soft text-primary-900 rounded-lg p-3">
+                  <strong>Framework:</strong> {q.framework}
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-2">Model answer</p>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{q.modelAnswer}</p>
+              </div>
+              {q.interviewTip && q.tab === "technical" && (
+                <div className="flex gap-2 text-sm bg-amber-50 text-amber-900 rounded-lg p-3">
+                  <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span><strong>Desk signal:</strong> {q.interviewTip}</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function InterviewQuestionsClient({
   userTier,
   questions = INTERVIEW_QUESTIONS,
   categories = INTERVIEW_CATEGORIES,
   tabs = INTERVIEW_TABS,
   requiredTier = "PRO",
+  hero = DEFAULT_INTERVIEW_QUESTIONS_HERO,
+  lastRefreshed,
 }: Props) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
@@ -87,20 +212,44 @@ export function InterviewQuestionsClient({
     return ["All", ...Array.from(cats)];
   }, [tabQuestions]);
 
+  const lastRefreshedLabel = formatInterviewMemberDate(getBankLastRefreshedIso(questions, lastRefreshed));
+  const newThisMonth = countNewThisMonth(questions);
+  const currentMarketQuestions = useMemo(
+    () => (activeTab === "commercial" ? selectCurrentMarketQuestions(questions) : []),
+    [questions, activeTab]
+  );
+  const currentMarketUpdatedLabel = formatInterviewMemberDate(
+    getCurrentMarketUpdatedIso(currentMarketQuestions)
+  );
+  const currentMarketIds = useMemo(
+    () => new Set(currentMarketQuestions.map((q) => q.id)),
+    [currentMarketQuestions]
+  );
+  const fullBankQuestions = useMemo(
+    () =>
+      activeTab === "commercial"
+        ? filtered.filter((q) => !currentMarketIds.has(q.id))
+        : filtered,
+    [activeTab, filtered, currentMarketIds]
+  );
+
   return (
     <div className="page-container py-8 sm:py-10">
       <section className="rounded-2xl bg-primary-800 px-6 sm:px-8 py-10 mb-8 relative overflow-hidden">
         <Reveal className="relative z-10">
           <div className="pill pill-dark mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" /> Pro · {questions.length} Q&amp;As
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+            {formatInterviewHeroCopy(hero.eyebrow, questions.length)}
           </div>
-          <h1 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-3">Interview Question Bank</h1>
+          <h1 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-3">
+            {formatInterviewHeroCopy(hero.title, questions.length)}
+          </h1>
           <p className="text-white/65 text-base sm:text-lg max-w-xl mb-6">
-            {questions.length} commodity trading interview questions with model answers — technical, commercial judgement, behavioural, and elimination questions from major trading firms.
+            {formatInterviewHeroCopy(hero.description, questions.length)}
           </p>
           <BrandedSearchInput
             variant="dark"
-            placeholder="Search questions, answers, frameworks..."
+            placeholder={hero.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -141,6 +290,21 @@ export function InterviewQuestionsClient({
           </div>
         </div>
 
+        <div className="mb-6 rounded-xl border border-border bg-white px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-gray-800">
+            Bank last refreshed{" "}
+            <span className="font-semibold">{lastRefreshedLabel ?? "—"}</span>
+          </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-fg">
+            <span>
+              <span className="font-semibold text-gray-900">{newThisMonth}</span> new this month
+            </span>
+            <span>
+              <span className="font-semibold text-gray-900">{questions.length}</span> questions total
+            </span>
+          </div>
+        </div>
+
         {/* Filters */}
         <div className="flex flex-wrap gap-2 mb-4">
           {tabCategories.map((cat) => (
@@ -178,82 +342,52 @@ export function InterviewQuestionsClient({
           </div>
         )}
 
-        <p className="text-sm text-muted-fg mb-4">{filtered.length} of {tabQuestions.length} in this tab</p>
+        <p className="text-sm text-muted-fg mb-4">
+          {activeTab === "commercial" ? "Commercial awareness" : TAB_LABELS[activeTab]}
+          {" · "}
+          {filtered.length} of {tabQuestions.length} in this tab
+        </p>
 
-        <div className="space-y-3">
-          {filtered.map((q) => {
-            const isOpen = openId === q.id;
-            return (
-              <div key={q.id} className="rounded-xl border border-border bg-white overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => toggleQuestion(q.id)}
-                  className="w-full flex items-start gap-3 p-5 text-left hover:bg-secondary/40 transition-colors"
-                >
-                  <MessageSquare className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <p className="text-xs text-muted-fg">{q.category}</p>
-                      {q.difficulty && (
-                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                          q.difficulty === "easy" ? "bg-green-50 text-green-700"
-                            : q.difficulty === "med" ? "bg-amber-50 text-amber-800"
-                              : "bg-red-50 text-red-700"
-                        }`}>
-                          {q.difficulty}
-                        </span>
-                      )}
-                      {openedIds.has(q.id) && (
-                        <span className="text-[10px] text-primary-400 font-semibold">Reviewed</span>
-                      )}
-                    </div>
-                    <p className="font-medium text-gray-900">{q.question}</p>
-                  </div>
-                  <ChevronDown className={`w-5 h-5 text-muted-fg flex-shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-                </button>
-                {isOpen && (
-                  <div className="px-5 pb-5 border-t border-border pt-4 ml-8 space-y-4">
-                    {q.tab === "elimination" ? (
-                      <>
-                        <div>
-                          <p className="text-xs font-bold uppercase tracking-widest text-red-600 mb-2">Weak answer</p>
-                          <p className="text-sm text-gray-600 italic">{q.weakAnswer}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold uppercase tracking-widest text-green-700 mb-2">Strong answer</p>
-                          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{q.modelAnswer}</p>
-                        </div>
-                        {q.why && (
-                          <div className="flex gap-2 text-sm bg-amber-50 text-amber-900 rounded-lg p-3">
-                            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                            <span><strong>Why this filters:</strong> {q.why}</span>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {q.framework && q.tab !== "behavioural" && (
-                          <div className="text-sm bg-primary-soft text-primary-900 rounded-lg p-3">
-                            <strong>Framework:</strong> {q.framework}
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-2">Model answer</p>
-                          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{q.modelAnswer}</p>
-                        </div>
-                        {q.interviewTip && q.tab === "technical" && (
-                          <div className="flex gap-2 text-sm bg-amber-50 text-amber-900 rounded-lg p-3">
-                            <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                            <span><strong>Desk signal:</strong> {q.interviewTip}</span>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
+        {activeTab === "commercial" && currentMarketQuestions.length > 0 && (
+          <div className="mb-8">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-fg mb-2">
+              Current market — refreshed monthly
+            </p>
+            <div className="rounded-xl border border-sky-200 bg-sky-50/80 overflow-hidden divide-y divide-sky-100">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between px-5 py-3">
+                <p className="text-sm font-semibold text-sky-950">Tied to current market landscape</p>
+                {currentMarketUpdatedLabel && (
+                  <p className="text-xs text-sky-800/80">Updated {currentMarketUpdatedLabel}</p>
                 )}
               </div>
-            );
-          })}
+              {currentMarketQuestions.map((q) => (
+                <QuestionCard
+                  key={q.id}
+                  q={q}
+                  compact
+                  isOpen={openId === q.id}
+                  reviewed={openedIds.has(q.id)}
+                  onToggle={() => toggleQuestion(q.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "commercial" && (
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-fg mb-2">Full bank</p>
+        )}
+
+        <div className="space-y-3">
+          {fullBankQuestions.map((q) => (
+            <QuestionCard
+              key={q.id}
+              q={q}
+              isOpen={openId === q.id}
+              reviewed={openedIds.has(q.id)}
+              onToggle={() => toggleQuestion(q.id)}
+            />
+          ))}
         </div>
       </TierGate>
     </div>

@@ -27,7 +27,9 @@ import {
 import {
   dashboardAudienceFromPreview,
   filterByDashboardAudience,
+  isDashboardCardAccessible,
   isDashboardModuleVisible,
+  partitionAccessibleFirst,
   shouldShowTrackBadge,
 } from "@/lib/dashboard-module-visibility";
 import type { StarterInfographic } from "@/data/starter-pack";
@@ -421,7 +423,7 @@ export function DashboardClient({
     trackLabel: ModuleTrack;
     cardKind?: "page" | "file" | "email-digest";
   }) {
-    const locked = !unlocked;
+    const locked = !unlocked || Boolean(pendingLabel);
     const tierBadge = (
       <Badge
         variant={accessLabel ? "outline" : tier === "ELITE" ? "elite" : "pro"}
@@ -443,8 +445,8 @@ export function DashboardClient({
     return (
       <Reveal delay={delay}>
         <div
-          className={`relative h-full bg-white rounded-xl border transition-all duration-200 p-5 ${
-            unlocked ? "border-border card-hover" : "border-border opacity-75"
+          className={`relative h-full rounded-xl border transition-all duration-200 p-5 ${
+            locked ? "bg-gray-50 border-gray-200" : "bg-white border-border card-hover"
           }`}
         >
           {locked && (
@@ -797,72 +799,84 @@ export function DashboardClient({
         </Reveal>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {/* Free content */}
-          {visibleQuickLinks.map((link) => (
-            <Reveal key={link.label}>
-              <Link href={link.href} className="block">
-                <div className="card-hover h-full bg-white rounded-xl border border-border p-5 flex items-start gap-3 group">
-                  <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-gray-900">{link.label}</p>
-                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                      <Badge variant="starter" size="sm">Free</Badge>
-                      {shouldShowTrackBadge({
-                        trackLabel: link.track,
+          {(() => {
+            const items: { key: string; accessible: boolean; node: React.ReactNode }[] = [];
+
+            visibleQuickLinks.forEach((link) => {
+              items.push({
+                key: `quick-${link.label}`,
+                accessible: true,
+                node: (
+                  <Reveal>
+                    <Link href={link.href} className="block">
+                      <div className="card-hover h-full bg-white rounded-xl border border-border p-5 flex items-start gap-3 group">
+                        <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-gray-900">{link.label}</p>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <Badge variant="starter" size="sm">Free</Badge>
+                            {shouldShowTrackBadge({
+                              trackLabel: link.track,
+                              memberTrack,
+                              isAdminUnfiltered,
+                            }) && <ModuleTrackBadge track={link.track} />}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </Reveal>
+                ),
+              });
+            });
+
+            visibleContentCards.forEach((card, i) => {
+              if (showCareerPrepLibrarySlot && i === firstEliteContentCardIndex) {
+                items.push({
+                  key: "career-prep-library",
+                  accessible: hasAccess(effectiveTier, "PRO"),
+                  node: (
+                    <PrepLibraryCard
+                      track="CAREER"
+                      userTier={effectiveTier}
+                      topicCount={careerTopicCount}
+                      showTrackBadge={shouldShowTrackBadge({
+                        trackLabel: "Career",
                         memberTrack,
                         isAdminUnfiltered,
-                      }) && <ModuleTrackBadge track={link.track} />}
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </Reveal>
-          ))}
+                      })}
+                    />
+                  ),
+                });
+              }
 
-          {/* Tiered content — career Prep Library slots in after Pro cards, before Elite */}
-          {visibleContentCards.map((card, i) => {
-            const tier = (contentTiers[card.slug] || card.requiredTier) as "PRO" | "ELITE";
-            const tierUnlocked = hasAccess(effectiveTier, tier);
-            const cardDef = DEFAULT_DASHBOARD_RESOURCE_CARDS.find((resource) => resource.slug === card.slug);
-            const cardKind =
-              ("cardKind" in card ? card.cardKind : undefined) ??
-              cardDef?.cardKind ??
-              "page";
-            const deliverableKey =
-              ("deliverableKey" in card ? card.deliverableKey : undefined) ?? cardDef?.deliverableKey;
-            const isFileCard = cardKind === "file";
-            const fileReady = isDashboardFileReady(deliverableKey, fileDeliverableSources);
-            const pendingLabel =
-              tierUnlocked && isFileCard && !fileReady ? "Coming soon" : undefined;
-            const description =
-              resourceCopyBySlug[card.slug] ??
-              DEFAULT_MEMBER_DASHBOARD_CONTENT.resourceCards.find((c) => c.slug === card.slug)?.description ??
-              "";
-            const href = resolveDeliverableHref(
-              deliverableKey,
-              "href" in card ? card.href : cardDef?.href,
-              cardKind
-            );
-            const showCareerPrepLibrary =
-              showCareerPrepLibrarySlot && i === firstEliteContentCardIndex;
-
-            return (
-              <React.Fragment key={card.slug}>
-                {showCareerPrepLibrary && (
-                  <PrepLibraryCard
-                    track="CAREER"
-                    userTier={effectiveTier}
-                    topicCount={careerTopicCount}
-                    showTrackBadge={shouldShowTrackBadge({
-                      trackLabel: "Career",
-                      memberTrack,
-                      isAdminUnfiltered,
-                    })}
-                  />
-                )}
-                {renderResourceCard({
+              const tier = (contentTiers[card.slug] || card.requiredTier) as "PRO" | "ELITE";
+              const tierUnlocked = hasAccess(effectiveTier, tier);
+              const cardDef = DEFAULT_DASHBOARD_RESOURCE_CARDS.find((resource) => resource.slug === card.slug);
+              const cardKind =
+                ("cardKind" in card ? card.cardKind : undefined) ??
+                cardDef?.cardKind ??
+                "page";
+              const deliverableKey =
+                ("deliverableKey" in card ? card.deliverableKey : undefined) ?? cardDef?.deliverableKey;
+              const isFileCard = cardKind === "file";
+              const fileReady = isDashboardFileReady(deliverableKey, fileDeliverableSources);
+              const pendingLabel =
+                tierUnlocked && isFileCard && !fileReady ? "Coming soon" : undefined;
+              const description =
+                resourceCopyBySlug[card.slug] ??
+                DEFAULT_MEMBER_DASHBOARD_CONTENT.resourceCards.find((c) => c.slug === card.slug)?.description ??
+                "";
+              const href = resolveDeliverableHref(
+                deliverableKey,
+                "href" in card ? card.href : cardDef?.href,
+                cardKind
+              );
+              items.push({
+                key: card.slug,
+                accessible: isDashboardCardAccessible({ unlocked: tierUnlocked, pendingLabel }),
+                node: renderResourceCard({
                   title: card.title,
                   description,
                   icon: card.icon,
@@ -874,59 +888,69 @@ export function DashboardClient({
                   pendingLabel,
                   trackLabel: card.track,
                   cardKind,
-                })}
-              </React.Fragment>
-            );
-          })}
-          {showCareerPrepLibrarySlot && firstEliteContentCardIndex === -1 && (
-            <PrepLibraryCard
-              track="CAREER"
-              userTier={effectiveTier}
-              topicCount={careerTopicCount}
-              showTrackBadge={shouldShowTrackBadge({
-                trackLabel: "Career",
-                memberTrack,
-                isAdminUnfiltered,
-              })}
-            />
-          )}
+                }),
+              });
+            });
 
-          {/* Sales track only */}
-          {showSalesTrackCards &&
-            visibleSalesCards.map((card, i) => {
-              const tier = card.requiredTier;
-              const description =
-                salesResourceCopyBySlug[card.slug] ??
-                DEFAULT_MEMBER_DASHBOARD_CONTENT.salesResourceCards.find((c) => c.slug === card.slug)
-                  ?.description ??
-                "";
-              const href = resolveDeliverableHref(card.deliverableKey, card.href, card.cardKind);
-              const Icon = SALES_CARD_ICONS[card.slug] ?? FileText;
-              const color = SALES_CARD_COLORS[card.slug] ?? "#3280ff";
-              const tierUnlocked = hasAccess(effectiveTier, tier);
-              const fileReady = isDashboardFileReady(card.deliverableKey, fileDeliverableSources);
-              const pendingLabel =
-                tierUnlocked && card.cardKind === "file" && !fileReady ? "Coming soon" : undefined;
-
-              if (card.isPrepLibrary) {
-                return (
+            if (showCareerPrepLibrarySlot && firstEliteContentCardIndex === -1) {
+              items.push({
+                key: "career-prep-library",
+                accessible: hasAccess(effectiveTier, "PRO"),
+                node: (
                   <PrepLibraryCard
-                    key={card.slug}
-                    track="SALES"
+                    track="CAREER"
                     userTier={effectiveTier}
-                    topicCount={salesTopicCount}
+                    topicCount={careerTopicCount}
                     showTrackBadge={shouldShowTrackBadge({
-                      trackLabel: "Sales",
+                      trackLabel: "Career",
                       memberTrack,
                       isAdminUnfiltered,
                     })}
                   />
-                );
-              }
+                ),
+              });
+            }
 
-              return (
-                <React.Fragment key={card.slug}>
-                  {renderResourceCard({
+            if (showSalesTrackCards) {
+              visibleSalesCards.forEach((card, i) => {
+                const tier = card.requiredTier;
+                const description =
+                  salesResourceCopyBySlug[card.slug] ??
+                  DEFAULT_MEMBER_DASHBOARD_CONTENT.salesResourceCards.find((c) => c.slug === card.slug)
+                    ?.description ??
+                  "";
+                const href = resolveDeliverableHref(card.deliverableKey, card.href, card.cardKind);
+                const Icon = SALES_CARD_ICONS[card.slug] ?? FileText;
+                const color = SALES_CARD_COLORS[card.slug] ?? "#3280ff";
+                const tierUnlocked = hasAccess(effectiveTier, tier);
+                const fileReady = isDashboardFileReady(card.deliverableKey, fileDeliverableSources);
+                const pendingLabel =
+                  tierUnlocked && card.cardKind === "file" && !fileReady ? "Coming soon" : undefined;
+
+                if (card.isPrepLibrary) {
+                  items.push({
+                    key: card.slug,
+                    accessible: hasAccess(effectiveTier, "PRO"),
+                    node: (
+                      <PrepLibraryCard
+                        track="SALES"
+                        userTier={effectiveTier}
+                        topicCount={salesTopicCount}
+                        showTrackBadge={shouldShowTrackBadge({
+                          trackLabel: "Sales",
+                          memberTrack,
+                          isAdminUnfiltered,
+                        })}
+                      />
+                    ),
+                  });
+                  return;
+                }
+
+                items.push({
+                  key: card.slug,
+                  accessible: isDashboardCardAccessible({ unlocked: tierUnlocked, pendingLabel }),
+                  node: renderResourceCard({
                     title: card.title,
                     description,
                     icon: Icon,
@@ -938,11 +962,15 @@ export function DashboardClient({
                     pendingLabel,
                     trackLabel: card.track,
                     cardKind: card.cardKind ?? "page",
-                  })}
-                </React.Fragment>
-              );
-            })}
+                  }),
+                });
+              });
+            }
 
+            return partitionAccessibleFirst(items, (item) => item.accessible).map((item) => (
+              <React.Fragment key={item.key}>{item.node}</React.Fragment>
+            ));
+          })()}
         </div>
       </div>
 

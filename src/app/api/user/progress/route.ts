@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const schema = z.object({
-  chapterId: z.enum(["a", "b", "c", "d", "e"]),
+  chapterId: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/i),
   progress: z.number().min(0).max(100),
   completed: z.boolean().optional(),
 });

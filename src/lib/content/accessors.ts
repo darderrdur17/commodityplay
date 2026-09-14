@@ -15,8 +15,18 @@ import { getPublishedPayload, tryReadPublishedPayload, getContentModulePayload }
 import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
 import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
 import { GLOSSARY_TERMS } from "@/data/glossary";
-import { INTERVIEW_QUESTIONS, INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/data/interview-questions";
-import { getActiveKnowledgeTestQuestions, getActiveKnowledgeTestSet } from "@/lib/content/knowledge-test-payload";
+import {
+  INTERVIEW_QUESTIONS,
+  INTERVIEW_CATEGORIES,
+  INTERVIEW_TABS,
+  mergeInterviewQuestionsHero,
+} from "@/data/interview-questions";
+import {
+  getActiveKnowledgeTestQuestions,
+  getLiveKnowledgeTestSets,
+  memberKnowledgeTestHeroVars,
+  mergeKnowledgeTestHero,
+} from "@/lib/content/knowledge-test-payload";
 import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-templates";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS, type JobOpening } from "@/data/job-openings";
 import {
@@ -531,11 +541,15 @@ export async function getInterviewQuestionsData() {
     questions: typeof INTERVIEW_QUESTIONS;
     categories: typeof INTERVIEW_CATEGORIES;
     tabs?: typeof INTERVIEW_TABS;
+    hero?: Partial<import("@/data/interview-questions").InterviewQuestionsHeroCopy>;
+    lastRefreshed?: string;
   }>("interview-questions");
   return {
     questions: data.questions ?? INTERVIEW_QUESTIONS,
     categories: data.categories ?? INTERVIEW_CATEGORIES,
     tabs: data.tabs ?? INTERVIEW_TABS,
+    hero: mergeInterviewQuestionsHero(data.hero),
+    lastRefreshed: typeof data.lastRefreshed === "string" ? data.lastRefreshed : undefined,
   };
 }
 
@@ -550,10 +564,17 @@ export async function getKnowledgeTestPageData() {
   const data = await getPublishedPayload<import("@/lib/content/knowledge-test-payload").KnowledgeTestPayload>(
     "knowledge-test"
   );
-  const active = getActiveKnowledgeTestSet(data);
+  const liveSets = getLiveKnowledgeTestSets(data).map((set) => ({
+    id: set.id,
+    label: set.label,
+    questions: set.questions,
+  }));
+  const heroVars = memberKnowledgeTestHeroVars(liveSets);
   return {
-    questions: active.questions,
-    activeSetLabel: active.label,
+    questions: liveSets[0]?.questions ?? [],
+    activeSetLabel: heroVars.activeSetLabel,
+    liveSets,
+    hero: mergeKnowledgeTestHero(data?.hero),
   };
 }
 

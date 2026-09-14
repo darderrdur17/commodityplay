@@ -39,6 +39,7 @@ export function resolveAdminModulePayload(slug: ContentSlug, payload: unknown): 
         questions: payload.length ? payload : INTERVIEW_QUESTIONS,
         categories: defaults.categories,
         tabs: defaults.tabs,
+        hero: defaults.hero,
       };
     }
     const merged = deepMerge(defaults, (payload ?? {}) as Record<string, unknown>);

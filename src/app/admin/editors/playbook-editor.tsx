@@ -8,7 +8,9 @@ import { mergePlaybookHubHero, type PlaybookHubHeroCopy } from "@/data/playbook-
 import type { ContentAttachment } from "@/lib/content/attachments";
 import { ensurePlaybookSectionAssets } from "@/lib/content/playbook-section-assets";
 import {
+  defaultPlaybookChapterStatus,
   playbookPayloadFromEditorChapters,
+  resolvePlaybookChapterStatus,
   type PlaybookChapterRecord,
   type PlaybookSectionBody,
 } from "@/lib/content/playbook-payload";
@@ -52,7 +54,15 @@ function newSection(chapterId: string, idx: number): PlaybookSectionBody {
 
 function newChapter(idx: number): PlaybookChapterRecord {
   const letter = String.fromCharCode(65 + idx);
-  return { id: letter.toLowerCase(), letter, title: "New Chapter", subtitle: "", pages: 0, sections: [] };
+  return {
+    id: letter.toLowerCase(),
+    letter,
+    title: "New Chapter",
+    subtitle: "",
+    pages: 0,
+    status: defaultPlaybookChapterStatus(letter),
+    sections: [],
+  };
 }
 
 function SectionAssetsEditor({
@@ -257,6 +267,21 @@ export function PlaybookEditor({
           </div>
           <EditorField label="Track">
             <TrackToggle value={ch.track ?? "both"} onChange={(v) => patchChapter(ci, { ...ch, track: v })} />
+          </EditorField>
+          <EditorField label="Hub listing">
+            <select
+              className={inputClass}
+              value={resolvePlaybookChapterStatus(ch)}
+              onChange={(e) =>
+                patchChapter(ci, {
+                  ...ch,
+                  status: e.target.value === "releasing-soon" ? "releasing-soon" : "live",
+                })
+              }
+            >
+              <option value="live">Live — members can read</option>
+              <option value="releasing-soon">Releasing soon — listed, not openable</option>
+            </select>
           </EditorField>
           <EditorField label="Subtitle">
             <input className={inputClass} value={ch.subtitle} onChange={(e) => patchChapter(ci, { ...ch, subtitle: e.target.value })} />

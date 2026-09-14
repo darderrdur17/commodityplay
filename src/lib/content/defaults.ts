@@ -6,7 +6,12 @@ import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
 import { DEFAULT_DESK_CHANNEL_PAGE_COPY } from "@/data/desk-channel-content";
 import { GLOSSARY_TERMS } from "@/data/glossary";
 import { DEFAULT_GLOSSARY_PAGE_CONTENT } from "@/data/glossary-content";
-import { INTERVIEW_QUESTIONS, INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/data/interview-questions";
+import {
+  INTERVIEW_QUESTIONS,
+  INTERVIEW_CATEGORIES,
+  INTERVIEW_TABS,
+  DEFAULT_INTERVIEW_QUESTIONS_HERO,
+} from "@/data/interview-questions";
 import { createDefaultKnowledgeTestPayload } from "@/lib/content/knowledge-test-payload";
 import { buildDefaultCareerRoadmapPayload } from "@/lib/content/career-roadmap-payload";
 import { buildDefaultResumeAdminPayload } from "@/lib/content/resume-payload";
@@ -55,7 +60,12 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
         pageCopy: DEFAULT_DESK_CHANNEL_PAGE_COPY,
       };
     case "interview-questions":
-      return { questions: INTERVIEW_QUESTIONS, categories: INTERVIEW_CATEGORIES, tabs: INTERVIEW_TABS };
+      return {
+        questions: INTERVIEW_QUESTIONS,
+        categories: INTERVIEW_CATEGORIES,
+        tabs: INTERVIEW_TABS,
+        hero: DEFAULT_INTERVIEW_QUESTIONS_HERO,
+      };
     case "knowledge-test":
       return createDefaultKnowledgeTestPayload();
     case "career-roadmap":

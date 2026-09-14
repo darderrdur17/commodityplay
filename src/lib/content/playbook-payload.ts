@@ -8,6 +8,8 @@ export type PlaybookSectionBody = PlaybookSection & {
   assets?: ContentAttachment[];
 };
 
+export type PlaybookChapterStatus = "live" | "releasing-soon";
+
 export type PlaybookChapterRecord = {
   id: string;
   letter: string;
@@ -16,10 +18,34 @@ export type PlaybookChapterRecord = {
   color?: string;
   pages: number;
   preview?: boolean;
+  /** Hub listing: live chapters are readable; releasing-soon stay visible but locked. */
+  status: PlaybookChapterStatus;
   sections: PlaybookSectionBody[];
   keyTakeaways?: readonly string[];
   track?: "career" | "sales" | "both";
 };
+
+/** Seed only — missing CMS flags: letters A–E live, F+ releasing soon. */
+export function defaultPlaybookChapterStatus(letter: string): PlaybookChapterStatus {
+  const ch = letter.trim().charAt(0).toUpperCase();
+  if (!ch) return "live";
+  return ch >= "F" ? "releasing-soon" : "live";
+}
+
+export function resolvePlaybookChapterStatus(
+  chapter: { letter?: string; status?: string | null }
+): PlaybookChapterStatus {
+  if (chapter.status === "live" || chapter.status === "releasing-soon") {
+    return chapter.status;
+  }
+  return defaultPlaybookChapterStatus(chapter.letter ?? "");
+}
+
+export function isPlaybookChapterReleasingSoon(
+  chapter: { letter?: string; status?: string | null }
+): boolean {
+  return resolvePlaybookChapterStatus(chapter) === "releasing-soon";
+}
 
 export type PlaybookSectionsMap = Record<string, PlaybookSectionBody[]>;
 
@@ -49,6 +75,7 @@ function defaultSectionsMap(): PlaybookSectionsMap {
 function defaultChapters(): PlaybookChapterRecord[] {
   return CHAPTERS.map((chapter) => ({
     ...chapter,
+    status: defaultPlaybookChapterStatus(chapter.letter),
     sections: (defaultSectionsMap()[chapter.id] ?? []).map((section) => ({ ...section })),
   }));
 }
@@ -127,19 +154,27 @@ function mergeChapterMeta(
     title: filled(cms?.title) ? cms.title : "New Chapter",
     subtitle: "",
     pages: 0,
+    status: defaultPlaybookChapterStatus(filled(cms?.letter) ? cms.letter : "X"),
     sections: [],
   };
+
+  const letter = filled(cms?.letter) ? cms.letter : base.letter;
+  const status = resolvePlaybookChapterStatus({
+    letter,
+    status: typeof cms?.status === "string" ? cms.status : base.status,
+  });
 
   return {
     ...base,
     ...(cms ?? {}),
     id: filled(cms?.id) ? cms.id : base.id,
-    letter: filled(cms?.letter) ? cms.letter : base.letter,
+    letter,
     title: filled(cms?.title) ? cms.title : base.title,
     subtitle: filled(cms?.subtitle) ? cms.subtitle : base.subtitle,
     color: filled(cms?.color) ? cms.color : base.color,
     pages: typeof cms?.pages === "number" ? cms.pages : base.pages,
     preview: cms?.preview ?? base.preview,
+    status,
     keyTakeaways: cms?.keyTakeaways?.length ? cms.keyTakeaways : base.keyTakeaways,
     track: cms?.track ?? base.track,
     sections,

@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   normalizeKnowledgeTestPayload,
+  mergeKnowledgeTestHero,
   type KnowledgeTestPayload,
   type KnowledgeTestSet,
 } from "@/lib/content/knowledge-test-payload";
-import { EditorField, EditorRow, TrackToggle, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, EditorSection, TrackToggle, inputClass, textareaClass } from "./shared";
 import { JsonImportSection } from "./json-import-section";
 
 interface KnowledgeQuestion {
@@ -32,6 +33,7 @@ const KNOWLEDGE_IMPORT_EXAMPLE = JSON.stringify(
       {
         id: "march-2026",
         label: "March 2026 rolling test",
+        published: true,
         questions: [
           {
             id: "k-example",
@@ -44,6 +46,12 @@ const KNOWLEDGE_IMPORT_EXAMPLE = JSON.stringify(
             recommendLabel: "Chapter A",
           },
         ],
+      },
+      {
+        id: "april-2026",
+        label: "April 2026 rolling test",
+        published: true,
+        questions: [],
       },
     ],
   },
@@ -64,7 +72,11 @@ function newQuestion(): KnowledgeQuestion {
 
 function newTestSet(index: number): KnowledgeTestSet {
   const id = `set-${Date.now()}`;
-  return { id, label: `Test set ${index}`, questions: [] };
+  return { id, label: `Test set ${index}`, questions: [], published: false };
+}
+
+function primaryLiveId(sets: KnowledgeTestSet[]): string {
+  return sets.find((s) => s.published)?.id ?? sets[0]?.id ?? "";
 }
 
 export function KnowledgeTestEditor({
@@ -81,28 +93,30 @@ export function KnowledgeTestEditor({
   const [activeTab, setActiveTab] = useState<"questions" | "results">("questions");
   const normalized = normalizeKnowledgeTestPayload(payload);
   const testSets = normalized.testSets ?? [];
-  const liveSetId = normalized.activeTestSetId ?? testSets[0]?.id ?? "";
-  const [editingSetId, setEditingSetId] = useState(liveSetId);
+  const liveCount = testSets.filter((s) => s.published).length;
+  const [editingSetId, setEditingSetId] = useState(testSets[0]?.id ?? "");
 
   useEffect(() => {
     setEditingSetId((prev) => {
-      // Keep the current selection unless the set was deleted or liveSetId changed externally.
       if (testSets.some((s) => s.id === prev)) return prev;
-      return liveSetId;
+      return testSets[0]?.id ?? "";
     });
-  }, [liveSetId, testSets]);
+  }, [testSets]);
 
   const editingSet = testSets.find((s) => s.id === editingSetId) ?? testSets[0];
   const items = editingSet?.questions ?? [];
 
-  function patchPayload(next: KnowledgeTestPayload) {
-    onChange(next);
+  function patchPayload(next: Partial<KnowledgeTestPayload>) {
+    onChange({ ...normalized, ...next });
+  }
+
+  function commitSets(nextSets: KnowledgeTestSet[]) {
+    patchPayload({ testSets: nextSets, activeTestSetId: primaryLiveId(nextSets) });
   }
 
   function patchQuestions(questions: KnowledgeQuestion[]) {
     if (!editingSet) return;
-    const nextSets = testSets.map((s) => (s.id === editingSet.id ? { ...s, questions } : s));
-    patchPayload({ testSets: nextSets, activeTestSetId: liveSetId });
+    commitSets(testSets.map((s) => (s.id === editingSet.id ? { ...s, questions } : s)));
   }
 
   function patchItem(i: number, item: KnowledgeQuestion) {
@@ -128,30 +142,23 @@ export function KnowledgeTestEditor({
 
   function addTestSet() {
     const set = newTestSet(testSets.length + 1);
-    patchPayload({
-      testSets: [...testSets, set],
-      activeTestSetId: liveSetId || set.id,
-    });
+    commitSets([...testSets, set]);
     setEditingSetId(set.id);
   }
 
   function renameSet(id: string, label: string) {
-    patchPayload({
-      testSets: testSets.map((s) => (s.id === id ? { ...s, label } : s)),
-      activeTestSetId: liveSetId,
-    });
+    commitSets(testSets.map((s) => (s.id === id ? { ...s, label } : s)));
   }
 
   function deleteTestSet(id: string) {
     if (testSets.length <= 1) return;
     const nextSets = testSets.filter((s) => s.id !== id);
-    const nextLive = liveSetId === id ? nextSets[0].id : liveSetId;
-    patchPayload({ testSets: nextSets, activeTestSetId: nextLive });
+    commitSets(nextSets);
     if (editingSetId === id) setEditingSetId(nextSets[0].id);
   }
 
-  function setLiveSet(id: string) {
-    patchPayload({ testSets, activeTestSetId: id });
+  function setPublished(id: string, published: boolean) {
+    commitSets(testSets.map((s) => (s.id === id ? { ...s, published } : s)));
   }
 
   function importJson(parsed: unknown): { ok: true } | { ok: false; error: string } {
@@ -186,8 +193,36 @@ export function KnowledgeTestEditor({
 
   return (
     <div className="space-y-4">
+      <EditorSection
+        title="Page hero strip"
+        description="Blue banner on /knowledge-test — kicker, title, and description. Use {questionCount} and {activeSetSuffix} (or {activeSetLabel}) for live values."
+      >
+        <EditorField label="Kicker / eyebrow">
+          <input
+            className={inputClass}
+            value={mergeKnowledgeTestHero(normalized.hero).eyebrow}
+            onChange={(e) => patchPayload({ hero: { ...mergeKnowledgeTestHero(normalized.hero), eyebrow: e.target.value } })}
+          />
+        </EditorField>
+        <EditorField label="Title">
+          <input
+            className={inputClass}
+            value={mergeKnowledgeTestHero(normalized.hero).title}
+            onChange={(e) => patchPayload({ hero: { ...mergeKnowledgeTestHero(normalized.hero), title: e.target.value } })}
+          />
+        </EditorField>
+        <EditorField label="Description">
+          <textarea
+            className={textareaClass}
+            rows={3}
+            value={mergeKnowledgeTestHero(normalized.hero).description}
+            onChange={(e) => patchPayload({ hero: { ...mergeKnowledgeTestHero(normalized.hero), description: e.target.value } })}
+          />
+        </EditorField>
+      </EditorSection>
+
       <JsonImportSection
-        description="Import a full rolling test (testSets + activeTestSetId) or questions for the set you're editing."
+        description="Import a full rolling test (testSets with published flags, optional activeTestSetId) or questions for the set you're editing."
         exampleJson={KNOWLEDGE_IMPORT_EXAMPLE}
         exampleFileName="knowledge-test-example.json"
         onImport={importJson}
@@ -198,7 +233,9 @@ export function KnowledgeTestEditor({
           <div>
             <p className="text-sm font-semibold text-gray-900">Rolling test sets</p>
             <p className="text-xs text-muted-fg">
-              Build multiple banks, then mark one as <strong>Live on site</strong>. Members only see the live set.
+              Publish as many banks as you like. Members can take every published set; finishing one does not block the others.
+              Older CMS that only set <code className="text-[11px] bg-white px-1 rounded">activeTestSetId</code> still treats that set as live.
+              {liveCount > 0 ? ` ${liveCount} live now.` : " None live yet."}
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={addTestSet}>
@@ -217,20 +254,18 @@ export function KnowledgeTestEditor({
               <button type="button" className="font-medium" onClick={() => setEditingSetId(set.id)}>
                 {set.label} ({set.questions.length})
               </button>
-              {liveSetId === set.id && (
+              {set.published && (
                 <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
-                  Live
+                  Published
                 </Badge>
               )}
-              {liveSetId !== set.id && (
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 text-primary-400 hover:underline"
-                  onClick={() => setLiveSet(set.id)}
-                >
-                  <Star className="w-3 h-3" /> Set live
-                </button>
-              )}
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-primary-400 hover:underline"
+                onClick={() => setPublished(set.id, !set.published)}
+              >
+                <Star className="w-3 h-3" /> {set.published ? "Unpublish" : "Publish"}
+              </button>
               {testSets.length > 1 && (
                 <button type="button" className="text-red-500 hover:underline" onClick={() => deleteTestSet(set.id)}>
                   Delete
@@ -279,7 +314,7 @@ export function KnowledgeTestEditor({
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-fg">
               Editing <strong>{editingSet?.label ?? "set"}</strong> · {items.length} questions
-              {liveSetId === editingSetId ? " · this set is live on site" : ""}
+              {editingSet?.published ? " · published for members" : " · draft (not on site)"}
             </p>
             <Button variant="outline" size="sm" onClick={addItem}>
               <Plus className="w-3.5 h-3.5" /> Add question
@@ -352,10 +387,10 @@ export function KnowledgeTestEditor({
           <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3 text-xs text-muted-fg space-y-1">
             <p className="font-semibold text-gray-800">How content reaches the site</p>
             <p>
-              Use <strong>Rolling test sets</strong> to swap live tests. Edit questions or <strong>Import JSON</strong>{" "}
+              Use <strong>Rolling test sets</strong> to keep several banks. Edit questions or <strong>Import JSON</strong>{" "}
               (template includes <code className="text-[11px] bg-white px-1 rounded">testSets</code> +{" "}
-              <code className="text-[11px] bg-white px-1 rounded">activeTestSetId</code>), mark one set{" "}
-              <strong>Live</strong>, then <strong>Save</strong>. Upload File does not load test questions.
+              <code className="text-[11px] bg-white px-1 rounded">activeTestSetId</code>), toggle{" "}
+              <strong>Publish</strong> on each set members should see, then <strong>Save</strong>. Upload File does not load test questions.
             </p>
           </div>
         </>

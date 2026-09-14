@@ -5,7 +5,11 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { BookOpen, ChevronRight, Lock, CheckCircle } from "lucide-react";
 import type { PlaybookHubHeroCopy } from "@/data/playbook-hub-hero";
-import type { PlaybookChapterRecord } from "@/lib/content/playbook-payload";
+import {
+  isPlaybookChapterReleasingSoon,
+  resolvePlaybookChapterStatus,
+  type PlaybookChapterRecord,
+} from "@/lib/content/playbook-payload";
 import type { ContentStats } from "@/lib/content/content-stats";
 import { formatContentPlaceholders } from "@/lib/content/content-stat-placeholders";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
@@ -25,6 +29,8 @@ interface Props {
   requiredTier?: "PRO" | "ELITE";
   contentStats: Pick<ContentStats, "chapterCount" | "sectionCount">;
   hubHero: PlaybookHubHeroCopy;
+  /** Admins can open releasing-soon chapters to draft-check. */
+  canPreviewReleasingSoon?: boolean;
 }
 
 export function PlaybookHubClient({
@@ -34,17 +40,21 @@ export function PlaybookHubClient({
   requiredTier = "PRO",
   contentStats,
   hubHero,
+  canPreviewReleasingSoon = false,
 }: Props) {
   const { chapterCount, sectionCount } = contentStats;
   const statPlaceholders = { chapterCount, sectionCount };
   const proDescription = formatContentPlaceholders(hubHero.proDescription, statPlaceholders);
   const previewDescription = formatContentPlaceholders(hubHero.previewDescription, statPlaceholders)
     .replace("{starterPreviewLabel}", starterChapterPreviewLabel());
+  const liveChapters = chapters.filter((ch) => resolvePlaybookChapterStatus(ch) === "live");
+  const liveChapterCount = liveChapters.length;
+  const liveProgress = progress.filter((p) => liveChapters.some((ch) => ch.id === p.chapterId));
   const getChapterProgress = (id: string) => progress.find((p) => p.chapterId === id);
-  const completedCount = progress.filter((p) => p.completed).length;
+  const completedCount = liveProgress.filter((p) => p.completed).length;
   const totalProgress =
-    chapterCount > 0
-      ? progress.reduce((s, p) => s + p.progress, 0) / (chapterCount * 100) * 100
+    liveChapterCount > 0
+      ? liveProgress.reduce((s, p) => s + p.progress, 0) / (liveChapterCount * 100) * 100
       : 0;
   const isPro = hasAccess(userTier, requiredTier);
 
@@ -75,7 +85,7 @@ export function PlaybookHubClient({
               <div className="glass-card px-5 py-3">
                 <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Chapters Done</p>
                 <p className="text-white font-serif text-2xl font-bold">
-                  {completedCount}/{chapterCount}
+                  {completedCount}/{liveChapterCount}
                 </p>
               </div>
               <div className="flex-1 min-w-[200px]">
@@ -88,9 +98,10 @@ export function PlaybookHubClient({
 
       {/* Chapters */}
       <StaggerChildren className="space-y-4">
-        {chapters.map((chapter, i) => {
+        {chapters.map((chapter) => {
           const prog = getChapterProgress(chapter.id);
-          const isUnlocked = isPro || chapter.preview;
+          const releasingSoon = isPlaybookChapterReleasingSoon(chapter);
+          const isUnlocked = !releasingSoon && (isPro || chapter.preview);
           const isCompleted = prog?.completed;
           const progressVal = prog?.progress || 0;
 
@@ -98,7 +109,9 @@ export function PlaybookHubClient({
             <StaggerItem key={chapter.id}>
               <div
                 className={`group relative rounded-2xl border overflow-hidden transition-all duration-200 ${
-                  isUnlocked
+                  releasingSoon
+                    ? "border-gray-200 bg-gray-50 cursor-default"
+                    : isUnlocked
                     ? "border-border bg-white hover:border-primary-line hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                     : "border-border bg-secondary cursor-default"
                 }`}
@@ -145,6 +158,7 @@ export function PlaybookHubClient({
                     </div>
 
                     {/* Sections preview */}
+                    {!releasingSoon && (
                     <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-1.5 mt-3">
                       {chapter.sections.slice(0, 3).map((s) => {
                         const num = s.number || (s as { pages?: string }).pages;
@@ -155,6 +169,7 @@ export function PlaybookHubClient({
                         );
                       })}
                     </div>
+                    )}
 
                     {/* Progress bar */}
                     {isUnlocked && progressVal > 0 && (
@@ -167,7 +182,19 @@ export function PlaybookHubClient({
 
                   {/* CTA */}
                   <div className="flex-shrink-0">
-                    {isUnlocked ? (
+                    {releasingSoon ? (
+                      canPreviewReleasingSoon ? (
+                        <Link href={`/playbook/${chapter.id}`}>
+                          <Button variant="outline" size="sm">
+                            Preview <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                      ) : (
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200">
+                          Releasing soon
+                        </span>
+                      )
+                    ) : isUnlocked ? (
                       <Link href={`/playbook/${chapter.id}`}>
                         <Button variant="outline" size="sm" className="group-hover:bg-primary-400 group-hover:text-white group-hover:border-primary-400 transition-all">
                           {progressVal > 0 ? "Continue" : "Read"} <ChevronRight className="w-4 h-4" />

@@ -4,8 +4,9 @@ import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { INTERVIEW_CATEGORIES, INTERVIEW_TABS } from "@/data/interview-questions";
-import { EditorField, EditorRow, inputClass, textareaClass } from "./shared";
+import { INTERVIEW_CATEGORIES, INTERVIEW_TABS, mergeInterviewQuestionsHero } from "@/data/interview-questions";
+import { toIsoDateOnly } from "@/lib/content/interview-questions-freshness";
+import { EditorField, EditorRow, EditorSection, inputClass, textareaClass } from "./shared";
 import { JsonImportSection } from "./json-import-section";
 
 type InterviewTab = "technical" | "commercial" | "behavioural" | "elimination";
@@ -22,12 +23,17 @@ interface InterviewQuestion {
   interviewTip?: string;
   weakAnswer?: string;
   why?: string;
+  addedAt?: string;
+  updatedAt?: string;
+  currentMarket?: boolean;
 }
 
 interface InterviewPayload {
   questions: InterviewQuestion[];
   categories?: string[];
   tabs?: typeof INTERVIEW_TABS;
+  hero?: Partial<import("@/data/interview-questions").InterviewQuestionsHeroCopy>;
+  lastRefreshed?: string;
 }
 
 const INTERVIEW_IMPORT_EXAMPLE = JSON.stringify(
@@ -40,6 +46,9 @@ const INTERVIEW_IMPORT_EXAMPLE = JSON.stringify(
         question: "Walk me through how contango affects storage economics.",
         modelAnswer: "Contango means forward prices exceed spot, creating carry incentives when storage + financing costs are covered.",
         difficulty: "med",
+        addedAt: "2026-09-08",
+        updatedAt: "2026-09-08",
+        currentMarket: false,
       },
     ],
   },
@@ -61,7 +70,17 @@ const DIFF_COLORS: Record<Difficulty, string> = {
 };
 
 function newQuestion(tab: InterviewTab): InterviewQuestion {
-  return { id: `iq-${Date.now()}`, tab, category: "", question: "", modelAnswer: "", difficulty: "med" };
+  const today = toIsoDateOnly(new Date());
+  return {
+    id: `iq-${Date.now()}`,
+    tab,
+    category: tab === "commercial" ? "Commercial judgement" : "",
+    question: "",
+    modelAnswer: "",
+    difficulty: "med",
+    addedAt: today,
+    currentMarket: false,
+  };
 }
 
 function readInterviewPayload(payload: unknown): InterviewPayload {
@@ -73,6 +92,8 @@ function readInterviewPayload(payload: unknown): InterviewPayload {
     questions: data.questions ?? [],
     categories: data.categories ?? INTERVIEW_CATEGORIES,
     tabs: data.tabs ?? INTERVIEW_TABS,
+    hero: data.hero,
+    lastRefreshed: data.lastRefreshed,
   };
 }
 
@@ -122,6 +143,47 @@ export function InterviewEditor({
 
   return (
     <div className="space-y-4">
+      <EditorSection
+        title="Page hero strip"
+        description="Blue banner on /interview-questions — kicker, title, description, and search placeholder. Use {questionCount} for the live question total."
+      >
+        {(() => {
+          const hero = mergeInterviewQuestionsHero(data.hero);
+          const patchHero = (updates: Partial<typeof hero>) =>
+            onChange({ ...data, hero: { ...hero, ...updates } });
+          return (
+            <>
+              <EditorField label="Kicker / eyebrow">
+                <input className={inputClass} value={hero.eyebrow} onChange={(e) => patchHero({ eyebrow: e.target.value })} />
+              </EditorField>
+              <EditorField label="Title">
+                <input className={inputClass} value={hero.title} onChange={(e) => patchHero({ title: e.target.value })} />
+              </EditorField>
+              <EditorField label="Description">
+                <textarea className={textareaClass} rows={3} value={hero.description} onChange={(e) => patchHero({ description: e.target.value })} />
+              </EditorField>
+              <EditorField label="Search placeholder">
+                <input className={inputClass} value={hero.searchPlaceholder} onChange={(e) => patchHero({ searchPlaceholder: e.target.value })} />
+              </EditorField>
+            </>
+          );
+        })()}
+      </EditorSection>
+
+      <EditorSection
+        title="Bank freshness"
+        description="Optional override for the member “last refreshed” line. If blank, the latest Added/Updated date on any question is used."
+      >
+        <EditorField label="Bank last refreshed">
+          <input
+            type="date"
+            className={inputClass}
+            value={data.lastRefreshed ?? ""}
+            onChange={(e) => onChange({ ...data, lastRefreshed: e.target.value || undefined })}
+          />
+        </EditorField>
+      </EditorSection>
+
       <JsonImportSection
         description="Bulk-load interview questions from JSON ({ questions: [...] })."
         exampleJson={INTERVIEW_IMPORT_EXAMPLE}
@@ -162,6 +224,11 @@ export function InterviewEditor({
                     {item.difficulty}
                   </span>
                 )}
+                {item.currentMarket && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-sky-100 text-sky-800">
+                    Market
+                  </span>
+                )}
               </span>
             }
             onDelete={() => deleteItem(i)}
@@ -184,6 +251,38 @@ export function InterviewEditor({
                 </select>
               </EditorField>
             </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <EditorField label="Added date" hint="ISO calendar date. New badge if within 30 days.">
+                <input
+                  type="date"
+                  className={inputClass}
+                  value={item.addedAt ?? ""}
+                  onChange={(e) => patchItem(i, { ...item, addedAt: e.target.value || undefined })}
+                />
+              </EditorField>
+              <EditorField label="Updated / revisit date" hint="Revisit badge if updated within 30 days and not New.">
+                <input
+                  type="date"
+                  className={inputClass}
+                  value={item.updatedAt ?? ""}
+                  onChange={(e) => patchItem(i, { ...item, updatedAt: e.target.value || undefined })}
+                />
+              </EditorField>
+            </div>
+            <label className="flex items-start gap-2 text-sm text-gray-800">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={Boolean(item.currentMarket)}
+                onChange={(e) => patchItem(i, { ...item, currentMarket: e.target.checked })}
+              />
+              <span>
+                <span className="font-medium">Current market</span>
+                <span className="block text-xs text-muted-fg">
+                  Include in the rotating Current Market pod on the Commercial tab. Up to 3 show at a time; extra flagged items rotate each calendar month.
+                </span>
+              </span>
+            </label>
             <EditorField label="Framework">
               <input className={inputClass} value={item.framework ?? ""} onChange={(e) => patchItem(i, { ...item, framework: e.target.value })} />
             </EditorField>
@@ -208,6 +307,11 @@ export function InterviewEditor({
         <p>
           Edit questions here, or use <strong>Import JSON</strong> (download the template first). Click{" "}
           <strong>Save</strong> to publish. Upload File is not used for interview questions.
+        </p>
+        <p>
+          Freshness: set <strong>Added date</strong> for New (30 days) and <strong>Updated date</strong> for Revisit.
+          Tick <strong>Current market</strong> on Commercial questions to rotate them in the blue pod. Leave dates blank
+          on evergreen items — they stay in the full bank with no badge.
         </p>
       </div>
     </div>

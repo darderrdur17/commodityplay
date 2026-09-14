@@ -19,6 +19,9 @@ export default function PlaybookChapterScreen() {
       .then((data) => {
         const ch = data.chapters.find((c) => c.id === chapter);
         if (!ch) throw new Error("Chapter not found");
+        if (ch.releasingSoon && !ch.unlocked) {
+          throw new Error("This chapter is releasing soon.");
+        }
         setChapterMeta(ch);
         setSections(data.sections[chapter] || []);
       })

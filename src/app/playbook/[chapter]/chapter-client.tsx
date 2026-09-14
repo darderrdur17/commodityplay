@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { AnimatedProgress } from "@/components/animations";
 import { type PlaybookSection } from "@/data/playbook";
 import type { PlaybookChapterRecord } from "@/lib/content/playbook-payload";
+import { isPlaybookChapterReleasingSoon } from "@/lib/content/playbook-payload";
 import {
   isStarterPlaybookSectionUnlocked,
   starterChapterPreviewLabel,
@@ -28,6 +29,7 @@ interface Props {
   hasPlaybookAccess?: boolean;
   assetUrls?: Record<string, string>;
   sectionAssetsMap?: Record<string, ContentAttachment[]>;
+  skipReleasingSoonNav?: boolean;
 }
 
 const ASSET_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -36,7 +38,7 @@ const ASSET_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
   "Worked Example": Lightbulb,
 };
 
-export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER", hasPlaybookAccess = false, assetUrls = {}, sectionAssetsMap = {} }: Props) {
+export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER", hasPlaybookAccess = false, assetUrls = {}, sectionAssetsMap = {}, skipReleasingSoonNav = false }: Props) {
   const [readProgress, setReadProgress] = useState(0);
   const [saved, setSaved] = useState(false);
   const [activeSection, setActiveSection] = useState<string>(sections[0]?.id ?? "");
@@ -45,9 +47,12 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const { scrollYProgress } = useScroll({ target: contentRef });
 
-  const chapterIndex = chapters.findIndex((c) => c.id === chapter.id);
-  const prevChapter = chapterIndex > 0 ? chapters[chapterIndex - 1] : null;
-  const nextChapter = chapterIndex < chapters.length - 1 ? chapters[chapterIndex + 1] : null;
+  const navChapters = skipReleasingSoonNav
+    ? chapters.filter((c) => !isPlaybookChapterReleasingSoon(c))
+    : chapters;
+  const chapterIndex = navChapters.findIndex((c) => c.id === chapter.id);
+  const prevChapter = chapterIndex > 0 ? navChapters[chapterIndex - 1] : null;
+  const nextChapter = chapterIndex >= 0 && chapterIndex < navChapters.length - 1 ? navChapters[chapterIndex + 1] : null;
 
   useEffect(() => {
     const save = async (progress: number) => {

@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { getMobileUser, hasTierAccess } from "@/lib/mobile-auth";
 import { memberMayAccessCareerPlaybook } from "@/lib/dashboard-module-visibility";
+import { isPlaybookChapterReleasingSoon } from "@/lib/content/playbook-payload";
 
 export async function GET(req: NextRequest) {
   const user = await getMobileUser(req);
@@ -22,20 +23,33 @@ export async function GET(req: NextRequest) {
   ]);
   const resolved = resolvePlaybookPayload(payload);
 
+  const isAdminUser = user.role === "ADMIN";
+
   return NextResponse.json(
     {
       requiredTier,
-      sections: resolved.sections,
-      chapters: chapters.map((c) => ({
-        id: c.id,
-        letter: c.letter,
-        title: c.title,
-        subtitle: c.subtitle,
-        color: c.color,
-        sectionCount: c.sections.length,
-        preview: c.preview,
-        unlocked: hasPlaybookAccess || c.preview,
-      })),
+      sections: Object.fromEntries(
+        Object.entries(resolved.sections).filter(([id]) => {
+          const chapter = chapters.find((c) => c.id === id);
+          if (!chapter || !isPlaybookChapterReleasingSoon(chapter)) return true;
+          return isAdminUser;
+        })
+      ),
+      chapters: chapters.map((c) => {
+        const releasingSoon = isPlaybookChapterReleasingSoon(c);
+        const tierUnlocked = hasPlaybookAccess || c.preview;
+        return {
+          id: c.id,
+          letter: c.letter,
+          title: c.title,
+          subtitle: c.subtitle,
+          color: c.color,
+          sectionCount: releasingSoon && !isAdminUser ? 0 : c.sections.length,
+          preview: c.preview,
+          releasingSoon,
+          unlocked: tierUnlocked && (!releasingSoon || isAdminUser),
+        };
+      }),
     },
     { headers: { "Cache-Control": "no-store" } }
   );

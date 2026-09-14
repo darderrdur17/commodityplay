@@ -24,6 +24,30 @@ export function filterByDashboardAudience<T extends { track: DashboardModuleTrac
   return items.filter((item) => isDashboardModuleVisible(item.track, audience));
 }
 
+/**
+ * Stable reorder: fully accessible cards first, then locked / coming-soon.
+ * Does not change which cards are visible — only order among already-visible items.
+ */
+export function partitionAccessibleFirst<T>(
+  items: readonly T[],
+  isAccessible: (item: T) => boolean
+): T[] {
+  const accessible: T[] = [];
+  const locked: T[] = [];
+  for (const item of items) {
+    (isAccessible(item) ? accessible : locked).push(item);
+  }
+  return [...accessible, ...locked];
+}
+
+/** Unlocked page/file cards are accessible; "Coming soon" is not fully openable. */
+export function isDashboardCardAccessible(opts: {
+  unlocked: boolean;
+  pendingLabel?: string;
+}): boolean {
+  return opts.unlocked && !opts.pendingLabel;
+}
+
 export function dashboardAudienceFromPreview(opts: {
   isAdmin: boolean;
   isMentorUser: boolean;

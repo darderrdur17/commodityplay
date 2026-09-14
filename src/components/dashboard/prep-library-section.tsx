@@ -557,8 +557,8 @@ export function PrepLibraryCard({
     <Reveal>
       <div
         className={cn(
-          "relative h-full bg-white rounded-xl border transition-all duration-200 p-5",
-          unlocked ? "border-border card-hover" : "border-border opacity-75"
+          "relative h-full rounded-xl border transition-all duration-200 p-5",
+          unlocked ? "bg-white border-border card-hover" : "bg-gray-50 border-gray-200"
         )}
       >
         {!unlocked && (

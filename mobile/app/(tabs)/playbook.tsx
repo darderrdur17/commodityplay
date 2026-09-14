@@ -19,6 +19,7 @@ type Chapter = {
   sectionCount: number;
   preview: boolean;
   unlocked: boolean;
+  releasingSoon?: boolean;
 };
 
 export default function PlaybookTab() {
@@ -67,17 +68,21 @@ export default function PlaybookTab() {
         keyExtractor={(c) => c.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
         contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
-        renderItem={({ item: chapter }) => (
+        renderItem={({ item: chapter }) => {
+          const releasingSoon = Boolean(chapter.releasingSoon);
+          const canOpen = chapter.unlocked;
+          return (
           <TouchableOpacity
-            style={[styles.chapterCard, !chapter.unlocked && styles.chapterLocked]}
+            style={[styles.chapterCard, (releasingSoon || !chapter.unlocked) && styles.chapterLocked]}
             onPress={() => {
               if (!chapter.unlocked) {
+                if (releasingSoon) return;
                 Alert.alert(tierAccessLabel("PRO"), "Upgrade your membership to access this feature.");
                 return;
               }
               router.push(`/playbook/${chapter.id}` as any);
             }}
-            activeOpacity={0.7}
+            activeOpacity={canOpen ? 0.7 : 1}
           >
             <View style={[styles.chapterLetter, { backgroundColor: chapter.color }]}>
               <Text style={styles.chapterLetterText}>{chapter.letter}</Text>
@@ -90,17 +95,22 @@ export default function PlaybookTab() {
                     <Text style={styles.previewBadgeText}>Preview</Text>
                   </View>
                 )}
-                {!chapter.unlocked && (
+                {releasingSoon ? (
+                  <View style={styles.lockBadge}>
+                    <Text style={styles.lockBadgeText}>Releasing soon</Text>
+                  </View>
+                ) : !chapter.unlocked ? (
                   <View style={styles.lockBadge}>
                     <Text style={styles.lockBadgeText}>Pro</Text>
                   </View>
-                )}
+                ) : null}
               </View>
               <Text style={styles.chapterSub} numberOfLines={2}>{chapter.subtitle}</Text>
               <Text style={styles.chapterMeta}>{chapter.sectionCount} sections</Text>
             </View>
           </TouchableOpacity>
-        )}
+          );
+        }}
       />
     </View>
   );

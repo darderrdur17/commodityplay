@@ -39,6 +39,7 @@ export default async function PlaybookPage() {
       requiredTier={requiredTier as "PRO" | "ELITE"}
       contentStats={contentStats}
       hubHero={hubHero}
+      canPreviewReleasingSoon={user.role === "ADMIN"}
       progress={user.progress.map((p) => ({
         chapterId: p.chapterId,
         progress: p.progress,

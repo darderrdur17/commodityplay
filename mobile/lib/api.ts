@@ -169,6 +169,7 @@ export const playbookMetaApi = {
         color: string;
         sectionCount: number;
         preview: boolean;
+        releasingSoon?: boolean;
         unlocked: boolean;
       }>;
     }>("/api/mobile/playbook", { bustCache: true }),
