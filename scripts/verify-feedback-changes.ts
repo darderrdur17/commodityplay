@@ -173,7 +173,8 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Chapter Coverage has title + titleAccent",
     merged.chapterCoverage.title === "What We Cover." &&
-      merged.chapterCoverage.titleAccent === "Entire Market Spectrum."
+      merged.chapterCoverage.titleAccent === "Entire Market Spectrum." &&
+      merged.chapterCoverage.footerNote === "Playbook is updated on a periodic basis"
   );
 
   const legacy = mergeLandingContent(DEFAULT_LANDING_CONTENT, {
@@ -704,6 +705,13 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     "Public career landing does not include Chapter Coverage add controls",
     careerLanding.includes("chapterCoverage.chapters") &&
       !careerLanding.includes("Add chapter")
+  );
+  ok(
+    "Career Chapter Coverage shows a CMS footer note under the accordion",
+    careerLanding.includes("chapterCoverage.footerNote") &&
+      landingEditor.includes("footerNote") &&
+      DEFAULT_LANDING_CONTENT.chapterCoverage.footerNote ===
+        "Playbook is updated on a periodic basis"
   );
 }
 

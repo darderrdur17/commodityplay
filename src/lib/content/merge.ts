@@ -159,6 +159,7 @@ export function resolveChapterCoverage(
     title: headline.title,
     titleAccent: headline.titleAccent,
     description: cms?.description ?? defaults.chapterCoverage.description,
+    footerNote: cmsString(cms?.footerNote, defaults.chapterCoverage.footerNote),
     chapters: resolveEditableList(defaults.chapterCoverage.chapters, cms?.chapters),
   };
 }

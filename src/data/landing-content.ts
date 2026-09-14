@@ -188,6 +188,8 @@ export interface LandingContent {
     title: string;
     titleAccent: string;
     description: string;
+    /** Small note under the accordion, e.g. update cadence. */
+    footerNote: string;
     chapters: ChapterCoverage[];
   };
   caseStudySample: {
@@ -532,6 +534,7 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
     titleAccent: "Entire Market Spectrum.",
     description:
       "Most people learn commodity markets from textbooks and headlines. This Playbook starts where the desk starts — cargoes, freight, arbitrage windows, and the commercial decisions that determine whether a trade makes money.",
+    footerNote: "Playbook is updated on a periodic basis",
     chapters: [
       { letter: "A", title: "Industry Foundations", desc: "Physical vs paper, the six revenue levers, pricing benchmarks, and how an oil trade actually makes money." },
       { letter: "B", title: "Physical & Paper Markets", desc: "MOC price assessment, spreads, the carry trade, OPEC signals, DES vs FOB, and managed money positioning." },

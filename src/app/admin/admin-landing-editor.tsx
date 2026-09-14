@@ -501,6 +501,12 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
             multiline
           />
         </Field>
+        <Field label="Footer note" hint="Small line under the chapter accordion on the career landing.">
+          <TextInput
+            value={content.chapterCoverage.footerNote}
+            onChange={(v) => patch("chapterCoverage", { ...content.chapterCoverage, footerNote: v })}
+          />
+        </Field>
         <div className="space-y-4">
           {content.chapterCoverage.chapters.map((chapter, i) => (
             <div key={`coverage-${i}`} className="p-3 rounded-lg border border-border space-y-2">

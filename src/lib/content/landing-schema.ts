@@ -170,6 +170,11 @@ export const landingContentSchema = z.object({
     title: z.string().min(1),
     titleAccent: z.string().min(1),
     description: z.string().min(1),
+    footerNote: z
+      .string()
+      .max(160)
+      .optional()
+      .default(() => DEFAULT_LANDING_CONTENT.chapterCoverage.footerNote),
     chapters: z.array(chapterSchema).min(1),
   }),
   caseStudySample: z.object({

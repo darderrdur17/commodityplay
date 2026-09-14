@@ -233,6 +233,11 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
               <div className="w-full min-w-0">
                 <ChapterAccordion chapters={chapterCoverage.chapters} />
               </div>
+              {chapterCoverage.footerNote.trim() ? (
+                <p className="mt-8 text-center text-xs text-muted-fg">
+                  {chapterCoverage.footerNote}
+                </p>
+              ) : null}
             </div>
           </section>
 
