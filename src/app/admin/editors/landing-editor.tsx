@@ -9,6 +9,7 @@ import { mergeLandingContent } from "@/lib/content/merge";
 import {
   defaultCareerEdgeNote,
   defaultSalesEdgeNote,
+  resolveSalesEdgeNote,
   type WeeklyEdgeNote,
 } from "@/lib/content/edge-notes";
 import { WeeklyEdgeNoteEditor } from "./sales-edge-note-editor";
@@ -77,7 +78,7 @@ export function LandingEditorWrapper({
 
   const rawPayload = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
   const careerEdgeNote = rawPayload.careerEdgeNote as WeeklyEdgeNote | undefined;
-  const salesEdgeNote = rawPayload.salesEdgeNote as WeeklyEdgeNote | undefined;
+  const salesEdgeNote = resolveSalesEdgeNote(rawPayload.salesEdgeNote as WeeklyEdgeNote | undefined);
 
   const showCareerNote = track === "both" || track === "career";
   const showSalesNote = track === "both" || track === "sales";
@@ -151,7 +152,7 @@ export function LandingEditorWrapper({
       {showSalesNote && (
         <EditorSection
           title="Sales Market Strip"
-          description="See demo opens Contact Us. Recent Topics card is edited here. Feature titles and captions are above under Sales Track Only — Tools. Saves to salesEdgeNote."
+          description="See demo opens Contact Us. Example talking points on the right card are edited here. Feature titles and captions are above under Sales Track Only — Tools. Saves to salesEdgeNote."
         >
           <WeeklyEdgeNoteEditor
             note={salesEdgeNote}

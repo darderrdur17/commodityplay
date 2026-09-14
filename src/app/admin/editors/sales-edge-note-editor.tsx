@@ -35,6 +35,22 @@ function TopicRow({
           onChange={(e) => onChange({ ...topic, title: e.target.value })}
         />
       </EditorField>
+      <EditorField
+        label="Extra lines"
+        hint="One bullet per line, under the same tag. Leave blank for a single talking point."
+      >
+        <textarea
+          className={textareaClass}
+          rows={2}
+          value={(topic.extraLines ?? []).join("\n")}
+          onChange={(e) =>
+            onChange({
+              ...topic,
+              extraLines: e.target.value.split("\n"),
+            })
+          }
+        />
+      </EditorField>
       <EditorField label="Tag text color" hint="Hex, e.g. #2563eb">
         <input
           className={inputClass}
@@ -150,7 +166,15 @@ export function WeeklyEdgeNoteEditor({
       )}
       {showTopics && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-gray-700">Recent Topics (right card)</p>
+          <EditorField label="Right-card heading">
+            <input
+              className={inputClass}
+              value={data.topicsHeading ?? "Recent Talking Points"}
+              onChange={(e) => patch({ topicsHeading: e.target.value })}
+              placeholder="Recent Talking Points"
+            />
+          </EditorField>
+          <p className="text-xs font-semibold text-gray-700">Example talking points</p>
           {topics.map((topic, i) => (
             <TopicRow
               key={`${topic.title}-${i}`}

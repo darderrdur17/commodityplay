@@ -1,4 +1,9 @@
-import { CAREER_MARKET_NOTE, SALES_MARKET_NOTE, type MarketNoteTopic } from "@/data/market-notes";
+import {
+  CAREER_MARKET_NOTE,
+  LEGACY_SALES_TALKING_POINT_TITLES,
+  SALES_MARKET_NOTE,
+  type MarketNoteTopic,
+} from "@/data/market-notes";
 
 export interface WeeklyEdgeNote {
   eyebrow: string;
@@ -11,7 +16,9 @@ export interface WeeklyEdgeNote {
   demoButtonLabel?: string;
   /** Sales strip — demo URL (falls back to NEXT_PUBLIC_SALES_DEMO_URL on public site) */
   demoButtonUrl?: string;
-  /** Recent Topics card — editable in admin for sales strip */
+  /** Right-hand card heading (sales: Recent Talking Points). */
+  topicsHeading?: string;
+  /** Recent Topics / talking points card — editable in admin for sales strip */
   topics?: MarketNoteTopic[];
 }
 
@@ -23,6 +30,30 @@ export type LandingEdgeNotes = {
 /** @deprecated Use WeeklyEdgeNote */
 export type SalesEdgeNote = WeeklyEdgeNote;
 
+function cloneTopic(topic: MarketNoteTopic): MarketNoteTopic {
+  return {
+    tag: topic.tag ?? "",
+    tagColor: topic.tagColor ?? "#2563eb",
+    tagBg: topic.tagBg ?? "#dbeafe",
+    title: topic.title,
+    extraLines: [...(topic.extraLines ?? [])],
+  };
+}
+
+export function resolveSalesTalkingPoints(cms?: MarketNoteTopic[]): MarketNoteTopic[] {
+  const fallback = SALES_MARKET_NOTE.topics.map(cloneTopic);
+  if (!cms?.length) return fallback;
+  const isUneditedSeed =
+    cms.length === LEGACY_SALES_TALKING_POINT_TITLES.length &&
+    cms.every(
+      (topic, i) =>
+        topic.title === LEGACY_SALES_TALKING_POINT_TITLES[i] &&
+        !(topic.extraLines ?? []).some((line) => line.trim())
+    );
+  if (isUneditedSeed) return fallback;
+  return cms.map(cloneTopic);
+}
+
 export function defaultCareerEdgeNote(): WeeklyEdgeNote {
   return {
     eyebrow: CAREER_MARKET_NOTE.eyebrow,
@@ -31,6 +62,7 @@ export function defaultCareerEdgeNote(): WeeklyEdgeNote {
     frequencyNote: "Delivered every Tuesday",
     ctaLabel: "",
     ctaLink: "",
+    topicsHeading: "Recent Topics",
     topics: CAREER_MARKET_NOTE.topics,
   };
 }
@@ -45,7 +77,8 @@ export function defaultSalesEdgeNote(): WeeklyEdgeNote {
     ctaLink: "",
     demoButtonLabel: "See demo",
     demoButtonUrl: "",
-    topics: SALES_MARKET_NOTE.topics,
+    topicsHeading: SALES_MARKET_NOTE.topicsHeading,
+    topics: SALES_MARKET_NOTE.topics.map(cloneTopic),
   };
 }
 
@@ -54,14 +87,9 @@ function resolveTopics(
   fallback: MarketNoteTopic[]
 ): MarketNoteTopic[] {
   if (cms?.topics?.length) {
-    return cms.topics.map((topic) => ({
-      tag: topic.tag ?? "",
-      tagColor: topic.tagColor ?? "#2563eb",
-      tagBg: topic.tagBg ?? "#dbeafe",
-      title: topic.title,
-    }));
+    return cms.topics.map(cloneTopic);
   }
-  return fallback;
+  return fallback.map(cloneTopic);
 }
 
 export function resolveWeeklyEdgeNote(
@@ -77,7 +105,18 @@ export function resolveWeeklyEdgeNote(
     ctaLink: cms?.ctaLink?.trim() || defaults.ctaLink,
     demoButtonLabel: cms?.demoButtonLabel?.trim() || defaults.demoButtonLabel || "See demo",
     demoButtonUrl: cms?.demoButtonUrl?.trim() || defaults.demoButtonUrl || "",
+    topicsHeading: cms?.topicsHeading?.trim() || defaults.topicsHeading || "Recent Topics",
     topics: resolveTopics(cms, defaults.topics ?? []),
+  };
+}
+
+export function resolveSalesEdgeNote(cms: WeeklyEdgeNote | null | undefined): WeeklyEdgeNote {
+  const defaults = defaultSalesEdgeNote();
+  const resolved = resolveWeeklyEdgeNote(cms, defaults);
+  return {
+    ...resolved,
+    topicsHeading: cms?.topicsHeading?.trim() || defaults.topicsHeading || "Recent Talking Points",
+    topics: resolveSalesTalkingPoints(cms?.topics),
   };
 }
 
@@ -106,6 +145,7 @@ export function toMarketNoteStripProps(
     title: note.title,
     description,
     topics,
+    topicsHeading: note.topicsHeading || "Recent Topics",
     accentColor: options?.accentColor,
     variant: options?.variant ?? ("tags" as const),
     ...(note.ctaLink

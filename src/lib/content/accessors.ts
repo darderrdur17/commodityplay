@@ -64,7 +64,7 @@ import type { ContentAttachment } from "./attachments";
 import { mergeLandingContent, resolveMentorSegments } from "./merge";
 import {
   defaultCareerEdgeNote,
-  defaultSalesEdgeNote,
+  resolveSalesEdgeNote,
   resolveWeeklyEdgeNote,
   type LandingEdgeNotes,
   type WeeklyEdgeNote,
@@ -110,7 +110,7 @@ export async function getLandingEdgeNotes(): Promise<{
   const cms = await tryReadPublishedPayload<LandingPayload>("landing");
   return {
     career: resolveWeeklyEdgeNote(cms?.careerEdgeNote, defaultCareerEdgeNote()),
-    sales: resolveWeeklyEdgeNote(cms?.salesEdgeNote, defaultSalesEdgeNote()),
+    sales: resolveSalesEdgeNote(cms?.salesEdgeNote),
   };
 }
 

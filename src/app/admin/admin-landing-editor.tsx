@@ -1081,7 +1081,7 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
 
       <Section
         title="Sales Track Only — Tools"
-        description="Accordion on the sales landing tools strip. Headline, intro, titles, and expandable captions are CMS-owned. Recent Topics stay on the right. Add, remove, or reorder rows below."
+        description="Accordion on the sales landing tools strip. Headline, intro, titles, and expandable captions are CMS-owned. Example talking points are edited under Sales Market Strip. Add, remove, or reorder rows below."
         defaultOpen
       >
         <Field label="Section kicker">

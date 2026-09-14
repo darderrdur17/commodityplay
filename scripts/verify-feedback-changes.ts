@@ -11,6 +11,9 @@ import { resolveMemberPersonaLabel } from "../src/lib/persona-display";
 import { getDemoAccountDisplayPersona } from "../src/data/demo-accounts";
 import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
 import { PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
+import { LEGACY_SALES_TALKING_POINT_TITLES, SALES_MARKET_NOTE } from "../src/data/market-notes";
+import { defaultSalesEdgeNote, resolveSalesTalkingPoints } from "../src/lib/content/edge-notes";
+import { SALES_SECTION_MINT } from "../src/lib/sales-brand-colors";
 import { mergeStarterEmailDigest, splitLegacyDigestTopicLine } from "../src/data/starter-pack";
 import { isDashboardModuleVisible, memberMayAccessCareerPlaybook } from "../src/lib/dashboard-module-visibility";
 import { formatCreditMonthLabel } from "../src/lib/mentor-credits";
@@ -595,10 +598,37 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     "utf8"
   );
   ok(
-    "Sales Track tools render as an expandable accordion beside Recent Topics",
+    "Sales Track tools render as an accordion beside Recent Talking Points",
     marketStrip.includes("SalesTrackToolsCard") &&
       marketStrip.includes("aria-expanded") &&
-      marketStrip.includes("Recent Topics")
+      marketStrip.includes("SALES_SECTION_MINT") &&
+      marketStrip.includes("topicsHeading") &&
+      marketStrip.includes("TalkingPointRow")
+  );
+  const edgeEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/sales-edge-note-editor.tsx"),
+    "utf8"
+  );
+  ok(
+    "Admin can edit example talking point wordings including extra lines",
+    edgeEditor.includes("Example talking points") &&
+      edgeEditor.includes("extraLines") &&
+      edgeEditor.includes("topicsHeading")
+  );
+  ok(
+    "Sales talking points default to the seven-tag mockup and mint section",
+    SALES_SECTION_MINT === "#dcfce7" &&
+      SALES_MARKET_NOTE.topicsHeading === "Recent Talking Points" &&
+      SALES_MARKET_NOTE.topics.length === 7 &&
+      defaultSalesEdgeNote().topics?.some((t) => (t.extraLines ?? []).length > 0) === true &&
+      resolveSalesTalkingPoints(
+        LEGACY_SALES_TALKING_POINT_TITLES.map((title) => ({ title }))
+      ).length === 7 &&
+      resolveSalesTalkingPoints([{ title: "Custom talking point" }])[0]?.title ===
+        "Custom talking point" &&
+      resolveSalesTalkingPoints([
+        { title: "Custom talking point", extraLines: ["", "Second line"] },
+      ])[0]?.extraLines?.includes("") === true
   );
 
   const siteChrome = fs.readFileSync(
