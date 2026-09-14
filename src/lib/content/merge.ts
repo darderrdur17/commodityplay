@@ -143,7 +143,7 @@ export function resolveCaseStudySample(
   };
 }
 
-/** Chapter coverage — CMS section copy wins; chapter rows merge by letter. */
+/** Chapter coverage — CMS section copy wins; chapter rows are CMS-owned (add/remove/reorder). */
 export function resolveChapterCoverage(
   defaults: LandingContent,
   cms?: Partial<LandingContent["chapterCoverage"]>
@@ -159,9 +159,7 @@ export function resolveChapterCoverage(
     title: headline.title,
     titleAccent: headline.titleAccent,
     description: cms?.description ?? defaults.chapterCoverage.description,
-    chapters: cms?.chapters?.length
-      ? mergeByKey(defaults.chapterCoverage.chapters, cms.chapters, "letter")
-      : defaults.chapterCoverage.chapters,
+    chapters: resolveEditableList(defaults.chapterCoverage.chapters, cms?.chapters),
   };
 }
 

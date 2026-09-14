@@ -16,7 +16,6 @@ type Chapter = {
   title: string;
   subtitle: string;
   color: string;
-  readTime: string;
   sectionCount: number;
   preview: boolean;
   unlocked: boolean;
@@ -98,7 +97,7 @@ export default function PlaybookTab() {
                 )}
               </View>
               <Text style={styles.chapterSub} numberOfLines={2}>{chapter.subtitle}</Text>
-              <Text style={styles.chapterMeta}>{chapter.sectionCount} sections · {chapter.readTime}</Text>
+              <Text style={styles.chapterMeta}>{chapter.sectionCount} sections</Text>
             </View>
           </TouchableOpacity>
         )}

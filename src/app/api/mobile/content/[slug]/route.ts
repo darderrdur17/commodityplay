@@ -15,6 +15,7 @@ import {
 import type { ContentSlug } from "@/lib/content/modules";
 import { getModuleMeta } from "@/lib/content/modules";
 import { getPublishedPayload } from "@/lib/content/repository";
+import { resolvePlaybookPayload } from "@/lib/content/playbook-payload";
 import { requireMobileContentAccess } from "@/lib/mobile-content";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -28,10 +29,11 @@ const HANDLERS: Partial<Record<ContentSlug, Handler>> = {
   },
   playbook: async () => {
     const chapters = await getPlaybookChapters();
-    const payload = await getPublishedPayload<{ sections: Record<string, unknown[]> }>("playbook");
+    const payload = await getPublishedPayload<unknown>("playbook");
+    const resolved = resolvePlaybookPayload(payload);
     return NextResponse.json({
       chapters,
-      sections: payload.sections ?? {},
+      sections: resolved.sections,
     });
   },
   "resume-templates": async () => {

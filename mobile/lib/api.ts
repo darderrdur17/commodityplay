@@ -167,7 +167,6 @@ export const playbookMetaApi = {
         title: string;
         subtitle: string;
         color: string;
-        readTime: string;
         sectionCount: number;
         preview: boolean;
         unlocked: boolean;

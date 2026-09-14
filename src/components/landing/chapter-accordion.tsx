@@ -79,9 +79,9 @@ export function ChapterAccordion({ chapters }: ChapterAccordionProps) {
     <div className="grid w-full min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
       {chapters.map((chapter, index) => (
         <ChapterAccordionItem
-          key={chapter.letter}
+          key={`${chapter.letter}-${index}`}
           chapter={chapter}
-          panelId={`chapter-${chapter.letter}-panel`}
+          panelId={`chapter-${chapter.letter}-${index}-panel`}
           isOpen={openIndex === index}
           onToggle={() => setOpenIndex((prev) => (prev === index ? null : index))}
         />

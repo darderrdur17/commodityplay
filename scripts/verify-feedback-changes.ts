@@ -10,7 +10,9 @@ import {
 import { resolveMemberPersonaLabel } from "../src/lib/persona-display";
 import { getDemoAccountDisplayPersona } from "../src/data/demo-accounts";
 import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
-import { PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
+import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
+import playbookSections from "../src/data/playbook-sections.json";
+import { resolvePlaybookPayload } from "../src/lib/content/playbook-payload";
 import { LEGACY_SALES_TALKING_POINT_TITLES, SALES_MARKET_NOTE } from "../src/data/market-notes";
 import { defaultSalesEdgeNote, resolveSalesTalkingPoints } from "../src/lib/content/edge-notes";
 import { SALES_SECTION_MINT } from "../src/lib/sales-brand-colors";
@@ -194,6 +196,33 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     },
   });
   ok("Chapter Coverage save validates", save.success);
+
+  const extraChapter = prepareLandingContentForSave({
+    ...mergeLandingContent(DEFAULT_LANDING_CONTENT, {} as never),
+    chapterCoverage: {
+      ...DEFAULT_LANDING_CONTENT.chapterCoverage,
+      chapters: [
+        ...DEFAULT_LANDING_CONTENT.chapterCoverage.chapters,
+        { letter: "J", title: "New Markets", desc: "Coverage for a tenth playbook chapter." },
+      ],
+    },
+  });
+  ok("Chapter Coverage allows more than the default chapter count", extraChapter.success);
+  const withExtra = mergeLandingContent(DEFAULT_LANDING_CONTENT, {
+    chapterCoverage: {
+      ...DEFAULT_LANDING_CONTENT.chapterCoverage,
+      chapters: [
+        ...DEFAULT_LANDING_CONTENT.chapterCoverage.chapters,
+        { letter: "J", title: "New Markets", desc: "Coverage for a tenth playbook chapter." },
+      ],
+    },
+  } as never);
+  ok(
+    "Public landing renders CMS chapter coverage extras",
+    withExtra.chapterCoverage.chapters.length ===
+      DEFAULT_LANDING_CONTENT.chapterCoverage.chapters.length + 1 &&
+      withExtra.chapterCoverage.chapters.at(-1)?.letter === "J"
+  );
 }
 
 // ── Starter Pack digest topic normalization ─────────────────────────────────
@@ -617,7 +646,7 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   );
   ok(
     "Sales talking points default to the seven-tag mockup and mint section",
-    SALES_SECTION_MINT === "#dcfce7" &&
+    SALES_SECTION_MINT === "#F0FDF4" &&
       SALES_MARKET_NOTE.topicsHeading === "Recent Talking Points" &&
       SALES_MARKET_NOTE.topics.length === 7 &&
       defaultSalesEdgeNote().topics?.some((t) => (t.extraLines ?? []).length > 0) === true &&
@@ -642,6 +671,93 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       rootLayout.includes("SiteChrome") &&
       !rootLayout.includes("paddingTop: NAV_OFFSET")
   );
+  const playbookHub = fs.readFileSync(
+    path.join(process.cwd(), "src/app/playbook/playbook-hub-client.tsx"),
+    "utf8"
+  );
+  const playbookChapter = fs.readFileSync(
+    path.join(process.cwd(), "src/app/playbook/[chapter]/chapter-client.tsx"),
+    "utf8"
+  );
+  const playbookEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/playbook-editor.tsx"),
+    "utf8"
+  );
+  ok(
+    "Playbook chapters do not show or edit read time",
+    !playbookHub.includes("readTime") &&
+      !playbookChapter.includes("readTime") &&
+      !playbookEditor.includes("Read time") &&
+      !playbookEditor.includes("ch.readTime")
+  );
+  ok(
+    "Admin landing Chapter Coverage can add chapters",
+    landingEditor.includes("Add chapter") &&
+      landingEditor.includes("chapterCoverage.chapters") &&
+      landingEditor.includes("Describe what this chapter covers.")
+  );
+  const careerLanding = fs.readFileSync(
+    path.join(process.cwd(), "src/components/landing/landing-page-client.tsx"),
+    "utf8"
+  );
+  ok(
+    "Public career landing does not include Chapter Coverage add controls",
+    careerLanding.includes("chapterCoverage.chapters") &&
+      !careerLanding.includes("Add chapter")
+  );
+}
+
+{
+  const emptyCms = {
+    chapters: CHAPTERS.map((ch) => ({
+      id: ch.id,
+      letter: ch.letter,
+      title: ch.title,
+      subtitle: ch.subtitle,
+      pages: ch.pages,
+      sections: ch.sections,
+    })),
+  };
+  const hydrated = resolvePlaybookPayload(emptyCms);
+  const firstDefault = playbookSections.a[0];
+  ok(
+    "Playbook admin merge fills empty CMS section bodies from repo",
+    hydrated.sections.a[0]?.hook === firstDefault.hook &&
+      hydrated.sections.a[0]?.paragraphs[0] === firstDefault.paragraphs[0] &&
+      hydrated.chapters[0]?.sections[0]?.hook === firstDefault.hook &&
+      firstDefault.paragraphs.some((p) => p.includes("**"))
+  );
+  const edited = resolvePlaybookPayload({
+    chapters: [
+      {
+        id: "a",
+        letter: "A",
+        title: "Edited",
+        sections: [
+          {
+            id: "a1",
+            hook: "",
+            paragraphs: ["Frances edited this paragraph with **crack spread** still marked."],
+          },
+        ],
+      },
+    ],
+  });
+  ok(
+    "Playbook save keeps edited paragraphs and empty-hook fallback",
+    edited.sections.a[0]?.paragraphs[0]?.includes("Frances edited") === true &&
+      edited.sections.a[0]?.hook === firstDefault.hook
+  );
+  const extraPlaybook = resolvePlaybookPayload({
+    chapters: [
+      ...CHAPTERS.map((ch) => ({ id: ch.id, letter: ch.letter, title: ch.title, pages: ch.pages })),
+      { id: "j", letter: "J", title: "New Chapter", pages: 10, sections: [] },
+    ],
+  });
+  ok(
+    "Playbook merge is not hardcoded to a fixed chapter count",
+    extraPlaybook.chapters.some((ch) => ch.id === "j") && extraPlaybook.chapters.length === CHAPTERS.length + 1
+  );
 }
 
 {
@@ -661,6 +777,10 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Admin payload merge fills case-studies from repo defaults",
     adminPayload.includes('slug === "case-studies"') && adminPayload.includes("CASE_STUDIES")
+  );
+  ok(
+    "Admin payload merge fills playbook section bodies from repo",
+    adminPayload.includes('slug === "playbook"') && adminPayload.includes("resolvePlaybookPayload")
   );
 
   const nudgesSection = fs.readFileSync(

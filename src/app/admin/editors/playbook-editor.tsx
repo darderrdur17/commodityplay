@@ -8,6 +8,11 @@ import { mergePlaybookHubHero, type PlaybookHubHeroCopy } from "@/data/playbook-
 import type { ContentAttachment } from "@/lib/content/attachments";
 import { ensurePlaybookSectionAssets } from "@/lib/content/playbook-section-assets";
 import {
+  playbookPayloadFromEditorChapters,
+  type PlaybookChapterRecord,
+  type PlaybookSectionBody,
+} from "@/lib/content/playbook-payload";
+import {
   EditorField,
   EditorRow,
   EditorSection,
@@ -18,37 +23,12 @@ import {
   uploadContentAssetFile,
 } from "./shared";
 
-interface PlaybookSectionData {
-  id: string;
-  number: string;
-  title: string;
-  desc: string;
-  hook: string;
-  paragraphs: string[];
-  pullQuote?: string;
-  wtmfy?: string;
-  handoff?: string;
-  freePreview?: boolean;
-  assets?: ContentAttachment[];
-}
-
-interface PlaybookChapter {
-  id: string;
-  letter: string;
-  title: string;
-  subtitle: string;
-  pages: number;
-  readTime: string;
-  sections: PlaybookSectionData[];
-  track?: "career" | "sales" | "both";
-}
-
 interface PlaybookPayload {
-  chapters: PlaybookChapter[];
+  chapters: PlaybookChapterRecord[];
   hubHero?: Partial<PlaybookHubHeroCopy>;
 }
 
-function sectionAssets(chapterId: string, sec: PlaybookSectionData): ContentAttachment[] {
+function sectionAssets(chapterId: string, sec: PlaybookSectionBody): ContentAttachment[] {
   const raw = sec.assets?.length
     ? sec.assets
     : getSectionAssets(chapterId, sec.id).map((a) => ({
@@ -58,7 +38,7 @@ function sectionAssets(chapterId: string, sec: PlaybookSectionData): ContentAtta
   return ensurePlaybookSectionAssets(chapterId, sec.id, sec.title, raw);
 }
 
-function newSection(chapterId: string, idx: number): PlaybookSectionData {
+function newSection(chapterId: string, idx: number): PlaybookSectionBody {
   return {
     id: `${chapterId}-s${idx + 1}`,
     number: `${chapterId.toUpperCase()}.${idx + 1}`,
@@ -70,9 +50,9 @@ function newSection(chapterId: string, idx: number): PlaybookSectionData {
   };
 }
 
-function newChapter(idx: number): PlaybookChapter {
+function newChapter(idx: number): PlaybookChapterRecord {
   const letter = String.fromCharCode(65 + idx);
-  return { id: letter.toLowerCase(), letter, title: "New Chapter", subtitle: "", pages: 0, readTime: "0 min", sections: [] };
+  return { id: letter.toLowerCase(), letter, title: "New Chapter", subtitle: "", pages: 0, sections: [] };
 }
 
 function SectionAssetsEditor({
@@ -175,21 +155,28 @@ export function PlaybookEditor({
   moduleSlug: string;
   requiredTier: string;
 }) {
-  const data = payload as PlaybookPayload ?? { chapters: [] };
-  const chapters: PlaybookChapter[] = data.chapters ?? [];
+  const data = (payload as PlaybookPayload) ?? { chapters: [] };
+  const chapters: PlaybookChapterRecord[] = data.chapters ?? [];
   const hubHero = mergePlaybookHubHero(data.hubHero);
 
-  function patchHubHero(updates: Partial<PlaybookHubHeroCopy>) {
-    onChange({ ...data, chapters, hubHero: { ...hubHero, ...updates } });
+  function emit(nextChapters: PlaybookChapterRecord[], nextHero?: Partial<PlaybookHubHeroCopy>) {
+    onChange({
+      ...data,
+      ...playbookPayloadFromEditorChapters(nextChapters, nextHero ?? data.hubHero),
+    });
   }
 
-  function patchChapter(i: number, ch: PlaybookChapter) {
+  function patchHubHero(updates: Partial<PlaybookHubHeroCopy>) {
+    emit(chapters, { ...hubHero, ...updates });
+  }
+
+  function patchChapter(i: number, ch: PlaybookChapterRecord) {
     const next = [...chapters];
     next[i] = ch;
-    onChange({ ...data, chapters: next });
+    emit(next);
   }
 
-  function patchSection(ci: number, si: number, sec: PlaybookSectionData) {
+  function patchSection(ci: number, si: number, sec: PlaybookSectionBody) {
     const ch = { ...chapters[ci], sections: [...chapters[ci].sections] };
     ch.sections[si] = sec;
     patchChapter(ci, ch);
@@ -207,12 +194,12 @@ export function PlaybookEditor({
   }
 
   function addChapter() {
-    onChange({ ...data, chapters: [...chapters, newChapter(chapters.length)] });
+    emit([...chapters, newChapter(chapters.length)]);
   }
 
   function deleteChapter(i: number) {
     if (!confirm("Delete this chapter?")) return;
-    onChange({ ...data, chapters: chapters.filter((_, j) => j !== i) });
+    emit(chapters.filter((_, j) => j !== i));
   }
 
   return (
@@ -264,9 +251,6 @@ export function PlaybookEditor({
             <EditorField label="Letter">
               <input className={inputClass} value={ch.letter} onChange={(e) => patchChapter(ci, { ...ch, letter: e.target.value })} />
             </EditorField>
-            <EditorField label="Read time">
-              <input className={inputClass} value={ch.readTime} onChange={(e) => patchChapter(ci, { ...ch, readTime: e.target.value })} />
-            </EditorField>
             <EditorField label="Pages">
               <input type="number" className={inputClass} value={ch.pages} onChange={(e) => patchChapter(ci, { ...ch, pages: Number(e.target.value) })} />
             </EditorField>
@@ -300,7 +284,7 @@ export function PlaybookEditor({
                   </div>
                   <EditorField label="Description"><textarea className={textareaClass} value={sec.desc} onChange={(e) => patchSection(ci, si, { ...sec, desc: e.target.value })} /></EditorField>
                   <EditorField label="Hook"><textarea className={textareaClass} value={sec.hook} onChange={(e) => patchSection(ci, si, { ...sec, hook: e.target.value })} /></EditorField>
-                  <EditorField label="Paragraphs" hint="One paragraph per line"><textarea className={textareaClass} rows={6} value={(sec.paragraphs ?? []).join("\n")} onChange={(e) => patchSection(ci, si, { ...sec, paragraphs: e.target.value.split("\n") })} /></EditorField>
+                  <EditorField label="Paragraphs" hint="One paragraph per line. Keep **term** markers so glossary links stay blue on the member page."><textarea className={textareaClass} rows={6} value={(sec.paragraphs ?? []).join("\n")} onChange={(e) => patchSection(ci, si, { ...sec, paragraphs: e.target.value.split("\n") })} /></EditorField>
                   <label className="flex items-center gap-2 text-xs cursor-pointer">
                     <input type="checkbox" checked={sec.freePreview ?? false} onChange={(e) => patchSection(ci, si, { ...sec, freePreview: e.target.checked })} />
                     Free preview (visible to Starter members)

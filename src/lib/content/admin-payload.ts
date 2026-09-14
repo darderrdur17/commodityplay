@@ -5,6 +5,7 @@ import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
 import { DEFAULT_DESK_CHANNEL_PAGE_COPY } from "@/data/desk-channel-content";
 import { getDefaultPayload } from "./defaults";
 import { deepMerge } from "./merge";
+import { resolvePlaybookPayload } from "./playbook-payload";
 import { resolveEditorResumePayload } from "./resume-payload";
 import {
   createDefaultKnowledgeTestPayload,
@@ -100,6 +101,10 @@ export function resolveAdminModulePayload(slug: ContentSlug, payload: unknown): 
 
   if (slug === "resume-templates") {
     return resolveEditorResumePayload(payload);
+  }
+
+  if (slug === "playbook") {
+    return resolvePlaybookPayload(payload);
   }
 
   return deepMerge(defaults, (payload ?? {}) as Record<string, unknown>);

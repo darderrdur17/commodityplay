@@ -4,13 +4,14 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, BookOpen, Clock, CheckCircle, ChevronDown,
+  ArrowLeft, ArrowRight, BookOpen, CheckCircle, ChevronDown,
   Lock, Download, FileText, Image, Lightbulb, Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AnimatedProgress } from "@/components/animations";
-import { CHAPTERS, type PlaybookSection } from "@/data/playbook";
+import { type PlaybookSection } from "@/data/playbook";
+import type { PlaybookChapterRecord } from "@/lib/content/playbook-payload";
 import {
   isStarterPlaybookSectionUnlocked,
   starterChapterPreviewLabel,
@@ -20,9 +21,9 @@ import { attachmentHref, resolveAttachmentUrl } from "@/lib/content/attachments"
 import { PlaybookText } from "@/components/playbook/playbook-text";
 
 interface Props {
-  chapter: (typeof CHAPTERS)[number];
+  chapter: PlaybookChapterRecord;
   sections: PlaybookSection[];
-  chapters: typeof CHAPTERS;
+  chapters: PlaybookChapterRecord[];
   userTier?: string;
   hasPlaybookAccess?: boolean;
   assetUrls?: Record<string, string>;
@@ -169,7 +170,6 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
                   ? starterChapterPreviewLabel(sections.length)
                   : `${sections.length} sections`}
               </span>
-              <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {chapter.readTime}</span>
               {totalAssets > 0 && (
                 <span className="flex items-center gap-1.5"><Download className="w-4 h-4" /> {totalAssets} assets</span>
               )}
@@ -180,7 +180,7 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
         <div className="bg-primary-soft border border-primary-line rounded-xl p-5 mb-8">
           <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-3">Key Takeaways</p>
           <ul className="space-y-2">
-            {chapter.keyTakeaways.map((kt, i) => (
+            {(chapter.keyTakeaways ?? []).map((kt, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-primary-800">
                 <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary-400" />
                 {kt}

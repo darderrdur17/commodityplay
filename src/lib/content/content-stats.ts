@@ -1,4 +1,4 @@
-import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS, type PlaybookSection } from "@/data/playbook";
+import { PLAYBOOK_TOTAL_CHAPTERS } from "@/data/playbook";
 import { CASE_STUDIES } from "@/data/case-studies";
 import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
 import { GLOSSARY_TERMS } from "@/data/glossary";
@@ -7,7 +7,6 @@ import { CAREER_ROLES } from "@/data/career-roadmap";
 import { RESUME_TEMPLATES } from "@/data/resume-templates";
 import { JOB_OPENINGS } from "@/data/job-openings";
 import { MENTOR_SEGMENTS } from "@/data/mentors";
-import playbookSections from "@/data/playbook-sections.json";
 import type { LandingContent } from "@/data/landing-content";
 import type { MemberDashboardContent } from "@/data/member-dashboard";
 import {
@@ -27,32 +26,16 @@ import {
   getResumeTemplatesData,
 } from "./accessors";
 import { getPublishedPayload } from "./repository";
+import { resolvePlaybookPayload } from "./playbook-payload";
 
 export type ContentStats = ContentStatsSnapshot;
 
-function countPlaybookSections(
-  chapterIds: string[],
-  sections: typeof playbookSections
-): number {
-  let total = 0;
-  for (const id of chapterIds) {
-    const key = id as keyof typeof sections;
-    total += ((sections[key] as PlaybookSection[] | undefined)?.length ?? 0);
-  }
-  return total;
-}
-
 async function resolvePlaybookCounts(): Promise<{ chapterCount: number; sectionCount: number }> {
-  const data = await getPublishedPayload<{
-    chapters?: typeof CHAPTERS;
-    sections?: typeof playbookSections;
-  }>("playbook");
-  const chapters = data.chapters ?? CHAPTERS;
-  const sections = data.sections ?? playbookSections;
-  const chapterIds = chapters.map((c) => c.id);
+  const data = await getPublishedPayload<unknown>("playbook");
+  const resolved = resolvePlaybookPayload(data);
   return {
-    chapterCount: Math.max(chapters.length, PLAYBOOK_TOTAL_CHAPTERS),
-    sectionCount: countPlaybookSections(chapterIds, sections),
+    chapterCount: Math.max(resolved.chapters.length, PLAYBOOK_TOTAL_CHAPTERS),
+    sectionCount: resolved.chapters.reduce((n, ch) => n + ch.sections.length, 0),
   };
 }
 

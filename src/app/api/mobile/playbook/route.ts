@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getContentTierForSlug, getPlaybookChapters } from "@/lib/content/accessors";
 import { getPublishedPayload } from "@/lib/content/repository";
+import { resolvePlaybookPayload } from "@/lib/content/playbook-payload";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { getMobileUser, hasTierAccess } from "@/lib/mobile-auth";
@@ -17,20 +18,20 @@ export async function GET(req: NextRequest) {
   const hasPlaybookAccess = hasTierAccess(user.tier, requiredTier);
   const [chapters, payload] = await Promise.all([
     getPlaybookChapters(),
-    getPublishedPayload<{ sections: Record<string, unknown[]> }>("playbook"),
+    getPublishedPayload<unknown>("playbook"),
   ]);
+  const resolved = resolvePlaybookPayload(payload);
 
   return NextResponse.json(
     {
       requiredTier,
-      sections: payload.sections ?? {},
+      sections: resolved.sections,
       chapters: chapters.map((c) => ({
         id: c.id,
         letter: c.letter,
         title: c.title,
         subtitle: c.subtitle,
         color: c.color,
-        readTime: c.readTime,
         sectionCount: c.sections.length,
         preview: c.preview,
         unlocked: hasPlaybookAccess || c.preview,

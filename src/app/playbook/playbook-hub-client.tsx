@@ -3,20 +3,20 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { BookOpen, Clock, ChevronRight, Lock, CheckCircle } from "lucide-react";
-import { CHAPTERS } from "@/data/playbook";
+import { BookOpen, ChevronRight, Lock, CheckCircle } from "lucide-react";
 import type { PlaybookHubHeroCopy } from "@/data/playbook-hub-hero";
+import type { PlaybookChapterRecord } from "@/lib/content/playbook-payload";
 import type { ContentStats } from "@/lib/content/content-stats";
 import { formatContentPlaceholders } from "@/lib/content/content-stat-placeholders";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { starterChapterPreviewLabel } from "@/data/starter-pack";
-
-type Chapter = (typeof CHAPTERS)[number];
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AnimatedProgress, Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
 import { hasAccess } from "@/lib/utils";
+
+type Chapter = PlaybookChapterRecord;
 
 interface Props {
   chapters: readonly Chapter[];
@@ -134,9 +134,6 @@ export function PlaybookHubClient({
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
                         <span className="text-xs text-muted-fg flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" /> {chapter.readTime}
-                        </span>
-                        <span className="text-xs text-muted-fg flex items-center gap-1">
                           <BookOpen className="w-3.5 h-3.5" /> {chapter.pages}p
                         </span>
                         {isCompleted ? (
@@ -149,11 +146,14 @@ export function PlaybookHubClient({
 
                     {/* Sections preview */}
                     <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-1.5 mt-3">
-                      {chapter.sections.slice(0, 3).map((s) => (
-                        <div key={s.title} className="text-xs text-muted-fg truncate">
-                          <span className="text-primary-400 font-mono">{s.pages}</span> — {s.title}
+                      {chapter.sections.slice(0, 3).map((s) => {
+                        const num = s.number || (s as { pages?: string }).pages;
+                        return (
+                        <div key={s.id || s.title} className="text-xs text-muted-fg truncate">
+                          <span className="text-primary-400 font-mono">{num}</span> — {s.title}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {/* Progress bar */}

@@ -473,7 +473,7 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
         </div>
       </Section>
 
-      <Section title="Chapter Coverage" description="Playbook chapters A–I accordion">
+      <Section title="Chapter Coverage" description="Career landing accordion. Add, remove, or reorder rows as the playbook grows — the public page renders every chapter saved here.">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Section eyebrow">
             <TextInput
@@ -503,8 +503,66 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
         </Field>
         <div className="space-y-4">
           {content.chapterCoverage.chapters.map((chapter, i) => (
-            <div key={chapter.letter} className="p-3 rounded-lg border border-border space-y-2">
-              <p className="text-xs font-bold text-primary-400">Chapter {chapter.letter}</p>
+            <div key={`coverage-${i}`} className="p-3 rounded-lg border border-border space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-primary-400">Chapter {chapter.letter || i + 1}</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (i === 0) return;
+                      const chapters = [...content.chapterCoverage.chapters];
+                      const prev = chapters[i - 1];
+                      chapters[i - 1] = chapters[i];
+                      chapters[i] = prev;
+                      patch("chapterCoverage", { ...content.chapterCoverage, chapters });
+                    }}
+                    disabled={i === 0}
+                    className="text-xs text-muted-fg hover:text-primary-400 disabled:opacity-40"
+                  >
+                    Up
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const chapters = [...content.chapterCoverage.chapters];
+                      if (i >= chapters.length - 1) return;
+                      const next = chapters[i + 1];
+                      chapters[i + 1] = chapters[i];
+                      chapters[i] = next;
+                      patch("chapterCoverage", { ...content.chapterCoverage, chapters });
+                    }}
+                    disabled={i >= content.chapterCoverage.chapters.length - 1}
+                    className="text-xs text-muted-fg hover:text-primary-400 disabled:opacity-40"
+                  >
+                    Down
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (content.chapterCoverage.chapters.length <= 1) return;
+                      patch("chapterCoverage", {
+                        ...content.chapterCoverage,
+                        chapters: content.chapterCoverage.chapters.filter((_, idx) => idx !== i),
+                      });
+                    }}
+                    disabled={content.chapterCoverage.chapters.length <= 1}
+                    className="text-xs text-muted-fg hover:text-red-600 disabled:opacity-40"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <Field label="Letter">
+                <TextInput
+                  value={chapter.letter}
+                  onChange={(v) => {
+                    const chapters = [...content.chapterCoverage.chapters];
+                    chapters[i] = { ...chapter, letter: v };
+                    patch("chapterCoverage", { ...content.chapterCoverage, chapters });
+                  }}
+                />
+              </Field>
               <Field label="Title">
                 <TextInput
                   value={chapter.title}
@@ -530,6 +588,30 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
             </div>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            const used = new Set(content.chapterCoverage.chapters.map((c) => c.letter));
+            let letter = String(content.chapterCoverage.chapters.length + 1);
+            for (let n = 0; n < 26; n++) {
+              const candidate = String.fromCharCode(65 + n);
+              if (!used.has(candidate)) {
+                letter = candidate;
+                break;
+              }
+            }
+            patch("chapterCoverage", {
+              ...content.chapterCoverage,
+              chapters: [
+                ...content.chapterCoverage.chapters,
+                { letter, title: "New Chapter", desc: "Describe what this chapter covers." },
+              ],
+            });
+          }}
+          className={smallButtonClass}
+        >
+          <Plus className="w-3.5 h-3.5" /> Add chapter
+        </button>
       </Section>
 
       <Section

@@ -12,7 +12,6 @@ import {
 } from "@/data/glossary-content";
 import type { MentorOverridesPayload } from "@/data/mentors";
 import { getPublishedPayload, tryReadPublishedPayload, getContentModulePayload } from "./repository";
-import { CHAPTERS } from "@/data/playbook";
 import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
 import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
 import { GLOSSARY_TERMS } from "@/data/glossary";
@@ -75,18 +74,8 @@ import {
   toPublicMentorProfile,
   type PublishedMentorSegment,
 } from "@/data/mentors";
-import playbookSections from "@/data/playbook-sections.json";
-import {
-  DEFAULT_PLAYBOOK_HUB_HERO,
-  mergePlaybookHubHero,
-  type PlaybookHubHeroCopy,
-} from "@/data/playbook-hub-hero";
-
-type PlaybookPayload = {
-  chapters: typeof CHAPTERS;
-  sections: typeof playbookSections;
-  hubHero?: Partial<PlaybookHubHeroCopy>;
-};
+import type { PlaybookHubHeroCopy } from "@/data/playbook-hub-hero";
+import { resolvePlaybookPayload } from "./playbook-payload";
 
 type CaseStudiesPayload = {
   studies: CaseStudyCard[];
@@ -451,21 +440,22 @@ export async function getPublishedMentorSegments(): Promise<PublishedMentorSegme
     .filter((seg) => seg.mentors.length > 0);
 }
 
+async function getResolvedPlaybook() {
+  const data = await getPublishedPayload<unknown>("playbook");
+  return resolvePlaybookPayload(data);
+}
+
 export async function getPlaybookChapters() {
-  const data = await getPublishedPayload<PlaybookPayload>("playbook");
-  return data.chapters ?? CHAPTERS;
+  return (await getResolvedPlaybook()).chapters;
 }
 
 export async function getPlaybookHubHero(): Promise<PlaybookHubHeroCopy> {
-  const data = await getPublishedPayload<PlaybookPayload>("playbook");
-  return mergePlaybookHubHero(data.hubHero);
+  return (await getResolvedPlaybook()).hubHero;
 }
 
 export async function getPlaybookSections(chapterId: string): Promise<PlaybookSection[]> {
-  const data = await getPublishedPayload<PlaybookPayload>("playbook");
-  const sections = data.sections ?? playbookSections;
-  const key = chapterId as keyof typeof sections;
-  return (sections[key] as PlaybookSection[]) || [];
+  const sections = (await getResolvedPlaybook()).sections;
+  return sections[chapterId] ?? [];
 }
 
 export async function getCaseStudiesList() {
