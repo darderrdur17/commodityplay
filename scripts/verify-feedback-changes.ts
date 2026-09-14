@@ -14,6 +14,19 @@ import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import playbookSections from "../src/data/playbook-sections.json";
 import { resolvePlaybookPayload } from "../src/lib/content/playbook-payload";
 import {
+  DEFAULT_KNOWLEDGE_TEST_HERO,
+  DEFAULT_KNOWLEDGE_TEST_SET_ID,
+  createDefaultKnowledgeTestPayload,
+  formatKnowledgeTestHeroCopy,
+  getLiveKnowledgeTestSets,
+  mergeKnowledgeTestHero,
+  normalizeKnowledgeTestPayload,
+} from "../src/lib/content/knowledge-test-payload";
+import {
+  encodeKnowledgeTestGapAreas,
+  latestKnowledgeTestResultsBySet,
+} from "../src/lib/content/knowledge-test-results";
+import {
   DEFAULT_INTERVIEW_QUESTIONS_HERO,
   INTERVIEW_QUESTIONS,
   formatInterviewHeroCopy,
@@ -27,13 +40,6 @@ import {
   parseIsoDateOnly,
   selectCurrentMarketQuestions,
 } from "../src/lib/content/interview-questions-freshness";
-import {
-  DEFAULT_KNOWLEDGE_TEST_HERO,
-  formatKnowledgeTestHeroCopy,
-  getLiveKnowledgeTestSets,
-  mergeKnowledgeTestHero,
-  normalizeKnowledgeTestPayload,
-} from "../src/lib/content/knowledge-test-payload";
 import {
   isDashboardCardAccessible,
   isDashboardModuleVisible,
