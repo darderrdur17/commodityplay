@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getContentTierForSlug, getKnowledgeTestPageData } from "@/lib/content/accessors";
-import { latestKnowledgeTestResultsBySet } from "@/lib/content/knowledge-test-results";
+import { latestKnowledgeTestResultsBySet, type KnowledgeTestStoredResult } from "@/lib/content/knowledge-test-results";
 import { DEFAULT_KNOWLEDGE_TEST_SET_ID } from "@/lib/content/knowledge-test-payload";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -26,7 +26,7 @@ export default async function KnowledgeTestPage() {
     getContentTierForSlug("knowledge-test"),
   ]);
 
-  let initialResults = {};
+  let initialResults: Record<string, KnowledgeTestStoredResult> = {};
   try {
     const rows = await prisma.knowledgeTestResult.findMany({
       where: { userId: session.user.id },
