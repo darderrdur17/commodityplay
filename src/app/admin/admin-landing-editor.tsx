@@ -9,6 +9,8 @@ interface Props {
   content: LandingContent;
   onChange: (content: LandingContent) => void;
   trackFilter?: "career" | "sales" | "both";
+  /** Rendered immediately under Sales Track Only — Tools (example talking points). */
+  afterSalesTrackTools?: React.ReactNode;
 }
 
 function Section({
@@ -340,7 +342,12 @@ function ComparisonTableEditor({
   );
 }
 
-export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: Props) {
+export function AdminLandingEditor({
+  content,
+  onChange,
+  trackFilter = "both",
+  afterSalesTrackTools,
+}: Props) {
   function patch<K extends keyof LandingContent>(key: K, value: LandingContent[K]) {
     onChange({ ...content, [key]: value });
   }
@@ -1169,7 +1176,7 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
 
       <Section
         title="Sales Track Only — Tools"
-        description="Accordion on the sales landing tools strip. Headline, intro, titles, and expandable captions are CMS-owned. Example talking points are edited under Sales Market Strip. Add, remove, or reorder rows below."
+        description="Accordion on the sales landing tools strip. Headline, intro, titles, and expandable captions are CMS-owned. Example talking points are edited under Sales Talking Points, directly below. Add, remove, or reorder rows below."
         defaultOpen
       >
         <Field label="Section kicker">
@@ -1318,6 +1325,8 @@ export function AdminLandingEditor({ content, onChange, trackFilter = "both" }: 
           <Plus className="w-3.5 h-3.5" /> Add feature
         </button>
       </Section>
+
+      {afterSalesTrackTools}
 
       <Section title="Sales — Commercial Case (ROI)" description="Dark ROI section on sales track">
         <div className="grid gap-4 sm:grid-cols-2">

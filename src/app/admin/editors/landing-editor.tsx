@@ -133,6 +133,23 @@ export function LandingEditorWrapper({
         content={content}
         onChange={handleLandingChange}
         trackFilter={track}
+        afterSalesTrackTools={
+          showSalesNote ? (
+            <EditorSection
+              title="Sales Talking Points"
+              description="See demo opens Contact Us. Example talking points on the right card are edited here. Feature titles and captions are above under Sales Track Only — Tools. Saves to salesEdgeNote."
+            >
+              <WeeklyEdgeNoteEditor
+                note={salesEdgeNote}
+                onChange={handleSalesEdgeNoteChange}
+                trackLabel="Sales Track Only"
+                defaultNote={defaultSalesEdgeNote}
+                showDemoButton
+                showTopics
+              />
+            </EditorSection>
+          ) : null
+        }
       />
 
       {showCareerNote && (
@@ -145,22 +162,6 @@ export function LandingEditorWrapper({
             onChange={handleCareerEdgeNoteChange}
             trackLabel="Career Track Only"
             defaultNote={defaultCareerEdgeNote}
-          />
-        </EditorSection>
-      )}
-
-      {showSalesNote && (
-        <EditorSection
-          title="Sales Market Strip"
-          description="See demo opens Contact Us. Example talking points on the right card are edited here. Feature titles and captions are above under Sales Track Only — Tools. Saves to salesEdgeNote."
-        >
-          <WeeklyEdgeNoteEditor
-            note={salesEdgeNote}
-            onChange={handleSalesEdgeNoteChange}
-            trackLabel="Sales Track Only"
-            defaultNote={defaultSalesEdgeNote}
-            showDemoButton
-            showTopics
           />
         </EditorSection>
       )}

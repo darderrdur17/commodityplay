@@ -603,7 +603,18 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       landingEditor.includes("content.sales.trackTools") &&
       landingEditor.includes("Add feature") &&
       landingEditor.includes("Expandable caption") &&
-      landingEditor.includes("trackTools.headline")
+      landingEditor.includes("trackTools.headline") &&
+      landingEditor.includes("afterSalesTrackTools")
+  );
+  const landingEditorWrap = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/landing-editor.tsx"),
+    "utf8"
+  );
+  ok(
+    "Sales Talking Points sits under Sales Track Only — Tools in admin",
+    landingEditorWrap.includes('title="Sales Talking Points"') &&
+      landingEditorWrap.includes("afterSalesTrackTools") &&
+      !landingEditorWrap.includes("Sales Market Strip")
   );
 
   const salesPanel = fs.readFileSync(
