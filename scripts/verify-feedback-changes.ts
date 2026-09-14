@@ -489,6 +489,30 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       merged.sales.learn.items[0]?.title === "Edited topic"
   );
 
+  const problemMerged = mergeLandingContent(DEFAULT_LANDING_CONTENT, {
+    sales: {
+      problem: {
+        eyebrow: "The Problem",
+        headline: "Edited problem headline.",
+        description: "Edited problem intro.",
+        cards: [{ title: "Edited card", desc: "Edited card body." }],
+      },
+    },
+  } as never);
+  ok(
+    "Sales The Problem headline persists on public merge",
+    problemMerged.sales.problem.headline === "Edited problem headline." &&
+      problemMerged.sales.problem.cards[0]?.title === "Edited card"
+  );
+  const problemLegacy = mergeLandingContent(DEFAULT_LANDING_CONTENT, {
+    sales: { headline: "Legacy sales still loads" },
+  } as never);
+  ok(
+    "Legacy landing JSON without problem still seeds The Problem cards",
+    problemLegacy.sales.problem.cards.length === 3 &&
+      problemLegacy.sales.problem.eyebrow === "The Problem"
+  );
+
   const save = prepareLandingContentForSave(
     mergeLandingContent(DEFAULT_LANDING_CONTENT, {} as never)
   );
@@ -604,7 +628,9 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       landingEditor.includes("Add feature") &&
       landingEditor.includes("Expandable caption") &&
       landingEditor.includes("trackTools.headline") &&
-      landingEditor.includes("afterSalesTrackTools")
+      landingEditor.includes("afterSalesTrackTools") &&
+      landingEditor.includes("Sales Track — The Problem") &&
+      landingEditor.includes("content.sales.problem")
   );
   const landingEditorWrap = fs.readFileSync(
     path.join(process.cwd(), "src/app/admin/editors/landing-editor.tsx"),
@@ -626,7 +652,9 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     salesPanel.includes("content.trackTools.features") &&
       salesPanel.includes("content.trackTools.eyebrow") &&
       salesPanel.includes("content.trackTools.headline") &&
-      !salesPanel.includes("Sales Market Nudges | Prep Library")
+      !salesPanel.includes("Sales Market Nudges | Prep Library") &&
+      salesPanel.includes("content.problem.cards") &&
+      !salesPanel.includes("PAIN_POINTS")
   );
   ok(
     "See demo on Sales landing opens Contact Us",

@@ -30,23 +30,7 @@ import { SALES_HERO_GREEN } from "@/lib/sales-brand-colors";
 
 const SALES_COLOR = "#0F766E";
 
-const PAIN_POINTS = [
-  {
-    icon: AlertCircle,
-    title: "You're Pitching to People Who Think in Barrels",
-    desc: "Traders don't think in annual recurring revenue, user seats, or implementation timelines. They think in cargo positions, freight rates, and margin at risk. If your discovery call sounds like a software demo instead of a market conversation, you've already lost them.",
-  },
-  {
-    icon: Users,
-    title: "Your Champion Can't Sell You Internally",
-    desc: "Even when your champion sees the value, they struggle to articulate it to a trading desk in commercial terms. They need to explain how your solution maps to their P&L, their risk exposure, or their operational workflow — and most vendors don't give them the language to do it.",
-  },
-  {
-    icon: TrendingUp,
-    title: "You Can't Differentiate on Product Alone",
-    desc: "Your competitors have similar feature sets. The vendor who wins is the one who understands the buyer's commercial context deeply enough to position their solution as the answer to a specific, felt problem — not just another capability on a slide.",
-  },
-];
+const PROBLEM_ICONS = [AlertCircle, Users, TrendingUp] as const;
 
 type SalesLearnItem = LandingContent["sales"]["learn"]["items"][number];
 
@@ -199,26 +183,29 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
       {/* Pain points */}
       <section className="py-16 sm:py-24 page-container">
         <Reveal className="text-center mb-12 max-w-3xl mx-auto">
-          <SectionCategoryLabel colorClass="text-teal-700">The Problem</SectionCategoryLabel>
+          <SectionCategoryLabel colorClass="text-teal-700">{content.problem.eyebrow}</SectionCategoryLabel>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-            Your Buyers Know When You Don&apos;t Get It.
+            {content.problem.headline}
           </h2>
           <p className="text-muted-fg text-base sm:text-lg leading-relaxed">
-            Commodity trading firms buy from people who understand their business. Most vendors don&apos;t.
+            {content.problem.description}
           </p>
         </Reveal>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {PAIN_POINTS.map((p, i) => (
-            <Reveal key={p.title} delay={i * 0.1}>
+          {content.problem.cards.map((p, i) => {
+            const Icon = PROBLEM_ICONS[i % PROBLEM_ICONS.length];
+            return (
+            <Reveal key={`${p.title}-${i}`} delay={i * 0.1}>
               <div className="rounded-xl border border-border bg-white p-6 h-full hover:border-teal-200 hover:-translate-y-1 transition-all">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4" style={{ background: "#CCFBF1", color: SALES_COLOR }}>
-                  <p.icon className="w-5 h-5" />
+                  <Icon className="w-5 h-5" />
                 </div>
                 <h3 className="font-serif font-semibold text-gray-900 mb-2">{p.title}</h3>
                 <p className="text-sm text-muted-fg leading-relaxed">{p.desc}</p>
               </div>
             </Reveal>
-          ))}
+            );
+          })}
         </div>
       </section>
 

@@ -114,6 +114,21 @@ export const landingContentSchema = z.object({
       })
       .default(() => DEFAULT_LANDING_CONTENT.sales.whoSection),
     whoCards: z.array(whoCardSchema).min(1),
+    problem: z
+      .object({
+        eyebrow: z.string().min(1),
+        headline: z.string().min(1),
+        description: z.string().min(1),
+        cards: z
+          .array(
+            z.object({
+              title: z.string().min(1),
+              desc: z.string().min(1),
+            })
+          )
+          .min(1),
+      })
+      .default(() => DEFAULT_LANDING_CONTENT.sales.problem),
     roi: z.object({
       eyebrow: z.string().min(1),
       title: z.string().min(1),

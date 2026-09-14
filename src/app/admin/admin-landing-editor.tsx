@@ -1058,6 +1058,104 @@ export function AdminLandingEditor({
       </Section>
 
       <Section
+        title="Sales Track — The Problem"
+        description="Three-card section under the trusted-by strip on the sales landing. Add or remove cards as needed."
+        defaultOpen
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Section label">
+            <TextInput
+              value={content.sales.problem.eyebrow}
+              onChange={(v) =>
+                patch("sales", { ...content.sales, problem: { ...content.sales.problem, eyebrow: v } })
+              }
+            />
+          </Field>
+          <Field label="Headline">
+            <TextInput
+              value={content.sales.problem.headline}
+              onChange={(v) =>
+                patch("sales", { ...content.sales, problem: { ...content.sales.problem, headline: v } })
+              }
+            />
+          </Field>
+        </div>
+        <Field label="Description">
+          <TextInput
+            value={content.sales.problem.description}
+            onChange={(v) =>
+              patch("sales", { ...content.sales, problem: { ...content.sales.problem, description: v } })
+            }
+            multiline
+            rows={2}
+          />
+        </Field>
+        <div className="space-y-4">
+          {content.sales.problem.cards.map((card, i) => (
+            <div key={`problem-${i}`} className="p-3 rounded-lg border border-border space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-muted-fg uppercase">Card {i + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (content.sales.problem.cards.length <= 1) return;
+                    patch("sales", {
+                      ...content.sales,
+                      problem: {
+                        ...content.sales.problem,
+                        cards: content.sales.problem.cards.filter((_, idx) => idx !== i),
+                      },
+                    });
+                  }}
+                  disabled={content.sales.problem.cards.length <= 1}
+                  className="text-xs text-muted-fg hover:text-red-600 disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </div>
+              <Field label="Title">
+                <TextInput
+                  value={card.title}
+                  onChange={(v) => {
+                    const cards = [...content.sales.problem.cards];
+                    cards[i] = { ...card, title: v };
+                    patch("sales", { ...content.sales, problem: { ...content.sales.problem, cards } });
+                  }}
+                />
+              </Field>
+              <Field label="Body">
+                <TextInput
+                  value={card.desc}
+                  onChange={(v) => {
+                    const cards = [...content.sales.problem.cards];
+                    cards[i] = { ...card, desc: v };
+                    patch("sales", { ...content.sales, problem: { ...content.sales.problem, cards } });
+                  }}
+                  multiline
+                  rows={4}
+                />
+              </Field>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            patch("sales", {
+              ...content.sales,
+              problem: {
+                ...content.sales.problem,
+                cards: [...content.sales.problem.cards, { title: "", desc: "" }],
+              },
+            })
+          }
+          className={smallButtonClass}
+        >
+          <Plus className="w-3.5 h-3.5" /> Add card
+        </button>
+      </Section>
+
+      <Section
         title="Sales Track — What You'll Learn"
         description="Accordion on the Sales landing page — eyebrow, headline, description, and the six topic cards"
         defaultOpen

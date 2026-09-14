@@ -39,6 +39,19 @@ export interface SalesWhoSection {
   headline: string;
 }
 
+/** Sales landing “The Problem” cards. Icons stay in code by row index. */
+export interface SalesProblemCard {
+  title: string;
+  desc: string;
+}
+
+export interface SalesProblemSection {
+  eyebrow: string;
+  headline: string;
+  description: string;
+  cards: SalesProblemCard[];
+}
+
 /** One Sales Track tools row (Market Nudges section) — title + expandable caption. */
 export interface SalesTrackFeature {
   title: string;
@@ -153,6 +166,7 @@ export interface LandingContent {
     stats: { value: number; suffix: string; label: string; animate?: boolean }[];
     whoSection: SalesWhoSection;
     whoCards: SalesWhoCard[];
+    problem: SalesProblemSection;
     roi: {
       eyebrow: string;
       title: string;
@@ -413,6 +427,26 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
     whoSection: {
       label: "Who This Is For",
       headline: "Six Sales Roles. One Shared Problem.",
+    },
+    problem: {
+      eyebrow: "The Problem",
+      headline: "Your Buyers Know When You Don't Get It.",
+      description:
+        "Commodity trading firms buy from people who understand their business. Most vendors don't.",
+      cards: [
+        {
+          title: "You're Pitching to People Who Think in Barrels",
+          desc: "Traders don't think in annual recurring revenue, user seats, or implementation timelines. They think in cargo positions, freight rates, and margin at risk. If your discovery call sounds like a software demo instead of a market conversation, you've already lost them.",
+        },
+        {
+          title: "Your Champion Can't Sell You Internally",
+          desc: "Even when your champion sees the value, they struggle to articulate it to a trading desk in commercial terms. They need to explain how your solution maps to their P&L, their risk exposure, or their operational workflow — and most vendors don't give them the language to do it.",
+        },
+        {
+          title: "You Can't Differentiate on Product Alone",
+          desc: "Your competitors have similar feature sets. The vendor who wins is the one who understands the buyer's commercial context deeply enough to position their solution as the answer to a specific, felt problem — not just another capability on a slide.",
+        },
+      ],
     },
     whoCards: [
       { role: "ETRM & Trading Software", title: "Enterprise Software Sales", desc: "You sell Endur, RightAngle, Allegro, or a competing ETRM. The real decision is made by the trading desk.", outcome: "After the Playbook, I stopped presenting to operations and started having commercial conversations with the desk. First call conversion improved immediately." },

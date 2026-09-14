@@ -351,6 +351,12 @@ export function resolveSalesContent(
       label: cmsString(cms?.whoSection?.label, defaults.sales.whoSection.label),
       headline: cmsString(cms?.whoSection?.headline, defaults.sales.whoSection.headline),
     },
+    problem: {
+      eyebrow: cmsString(cms?.problem?.eyebrow, defaults.sales.problem.eyebrow),
+      headline: cmsString(cms?.problem?.headline, defaults.sales.problem.headline),
+      description: cmsString(cms?.problem?.description, defaults.sales.problem.description),
+      cards: resolveEditableList(defaults.sales.problem.cards, cms?.problem?.cards),
+    },
     learn: {
       eyebrow: cmsString(cms?.learn?.eyebrow, defaults.sales.learn.eyebrow),
       headline: cmsString(cms?.learn?.headline, defaults.sales.learn.headline),
