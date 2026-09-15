@@ -7,6 +7,7 @@ import { BookOpen, ChevronRight, Lock, CheckCircle } from "lucide-react";
 import type { PlaybookHubHeroCopy } from "@/data/playbook-hub-hero";
 import {
   isPlaybookChapterReleasingSoon,
+  playbookChapterHeroColor,
   resolvePlaybookChapterStatus,
   type PlaybookChapterRecord,
 } from "@/lib/content/playbook-payload";
@@ -118,18 +119,24 @@ export function PlaybookHubClient({
               >
                 {/* Accent bar */}
                 <div
-                  className="absolute left-0 top-0 bottom-0 w-1"
-                  style={{ background: chapter.color }}
+                  className={`absolute left-0 top-0 bottom-0 w-1 ${releasingSoon ? "bg-primary-line" : "bg-primary-800"}`}
+                  style={!releasingSoon ? { backgroundColor: playbookChapterHeroColor(chapter) } : undefined}
                 />
 
                 <div className="pl-5 pr-6 py-5 flex items-start gap-5">
-                  {/* Chapter indicator */}
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-serif text-xl font-bold"
-                    style={{ background: chapter.color }}
-                  >
-                    {chapter.letter}
-                  </div>
+                  {/* Chapter letter: live = solid brand box; releasing-soon = light blue. */}
+                  {releasingSoon ? (
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 font-serif text-xl font-bold bg-primary-soft text-primary-400 border border-primary-line">
+                      {chapter.letter}
+                    </div>
+                  ) : (
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-serif text-xl font-bold bg-primary-800"
+                      style={{ backgroundColor: playbookChapterHeroColor(chapter) }}
+                    >
+                      {chapter.letter}
+                    </div>
+                  )}
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">

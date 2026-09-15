@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { AnimatedProgress } from "@/components/animations";
 import { type PlaybookSection } from "@/data/playbook";
 import type { PlaybookChapterRecord } from "@/lib/content/playbook-payload";
-import { isPlaybookChapterReleasingSoon } from "@/lib/content/playbook-payload";
+import { isPlaybookChapterReleasingSoon, playbookChapterHeroColor } from "@/lib/content/playbook-payload";
 import {
   isStarterPlaybookSectionUnlocked,
   starterChapterPreviewLabel,
@@ -140,11 +140,11 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
         </div>
       </div>
 
-      {/* Chapter hero */}
+      {/* Chapter hero — always painted (F+ have no seed color; never gate on takeaways). */}
       <div className="page-container py-8 sm:py-10">
         <div
-          className="rounded-2xl p-8 mb-8 text-white relative overflow-hidden"
-          style={{ background: chapter.color }}
+          className="rounded-2xl p-8 mb-8 text-white relative overflow-hidden bg-primary-800"
+          style={{ backgroundColor: playbookChapterHeroColor(chapter) }}
         >
           <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/5" />
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
@@ -160,7 +160,9 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
                   <h1 className="font-serif text-2xl font-bold">{chapter.title}</h1>
                 </div>
               </div>
-              <p className="text-white/70 text-sm mb-4 max-w-xl">{chapter.subtitle}</p>
+              {chapter.subtitle ? (
+                <p className="text-white/70 text-sm mb-4 max-w-xl">{chapter.subtitle}</p>
+              ) : null}
               {isChapterAPreview && (
                 <p className="text-white/80 text-sm bg-white/10 rounded-lg px-4 py-3 border border-white/20 max-w-xl">
                   Starter includes {starterChapterPreviewLabel(sections.length)} in this chapter.
@@ -188,7 +190,7 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
             {(chapter.keyTakeaways ?? []).map((kt, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-primary-800">
                 <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary-400" />
-                {kt}
+                <PlaybookText text={kt} />
               </li>
             ))}
           </ul>
@@ -230,7 +232,7 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
               })}
             </nav>
             {nextChapter && (
-              <div className="mt-5 rounded-lg p-3.5 text-white" style={{ background: chapter.color }}>
+              <div className="mt-5 rounded-lg p-3.5 text-white bg-primary-800" style={{ backgroundColor: playbookChapterHeroColor(chapter) }}>
                 <p className="text-[10px] uppercase tracking-widest text-white/60 mb-1">Up Next</p>
                 <p className="font-serif text-sm font-semibold mb-2">Chapter {nextChapter.letter} — {nextChapter.title}</p>
                 <Link href={`/playbook/${nextChapter.id}`} className="text-xs text-white/80 hover:text-white flex items-center gap-1">

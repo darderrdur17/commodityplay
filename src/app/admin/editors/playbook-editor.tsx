@@ -61,6 +61,7 @@ function newChapter(idx: number): PlaybookChapterRecord {
     subtitle: "",
     pages: 0,
     status: defaultPlaybookChapterStatus(letter),
+    keyTakeaways: [],
     sections: [],
   };
 }
@@ -285,6 +286,22 @@ export function PlaybookEditor({
           </EditorField>
           <EditorField label="Subtitle">
             <input className={inputClass} value={ch.subtitle} onChange={(e) => patchChapter(ci, { ...ch, subtitle: e.target.value })} />
+          </EditorField>
+          <EditorField
+            label="Key takeaways"
+            hint="One takeaway per line. Keep **term** markers so glossary links stay blue on the member page. Shown under the chapter hero for live and releasing-soon chapters."
+          >
+            <textarea
+              className={textareaClass}
+              rows={5}
+              value={(ch.keyTakeaways ?? []).join("\n")}
+              onChange={(e) =>
+                patchChapter(ci, {
+                  ...ch,
+                  keyTakeaways: e.target.value.split("\n"),
+                })
+              }
+            />
           </EditorField>
 
           <div className="space-y-2">

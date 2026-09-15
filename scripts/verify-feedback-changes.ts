@@ -12,7 +12,11 @@ import { getDemoAccountDisplayPersona } from "../src/data/demo-accounts";
 import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
 import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import playbookSections from "../src/data/playbook-sections.json";
-import { resolvePlaybookPayload } from "../src/lib/content/playbook-payload";
+import {
+  PLAYBOOK_CHAPTER_FALLBACK_COLOR,
+  playbookChapterHeroColor,
+  resolvePlaybookPayload,
+} from "../src/lib/content/playbook-payload";
 import {
   DEFAULT_KNOWLEDGE_TEST_HERO,
   DEFAULT_KNOWLEDGE_TEST_SET_ID,
@@ -873,6 +877,33 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       !playbookHub.includes("letter === \"F\"")
   );
   ok(
+    "Playbook hub letter badges: live solid navy, releasing-soon light blue, not hardcoded to F–I",
+    playbookHub.includes("bg-primary-soft") &&
+      playbookHub.includes("text-primary-400") &&
+      playbookHub.includes("bg-primary-800") &&
+      playbookHub.includes("playbookChapterHeroColor") &&
+      playbookHub.includes("chapter.letter") &&
+      playbookHub.includes("releasingSoon") &&
+      !playbookHub.includes('chapter.id === "f"') &&
+      !playbookHub.includes("letter === \"G\"")
+  );
+  ok(
+    "Playbook chapter page always paints the navy/blue hero strip (not gated on takeaways or status)",
+    playbookChapter.includes("playbookChapterHeroColor") &&
+      playbookChapter.includes("bg-primary-800") &&
+      playbookChapter.includes("backgroundColor") &&
+      playbookChapter.includes("Key Takeaways") &&
+      playbookChapter.includes("keyTakeaways") &&
+      !playbookChapter.includes("keyTakeaways?.length &&") &&
+      !playbookChapter.includes("isPlaybookChapterReleasingSoon(chapter)")
+  );
+  ok(
+    "Playbook admin can edit key takeaways for every chapter",
+    playbookEditor.includes("Key takeaways") &&
+      playbookEditor.includes("keyTakeaways") &&
+      playbookEditor.includes("Keep **term** markers")
+  );
+  ok(
     "Playbook admin can publish or mark releasing soon per chapter",
     playbookEditor.includes("Hub listing") &&
       playbookEditor.includes("releasing-soon") &&
@@ -971,6 +1002,44 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Admin can mark an early chapter releasing soon",
     soonEarly.chapters[0]?.status === "releasing-soon"
+  );
+  const unreleasedTakeaways = resolvePlaybookPayload({
+    chapters: [
+      {
+        id: "f",
+        letter: "F",
+        title: "Trade Finance & Credit",
+        status: "releasing-soon",
+        keyTakeaways: ["Letters of credit move title and payment risk", ""],
+        sections: [],
+      },
+    ],
+  });
+  ok(
+    "CMS key takeaways persist on releasing-soon chapters",
+    unreleasedTakeaways.chapters[0]?.status === "releasing-soon" &&
+      unreleasedTakeaways.chapters[0]?.keyTakeaways?.includes(
+        "Letters of credit move title and payment risk"
+      ) === true
+  );
+  const extraLetter = resolvePlaybookPayload({
+    chapters: [{ id: "k", letter: "K", title: "Future Chapter", sections: [] }],
+  });
+  ok(
+    "Future unreleased chapters default to releasing-soon without a hardcoded letter list",
+    extraLetter.chapters[0]?.letter === "K" && extraLetter.chapters[0]?.status === "releasing-soon"
+  );
+  ok(
+    "Unreleased CMS chapters without color still resolve to brand navy for the chapter strip",
+    extraLetter.chapters[0]?.color === PLAYBOOK_CHAPTER_FALLBACK_COLOR &&
+      unreleasedTakeaways.chapters[0]?.color === PLAYBOOK_CHAPTER_FALLBACK_COLOR
+  );
+  ok(
+    "Chapter hero color falls back to brand navy when CMS omits or blanks color",
+    playbookChapterHeroColor({}) === PLAYBOOK_CHAPTER_FALLBACK_COLOR &&
+      playbookChapterHeroColor({ color: "  " }) === PLAYBOOK_CHAPTER_FALLBACK_COLOR &&
+      playbookChapterHeroColor({ color: "transparent" }) === PLAYBOOK_CHAPTER_FALLBACK_COLOR &&
+      playbookChapterHeroColor({ color: "#3280ff" }) === "#3280ff"
   );
 }
 

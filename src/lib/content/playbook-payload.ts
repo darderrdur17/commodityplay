@@ -25,11 +25,46 @@ export type PlaybookChapterRecord = {
   track?: "career" | "sales" | "both";
 };
 
+/** Brand navy (`primary-800`) when a CMS chapter has no usable per-chapter color. */
+export const PLAYBOOK_CHAPTER_FALLBACK_COLOR = "#0830a0";
+
+function isUsableChapterColor(value: unknown): value is string {
+  if (!filled(value)) return false;
+  const c = value.trim().toLowerCase();
+  if (
+    c === "transparent" ||
+    c === "none" ||
+    c === "inherit" ||
+    c === "white" ||
+    c === "#fff" ||
+    c === "#ffffff" ||
+    c === "#ffffffff"
+  ) {
+    return false;
+  }
+  return true;
+}
+
 /** Seed only — missing CMS flags: letters A–E live, F+ releasing soon. */
 export function defaultPlaybookChapterStatus(letter: string): PlaybookChapterStatus {
   const ch = letter.trim().charAt(0).toUpperCase();
   if (!ch) return "live";
   return ch >= "F" ? "releasing-soon" : "live";
+}
+
+/** Always a paint-able CSS color so F+ admin preview still gets the A–E navy strip. */
+export function playbookChapterHeroColor(chapter: { color?: string | null }): string {
+  return isUsableChapterColor(chapter.color) ? chapter.color.trim() : PLAYBOOK_CHAPTER_FALLBACK_COLOR;
+}
+
+function mergeKeyTakeaways(
+  cms: readonly string[] | undefined,
+  base: readonly string[] | undefined
+): readonly string[] | undefined {
+  if (Array.isArray(cms) && cms.some((line) => filled(line))) {
+    return cms.map((line) => (typeof line === "string" ? line : "")).filter((line) => filled(line));
+  }
+  return base;
 }
 
 export function resolvePlaybookChapterStatus(
@@ -171,11 +206,11 @@ function mergeChapterMeta(
     letter,
     title: filled(cms?.title) ? cms.title : base.title,
     subtitle: filled(cms?.subtitle) ? cms.subtitle : base.subtitle,
-    color: filled(cms?.color) ? cms.color : base.color,
+    color: playbookChapterHeroColor({ color: filled(cms?.color) ? cms.color : base.color }),
     pages: typeof cms?.pages === "number" ? cms.pages : base.pages,
     preview: cms?.preview ?? base.preview,
     status,
-    keyTakeaways: cms?.keyTakeaways?.length ? cms.keyTakeaways : base.keyTakeaways,
+    keyTakeaways: mergeKeyTakeaways(cms?.keyTakeaways, base.keyTakeaways),
     track: cms?.track ?? base.track,
     sections,
   };
