@@ -34,6 +34,7 @@ export default async function CareerRoadmapPage() {
       pageHero={careerData.pageHero}
       functionMatrixSection={careerData.functionMatrixSection}
       timelineSection={careerData.timelineSection}
+      bottomStrip={careerData.bottomStrip}
       careerNavigationGuide={careerData.careerNavigationGuide}
       requiredTier={requiredTier as "PRO" | "ELITE"}
     />

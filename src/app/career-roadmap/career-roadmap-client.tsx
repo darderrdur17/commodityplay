@@ -11,11 +11,13 @@ import { Reveal } from "@/components/animations";
 import { CAREER_ROLES, type CareerRole } from "@/data/career-roadmap";
 import type { FunctionMatrixRow, TimelineQuarter, CompBenchmarks } from "@/data/career-roadmap-extras";
 import type {
+  CareerRoadmapBottomStrip,
   CareerRoadmapPageHero,
   CareerRoadmapSectionCopy,
   GuideAttachment,
 } from "@/lib/content/career-roadmap-payload";
 import {
+  DEFAULT_CAREER_ROADMAP_BOTTOM_STRIP,
   DEFAULT_CAREER_ROADMAP_HERO,
   DEFAULT_FUNCTION_MATRIX_SECTION,
   DEFAULT_TIMELINE_SECTION,
@@ -50,6 +52,7 @@ interface Props {
   pageHero?: CareerRoadmapPageHero;
   functionMatrixSection?: CareerRoadmapSectionCopy;
   timelineSection?: CareerRoadmapSectionCopy;
+  bottomStrip?: CareerRoadmapBottomStrip;
   careerNavigationGuide?: GuideAttachment | null;
   requiredTier?: "PRO" | "ELITE";
 }
@@ -64,6 +67,7 @@ export function CareerRoadmapClient({
   pageHero = DEFAULT_CAREER_ROADMAP_HERO,
   functionMatrixSection = DEFAULT_FUNCTION_MATRIX_SECTION,
   timelineSection = DEFAULT_TIMELINE_SECTION,
+  bottomStrip = DEFAULT_CAREER_ROADMAP_BOTTOM_STRIP,
   careerNavigationGuide = null,
   requiredTier = "PRO",
 }: Props) {
@@ -439,6 +443,29 @@ export function CareerRoadmapClient({
             )}
           </section>
         )}
+
+        <section className="mt-10 sm:mt-16 rounded-2xl bg-primary-800 px-5 sm:px-8 py-8 sm:py-10 relative overflow-hidden">
+          <Reveal className="relative z-10">
+            <div className="pill pill-dark mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent" /> {bottomStrip.eyebrow}
+            </div>
+            <h2 className="font-serif text-2xl sm:text-4xl font-bold text-white mb-3">{bottomStrip.title}</h2>
+            <p className="text-white/65 text-sm sm:text-lg max-w-xl">{bottomStrip.description}</p>
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-6">
+              {bottomStrip.buttons.map((btn) => (
+                <Button
+                  key={`${btn.label}-${btn.href}`}
+                  asChild
+                  variant="outline-dark"
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
+                  <Link href={btn.href}>{btn.label}</Link>
+                </Button>
+              ))}
+            </div>
+          </Reveal>
+        </section>
       </TierGate>
     </div>
   );

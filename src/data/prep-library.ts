@@ -1,5 +1,8 @@
 export type PrepLibraryTrack = "CAREER" | "SALES";
 
+/** One bullet per line. High enough for long notes; not a 3–4 bullet cap. */
+export const KEY_POINTS_MAX = 40;
+
 export const PREP_STATUS_PRESETS = ["Learning it", "Interview-ready", "Used it"] as const;
 
 export type PrepStatusPreset = (typeof PREP_STATUS_PRESETS)[number];

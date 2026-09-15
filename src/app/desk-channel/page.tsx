@@ -28,6 +28,7 @@ export default async function DeskChannelPage() {
       categories={desk.categories}
       questions={desk.questions}
       pageCopy={desk.pageCopy}
+      lastRefreshed={desk.lastRefreshed}
       requiredTier={requiredTier as "PRO" | "ELITE"}
     />
   );

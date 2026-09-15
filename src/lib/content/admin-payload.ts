@@ -2,6 +2,8 @@ import { DESK_QA } from "@/data/desk-channel";
 import { INTERVIEW_QUESTIONS } from "@/data/interview-questions";
 import { JOB_OPENINGS } from "@/data/job-openings";
 import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
+import { DEFAULT_CASE_STUDIES_HERO } from "@/lib/content/case-studies-payload";
+import { hydrateDeskQaDates } from "@/lib/content/desk-channel-freshness";
 import { DEFAULT_DESK_CHANNEL_PAGE_COPY } from "@/data/desk-channel-content";
 import { getDefaultPayload } from "./defaults";
 import { deepMerge } from "./merge";
@@ -21,7 +23,7 @@ export function resolveAdminModulePayload(slug: ContentSlug, payload: unknown): 
     if (Array.isArray(payload)) {
       return {
         categories: defaults.categories,
-        questions: payload.length ? payload : DESK_QA,
+        questions: hydrateDeskQaDates((payload.length ? payload : DESK_QA) as import("@/data/desk-channel").DeskQA[]),
         pageCopy: defaults.pageCopy ?? DEFAULT_DESK_CHANNEL_PAGE_COPY,
       };
     }
@@ -29,6 +31,9 @@ export function resolveAdminModulePayload(slug: ContentSlug, payload: unknown): 
     const stored = (payload as { questions?: unknown[] } | null)?.questions;
     if (!Array.isArray(stored) || stored.length === 0) {
       merged.questions = defaults.questions ?? DESK_QA;
+    }
+    if (Array.isArray(merged.questions)) {
+      merged.questions = hydrateDeskQaDates(merged.questions as import("@/data/desk-channel").DeskQA[]);
     }
     return merged;
   }
@@ -86,6 +91,7 @@ export function resolveAdminModulePayload(slug: ContentSlug, payload: unknown): 
       return {
         studies: payload.length ? payload : CASE_STUDIES,
         details: CASE_STUDY_DETAILS,
+        hero: (defaults as { hero?: unknown }).hero ?? DEFAULT_CASE_STUDIES_HERO,
       };
     }
     const merged = deepMerge(defaults, (payload ?? {}) as Record<string, unknown>);

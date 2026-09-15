@@ -3,24 +3,30 @@
 import React from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EditorField, EditorRow, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, EditorSection, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
 import type { CaseStudyCard, CaseStudySection } from "@/data/case-studies";
+import {
+  mergeCaseStudiesHero,
+  type CaseStudiesHeroCopy,
+} from "@/lib/content/case-studies-payload";
 
 type StudyCard = CaseStudyCard & { track?: "career" | "sales" | "both" };
 
-interface CaseStudiesPayload {
+interface EditorPayload {
   studies: StudyCard[];
   details: Record<string, CaseStudySection[]>;
+  hero?: Partial<CaseStudiesHeroCopy>;
 }
 
-function readPayload(payload: unknown): CaseStudiesPayload {
+function readPayload(payload: unknown): EditorPayload {
   if (Array.isArray(payload)) {
     return { studies: payload as StudyCard[], details: {} };
   }
-  const data = (payload ?? {}) as Partial<CaseStudiesPayload>;
+  const data = (payload ?? {}) as Partial<EditorPayload>;
   return {
-    studies: Array.isArray(data.studies) ? data.studies : [],
+    studies: Array.isArray(data.studies) ? (data.studies as StudyCard[]) : [],
     details: data.details && typeof data.details === "object" ? data.details : {},
+    hero: data.hero,
   };
 }
 
@@ -59,10 +65,16 @@ export function CaseStudiesEditor({
   moduleSlug: string;
   requiredTier: string;
 }) {
-  const { studies: items, details } = readPayload(payload);
+  const data = readPayload(payload);
+  const { studies: items, details } = data;
+  const hero = mergeCaseStudiesHero(data.hero);
 
-  function emit(nextStudies: StudyCard[], nextDetails = details) {
-    onChange({ studies: nextStudies, details: nextDetails });
+  function emit(next: Partial<EditorPayload>) {
+    onChange({ ...data, ...next });
+  }
+
+  function patchHero(updates: Partial<CaseStudiesHeroCopy>) {
+    emit({ hero: { ...hero, ...updates } });
   }
 
   function patchItem(i: number, item: StudyCard) {
@@ -74,7 +86,7 @@ export function CaseStudiesEditor({
       nextDetails[item.slug] = nextDetails[prev.slug]!;
       delete nextDetails[prev.slug];
     }
-    emit(next, nextDetails);
+    emit({ studies: next, details: nextDetails });
   }
 
   function deleteItem(i: number) {
@@ -82,20 +94,41 @@ export function CaseStudiesEditor({
     const removed = items[i];
     const nextDetails = { ...details };
     if (removed?.slug) delete nextDetails[removed.slug];
-    emit(items.filter((_, j) => j !== i), nextDetails);
+    emit({ studies: items.filter((_, j) => j !== i), details: nextDetails });
   }
 
   function addItem() {
-    emit([...items, newCase()]);
+    emit({ studies: [...items, newCase()] });
   }
 
   function patchSections(slug: string, sections: CaseStudySection[]) {
     if (!slug) return;
-    emit(items, { ...details, [slug]: sections });
+    emit({ details: { ...details, [slug]: sections } });
   }
 
   return (
     <div className="space-y-4">
+      <EditorSection
+        title="Page hero strip"
+        description="Blue banner on /case-studies — kicker, title, and description. Use {studyCount} for the live study total."
+        defaultOpen
+      >
+        <EditorField label="Kicker / eyebrow">
+          <input className={inputClass} value={hero.eyebrow} onChange={(e) => patchHero({ eyebrow: e.target.value })} />
+        </EditorField>
+        <EditorField label="Title">
+          <input className={inputClass} value={hero.title} onChange={(e) => patchHero({ title: e.target.value })} />
+        </EditorField>
+        <EditorField label="Description">
+          <textarea
+            className={textareaClass}
+            rows={3}
+            value={hero.description}
+            onChange={(e) => patchHero({ description: e.target.value })}
+          />
+        </EditorField>
+      </EditorSection>
+
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-fg">{items.length} case studies</p>
         <Button variant="outline" size="sm" onClick={addItem}>

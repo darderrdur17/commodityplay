@@ -9,8 +9,5 @@ export async function GET(req: NextRequest) {
   if (access.error) return access.error;
 
   const data = await getDeskChannelData();
-  return NextResponse.json(
-    { categories: data.categories, questions: data.questions },
-    { headers: { "Cache-Control": "no-store" } }
-  );
+  return NextResponse.json(data, { headers: { "Cache-Control": "no-store" } });
 }

@@ -3,6 +3,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { ChevronDown, MessageSquare, Lightbulb, AlertTriangle } from "lucide-react";
 import { BrandedSearchInput } from "@/components/brand/logo";
+import { LibraryFreshnessStrip } from "@/components/library-freshness-strip";
 import { TierGate } from "@/components/tier-gate";
 import { Reveal } from "@/components/animations";
 import {
@@ -290,20 +291,12 @@ export function InterviewQuestionsClient({
           </div>
         </div>
 
-        <div className="mb-6 rounded-xl border border-border bg-white px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-800">
-            Bank last refreshed{" "}
-            <span className="font-semibold">{lastRefreshedLabel ?? "—"}</span>
-          </p>
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-fg">
-            <span>
-              <span className="font-semibold text-gray-900">{newThisMonth}</span> new this month
-            </span>
-            <span>
-              <span className="font-semibold text-gray-900">{questions.length}</span> questions total
-            </span>
-          </div>
-        </div>
+        <LibraryFreshnessStrip
+          lastRefreshedLabel={lastRefreshedLabel}
+          newThisMonth={newThisMonth}
+          total={questions.length}
+          className="mb-6"
+        />
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2 mb-4">

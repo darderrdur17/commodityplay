@@ -1,33 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import type { Prisma, PrepCategory, Track } from "@prisma/client";
+import type { Prisma, Track } from "@prisma/client";
 import { canAccessPrepTrack, requireProSession } from "@/lib/prep-library-auth";
-import {
-  ensureStarterTopics,
-  withStarterFlag,
-} from "@/lib/prep-library-starters";
-import type { PrepLibraryTrack } from "@/data/prep-library";
-
-// ─── Category / Status maps ───────────────────────────────────────────────────
-
-const CATEGORY_TO_PRISMA: Record<string, PrepCategory> = {
-  "Market mechanics": "MARKET_MECHANICS",
-  "Current event": "CURRENT_EVENT",
-  "Risk & pricing": "RISK_PRICING",
-  Logistics: "LOGISTICS",
-  Other: "OTHER",
-};
-
-const CATEGORY_FROM_PRISMA: Record<PrepCategory, string> = {
-  MARKET_MECHANICS: "Market mechanics",
-  CURRENT_EVENT: "Current event",
-  RISK_PRICING: "Risk & pricing",
-  LOGISTICS: "Logistics",
-  OTHER: "Other",
-};
-
-// ─── Schema ───────────────────────────────────────────────────────────────────
+import { ensureStarterTopics } from "@/lib/prep-library-starters";
+import { KEY_POINTS_MAX, type PrepLibraryTrack } from "@/data/prep-library";
+import { CATEGORY_TO_PRISMA, serializeTalkingPoint } from "@/lib/prep-library-serialize";
 
 const createSchema = z.object({
   track: z.enum(["CAREER", "SALES"]),
@@ -39,43 +17,12 @@ const createSchema = z.object({
     "Logistics",
     "Other",
   ]),
-  keyPoints: z.array(z.string()).min(1).max(4),
+  keyPoints: z.array(z.string().min(1).max(500)).min(1).max(KEY_POINTS_MAX),
   source: z.string().max(200).optional(),
   prepStatus: z.string().min(1).max(50).default("Learning it"),
   usedInNote: z.string().max(500).optional(),
   canUseFor: z.string().max(200).optional(),
 });
-
-function serializeRow(
-  userId: string,
-  r: {
-    id: string;
-    userId: string;
-    track: Track;
-    createdAt: Date;
-    title: string;
-    category: PrepCategory;
-    keyPoints: string[];
-    source: string | null;
-    prepStatus: string;
-    usedInNote: string | null;
-    canUseFor: string | null;
-  }
-) {
-  return withStarterFlag(userId, {
-    id: r.id,
-    userId: r.userId,
-    track: r.track,
-    createdAt: r.createdAt,
-    title: r.title,
-    category: CATEGORY_FROM_PRISMA[r.category],
-    keyPoints: r.keyPoints,
-    source: r.source ?? undefined,
-    prepStatus: r.prepStatus,
-    usedInNote: r.usedInNote ?? undefined,
-    canUseFor: r.canUseFor ?? undefined,
-  });
-}
 
 // ─── GET /api/prep-library?track=CAREER|SALES ────────────────────────────────
 
@@ -105,7 +52,7 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(
-    rows.map((row) => serializeRow(authResult.user.id, row))
+    rows.map((row) => serializeTalkingPoint(authResult.user.id, row))
   );
 }
 
@@ -142,5 +89,5 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(serializeRow(authResult.user.id, row));
+  return NextResponse.json(serializeTalkingPoint(authResult.user.id, row));
 }

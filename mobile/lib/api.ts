@@ -141,7 +141,17 @@ export const mentorApi = {
 };
 
 export const communityApi = {
-  getDeskChannel: () => contentApi.get<{ categories: any[]; questions: any[] }>("desk-channel"),
+  getDeskChannel: () =>
+    contentApi.get<{
+      categories: any[];
+      questions: any[];
+      lastRefreshed?: string;
+      freshness?: {
+        lastRefreshedLabel: string | null;
+        newThisMonth: number;
+        total: number;
+      };
+    }>("desk-channel"),
   getJobOpenings: () => contentApi.get<{ jobs: any[]; regions: any[]; levels: any[]; segments: any[] }>("job-openings"),
   joinWaitlist: (data: { email: string; name?: string; track: string; gdprOpt: boolean }) =>
     request("/api/waitlist", {

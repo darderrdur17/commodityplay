@@ -8,7 +8,12 @@ import {
   type TimelineQuarter,
 } from "@/data/career-roadmap-extras";
 import type { CmsPageHero, CmsSectionHeading } from "@/lib/content/cms-page-copy";
-import { mergeCmsPageHero, mergeCmsSectionHeading } from "@/lib/content/cms-page-copy";
+import {
+  formatCmsHeroCopy,
+  mergeCmsPageHero,
+  mergeCmsSectionHeading,
+  sanitizeMemberHref,
+} from "@/lib/content/cms-page-copy";
 
 export interface GuideAttachment {
   label: string;
@@ -48,8 +53,54 @@ export const DEFAULT_TIMELINE_SECTION: CareerRoadmapSectionCopy = {
     "Specific knowledge targets and actions calibrated to where a serious candidate actually is, quarter by quarter.",
 };
 
+export interface CareerRoadmapCtaButton {
+  label: string;
+  href: string;
+}
+
+export interface CareerRoadmapBottomStrip {
+  eyebrow: string;
+  title: string;
+  description: string;
+  buttons: CareerRoadmapCtaButton[];
+}
+
+export const DEFAULT_CAREER_ROADMAP_BOTTOM_STRIP: CareerRoadmapBottomStrip = {
+  eyebrow: "PRO ACCESS · NEXT STEPS",
+  title: "Keep going from here.",
+  description:
+    "Rehearse the desk interview, then build the resume that matches the role path above.",
+  buttons: [
+    { label: "Go to Questions Bank", href: "/interview-questions" },
+    { label: "Go to Resume Building", href: "/resume-templates" },
+  ],
+};
+
 export function interpolateRoleCount(text: string, roleCount: number): string {
-  return text.split("{roleCount}").join(String(roleCount));
+  return formatCmsHeroCopy(text, { roleCount });
+}
+
+export function mergeCareerRoadmapBottomStrip(
+  cms?: Partial<CareerRoadmapBottomStrip> | null
+): CareerRoadmapBottomStrip {
+  const raw = cms ?? {};
+  const defaults = DEFAULT_CAREER_ROADMAP_BOTTOM_STRIP;
+  const buttons =
+    Array.isArray(raw.buttons) && raw.buttons.length > 0
+      ? raw.buttons.map((btn, i) => {
+          const fallback = defaults.buttons[i] ?? defaults.buttons[0]!;
+          return {
+            label: btn.label?.trim() || fallback.label,
+            href: sanitizeMemberHref(btn.href, fallback.href),
+          };
+        })
+      : defaults.buttons;
+  return {
+    eyebrow: raw.eyebrow?.trim() || defaults.eyebrow,
+    title: raw.title?.trim() || defaults.title,
+    description: raw.description?.trim() || defaults.description,
+    buttons,
+  };
 }
 
 function mergeSectionCopy(
@@ -107,6 +158,7 @@ export interface CareerRoadmapResolvedPayload {
   pageHero: CareerRoadmapPageHero;
   functionMatrixSection: CareerRoadmapSectionCopy;
   timelineSection: CareerRoadmapSectionCopy;
+  bottomStrip: CareerRoadmapBottomStrip;
   careerNavigationGuide: GuideAttachment | null;
 }
 
@@ -138,6 +190,9 @@ export function resolveCareerRoadmapPayload(payload: unknown): CareerRoadmapReso
       raw.timelineSection as Partial<CareerRoadmapSectionCopy> | undefined,
       DEFAULT_TIMELINE_SECTION
     ),
+    bottomStrip: mergeCareerRoadmapBottomStrip(
+      raw.bottomStrip as Partial<CareerRoadmapBottomStrip> | undefined
+    ),
     careerNavigationGuide: resolveCareerNavigationGuide(
       raw.careerNavigationGuide as GuideAttachment | null | undefined
     ),
@@ -153,6 +208,7 @@ export function buildDefaultCareerRoadmapPayload() {
     pageHero: DEFAULT_CAREER_ROADMAP_HERO,
     functionMatrixSection: DEFAULT_FUNCTION_MATRIX_SECTION,
     timelineSection: DEFAULT_TIMELINE_SECTION,
+    bottomStrip: DEFAULT_CAREER_ROADMAP_BOTTOM_STRIP,
     careerNavigationGuide: null as GuideAttachment | null,
   };
 }

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp, ThumbsUp, Check, ArrowRight } from "lucide-react";
 import { BrandedSearchInput } from "@/components/brand/logo";
+import { LibraryFreshnessStrip } from "@/components/library-freshness-strip";
 import { DESK_CATEGORIES, DESK_QA, type DeskCategory, type DeskQA } from "@/data/desk-channel";
+import { getDeskLibraryFreshness } from "@/lib/content/desk-channel-freshness";
 import {
   DEFAULT_DESK_CHANNEL_PAGE_COPY,
   type DeskChannelPageCopy,
@@ -21,6 +23,7 @@ interface Props {
   questions?: DeskQA[];
   pageCopy?: DeskChannelPageCopy;
   requiredTier?: "PRO" | "ELITE";
+  lastRefreshed?: string;
 }
 
 export function DeskChannelClient({
@@ -29,11 +32,16 @@ export function DeskChannelClient({
   questions = DESK_QA,
   pageCopy = DEFAULT_DESK_CHANNEL_PAGE_COPY,
   requiredTier = "ELITE",
+  lastRefreshed,
 }: Props) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<DeskCategory | "all">("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
+  const freshness = useMemo(
+    () => getDeskLibraryFreshness(questions, lastRefreshed),
+    [questions, lastRefreshed]
+  );
 
   const filtered = useMemo(() => {
     return questions.filter((q) => {
@@ -77,6 +85,12 @@ export function DeskChannelClient({
       </section>
 
       <TierGate requiredTier={requiredTier} userTier={userTier}>
+      <LibraryFreshnessStrip
+        lastRefreshedLabel={freshness.lastRefreshedLabel}
+        newThisMonth={freshness.newThisMonth}
+        total={freshness.total}
+        className="mb-8"
+      />
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar categories */}
         <aside className="lg:w-56 flex-shrink-0">

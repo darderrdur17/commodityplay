@@ -10,7 +10,9 @@ import {
   DEFAULT_FUNCTION_MATRIX_SECTION,
   DEFAULT_TIMELINE_SECTION,
   mergeCareerRoadmapHero,
+  mergeCareerRoadmapBottomStrip,
   mergeCompBenchmarks,
+  type CareerRoadmapBottomStrip,
   type CareerRoadmapPageHero,
   type CareerRoadmapSectionCopy,
 } from "@/lib/content/career-roadmap-payload";
@@ -71,6 +73,7 @@ type RoadmapPayload = {
   careerNavigationGuide?: GuideAttachment | null;
   navigationGuides?: { id: string; label: string; fileName: string; assetId: string; track: "career" | "sales" | "both"; updatedAt: string }[];
   pageHero?: Partial<CareerRoadmapPageHero>;
+  bottomStrip?: Partial<CareerRoadmapBottomStrip>;
   functionMatrix?: FunctionMatrixRow[];
   functionMatrixSection?: Partial<CareerRoadmapSectionCopy>;
   timeline12Month?: TimelineQuarter[];
@@ -79,11 +82,12 @@ type RoadmapPayload = {
   [key: string]: unknown;
 };
 
-type RoadmapTab = "roles" | "hero" | "matrix" | "plan" | "comp" | "navguide";
+type RoadmapTab = "roles" | "hero" | "bottom" | "matrix" | "plan" | "comp" | "navguide";
 
 const ROADMAP_TABS: { id: RoadmapTab; label: string }[] = [
   { id: "roles", label: "Roles" },
   { id: "hero", label: "Top blue strip" },
+  { id: "bottom", label: "Bottom blue strip" },
   { id: "matrix", label: "Function matrix" },
   { id: "plan", label: "12-month plan" },
   { id: "comp", label: "Comp benchmarks" },
@@ -171,8 +175,9 @@ export function CareerRoadmapEditor({
         const hero = mergeCareerRoadmapHero(raw.pageHero);
         return (
           <div className="space-y-4">
+            <p className="text-xs font-semibold text-gray-900">Page hero strip</p>
             <p className="text-xs text-muted-fg">
-              Blue strip at the top of <strong>/career-roadmap</strong>. Use <code>{"{roleCount}"}</code> in the
+              Navy banner at the top of <strong>/career-roadmap</strong>. Use <code>{"{roleCount}"}</code> in the
               description or a stat number to insert the live role count.
             </p>
             <EditorField label="Eyebrow">
@@ -225,6 +230,91 @@ export function CareerRoadmapEditor({
                   <button
                     type="button"
                     onClick={() => updateRaw({ pageHero: { ...hero, stats: hero.stats.filter((_, j) => j !== i) } })}
+                    className="text-red-400 hover:text-red-600 p-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {activeTab === "bottom" && (() => {
+        const strip = mergeCareerRoadmapBottomStrip(raw.bottomStrip);
+        return (
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-gray-900">Page hero strip</p>
+            <p className="text-xs text-muted-fg">
+              Navy rounded card at the bottom of <strong>/career-roadmap</strong> — kicker, title, description, and CTA
+              buttons (not the top stats hero). Optional hrefs default to /interview-questions and /resume-templates.
+            </p>
+            <EditorField label="Kicker / eyebrow">
+              <input
+                className={inputClass}
+                value={strip.eyebrow}
+                onChange={(e) => updateRaw({ bottomStrip: { ...strip, eyebrow: e.target.value } })}
+              />
+            </EditorField>
+            <EditorField label="Title">
+              <input
+                className={inputClass}
+                value={strip.title}
+                onChange={(e) => updateRaw({ bottomStrip: { ...strip, title: e.target.value } })}
+              />
+            </EditorField>
+            <EditorField label="Description">
+              <textarea
+                className={textareaClass}
+                value={strip.description}
+                onChange={(e) => updateRaw({ bottomStrip: { ...strip, description: e.target.value } })}
+              />
+            </EditorField>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-gray-700">Buttons</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    updateRaw({
+                      bottomStrip: { ...strip, buttons: [...strip.buttons, { label: "", href: "/" }] },
+                    })
+                  }
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add button
+                </Button>
+              </div>
+              {strip.buttons.map((btn, i) => (
+                <div key={i} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] items-center">
+                  <input
+                    className={inputClass}
+                    value={btn.label}
+                    placeholder="Label"
+                    onChange={(e) => {
+                      const buttons = [...strip.buttons];
+                      buttons[i] = { ...btn, label: e.target.value };
+                      updateRaw({ bottomStrip: { ...strip, buttons } });
+                    }}
+                  />
+                  <input
+                    className={inputClass}
+                    value={btn.href}
+                    placeholder="/interview-questions"
+                    onChange={(e) => {
+                      const buttons = [...strip.buttons];
+                      buttons[i] = { ...btn, href: e.target.value };
+                      updateRaw({ bottomStrip: { ...strip, buttons } });
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateRaw({
+                        bottomStrip: { ...strip, buttons: strip.buttons.filter((_, j) => j !== i) },
+                      })
+                    }
                     className="text-red-400 hover:text-red-600 p-1"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

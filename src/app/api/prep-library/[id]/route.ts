@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireProSession } from "@/lib/prep-library-auth";
+import { KEY_POINTS_MAX } from "@/data/prep-library";
+import { CATEGORY_TO_PRISMA, serializeTalkingPoint } from "@/lib/prep-library-serialize";
 
 const updateSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  category: z
+    .enum(["Market mechanics", "Current event", "Risk & pricing", "Logistics", "Other"])
+    .optional(),
+  keyPoints: z.array(z.string().min(1).max(500)).min(1).max(KEY_POINTS_MAX).optional(),
+  source: z.string().max(200).optional(),
   prepStatus: z.string().min(1).max(50).optional(),
   usedInNote: z.string().max(500).optional(),
   canUseFor: z.string().max(200).optional(),
@@ -31,6 +39,12 @@ export async function PATCH(
   const row = await prisma.talkingPoint.update({
     where: { id },
     data: {
+      ...(parsed.data.title !== undefined ? { title: parsed.data.title } : {}),
+      ...(parsed.data.category !== undefined
+        ? { category: CATEGORY_TO_PRISMA[parsed.data.category] }
+        : {}),
+      ...(parsed.data.keyPoints !== undefined ? { keyPoints: parsed.data.keyPoints } : {}),
+      ...(parsed.data.source !== undefined ? { source: parsed.data.source || null } : {}),
       ...(parsed.data.prepStatus !== undefined ? { prepStatus: parsed.data.prepStatus } : {}),
       ...(parsed.data.usedInNote !== undefined
         ? { usedInNote: parsed.data.usedInNote || null }
@@ -41,19 +55,7 @@ export async function PATCH(
     },
   });
 
-  return NextResponse.json({
-    id: row.id,
-    userId: row.userId,
-    track: row.track,
-    createdAt: row.createdAt,
-    title: row.title,
-    category: row.category,
-    keyPoints: row.keyPoints,
-    source: row.source ?? undefined,
-    prepStatus: row.prepStatus,
-    usedInNote: row.usedInNote ?? undefined,
-    canUseFor: row.canUseFor ?? undefined,
-  });
+  return NextResponse.json(serializeTalkingPoint(authResult.user.id, row));
 }
 
 export async function DELETE(

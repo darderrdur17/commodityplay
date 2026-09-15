@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCaseStudiesList, getContentTierForSlug } from "@/lib/content/accessors";
+import { getCaseStudiesPageData, getContentTierForSlug } from "@/lib/content/accessors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { CaseStudiesClient } from "./case-studies-client";
@@ -19,14 +19,15 @@ export default async function CaseStudiesPage() {
 
   if (!user) redirect("/login");
 
-  const [studies, requiredTier] = await Promise.all([
-    getCaseStudiesList(),
+  const [pageData, requiredTier] = await Promise.all([
+    getCaseStudiesPageData(),
     getContentTierForSlug("case-studies"),
   ]);
   return (
     <CaseStudiesClient
       userTier={user.tier}
-      studies={studies}
+      studies={pageData.studies}
+      hero={pageData.hero}
       requiredTier={requiredTier as "PRO" | "ELITE"}
     />
   );

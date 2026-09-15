@@ -34,7 +34,6 @@ export const CASE_STUDIES: CaseStudyCard[] = (index as Array<{
   status: string;
 }>)
   .filter((c) => c.status === "published")
-  .slice(0, 10)
   .map((c) => {
     const slug = slugify(c.title);
     return {

@@ -5,6 +5,12 @@ export const CURRENT_MARKET_POD_SIZE = 3;
 
 export type InterviewFreshnessBadge = "new" | "revisit";
 
+/** Shared by Interview Questions and Desk Channel Q&A libraries. */
+export type DatedLibraryItem = {
+  addedAt?: string | null;
+  updatedAt?: string | null;
+};
+
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const SHORT_MONTHS = [
   "Jan",
@@ -20,6 +26,33 @@ const SHORT_MONTHS = [
   "Nov",
   "Dec",
 ] as const;
+
+const MONTH_NAME_TO_INDEX: Record<string, number> = {
+  jan: 0,
+  january: 0,
+  feb: 1,
+  february: 1,
+  mar: 2,
+  march: 2,
+  apr: 3,
+  april: 3,
+  may: 4,
+  jun: 5,
+  june: 5,
+  jul: 6,
+  july: 6,
+  aug: 7,
+  august: 7,
+  sep: 8,
+  sept: 8,
+  september: 8,
+  oct: 9,
+  october: 9,
+  nov: 10,
+  november: 10,
+  dec: 11,
+  december: 11,
+};
 
 /** Parse `YYYY-MM-DD` as a local calendar date. Invalid / missing → null (no crash). */
 export function parseIsoDateOnly(value?: string | null): Date | null {
@@ -43,6 +76,28 @@ export function formatInterviewMemberDate(value?: string | null): string | null 
   return `${date.getDate()} ${SHORT_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+/**
+ * ISO `YYYY-MM-DD`, or month + year used on older Desk Channel rows (`May 2025`, `Apr 2025`).
+ * Month-year values land on the 1st of that month.
+ */
+export function parseFlexibleCalendarDate(value?: string | null): Date | null {
+  const iso = parseIsoDateOnly(value);
+  if (iso) return iso;
+  if (!value) return null;
+  const match = value.trim().match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (!match) return null;
+  const monthIdx = MONTH_NAME_TO_INDEX[match[1]!.toLowerCase()];
+  if (monthIdx === undefined) return null;
+  const year = Number(match[2]);
+  if (!Number.isInteger(year) || year < 1990 || year > 2100) return null;
+  return new Date(year, monthIdx, 1);
+}
+
+export function toIsoFromFlexibleDate(value?: string | null): string | null {
+  const date = parseFlexibleCalendarDate(value);
+  return date ? toIsoDateOnly(date) : null;
+}
+
 export function toIsoDateOnly(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -59,14 +114,14 @@ function isWithinDays(from: Date, now: Date, days: number): boolean {
   return delta >= 0 && delta <= days * 24 * 60 * 60 * 1000;
 }
 
-function latestQuestionDate(question: Pick<InterviewQuestion, "addedAt" | "updatedAt">): Date | null {
+function latestQuestionDate(question: DatedLibraryItem): Date | null {
   const added = parseIsoDateOnly(question.addedAt);
   const updated = parseIsoDateOnly(question.updatedAt);
   if (added && updated) return added.getTime() >= updated.getTime() ? added : updated;
   return updated ?? added;
 }
 
-function latestQuestionIso(question: Pick<InterviewQuestion, "addedAt" | "updatedAt">): string | null {
+function latestQuestionIso(question: DatedLibraryItem): string | null {
   const added = parseIsoDateOnly(question.addedAt);
   const updated = parseIsoDateOnly(question.updatedAt);
   if (added && updated) {
@@ -79,7 +134,7 @@ function latestQuestionIso(question: Pick<InterviewQuestion, "addedAt" | "update
 
 /** New if added within 30 days; Revisit if updated within 30 days but not New. No dates → no badge. */
 export function getQuestionFreshnessBadge(
-  question: Pick<InterviewQuestion, "addedAt" | "updatedAt">,
+  question: DatedLibraryItem,
   now: Date = new Date()
 ): InterviewFreshnessBadge | null {
   const added = parseIsoDateOnly(question.addedAt);
@@ -90,7 +145,7 @@ export function getQuestionFreshnessBadge(
 }
 
 export function countNewThisMonth(
-  questions: Pick<InterviewQuestion, "addedAt">[],
+  questions: Pick<DatedLibraryItem, "addedAt">[],
   now: Date = new Date()
 ): number {
   return questions.filter((q) => {
@@ -100,7 +155,7 @@ export function countNewThisMonth(
 }
 
 export function getBankLastRefreshedIso(
-  questions: Pick<InterviewQuestion, "addedAt" | "updatedAt">[],
+  questions: DatedLibraryItem[],
   override?: string | null
 ): string | null {
   if (parseIsoDateOnly(override)) return override!.trim();
@@ -118,7 +173,7 @@ export function getBankLastRefreshedIso(
   return bestIso;
 }
 
-function recencyTime(question: Pick<InterviewQuestion, "addedAt" | "updatedAt">): number {
+function recencyTime(question: DatedLibraryItem): number {
   return latestQuestionDate(question)?.getTime() ?? 0;
 }
 

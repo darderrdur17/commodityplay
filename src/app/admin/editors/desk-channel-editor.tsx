@@ -30,6 +30,8 @@ interface DeskQA {
   tags: string[];
   helpful: number;
   date: string;
+  addedAt?: string;
+  updatedAt?: string;
   track?: "career" | "sales" | "both";
 }
 
@@ -37,6 +39,7 @@ interface DeskChannelPayload {
   categories?: typeof DESK_CATEGORIES;
   questions: DeskQA[];
   pageCopy?: Partial<DeskChannelPageCopy>;
+  lastRefreshed?: string;
 }
 
 const DESK_IMPORT_EXAMPLE = JSON.stringify(
@@ -55,6 +58,8 @@ const DESK_IMPORT_EXAMPLE = JSON.stringify(
         tags: ["spreads"],
         helpful: 0,
         date: "2026-03-01",
+        addedAt: "2026-03-01",
+        updatedAt: "2026-03-01",
         track: "both",
       },
     ],
@@ -73,6 +78,7 @@ const CATEGORIES: { id: string; label: string }[] = [
 ];
 
 function newQA(): DeskQA {
+  const today = new Date().toISOString().slice(0, 10);
   return {
     id: `dq-${Date.now()}`,
     category: "trading",
@@ -85,7 +91,9 @@ function newQA(): DeskQA {
     authorRole: "",
     tags: [],
     helpful: 0,
-    date: new Date().toISOString().slice(0, 10),
+    date: today,
+    addedAt: today,
+    updatedAt: today,
   };
 }
 
@@ -102,6 +110,7 @@ function readDeskChannelPayload(payload: unknown): DeskChannelPayload {
     categories: data.categories ?? DESK_CATEGORIES,
     questions: data.questions ?? [],
     pageCopy: mergeDeskChannelPageCopy(data.pageCopy),
+    lastRefreshed: data.lastRefreshed,
   };
 }
 
@@ -234,6 +243,20 @@ export function DeskChannelEditor({
                 hero: { ...pageCopy.hero, description: e.target.value },
               })
             }
+          />
+        </EditorField>
+      </EditorSection>
+
+      <EditorSection
+        title="Library freshness"
+        description="Optional override for the member “last refreshed” line. If blank, the latest Added/Updated date on any Q&A is used (including month-year dates like May 2025)."
+      >
+        <EditorField label="Bank last refreshed">
+          <input
+            type="date"
+            className={inputClass}
+            value={data.lastRefreshed ?? ""}
+            onChange={(e) => onChange({ ...data, lastRefreshed: e.target.value || undefined })}
           />
         </EditorField>
       </EditorSection>
@@ -438,6 +461,30 @@ export function DeskChannelEditor({
             <EditorField label="Desk signal">
               <input className={inputClass} value={item.deskSignal ?? ""} onChange={(e) => patchItem(i, { ...item, deskSignal: e.target.value })} />
             </EditorField>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <EditorField label="Added date" hint="ISO calendar date. Counts toward “new this month”.">
+                <input
+                  type="date"
+                  className={inputClass}
+                  value={item.addedAt ?? (item.date?.match(/^\d{4}-\d{2}-\d{2}$/) ? item.date : "")}
+                  onChange={(e) =>
+                    patchItem(i, {
+                      ...item,
+                      addedAt: e.target.value || undefined,
+                      date: e.target.value || item.date,
+                    })
+                  }
+                />
+              </EditorField>
+              <EditorField label="Updated date">
+                <input
+                  type="date"
+                  className={inputClass}
+                  value={item.updatedAt ?? ""}
+                  onChange={(e) => patchItem(i, { ...item, updatedAt: e.target.value || undefined })}
+                />
+              </EditorField>
+            </div>
             <EditorField label="Tags" hint="Comma-separated">
               <input className={inputClass} value={(item.tags ?? []).join(", ")} onChange={(e) => patchItem(i, { ...item, tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />
             </EditorField>

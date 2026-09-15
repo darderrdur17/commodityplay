@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getDefaultPayload } from "@/lib/content/defaults";
 import { getContentModuleRecord, updateContentModule } from "@/lib/content/repository";
 import { resolveAdminModulePayload } from "@/lib/content/admin-payload";
+import { toIsoDateOnly } from "@/lib/content/interview-questions-freshness";
 import { MENTOR_SEGMENT_TO_DESK_CATEGORY } from "@/lib/mentor-share-consent";
 
 const DESK_CAT_META: Record<DeskCategory, { label: string; color: string }> = {
@@ -38,7 +39,9 @@ function deskQaFromMentor(params: {
   category: DeskCategory;
 }): DeskQA {
   const meta = DESK_CAT_META[params.category];
-  const date = new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  const today = new Date();
+  const date = today.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  const addedAt = toIsoDateOnly(today);
   return {
     id: `mc-${params.questionId}`,
     category: params.category,
@@ -52,6 +55,8 @@ function deskQaFromMentor(params: {
     tags: ["Mentor Connect"],
     helpful: 0,
     date,
+    addedAt,
+    updatedAt: addedAt,
   };
 }
 

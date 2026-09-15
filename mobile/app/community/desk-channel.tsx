@@ -9,6 +9,11 @@ const PRIMARY = "#3280ff";
 
 export default function DeskChannelScreen() {
   const [questions, setQuestions] = useState<any[]>([]);
+  const [freshness, setFreshness] = useState<{
+    lastRefreshedLabel: string | null;
+    newThisMonth: number;
+    total: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -19,6 +24,7 @@ export default function DeskChannelScreen() {
     try {
       const data = await communityApi.getDeskChannel();
       setQuestions(data.questions);
+      setFreshness(data.freshness ?? null);
       setError("");
     } catch (e: any) {
       setError(e.message);
@@ -69,6 +75,22 @@ export default function DeskChannelScreen() {
           placeholderTextColor="#9ca3af"
         />
       </View>
+      {freshness ? (
+        <View style={styles.freshness}>
+          <Text style={styles.freshnessPrimary}>
+            Bank last refreshed{" "}
+            <Text style={styles.freshnessStrong}>{freshness.lastRefreshedLabel ?? "—"}</Text>
+          </Text>
+          <View style={styles.freshnessRow}>
+            <Text style={styles.freshnessMeta}>
+              <Text style={styles.freshnessStrong}>{freshness.newThisMonth}</Text> new this month
+            </Text>
+            <Text style={styles.freshnessMeta}>
+              <Text style={styles.freshnessStrong}>{freshness.total}</Text> questions total
+            </Text>
+          </View>
+        </View>
+      ) : null}
       <ScrollView
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
@@ -105,6 +127,20 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   errorText: { color: "#dc2626", textAlign: "center" },
   searchWrap: { padding: 12, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#e4e7ec" },
+  freshness: {
+    marginHorizontal: 12,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e4e7ec",
+  },
+  freshnessPrimary: { fontSize: 14, color: "#1f2937", marginBottom: 6 },
+  freshnessStrong: { fontWeight: "700", color: "#111827" },
+  freshnessRow: { flexDirection: "row", flexWrap: "wrap", gap: 16 },
+  freshnessMeta: { fontSize: 13, color: "#6b7280" },
   search: {
     backgroundColor: "#f3f4f6",
     borderRadius: 10,

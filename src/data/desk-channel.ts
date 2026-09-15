@@ -21,6 +21,9 @@ export interface DeskQA {
   tags: string[];
   helpful: number;
   date: string;
+  /** ISO `YYYY-MM-DD` — used for the member freshness strip. */
+  addedAt?: string;
+  updatedAt?: string;
 }
 
 export const DESK_CATEGORIES: {

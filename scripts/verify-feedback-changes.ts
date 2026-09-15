@@ -34,6 +34,16 @@ import {
   encodeKnowledgeTestGapAreas,
   latestKnowledgeTestResultsBySet,
 } from "../src/lib/content/knowledge-test-results";
+import { formatCmsHeroCopy, sanitizeMemberHref } from "../src/lib/content/cms-page-copy";
+import {
+  DEFAULT_CASE_STUDIES_HERO,
+  formatCaseStudiesHeroCopy,
+  mergeCaseStudiesHero,
+} from "../src/lib/content/case-studies-payload";
+import {
+  DEFAULT_CAREER_ROADMAP_BOTTOM_STRIP,
+  mergeCareerRoadmapBottomStrip,
+} from "../src/lib/content/career-roadmap-payload";
 import {
   DEFAULT_INTERVIEW_QUESTIONS_HERO,
   INTERVIEW_QUESTIONS,
@@ -45,9 +55,14 @@ import {
   formatInterviewMemberDate,
   getBankLastRefreshedIso,
   getQuestionFreshnessBadge,
+  parseFlexibleCalendarDate,
   parseIsoDateOnly,
   selectCurrentMarketQuestions,
+  toIsoFromFlexibleDate,
 } from "../src/lib/content/interview-questions-freshness";
+import { getDeskLibraryFreshness, hydrateDeskQaDates } from "../src/lib/content/desk-channel-freshness";
+import { DESK_QA } from "../src/data/desk-channel";
+import { KEY_POINTS_MAX } from "../src/data/prep-library";
 import {
   isDashboardCardAccessible,
   isDashboardModuleVisible,
@@ -398,6 +413,30 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       "Career roadmap CMS supports per-role comp editing",
       roadmapEditor.includes("Compensation benchmarks (SGD)") &&
         roadmapEditor.includes('activeTab === "comp"')
+    );
+    const roadmapClient = fs.readFileSync(
+      path.join(process.cwd(), "src/app/career-roadmap/career-roadmap-client.tsx"),
+      "utf8"
+    );
+    const mergedBottom = mergeCareerRoadmapBottomStrip({});
+    ok(
+      "Career Roadmap top and bottom navy strips are CMS-editable",
+      roadmapEditor.includes("Page hero strip") &&
+        roadmapEditor.includes("Bottom blue strip") &&
+        roadmapEditor.includes("Top blue strip") &&
+        roadmapClient.includes("bottomStrip") &&
+        roadmapClient.includes('href={btn.href}') &&
+        roadmapClient.includes("outline-dark") &&
+        mergedBottom.buttons[0]?.label === "Go to Questions Bank" &&
+        mergedBottom.buttons[0]?.href === "/interview-questions" &&
+        mergedBottom.buttons[1]?.label === "Go to Resume Building" &&
+        mergedBottom.buttons[1]?.href === "/resume-templates" &&
+        mergeCareerRoadmapBottomStrip({ title: "  " }).title ===
+          DEFAULT_CAREER_ROADMAP_BOTTOM_STRIP.title &&
+        sanitizeMemberHref("https://evil.example", "/interview-questions") ===
+          "/interview-questions" &&
+        sanitizeMemberHref("//evil.example", "/resume-templates") === "/resume-templates" &&
+        sanitizeMemberHref("/resume-templates", "/interview-questions") === "/resume-templates"
     );
   }
   {
@@ -1066,7 +1105,23 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Case studies admin reads payload.studies not a top-level array",
     caseEditor.includes("studies: Array.isArray(data.studies)") &&
-      caseEditor.includes("onChange({ studies: nextStudies, details: nextDetails })")
+      caseEditor.includes("onChange({ ...data, ...next })")
+  );
+  const caseClient = fs.readFileSync(
+    path.join(process.cwd(), "src/app/case-studies/case-studies-client.tsx"),
+    "utf8"
+  );
+  ok(
+    "Case Studies blue hero strip is CMS-editable",
+    caseEditor.includes("Page hero strip") &&
+      caseEditor.includes("{studyCount}") &&
+      caseClient.includes("formatCaseStudiesHeroCopy") &&
+      !caseClient.includes("Elite · {studies.length}") &&
+      mergeCaseStudiesHero({}).title === DEFAULT_CASE_STUDIES_HERO.title &&
+      mergeCaseStudiesHero({ title: "  " }).title === DEFAULT_CASE_STUDIES_HERO.title &&
+      mergeCaseStudiesHero({ title: "Custom cases" }).title === "Custom cases" &&
+      formatCaseStudiesHeroCopy(DEFAULT_CASE_STUDIES_HERO.eyebrow, 12) === "ELITE · 12 STUDIES" &&
+      formatCmsHeroCopy("ELITE · {studyCount} STUDIES", { studyCount: 2 }) === "ELITE · 2 STUDIES"
   );
   const adminPayload = fs.readFileSync(
     path.join(process.cwd(), "src/lib/content/admin-payload.ts"),
@@ -1304,6 +1359,107 @@ async function verifyPdfStampWrites() {
 }
 
 {
+  ok("15 Sep 2026 formats without a leading zero on the day", formatInterviewMemberDate("2026-09-15") === "15 Sep 2026");
+  ok(
+    "Month-year desk dates parse to the 1st",
+    toIsoFromFlexibleDate("May 2025") === "2025-05-01" && parseFlexibleCalendarDate("Apr 2025")?.getMonth() === 3
+  );
+
+  const deskNow = new Date("2026-09-15T12:00:00");
+  const deskFresh = getDeskLibraryFreshness(DESK_QA, undefined, deskNow);
+  const hydrated = hydrateDeskQaDates(DESK_QA);
+  ok(
+    "Desk Channel defaults hydrate addedAt from legacy month-year dates",
+    hydrated.every((q) => Boolean(q.addedAt)) && hydrated.length === DESK_QA.length
+  );
+  ok(
+    "Desk Channel freshness uses live question count, not a hardcoded 40/66",
+    deskFresh.total === DESK_QA.length && deskFresh.total > 0
+  );
+  ok(
+    "Desk Channel last refreshed is a member date, not blank",
+    Boolean(deskFresh.lastRefreshedLabel) && deskFresh.lastRefreshedLabel !== "—"
+  );
+  ok(
+    "Desk Channel new-this-month is derived from dates (Sep 2026 sample bank is not all-new)",
+    deskFresh.newThisMonth ===
+      hydrated.filter((q) => q.addedAt && q.addedAt.startsWith("2026-09")).length
+  );
+
+  const fiveNotes = Array.from({ length: 5 }, (_, i) => `Note ${i + 1}`);
+  ok("Prep library notes are not capped at 3 or 4", KEY_POINTS_MAX >= 5 && fiveNotes.length === 5);
+
+  const prepUi = fs.readFileSync(
+    path.join(process.cwd(), "src/components/dashboard/prep-library-section.tsx"),
+    "utf8"
+  );
+  const prepPatch = fs.readFileSync(
+    path.join(process.cwd(), "src/app/api/prep-library/[id]/route.ts"),
+    "utf8"
+  );
+  const prepCreate = fs.readFileSync(
+    path.join(process.cwd(), "src/app/api/prep-library/route.ts"),
+    "utf8"
+  );
+  ok(
+    "Career and Sales prep cards can edit notes without dropping delete",
+    prepUi.includes("Edit talking point") &&
+      prepUi.includes("Delete talking point") &&
+      prepUi.includes("TalkingPointEditor") &&
+      prepUi.includes("handleUpdate") &&
+      prepUi.includes('track="CAREER"') &&
+      prepUi.includes('track="SALES"') &&
+      prepUi.includes("KEY_POINTS_MAX")
+  );
+  ok(
+    "Prep library PATCH persists title, notes, and chips",
+    prepPatch.includes("keyPoints") &&
+      prepPatch.includes("title") &&
+      prepPatch.includes("category") &&
+      prepPatch.includes("serializeTalkingPoint")
+  );
+  ok(
+    "Prep library create accepts more than 4 notes",
+    prepCreate.includes("KEY_POINTS_MAX") && !prepCreate.includes(".max(4)")
+  );
+
+  const deskClient = fs.readFileSync(
+    path.join(process.cwd(), "src/app/desk-channel/desk-channel-client.tsx"),
+    "utf8"
+  );
+  const deskEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/desk-channel-editor.tsx"),
+    "utf8"
+  );
+  const freshnessStrip = fs.readFileSync(
+    path.join(process.cwd(), "src/components/library-freshness-strip.tsx"),
+    "utf8"
+  );
+  const mobileDesk = fs.readFileSync(
+    path.join(process.cwd(), "mobile/app/community/desk-channel.tsx"),
+    "utf8"
+  );
+  ok(
+    "Desk Channel reuses the Interview bank freshness strip under the hero",
+    deskClient.includes("LibraryFreshnessStrip") &&
+      deskClient.includes("getDeskLibraryFreshness") &&
+      freshnessStrip.includes("Bank last refreshed") &&
+      freshnessStrip.includes("questions total")
+  );
+  ok(
+    "Desk Channel CMS can set added/updated dates and last-refreshed override",
+    deskEditor.includes("Added date") &&
+      deskEditor.includes("Updated date") &&
+      deskEditor.includes("Bank last refreshed") &&
+      deskEditor.includes("addedAt")
+  );
+  ok(
+    "Mobile Desk Channel shows the same freshness counts from the API",
+    mobileDesk.includes("Bank last refreshed") && mobileDesk.includes("questions total")
+  );
+}
+
+{
   const knowledgeClient = fs.readFileSync(
     path.join(process.cwd(), "src/app/knowledge-test/knowledge-test-client.tsx"),
     "utf8"
@@ -1376,7 +1532,7 @@ async function verifyPdfStampWrites() {
       interviewEditor.includes("Added date") &&
       interviewEditor.includes("Current market") &&
       interviewEditor.includes("Bank last refreshed") &&
-      interviewClient.includes("new this month") &&
+      (interviewClient.includes("new this month") || interviewClient.includes("LibraryFreshnessStrip")) &&
       mergeInterviewQuestionsHero({}).title === DEFAULT_INTERVIEW_QUESTIONS_HERO.title &&
       mergeInterviewQuestionsHero({ description: "" }).description ===
         DEFAULT_INTERVIEW_QUESTIONS_HERO.description &&

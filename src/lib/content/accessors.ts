@@ -1,8 +1,9 @@
 import type { PlaybookSection } from "@/data/playbook";
-import type { CaseStudyCard, CaseStudySection } from "@/data/case-studies";
+import type { CaseStudyCard } from "@/data/case-studies";
 import type { DeskQA } from "@/data/desk-channel";
 import { formatDeskChannelCopy } from "@/data/desk-channel-content";
 import { normalizeDeskChannelPageCopy } from "@/lib/content/desk-channel-schema";
+import { hydrateDeskQaDates, getDeskLibraryFreshness } from "@/lib/content/desk-channel-freshness";
 import { BRAND_NAME } from "@/lib/brand";
 import type { GlossaryTerm } from "@/data/glossary";
 import {
@@ -12,7 +13,7 @@ import {
 } from "@/data/glossary-content";
 import type { MentorOverridesPayload } from "@/data/mentors";
 import { getPublishedPayload, tryReadPublishedPayload, getContentModulePayload } from "./repository";
-import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
+import { resolveCaseStudiesPayload, type CaseStudiesPayload } from "@/lib/content/case-studies-payload";
 import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
 import { GLOSSARY_TERMS } from "@/data/glossary";
 import {
@@ -88,10 +89,6 @@ import {
 import type { PlaybookHubHeroCopy } from "@/data/playbook-hub-hero";
 import { resolvePlaybookPayload } from "./playbook-payload";
 
-type CaseStudiesPayload = {
-  studies: CaseStudyCard[];
-  details: Record<string, CaseStudySection[]>;
-};
 
 export async function getLandingContent(): Promise<LandingContent> {
   const cms = await tryReadPublishedPayload<Partial<LandingContent>>("landing");
@@ -469,20 +466,17 @@ export async function getPlaybookSections(chapterId: string): Promise<PlaybookSe
   return sections[chapterId] ?? [];
 }
 
-export async function getCaseStudiesList() {
+export async function getCaseStudiesPageData() {
   const data = await getPublishedPayload<CaseStudiesPayload | CaseStudyCard[]>("case-studies");
-  if (Array.isArray(data)) return data.length ? data : CASE_STUDIES;
-  return data.studies?.length ? data.studies : CASE_STUDIES;
+  return resolveCaseStudiesPayload(data);
+}
+
+export async function getCaseStudiesList() {
+  return (await getCaseStudiesPageData()).studies;
 }
 
 export async function getCaseStudyBySlug(slug: string) {
-  const data = await getPublishedPayload<CaseStudiesPayload | CaseStudyCard[]>("case-studies");
-  const studies = Array.isArray(data)
-    ? data
-    : data.studies?.length
-      ? data.studies
-      : CASE_STUDIES;
-  const details = Array.isArray(data) ? CASE_STUDY_DETAILS : data.details ?? CASE_STUDY_DETAILS;
+  const { studies, details } = await getCaseStudiesPageData();
   const card = studies.find((c) => c.slug === slug);
   if (!card) return null;
   return { card, sections: details[slug] || null };
@@ -493,10 +487,11 @@ export async function getDeskChannelData() {
     categories: typeof DESK_CATEGORIES;
     questions: DeskQA[];
     pageCopy?: import("@/data/desk-channel-content").DeskChannelPageCopy;
+    lastRefreshed?: string;
   }>("desk-channel");
 
   const categories = data.categories ?? DESK_CATEGORIES;
-  const questions = data.questions ?? DESK_QA;
+  const questions = hydrateDeskQaDates(data.questions ?? DESK_QA);
   const deskSegmentCount = categories.filter((c) => c.id !== "all").length;
   const pageCopy = formatDeskChannelCopy(normalizeDeskChannelPageCopy(data.pageCopy), {
     deskQaCount: questions.length,
@@ -504,10 +499,15 @@ export async function getDeskChannelData() {
     brandName: BRAND_NAME,
   });
 
+  const lastRefreshed = typeof data.lastRefreshed === "string" ? data.lastRefreshed : undefined;
+  const freshness = getDeskLibraryFreshness(questions, lastRefreshed);
+
   return {
     categories,
     questions,
     pageCopy,
+    lastRefreshed,
+    freshness,
   };
 }
 

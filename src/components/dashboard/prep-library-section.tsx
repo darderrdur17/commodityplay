@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BarChart3, ChevronRight, ExternalLink, Lock, Plus, Trash2 } from "lucide-react";
+import { BarChart3, ChevronRight, ExternalLink, Lock, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,11 @@ import { FOR_PRO_ACCESS, UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   CAREER_PREP_LIBRARY_SEED_TOPICS,
+  KEY_POINTS_MAX,
   PREP_LIBRARY_CATEGORIES,
-  PREP_LIBRARY_EXAMPLE_TOPICS,
   PREP_LIBRARY_SEGMENTS,
   PREP_STATUS_PRESETS,
+  SALES_PREP_LIBRARY_CATEGORIES,
   SALES_PREP_LIBRARY_SEED_TOPICS,
   type PrepCategoryEnum,
   type PrepStatusEnum,
@@ -73,7 +74,7 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
     saveButtonClass: "",
     placeholders: {
       title: "e.g. Why cargo diversion happens",
-      keyPoints: "Add up to 4 short bullets",
+      keyPoints: "One short bullet per line",
       source: "e.g. Chapter 4 · Weekly Market Update",
       category: "e.g. current event, market mechanics, role movement etc",
       canUseFor: "e.g. ABC Energy interview",
@@ -99,7 +100,7 @@ const TRACK_THEMES: Record<PrepLibraryTrack, TrackTheme> = {
     saveButtonClass: "bg-[#065F46] hover:bg-[#047857] text-white border-0",
     placeholders: {
       title: "e.g. Framing this week's spread move",
-      keyPoints: "Add up to 4 short bullets",
+      keyPoints: "One short bullet per line",
       source: "e.g. Chapter 4 · Weekly Market Update",
       category: "Current event",
       canUseFor: "e.g. ABC Energy",
@@ -122,8 +123,18 @@ function parseKeyPoints(raw: string): string[] {
     .split("\n")
     .map((line) => line.replace(/^[-•*]\s*/, "").trim())
     .filter(Boolean)
-    .slice(0, 4);
+    .slice(0, KEY_POINTS_MAX);
 }
+
+export type TalkingPointPatch = {
+  title: string;
+  category: PrepCategoryEnum;
+  keyPoints: string[];
+  source?: string;
+  prepStatus: string;
+  usedInNote?: string;
+  canUseFor?: string;
+};
 
 /** Map free-text category input to the closest enum value. */
 function normalizeCategoryInput(raw: string, fallback: PrepCategoryEnum): PrepCategoryEnum {
@@ -326,22 +337,241 @@ function notifyPrepLibraryCount(
   }
 }
 
+function TalkingPointEditor({
+  topic,
+  theme,
+  track,
+  onCancel,
+  onSave,
+}: {
+  topic: TalkingPoint;
+  theme: TrackTheme;
+  track: PrepLibraryTrack;
+  onCancel: () => void;
+  onSave: (patch: TalkingPointPatch) => Promise<void>;
+}) {
+  const categories = track === "SALES" ? SALES_PREP_LIBRARY_CATEGORIES : PREP_LIBRARY_CATEGORIES;
+  const [title, setTitle] = useState(topic.title);
+  const [keyPointsRaw, setKeyPointsRaw] = useState(topic.keyPoints.join("\n"));
+  const [category, setCategory] = useState<PrepCategoryEnum>(
+    (PREP_LIBRARY_CATEGORIES.includes(topic.category as PrepCategoryEnum)
+      ? topic.category
+      : theme.defaultCategory) as PrepCategoryEnum
+  );
+  const [source, setSource] = useState(topic.source ?? "");
+  const presetStatus = PREP_STATUS_PRESETS.includes(topic.prepStatus as (typeof PREP_STATUS_PRESETS)[number])
+    ? (topic.prepStatus as (typeof PREP_STATUS_PRESETS)[number])
+    : "Learning it";
+  const [prepStatus, setPrepStatus] = useState<PrepStatusEnum>(presetStatus);
+  const [customPrepStatus, setCustomPrepStatus] = useState(
+    PREP_STATUS_PRESETS.includes(topic.prepStatus as (typeof PREP_STATUS_PRESETS)[number])
+      ? ""
+      : topic.prepStatus
+  );
+  const [usedInNote, setUsedInNote] = useState(topic.usedInNote ?? "");
+  const [canUseFor, setCanUseFor] = useState(topic.canUseFor ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const labelClass = cn("text-[10px] font-bold uppercase tracking-widest", theme.labelColorClass);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmedTitle = title.trim();
+    const keyPoints = parseKeyPoints(keyPointsRaw);
+    if (!trimmedTitle || keyPoints.length === 0) {
+      setError("Add a title and at least one note.");
+      return;
+    }
+    const resolvedPrepStatus = (
+      track === "CAREER" ? customPrepStatus.trim() || prepStatus : prepStatus
+    ).slice(0, 50);
+    setSaving(true);
+    setError("");
+    try {
+      await onSave({
+        title: trimmedTitle,
+        category,
+        keyPoints,
+        source: source.trim() || undefined,
+        prepStatus: resolvedPrepStatus,
+        ...(track === "SALES"
+          ? {
+              usedInNote: usedInNote.trim() || undefined,
+              canUseFor: canUseFor.trim() || undefined,
+            }
+          : {}),
+      });
+    } catch {
+      setError("Could not save your edits. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-1 sm:col-span-2">
+          <label className={labelClass} htmlFor={`edit-title-${topic.id}`}>
+            Topic title
+          </label>
+          <Input
+            id={`edit-title-${topic.id}`}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="h-9 text-sm"
+          />
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <label className={labelClass} htmlFor={`edit-notes-${topic.id}`}>
+            Notes
+          </label>
+          <textarea
+            id={`edit-notes-${topic.id}`}
+            value={keyPointsRaw}
+            onChange={(e) => setKeyPointsRaw(e.target.value)}
+            rows={Math.min(8, Math.max(3, topic.keyPoints.length + 1))}
+            className={cn(
+              "flex w-full rounded-lg border border-border bg-white px-3 py-1.5 text-sm",
+              "placeholder:text-muted-fg resize-y min-h-[72px]",
+              "focus:outline-none focus:ring-2 focus:border-transparent",
+              theme.textareaFocusClass
+            )}
+            placeholder={theme.placeholders.keyPoints}
+          />
+        </div>
+        <div className="space-y-1">
+          <label className={labelClass} htmlFor={`edit-category-${topic.id}`}>
+            Category
+          </label>
+          <select
+            id={`edit-category-${topic.id}`}
+            value={category}
+            onChange={(e) => setCategory(e.target.value as PrepCategoryEnum)}
+            className="h-9 w-full rounded-lg border border-border bg-white px-3 text-sm"
+          >
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+        {track === "CAREER" ? (
+          <div className="space-y-1">
+            <label className={labelClass} htmlFor={`edit-source-${topic.id}`}>
+              Source
+            </label>
+            <Input
+              id={`edit-source-${topic.id}`}
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              className="h-9 text-sm"
+            />
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <label className={labelClass} htmlFor={`edit-can-use-${topic.id}`}>
+              Can use for
+            </label>
+            <Input
+              id={`edit-can-use-${topic.id}`}
+              value={canUseFor}
+              onChange={(e) => setCanUseFor(e.target.value)}
+              className="h-9 text-sm"
+            />
+          </div>
+        )}
+      </div>
+      {track === "CAREER" && (
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3">
+          <div className="space-y-1.5 flex-1 min-w-[200px]">
+            <span className={labelClass}>Prep status</span>
+            <div className="flex gap-1.5 flex-wrap">
+              {PREP_STATUS_PRESETS.map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => {
+                    setPrepStatus(status);
+                    setCustomPrepStatus("");
+                  }}
+                  className={cn(
+                    "px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all duration-150",
+                    prepStatus === status && !customPrepStatus.trim()
+                      ? status === "Learning it"
+                        ? "bg-gray-200 border-gray-300 text-gray-700"
+                        : status === "Interview-ready"
+                        ? "bg-amber-100 border-amber-300 text-amber-700"
+                        : "bg-green-100 border-green-300 text-green-700"
+                      : "bg-white border-border text-muted-fg hover:border-gray-300"
+                  )}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1 flex-1 min-w-[180px] sm:max-w-[240px]">
+            <label className={labelClass} htmlFor={`edit-custom-status-${topic.id}`}>
+              Or name your own
+            </label>
+            <Input
+              id={`edit-custom-status-${topic.id}`}
+              value={customPrepStatus}
+              onChange={(e) => setCustomPrepStatus(e.target.value)}
+              className="h-9 text-sm"
+              maxLength={50}
+            />
+          </div>
+        </div>
+      )}
+      {track === "SALES" && (
+        <div className="space-y-1">
+          <label className={labelClass} htmlFor={`edit-used-note-${topic.id}`}>
+            Used-in note
+          </label>
+          <Input
+            id={`edit-used-note-${topic.id}`}
+            value={usedInNote}
+            onChange={(e) => setUsedInNote(e.target.value)}
+            className="h-9 text-sm"
+          />
+        </div>
+      )}
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" size="sm" disabled={saving} className={cn("h-9", theme.saveButtonClass)}>
+          {saving ? "Saving…" : "Save notes"}
+        </Button>
+        <Button type="button" size="sm" variant="outline" className="h-9" onClick={onCancel} disabled={saving}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 // ─── Topic card ───────────────────────────────────────────────────────────────
 
 function TopicCard({
   topic,
   theme,
   onDelete,
+  onSave,
   showLinkedFields = true,
   highlighted = false,
 }: {
   topic: TalkingPoint;
   theme: TrackTheme;
   onDelete?: (id: string) => void;
+  onSave?: (id: string, patch: TalkingPointPatch) => Promise<void>;
   /** Sales-only: can use for / notes. Hidden on career track. */
   showLinkedFields?: boolean;
   highlighted?: boolean;
 }) {
+  const [editing, setEditing] = useState(false);
   const statusStyle = getPrepStatusBadge(topic.prepStatus);
   const showExampleBadge = Boolean(topic.isStarterExample);
 
@@ -353,14 +583,38 @@ function TopicCard({
         highlighted && BOOKMARK_HIGHLIGHT_RING
       )}
     >
+      {editing && onSave ? (
+        <TalkingPointEditor
+          topic={topic}
+          theme={theme}
+          track="CAREER"
+          onCancel={() => setEditing(false)}
+          onSave={async (patch) => {
+            await onSave(topic.id, patch);
+            setEditing(false);
+          }}
+        />
+      ) : (
+        <>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
         <h3 className="font-semibold text-gray-900 text-sm leading-snug flex-1">{topic.title}</h3>
         <div className="flex items-center gap-2 shrink-0">
           {showExampleBadge && <ExampleBadge />}
           <span className={theme.categoryBadgeClass}>{topic.category}</span>
           <span className={statusStyle.badge}>{statusStyle.label}</span>
+          {onSave && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="p-1 rounded hover:bg-primary-400/10 text-muted-fg hover:text-primary-400 transition-colors"
+              aria-label="Edit talking point"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          )}
           {onDelete && (
             <button
+              type="button"
               onClick={() => onDelete(topic.id)}
               className="p-1 rounded hover:bg-red-50 text-muted-fg hover:text-red-500 transition-colors"
               aria-label="Delete talking point"
@@ -373,8 +627,8 @@ function TopicCard({
 
       {topic.keyPoints.length > 0 && (
         <ul className="space-y-1.5 mb-3">
-          {topic.keyPoints.map((point) => (
-            <li key={point} className="flex gap-2 text-sm text-muted-fg leading-relaxed">
+          {topic.keyPoints.map((point, i) => (
+            <li key={`${i}-${point}`} className="flex gap-2 text-sm text-muted-fg leading-relaxed">
               <span className="text-gray-400 shrink-0">—</span>
               <span>{point}</span>
             </li>
@@ -399,6 +653,8 @@ function TopicCard({
           <p className="text-xs italic text-muted-fg">— {topic.usedInNote}</p>
         )}
       </div>
+        </>
+      )}
     </article>
   );
 }
@@ -435,17 +691,22 @@ function SalesAccountIntelligenceBanner({ userTier }: { userTier: string }) {
 /** Sales track topic card — matches Frances mockup layout. */
 function SalesTopicCard({
   topic,
+  theme,
   onDelete,
+  onSave,
   onLinkedToAccount,
   showLinkToAccount = false,
   highlighted = false,
 }: {
   topic: TalkingPoint;
+  theme: TrackTheme;
   onDelete?: (id: string) => void;
+  onSave?: (id: string, patch: TalkingPointPatch) => Promise<void>;
   onLinkedToAccount?: (topicId: string, accountName: string) => void;
   showLinkToAccount?: boolean;
   highlighted?: boolean;
 }) {
+  const [editing, setEditing] = useState(false);
   const usedWithAccount = Boolean(topic.canUseFor?.trim());
   const showExampleBadge = Boolean(topic.isStarterExample);
 
@@ -457,6 +718,19 @@ function SalesTopicCard({
         highlighted && BOOKMARK_HIGHLIGHT_RING
       )}
     >
+      {editing && onSave ? (
+        <TalkingPointEditor
+          topic={topic}
+          theme={theme}
+          track="SALES"
+          onCancel={() => setEditing(false)}
+          onSave={async (patch) => {
+            await onSave(topic.id, patch);
+            setEditing(false);
+          }}
+        />
+      ) : (
+        <>
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900 text-sm sm:text-base leading-snug">
@@ -476,6 +750,16 @@ function SalesTopicCard({
               {topic.source}
             </p>
           )}
+          {onSave && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="p-1 rounded hover:bg-teal-50 text-muted-fg hover:text-[#065F46] transition-colors"
+              aria-label="Edit talking point"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          )}
           {onDelete && (
             <button
               type="button"
@@ -491,8 +775,8 @@ function SalesTopicCard({
 
       {topic.keyPoints.length > 0 && (
         <ul className="space-y-2 mb-4">
-          {topic.keyPoints.map((point) => (
-            <li key={point} className="flex gap-2 text-sm text-muted-fg leading-relaxed">
+          {topic.keyPoints.map((point, i) => (
+            <li key={`${i}-${point}`} className="flex gap-2 text-sm text-muted-fg leading-relaxed">
               <span className="text-gray-400 shrink-0">—</span>
               <span>{point}</span>
             </li>
@@ -531,6 +815,8 @@ function SalesTopicCard({
           />
         )}
       </div>
+        </>
+      )}
     </article>
   );
 }
@@ -756,6 +1042,28 @@ export function PrepLibraryBody({
     },
     [track, onTopicCountChange]
   );
+
+  const handleUpdate = useCallback(async (id: string, patch: TalkingPointPatch) => {
+    const res = await fetch(`/api/prep-library/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) throw new Error("save failed");
+    const updated: TalkingPoint = await res.json();
+    setTopics((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              ...updated,
+              createdAt: new Date(updated.createdAt),
+              isStarterExample: t.isStarterExample,
+            }
+          : t
+      )
+    );
+  }, []);
 
   const handleBookmarked = useCallback(
     (topicId: string, accountName: string) => {
@@ -1019,7 +1327,7 @@ export function PrepLibraryBody({
             <div className="relative rounded-xl border border-border bg-white overflow-hidden">
               <div className="blur-sm pointer-events-none select-none px-5 sm:px-6 py-5 space-y-4" aria-hidden>
                 {theme.seedTopics.slice(0, 2).map((topic) => (
-                  <SalesTopicCard key={topic.id} topic={topic} />
+                  <SalesTopicCard key={topic.id} topic={topic} theme={theme} />
                 ))}
               </div>
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center py-10">
@@ -1102,7 +1410,9 @@ export function PrepLibraryBody({
                                 <Reveal key={topic.id} delay={i * 0.03}>
                                   <SalesTopicCard
                                     topic={topic}
+                                    theme={theme}
                                     onDelete={handleDelete}
+                                    onSave={handleUpdate}
                                     showLinkToAccount={hasElite}
                                     onLinkedToAccount={handleBookmarked}
                                     highlighted={isHighlighted(prepTopicElementId(topic.id))}
@@ -1223,6 +1533,7 @@ export function PrepLibraryBody({
                                   topic={topic}
                                   theme={theme}
                                   onDelete={handleDelete}
+                                  onSave={handleUpdate}
                                   showLinkedFields={false}
                                   highlighted={isHighlighted(prepTopicElementId(topic.id))}
                                 />

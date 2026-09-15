@@ -7,25 +7,38 @@ import { TierGate } from "@/components/tier-gate";
 import { Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
 import { Badge } from "@/components/ui/badge";
 import type { CaseStudyCard } from "@/data/case-studies";
+import {
+  DEFAULT_CASE_STUDIES_HERO,
+  formatCaseStudiesHeroCopy,
+  type CaseStudiesHeroCopy,
+} from "@/lib/content/case-studies-payload";
 
 interface Props {
   userTier: string;
   studies: CaseStudyCard[];
+  hero?: CaseStudiesHeroCopy;
   requiredTier?: "PRO" | "ELITE";
 }
 
-export function CaseStudiesClient({ userTier, studies, requiredTier = "ELITE" }: Props) {
+export function CaseStudiesClient({
+  userTier,
+  studies,
+  hero = DEFAULT_CASE_STUDIES_HERO,
+  requiredTier = "ELITE",
+}: Props) {
+  const eyebrow = formatCaseStudiesHeroCopy(hero.eyebrow, studies.length);
+  const title = formatCaseStudiesHeroCopy(hero.title, studies.length);
+  const description = formatCaseStudiesHeroCopy(hero.description, studies.length);
+
   return (
     <div className="page-container py-6 sm:py-10">
       <section className="rounded-2xl bg-primary-800 px-5 sm:px-8 py-8 sm:py-10 mb-6 sm:mb-8 relative overflow-hidden">
         <Reveal className="relative z-10">
           <div className="pill pill-dark mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" /> Elite · {studies.length} Studies
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" /> {eyebrow}
           </div>
-          <h1 className="font-serif text-2xl sm:text-4xl font-bold text-white mb-3">Case Studies</h1>
-          <p className="text-white/65 text-sm sm:text-lg max-w-xl">
-            Real-world trading scenarios with full P&L breakdowns — physical arbs, cross-market reads, freight, and supply disruptions.
-          </p>
+          <h1 className="font-serif text-2xl sm:text-4xl font-bold text-white mb-3">{title}</h1>
+          <p className="text-white/65 text-sm sm:text-lg max-w-xl">{description}</p>
         </Reveal>
       </section>
 
