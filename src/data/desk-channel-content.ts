@@ -98,7 +98,10 @@ export function formatDeskChannelCopy(
   return {
     hero: {
       ...copy.hero,
-      description: formatContentPlaceholders(copy.hero.description, withBrand),
+      description: formatContentPlaceholders(copy.hero.description, withBrand).replace(
+        /\{brandName\}/g,
+        stats.brandName
+      ),
     },
     submit: copy.submit,
   };

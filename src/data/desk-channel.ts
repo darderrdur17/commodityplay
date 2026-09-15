@@ -1,11 +1,7 @@
 import { BRAND_EDITORIAL } from "@/lib/brand";
 
-export type DeskCategory =
-  | "trading"
-  | "ops"
-  | "risk"
-  | "tools"
-  | "career";
+/** Category id is CMS-owned — not limited to the five seed desks. */
+export type DeskCategory = string;
 
 export interface DeskQA {
   id: string;
@@ -24,14 +20,17 @@ export interface DeskQA {
   /** ISO `YYYY-MM-DD` — used for the member freshness strip. */
   addedAt?: string;
   updatedAt?: string;
+  track?: "career" | "sales" | "both";
 }
 
-export const DESK_CATEGORIES: {
+export type DeskCategoryChip = {
   id: DeskCategory | "all";
   label: string;
   color: string;
   count: number;
-}[] = [
+};
+
+export const DESK_CATEGORIES: DeskCategoryChip[] = [
   { id: "all", label: "All Questions", color: "#3280ff", count: 40 },
   { id: "trading", label: "Trading & Market Analysis", color: "#3280ff", count: 8 },
   { id: "ops", label: "Operations & Scheduling", color: "#B45309", count: 8 },
@@ -39,6 +38,80 @@ export const DESK_CATEGORIES: {
   { id: "tools", label: "Market Intelligence & Tools", color: "#0F766E", count: 8 },
   { id: "career", label: "Career Positioning", color: "#0040f5", count: 8 },
 ];
+
+function asCategoryRow(value: unknown): { id: string; label: string; color: string } | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as { id?: unknown; label?: unknown; color?: unknown };
+  const id = typeof row.id === "string" ? row.id.trim() : "";
+  if (!id || id === "all") return null;
+  return {
+    id,
+    label: typeof row.label === "string" && row.label.trim() ? row.label.trim() : id,
+    color: typeof row.color === "string" && row.color.trim() ? row.color.trim() : "#3280ff",
+  };
+}
+
+export function slugifyDeskCategoryId(label: string, existingIds: readonly string[]): string {
+  const base =
+    label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "category";
+  const taken = new Set(existingIds.concat("all"));
+  if (!taken.has(base)) return base;
+  let n = 2;
+  while (taken.has(`${base}-${n}`)) n += 1;
+  return `${base}-${n}`;
+}
+
+export function deskCategoryMeta(
+  categories: readonly DeskCategoryChip[],
+  id: string
+): { label: string; color: string } {
+  const row = categories.find((c) => c.id === id);
+  if (row) return { label: row.label, color: row.color };
+  const seed = DESK_CATEGORIES.find((c) => c.id === id);
+  if (seed) return { label: seed.label, color: seed.color };
+  return { label: id, color: "#3280ff" };
+}
+
+/** Always includes All Questions, then N CMS categories, then any orphan ids still used on Q&As. */
+export function mergeDeskCategories(cms: unknown, questions: readonly DeskQA[]): DeskCategoryChip[] {
+  const seen = new Set<string>();
+  const defs: { id: string; label: string; color: string }[] = [];
+  const source = Array.isArray(cms) && cms.length > 0 ? cms : DESK_CATEGORIES;
+  for (const raw of source) {
+    const row = asCategoryRow(raw);
+    if (!row || seen.has(row.id)) continue;
+    seen.add(row.id);
+    defs.push(row);
+  }
+  if (defs.length === 0) {
+    for (const seed of DESK_CATEGORIES) {
+      if (seed.id === "all") continue;
+      defs.push({ id: seed.id, label: seed.label, color: seed.color });
+      seen.add(seed.id);
+    }
+  }
+  for (const q of questions) {
+    const id = typeof q.category === "string" ? q.category.trim() : "";
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    defs.push({
+      id,
+      label: q.categoryLabel?.trim() || id,
+      color: q.categoryColor?.trim() || "#3280ff",
+    });
+  }
+  const byCat: Record<string, number> = {};
+  for (const q of questions) {
+    byCat[q.category] = (byCat[q.category] ?? 0) + 1;
+  }
+  return [
+    { id: "all", label: "All Questions", color: "#3280ff", count: questions.length },
+    ...defs.map((d) => ({ ...d, count: byCat[d.id] ?? 0 })),
+  ];
+}
 
 export const DESK_QA: DeskQA[] = [
   {

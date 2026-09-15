@@ -61,7 +61,7 @@ import {
   toIsoFromFlexibleDate,
 } from "../src/lib/content/interview-questions-freshness";
 import { getDeskLibraryFreshness, hydrateDeskQaDates } from "../src/lib/content/desk-channel-freshness";
-import { DESK_QA } from "../src/data/desk-channel";
+import { DESK_QA, mergeDeskCategories, slugifyDeskCategoryId } from "../src/data/desk-channel";
 import { KEY_POINTS_MAX } from "../src/data/prep-library";
 import {
   isDashboardCardAccessible,
@@ -1456,6 +1456,34 @@ async function verifyPdfStampWrites() {
   ok(
     "Mobile Desk Channel shows the same freshness counts from the API",
     mobileDesk.includes("Bank last refreshed") && mobileDesk.includes("questions total")
+  );
+  ok(
+    "Desk Channel admin can add categories beyond the five seed desks",
+    deskEditor.includes("Add category") &&
+      deskEditor.includes("slugifyDeskCategoryId") &&
+      !deskEditor.includes('type DeskCategory = "trading"')
+  );
+  const sixCats = mergeDeskCategories(
+    [
+      ...["trading", "ops", "risk", "tools", "career"].map((id) => ({
+        id,
+        label: id,
+        color: "#3280ff",
+        count: 0,
+      })),
+      { id: "lng", label: "LNG & Shipping", color: "#0F766E", count: 0 },
+    ],
+    [{ ...DESK_QA[0], category: "lng", categoryLabel: "LNG & Shipping", categoryColor: "#0F766E" }]
+  );
+  ok(
+    "Desk Channel category merge scales past five and keeps All Questions",
+    sixCats.filter((c) => c.id !== "all").length === 6 &&
+      sixCats[0]?.id === "all" &&
+      sixCats.some((c) => c.id === "lng" && c.count === 1)
+  );
+  ok(
+    "Desk Channel category ids stay unique when adding another New category",
+    slugifyDeskCategoryId("New category", ["new-category"]) === "new-category-2"
   );
 }
 

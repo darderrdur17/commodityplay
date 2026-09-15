@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { DESK_CATEGORIES } from "@/data/desk-channel";
+import { DESK_CATEGORIES, type DeskQA, mergeDeskCategories, slugifyDeskCategoryId, deskCategoryMeta } from "@/data/desk-channel";
 import {
   DEFAULT_DESK_CHANNEL_PAGE_COPY,
   mergeDeskChannelPageCopy,
@@ -13,27 +13,6 @@ import {
 import { CONTENT_STAT_PLACEHOLDER_HINT } from "@/lib/content/content-stat-placeholders";
 import { EditorField, EditorRow, EditorSection, TrackToggle, inputClass, textareaClass } from "./shared";
 import { JsonImportSection } from "./json-import-section";
-
-type DeskCategory = "trading" | "ops" | "risk" | "tools" | "career";
-
-interface DeskQA {
-  id: string;
-  category: DeskCategory;
-  categoryLabel: string;
-  categoryColor: string;
-  question: string;
-  answer: string;
-  deskSignal?: string;
-  attribution: string;
-  author: string;
-  authorRole: string;
-  tags: string[];
-  helpful: number;
-  date: string;
-  addedAt?: string;
-  updatedAt?: string;
-  track?: "career" | "sales" | "both";
-}
 
 interface DeskChannelPayload {
   categories?: typeof DESK_CATEGORIES;
@@ -68,22 +47,13 @@ const DESK_IMPORT_EXAMPLE = JSON.stringify(
   2
 );
 
-const CATEGORIES: { id: string; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "trading", label: "Trading" },
-  { id: "ops", label: "Ops" },
-  { id: "risk", label: "Risk" },
-  { id: "tools", label: "Tools" },
-  { id: "career", label: "Career" },
-];
-
-function newQA(): DeskQA {
+function newQA(categoryId: string, meta: { label: string; color: string }): DeskQA {
   const today = new Date().toISOString().slice(0, 10);
   return {
     id: `dq-${Date.now()}`,
-    category: "trading",
-    categoryLabel: "Trading",
-    categoryColor: "bg-blue-100 text-blue-700",
+    category: categoryId,
+    categoryLabel: meta.label,
+    categoryColor: meta.color,
     question: "",
     answer: "",
     attribution: "editorial",
@@ -99,16 +69,18 @@ function newQA(): DeskQA {
 
 function readDeskChannelPayload(payload: unknown): DeskChannelPayload {
   if (Array.isArray(payload)) {
+    const questions = payload as DeskQA[];
     return {
-      categories: DESK_CATEGORIES,
-      questions: payload as DeskQA[],
+      categories: mergeDeskCategories(DESK_CATEGORIES, questions),
+      questions,
       pageCopy: DEFAULT_DESK_CHANNEL_PAGE_COPY,
     };
   }
   const data = (payload ?? {}) as Partial<DeskChannelPayload>;
+  const questions = data.questions ?? [];
   return {
-    categories: data.categories ?? DESK_CATEGORIES,
-    questions: data.questions ?? [],
+    categories: mergeDeskCategories(data.categories ?? DESK_CATEGORIES, questions),
+    questions,
     pageCopy: mergeDeskChannelPageCopy(data.pageCopy),
     lastRefreshed: data.lastRefreshed,
   };
@@ -127,28 +99,87 @@ export function DeskChannelEditor({
 }) {
   const data = readDeskChannelPayload(payload);
   const items = data.questions;
+  const categories = mergeDeskCategories(data.categories, items);
+  const categoryDefs = categories.filter((c) => c.id !== "all");
   const [cat, setCat] = useState("all");
 
+  function persist(next: Partial<DeskChannelPayload>) {
+    const questions = next.questions ?? items;
+    const merged = mergeDeskCategories(next.categories ?? data.categories, questions);
+    onChange({
+      ...data,
+      ...next,
+      questions,
+      categories: merged,
+    });
+  }
+
   function patchQuestions(questions: DeskQA[]) {
-    onChange({ ...data, questions });
+    persist({ questions });
   }
 
   function patchPageCopy(pageCopy: DeskChannelPageCopy) {
-    onChange({ ...data, pageCopy });
+    persist({ pageCopy });
   }
 
   function patchItem(i: number, item: DeskQA) {
     const next = [...items];
     next[i] = item;
-    patchQuestions(next);
+    persist({ questions: next });
   }
 
   function deleteItem(i: number) {
-    patchQuestions(items.filter((_, j) => j !== i));
+    persist({ questions: items.filter((_, j) => j !== i) });
   }
 
   function addItem() {
-    patchQuestions([...items, newQA()]);
+    const first = categoryDefs[0] ?? { id: "trading", label: "Trading & Market Analysis", color: "#3280ff" };
+    persist({ questions: [...items, newQA(first.id, first)] });
+  }
+
+  function addCategory() {
+    const ids = categoryDefs.map((c) => c.id);
+    const id = slugifyDeskCategoryId("New category", ids);
+    persist({
+      categories: [
+        ...categoryDefs,
+        { id, label: "New category", color: "#3280ff", count: 0 },
+      ],
+    });
+  }
+
+  function patchCategory(id: string, patch: { label?: string; color?: string }) {
+    persist({
+      categories: categoryDefs.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+      questions: items.map((q) =>
+        q.category === id
+          ? {
+              ...q,
+              categoryLabel: patch.label ?? q.categoryLabel,
+              categoryColor: patch.color ?? q.categoryColor,
+            }
+          : q
+      ),
+    });
+  }
+
+  function deleteCategory(id: string) {
+    if (categoryDefs.length <= 1) return;
+    const fallback = categoryDefs.find((c) => c.id !== id) ?? categoryDefs[0];
+    persist({
+      categories: categoryDefs.filter((c) => c.id !== id),
+      questions: items.map((q) =>
+        q.category === id
+          ? {
+              ...q,
+              category: fallback.id,
+              categoryLabel: fallback.label,
+              categoryColor: fallback.color,
+            }
+          : q
+      ),
+    });
+    if (cat === id) setCat("all");
   }
 
   function importJson(parsed: unknown): { ok: true } | { ok: false; error: string } {
@@ -256,7 +287,7 @@ export function DeskChannelEditor({
             type="date"
             className={inputClass}
             value={data.lastRefreshed ?? ""}
-            onChange={(e) => onChange({ ...data, lastRefreshed: e.target.value || undefined })}
+            onChange={(e) => persist({ lastRefreshed: e.target.value || undefined })}
           />
         </EditorField>
       </EditorSection>
@@ -388,6 +419,46 @@ export function DeskChannelEditor({
         </div>
       </EditorSection>
 
+      <EditorSection
+        title="Categories"
+        description="Add-on categories for the member filters. Not limited to five. Changing a label or color updates Q&As in that category."
+      >
+        <div className="space-y-3">
+          {categoryDefs.map((c) => (
+            <div key={c.id} className="grid gap-2 sm:grid-cols-[1fr_7rem_auto] items-end">
+              <EditorField label="Label">
+                <input
+                  className={inputClass}
+                  value={c.label}
+                  onChange={(e) => patchCategory(c.id, { label: e.target.value })}
+                />
+              </EditorField>
+              <EditorField label="Color">
+                <input
+                  type="color"
+                  className="h-10 w-full rounded-md border border-border bg-white"
+                  value={/^#[0-9A-Fa-f]{6}$/.test(c.color) ? c.color : "#3280ff"}
+                  onChange={(e) => patchCategory(c.id, { color: e.target.value })}
+                />
+              </EditorField>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="mb-1 text-muted-fg"
+                disabled={categoryDefs.length <= 1}
+                onClick={() => deleteCategory(c.id)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Button type="button" variant="outline" size="sm" onClick={addCategory}>
+          <Plus className="w-3.5 h-3.5" /> Add category
+        </Button>
+      </EditorSection>
+
       <EditorSection title="Q&A library" description="Practitioner questions and answers">
       <JsonImportSection
         description="Bulk-load Q&As from JSON (same shape as site defaults: { questions: [...] })."
@@ -398,7 +469,7 @@ export function DeskChannelEditor({
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex gap-1 flex-wrap">
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <button
               key={c.id}
               type="button"
@@ -408,7 +479,7 @@ export function DeskChannelEditor({
                 cat === c.id ? "bg-primary-soft text-primary-400" : "bg-secondary text-muted-fg hover:bg-secondary/80"
               )}
             >
-              {c.label} {c.id !== "all" && `(${items.filter((x) => x.category === c.id).length})`}
+              {c.label} {c.id !== "all" && `(${c.count})`}
             </button>
           ))}
         </div>
@@ -439,14 +510,36 @@ export function DeskChannelEditor({
             </EditorField>
             <div className="grid gap-3 sm:grid-cols-2">
               <EditorField label="Category">
-                <select className={inputClass} value={item.category} onChange={(e) => patchItem(i, { ...item, category: e.target.value as DeskCategory, categoryLabel: e.target.value })}>
-                  {CATEGORIES.filter((c) => c.id !== "all").map((c) => (
+                <select
+                  className={inputClass}
+                  value={item.category}
+                  onChange={(e) => {
+                    const nextId = e.target.value;
+                    const meta = deskCategoryMeta(categories, nextId);
+                    patchItem(i, {
+                      ...item,
+                      category: nextId,
+                      categoryLabel: meta.label,
+                      categoryColor: meta.color,
+                    });
+                  }}
+                >
+                  {categoryDefs.map((c) => (
                     <option key={c.id} value={c.id}>{c.label}</option>
                   ))}
                 </select>
               </EditorField>
               <EditorField label="Attribution">
-                <select className={inputClass} value={item.attribution} onChange={(e) => patchItem(i, { ...item, attribution: e.target.value })}>
+                <select
+                  className={inputClass}
+                  value={item.attribution}
+                  onChange={(e) =>
+                    patchItem(i, {
+                      ...item,
+                      attribution: e.target.value === "practitioner" ? "practitioner" : "editorial",
+                    })
+                  }
+                >
                   <option value="editorial">Editorial</option>
                   <option value="practitioner">Practitioner</option>
                 </select>

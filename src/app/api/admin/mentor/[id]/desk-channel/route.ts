@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 
 const schema = z.object({
   action: z.enum(["publish", "reject"]),
-  category: z.enum(["trading", "ops", "risk", "tools", "career"]).optional(),
+  category: z.string().min(1).max(80).optional(),
   question: z.string().min(10).max(2000).optional(),
   answer: z.string().min(10).max(5000).optional(),
 });

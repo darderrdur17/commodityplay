@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import type { DeskCategory, DeskQA } from "@/data/desk-channel";
-import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
+import { DESK_QA, deskCategoryMeta, mergeDeskCategories } from "@/data/desk-channel";
 import { prisma } from "@/lib/prisma";
 import { getDefaultPayload } from "@/lib/content/defaults";
 import { getContentModuleRecord, updateContentModule } from "@/lib/content/repository";
@@ -8,28 +8,14 @@ import { resolveAdminModulePayload } from "@/lib/content/admin-payload";
 import { toIsoDateOnly } from "@/lib/content/interview-questions-freshness";
 import { MENTOR_SEGMENT_TO_DESK_CATEGORY } from "@/lib/mentor-share-consent";
 
-const DESK_CAT_META: Record<DeskCategory, { label: string; color: string }> = {
-  trading: { label: "Trading & Market Analysis", color: "#3280ff" },
-  ops: { label: "Operations & Scheduling", color: "#B45309" },
-  risk: { label: "Risk & Compliance", color: "#5B21B6" },
-  tools: { label: "Market Intelligence & Tools", color: "#0F766E" },
-  career: { label: "Career Positioning", color: "#0040f5" },
-};
-
 type DeskPayload = {
-  categories?: typeof DESK_CATEGORIES;
+  categories?: ReturnType<typeof mergeDeskCategories>;
   questions?: DeskQA[];
   pageCopy?: unknown;
 };
 
-function recountCategories(questions: DeskQA[]): typeof DESK_CATEGORIES {
-  const byCat: Record<string, number> = {};
-  for (const q of questions) {
-    byCat[q.category] = (byCat[q.category] ?? 0) + 1;
-  }
-  return DESK_CATEGORIES.map((c) =>
-    c.id === "all" ? { ...c, count: questions.length } : { ...c, count: byCat[c.id] ?? 0 }
-  );
+function recountCategories(questions: DeskQA[], cms?: unknown): ReturnType<typeof mergeDeskCategories> {
+  return mergeDeskCategories(cms, questions);
 }
 
 function deskQaFromMentor(params: {
@@ -37,8 +23,9 @@ function deskQaFromMentor(params: {
   question: string;
   answer: string;
   category: DeskCategory;
+  categories: ReturnType<typeof mergeDeskCategories>;
 }): DeskQA {
-  const meta = DESK_CAT_META[params.category];
+  const meta = deskCategoryMeta(params.categories, params.category);
   const today = new Date();
   const date = today.toLocaleDateString("en-US", { month: "short", year: "numeric" });
   const addedAt = toIsoDateOnly(today);
@@ -90,6 +77,7 @@ export async function publishMentorQuestionToDeskChannel(params: {
   const resolved = resolveAdminModulePayload("desk-channel", record?.payload) as DeskPayload;
   const defaults = getDefaultPayload("desk-channel") as DeskPayload;
   const questions = [...(resolved.questions?.length ? resolved.questions : defaults.questions ?? DESK_QA)];
+  const categories = mergeDeskCategories(resolved.categories ?? defaults.categories, questions);
 
   const deskQaId = `mc-${existing.id}`;
   const entry = deskQaFromMentor({
@@ -97,6 +85,7 @@ export async function publishMentorQuestionToDeskChannel(params: {
     question: publishQuestion,
     answer: publishAnswer,
     category: params.category,
+    categories,
   });
   const existingIdx = questions.findIndex((q) => q.id === deskQaId);
   if (existingIdx >= 0) {
@@ -111,7 +100,7 @@ export async function publishMentorQuestionToDeskChannel(params: {
       payload: {
         ...resolved,
         questions,
-        categories: recountCategories(questions),
+        categories: recountCategories(questions, categories),
         pageCopy: resolved.pageCopy ?? defaults.pageCopy,
       },
       published: true,

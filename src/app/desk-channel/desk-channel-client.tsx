@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp, ThumbsUp, Check, ArrowRight } from "lucide-react";
 import { BrandedSearchInput } from "@/components/brand/logo";
 import { LibraryFreshnessStrip } from "@/components/library-freshness-strip";
-import { DESK_CATEGORIES, DESK_QA, type DeskCategory, type DeskQA } from "@/data/desk-channel";
+import { DESK_CATEGORIES, DESK_QA, type DeskQA } from "@/data/desk-channel";
 import { getDeskLibraryFreshness } from "@/lib/content/desk-channel-freshness";
 import {
   DEFAULT_DESK_CHANNEL_PAGE_COPY,
@@ -35,7 +35,7 @@ export function DeskChannelClient({
   lastRefreshed,
 }: Props) {
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<DeskCategory | "all">("all");
+  const [category, setCategory] = useState<string>("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
   const freshness = useMemo(
@@ -101,7 +101,7 @@ export function DeskChannelClient({
             {categories.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => setCategory(cat.id as DeskCategory | "all")}
+                onClick={() => setCategory(cat.id)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                   category === cat.id
                     ? "bg-primary-soft text-primary-800 border border-primary-line"

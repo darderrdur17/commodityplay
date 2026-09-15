@@ -1,4 +1,4 @@
-import { DESK_QA } from "@/data/desk-channel";
+import { DESK_QA, mergeDeskCategories } from "@/data/desk-channel";
 import { INTERVIEW_QUESTIONS } from "@/data/interview-questions";
 import { JOB_OPENINGS } from "@/data/job-openings";
 import { CASE_STUDIES, CASE_STUDY_DETAILS } from "@/data/case-studies";
@@ -21,9 +21,10 @@ export function resolveAdminModulePayload(slug: ContentSlug, payload: unknown): 
 
   if (slug === "desk-channel") {
     if (Array.isArray(payload)) {
+      const questions = hydrateDeskQaDates((payload.length ? payload : DESK_QA) as import("@/data/desk-channel").DeskQA[]);
       return {
-        categories: defaults.categories,
-        questions: hydrateDeskQaDates((payload.length ? payload : DESK_QA) as import("@/data/desk-channel").DeskQA[]),
+        categories: mergeDeskCategories(defaults.categories, questions),
+        questions,
         pageCopy: defaults.pageCopy ?? DEFAULT_DESK_CHANNEL_PAGE_COPY,
       };
     }
@@ -35,6 +36,10 @@ export function resolveAdminModulePayload(slug: ContentSlug, payload: unknown): 
     if (Array.isArray(merged.questions)) {
       merged.questions = hydrateDeskQaDates(merged.questions as import("@/data/desk-channel").DeskQA[]);
     }
+    merged.categories = mergeDeskCategories(
+      merged.categories,
+      (merged.questions as import("@/data/desk-channel").DeskQA[]) ?? []
+    );
     return merged;
   }
 

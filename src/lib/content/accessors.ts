@@ -14,7 +14,7 @@ import {
 import type { MentorOverridesPayload } from "@/data/mentors";
 import { getPublishedPayload, tryReadPublishedPayload, getContentModulePayload } from "./repository";
 import { resolveCaseStudiesPayload, type CaseStudiesPayload } from "@/lib/content/case-studies-payload";
-import { DESK_CATEGORIES, DESK_QA } from "@/data/desk-channel";
+import { DESK_CATEGORIES, DESK_QA, mergeDeskCategories } from "@/data/desk-channel";
 import { GLOSSARY_TERMS } from "@/data/glossary";
 import {
   INTERVIEW_QUESTIONS,
@@ -490,8 +490,8 @@ export async function getDeskChannelData() {
     lastRefreshed?: string;
   }>("desk-channel");
 
-  const categories = data.categories ?? DESK_CATEGORIES;
   const questions = hydrateDeskQaDates(data.questions ?? DESK_QA);
+  const categories = mergeDeskCategories(data.categories, questions);
   const deskSegmentCount = categories.filter((c) => c.id !== "all").length;
   const pageCopy = formatDeskChannelCopy(normalizeDeskChannelPageCopy(data.pageCopy), {
     deskQaCount: questions.length,
