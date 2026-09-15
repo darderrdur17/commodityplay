@@ -49,6 +49,7 @@ import {
   isDashboardModuleVisible,
   memberMayAccessCareerPlaybook,
   partitionAccessibleFirst,
+  dashboardAudienceFromPreview,
 } from "../src/lib/dashboard-module-visibility";
 import { LEGACY_SALES_TALKING_POINT_TITLES, SALES_MARKET_NOTE } from "../src/data/market-notes";
 import { defaultSalesEdgeNote, resolveSalesTalkingPoints } from "../src/lib/content/edge-notes";
@@ -78,8 +79,12 @@ import {
 import { PDFDocument } from "pdf-lib";
 import {
   DEFAULT_DASHBOARD_RESOURCE_CARDS,
+  DEFAULT_MEMBER_DASHBOARD_CONTENT,
   DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS,
+  DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS,
+  resolveResourceCardTitle,
 } from "../src/data/member-dashboard";
+import { normalizeMemberDashboardPayload } from "../src/lib/content/member-dashboard-schema";
 import { DEFAULT_SITE_FOOTER } from "../src/data/footer-content";
 import { mergeSiteFooterContent } from "../src/lib/content/footer-schema";
 import {
@@ -464,8 +469,102 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok("Sales sees Both modules", isDashboardModuleVisible("Both", "SALES"));
   ok("Career does not see Sales-only", !isDashboardModuleVisible("Sales", "CAREER"));
   ok(
-    "Sales-only tools are Sales-tracked",
+    "Sales-only catalog tools default to Sales track",
     DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS.every((c) => c.track === "Sales")
+  );
+  ok(
+    "Unified resource catalog includes career and sales cards (N, not a hardcoded trio)",
+    DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.length ===
+      DEFAULT_DASHBOARD_RESOURCE_CARDS.length + DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS.length &&
+      DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.length > 3 &&
+      DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS.every((c) =>
+        DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.some((u) => u.slug === c.slug)
+      )
+  );
+  {
+    const titled = normalizeMemberDashboardPayload({
+      ...DEFAULT_MEMBER_DASHBOARD_CONTENT,
+      resourceCards: DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.map((c) =>
+        c.slug === "playbook" ? { ...c, title: "The Desk Playbook" } : c
+      ),
+    });
+    ok(
+      "CMS resource card title overlays the live dashboard copy",
+      titled.resourceCards.find((c) => c.slug === "playbook")?.title === "The Desk Playbook"
+    );
+    const blankTitle = normalizeMemberDashboardPayload({
+      ...DEFAULT_MEMBER_DASHBOARD_CONTENT,
+      resourceCards: DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.map((c) =>
+        c.slug === "playbook" ? { ...c, title: "   " } : c
+      ),
+    });
+    const playbook = blankTitle.resourceCards.find((c) => c.slug === "playbook")!;
+    ok(
+      "Blank CMS title falls back to catalog label",
+      playbook.title === "Full Playbook" && resolveResourceCardTitle({ slug: "playbook", title: "" }) === "Full Playbook"
+    );
+    const retargeted = normalizeMemberDashboardPayload({
+      ...DEFAULT_MEMBER_DASHBOARD_CONTENT,
+      resourceCards: DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.map((c) =>
+        c.slug === "resume-templates" ? { ...c, track: "Both" as const } : c
+      ),
+    });
+    const resume = retargeted.resourceCards.find((c) => c.slug === "resume-templates")!;
+    ok(
+      "CMS track toggle is not product-hardcoded",
+      resume.track === "Both" &&
+        isDashboardModuleVisible(resume.track, "SALES") &&
+        isDashboardModuleVisible(resume.track, "CAREER")
+    );
+    const legacySplit = normalizeMemberDashboardPayload({
+      starterPack: DEFAULT_MEMBER_DASHBOARD_CONTENT.starterPack,
+      upgradeToPro: DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToPro,
+      upgradeToElite: DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToElite,
+      resourceCards: DEFAULT_DASHBOARD_RESOURCE_CARDS.map((c) => ({
+        slug: c.slug,
+        title: c.title,
+        description: c.description,
+      })),
+      salesResourceCards: DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS.map((c) => ({
+        slug: c.slug,
+        title: "Legacy " + c.title,
+        description: c.description,
+        requiredTier: c.requiredTier,
+        href: c.href,
+      })),
+    });
+    ok(
+      "Legacy salesResourceCards merge into the unified Resource cards list",
+      legacySplit.resourceCards.some((c) => c.slug === "account-intelligence") &&
+        legacySplit.resourceCards.find((c) => c.slug === "industry-guide-for-sales")?.title ===
+          "Legacy Industry Guide for Sales" &&
+        legacySplit.resourceCards.length === DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.length
+    );
+    const reordered = normalizeMemberDashboardPayload({
+      ...DEFAULT_MEMBER_DASHBOARD_CONTENT,
+      resourceCards: [...DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS].reverse().map((c) => ({
+        slug: c.slug,
+        title: c.title,
+        description: c.description,
+        track: c.track,
+      })),
+    });
+    ok(
+      "CMS list order is preserved for N catalog cards",
+      reordered.resourceCards[0]?.slug === DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.at(-1)?.slug &&
+        reordered.resourceCards.length === DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.length
+    );
+  }
+  ok(
+    "Both-track members see Career, Sales, and Both cards",
+    dashboardAudienceFromPreview({
+      isAdmin: false,
+      isMentorUser: false,
+      isPreviewActive: false,
+      effectiveTrack: "BOTH",
+    }) === "ALL" &&
+      isDashboardModuleVisible("Career", "ALL") &&
+      isDashboardModuleVisible("Sales", "ALL")
   );
 
   const careerSlugs = DEFAULT_DASHBOARD_RESOURCE_CARDS.filter((c) => c.track === "Career").map((c) => c.slug);
@@ -1204,6 +1303,10 @@ async function verifyPdfStampWrites() {
     path.join(process.cwd(), "src/app/dashboard/dashboard-client.tsx"),
     "utf8"
   );
+  const dashboardEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/member-dashboard-editor.tsx"),
+    "utf8"
+  );
   const sorted = partitionAccessibleFirst(
     [
       { id: "locked-elite", accessible: false },
@@ -1227,6 +1330,24 @@ async function verifyPdfStampWrites() {
     isDashboardModuleVisible("Sales", "SALES") &&
       !isDashboardModuleVisible("Career", "SALES") &&
       isDashboardModuleVisible("Both", "SALES")
+  );
+  ok(
+    "Member dashboard renders CMS titles from the unified resourceCards list",
+    dashboardClient.includes("resolveResourceCardTitle") &&
+      dashboardClient.includes("visibleResourceCards") &&
+      dashboardClient.includes("filterByDashboardAudience(dashboardContent.resourceCards") &&
+      !dashboardClient.includes("showSalesTrackCards") &&
+      !dashboardClient.includes("visibleSalesCards")
+  );
+  ok(
+    "Admin Member Dashboard CMS edits titles and Career/Sales/Both on one Resource cards list",
+    dashboardEditor.includes('title="Resource cards"') &&
+      dashboardEditor.includes("CMS-owned") &&
+      dashboardEditor.includes('label="Title"') &&
+      dashboardEditor.includes('label="Track"') &&
+      dashboardEditor.includes('TRACK_OPTIONS') &&
+      !dashboardEditor.includes("product-owned") &&
+      !dashboardEditor.includes("Sales track resource cards")
   );
 }
 

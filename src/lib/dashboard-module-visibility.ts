@@ -55,7 +55,10 @@ export function dashboardAudienceFromPreview(opts: {
   effectiveTrack: string;
 }): DashboardAudience {
   if (opts.isAdmin && !opts.isMentorUser && !opts.isPreviewActive) return "ALL";
-  return opts.effectiveTrack.toUpperCase() === "SALES" ? "SALES" : "CAREER";
+  const track = opts.effectiveTrack.toUpperCase();
+  if (track === "SALES") return "SALES";
+  if (track === "BOTH" || track === "ALL") return "ALL";
+  return "CAREER";
 }
 
 /**

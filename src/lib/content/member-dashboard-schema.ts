@@ -1,8 +1,9 @@
 import { z } from "zod";
 import {
-  DEFAULT_DASHBOARD_RESOURCE_CARDS,
   DEFAULT_MEMBER_DASHBOARD_CONTENT,
-  DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS,
+  DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS,
+  isDashboardModuleTrack,
+  isSalesCatalogResourceSlug,
   type DashboardResourceCardCopy,
   type DashboardSalesResourceCardCopy,
   type MemberDashboardContent,
@@ -23,13 +24,19 @@ const promoBoxSchema = z.object({
 
 const resourceCardSchema = z.object({
   slug: z.string().min(1).max(80),
-  title: z.string().min(1).max(120),
-  description: z.string().min(1).max(500),
+  title: z.string().max(120).optional(),
+  description: z.string().max(500).optional(),
+  track: z.enum(["Career", "Sales", "Both"]).optional(),
+  cardKind: z.enum(["page", "file", "email-digest"]).optional(),
+  deliverableKey: z.enum(["careerNavigationGuide", "salesEdgeNote", "industryGuideForSales"]).optional(),
+  href: z.string().max(200).optional(),
+  requiredTier: z.enum(["PRO", "ELITE"]).optional(),
+  isPrepLibrary: z.boolean().optional(),
 });
 
 const salesResourceCardSchema = resourceCardSchema.extend({
-  requiredTier: z.enum(["PRO", "ELITE"]),
-  href: z.string().min(1).max(200),
+  requiredTier: z.enum(["PRO", "ELITE"]).optional(),
+  href: z.string().max(200).optional(),
   deliverableKey: z.enum(["salesEdgeNote", "industryGuideForSales"]).optional(),
 });
 
@@ -52,7 +59,7 @@ export const memberDashboardSchema = z.object({
   upgradeToPro: promoBoxSchema,
   upgradeToElite: promoBoxSchema,
   resourceCards: z.array(resourceCardSchema).min(1),
-  salesResourceCards: z.array(salesResourceCardSchema).min(1).optional(),
+  salesResourceCards: z.array(salesResourceCardSchema).optional(),
   salesDeliverables: salesDeliverablesSchema.optional(),
 });
 
@@ -70,46 +77,91 @@ export function formatMemberDashboardValidationErrors(
     .join("; ");
 }
 
-function mergeResourceCards(
-  cms?: Array<Pick<DashboardResourceCardCopy, "slug" | "title" | "description">>
-): DashboardResourceCardCopy[] {
-  const bySlug = new Map((cms ?? []).map((c) => [c.slug, c]));
-  return DEFAULT_DASHBOARD_RESOURCE_CARDS.map((def) => {
-    const saved = bySlug.get(def.slug);
-    if (!saved?.description?.trim()) return def;
-    return {
-      slug: def.slug,
-      title: saved.title?.trim() || def.title,
-      description: saved.description.trim(),
-      track: def.track,
-      cardKind: def.cardKind,
-      deliverableKey: def.deliverableKey,
-      href: def.href,
-    };
-  });
+type ResourceCardCmsFields = Pick<DashboardResourceCardCopy, "slug"> &
+  Partial<Pick<DashboardResourceCardCopy, "title" | "description" | "track">>;
+
+function overlayResourceCard(
+  def: DashboardResourceCardCopy,
+  saved?: ResourceCardCmsFields
+): DashboardResourceCardCopy {
+  return {
+    ...def,
+    slug: def.slug,
+    title: saved?.title?.trim() || def.title,
+    description: saved?.description?.trim() || def.description,
+    track: isDashboardModuleTrack(saved?.track) ? saved.track : def.track,
+    cardKind: def.cardKind,
+    deliverableKey: def.deliverableKey,
+    href: def.href,
+    requiredTier: def.requiredTier,
+    isPrepLibrary: def.isPrepLibrary,
+  };
 }
 
-function mergeSalesResourceCards(
-  cms?: Array<
-    Pick<DashboardSalesResourceCardCopy, "slug" | "title" | "description" | "href"> &
-      Partial<Pick<DashboardSalesResourceCardCopy, "deliverableKey" | "requiredTier">>
-  >
-): DashboardSalesResourceCardCopy[] {
-  const bySlug = new Map((cms ?? []).map((c) => [c.slug, c]));
-  return DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS.map((def) => {
-    const saved = bySlug.get(def.slug);
-    if (!saved) return def;
-    return {
-      ...def,
-      title: saved.title?.trim() || def.title,
-      description: saved.description?.trim() || def.description,
-      href: saved.href?.trim() || def.href,
-      requiredTier: def.requiredTier,
-      deliverableKey: saved.deliverableKey ?? def.deliverableKey,
-      track: def.track,
-      cardKind: def.cardKind,
-    };
-  });
+function asSalesResourceCard(card: DashboardResourceCardCopy): DashboardSalesResourceCardCopy | null {
+  if (!isSalesCatalogResourceSlug(card.slug) || !card.requiredTier || !card.href) return null;
+  const deliverableKey =
+    card.deliverableKey === "salesEdgeNote" || card.deliverableKey === "industryGuideForSales"
+      ? card.deliverableKey
+      : undefined;
+  return {
+    slug: card.slug,
+    title: card.title,
+    description: card.description,
+    track: card.track,
+    cardKind: card.cardKind,
+    href: card.href,
+    requiredTier: card.requiredTier,
+    isPrepLibrary: card.isPrepLibrary,
+    deliverableKey,
+  };
+}
+
+/**
+ * Unified catalog merge: CMS may edit title/description/track and reorder known slugs.
+ * Product identity (href, cardKind, deliverable, requiredTier) stays catalog-owned.
+ * Legacy `salesResourceCards` overlays are applied first so a later unified list wins.
+ */
+export function mergeResourceCards(
+  cmsResourceCards?: ResourceCardCmsFields[],
+  cmsSalesCards?: ResourceCardCmsFields[]
+): DashboardResourceCardCopy[] {
+  const catalog = DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS;
+  const catalogBySlug = new Map(catalog.map((card) => [card.slug, card]));
+  const overlays = new Map<string, ResourceCardCmsFields>();
+
+  for (const card of cmsSalesCards ?? []) {
+    if (card?.slug) overlays.set(card.slug, card);
+  }
+  for (const card of cmsResourceCards ?? []) {
+    if (!card?.slug) continue;
+    overlays.set(card.slug, { ...overlays.get(card.slug), ...card });
+  }
+
+  const seen = new Set<string>();
+  const ordered: DashboardResourceCardCopy[] = [];
+  const cmsOrder = [...(cmsResourceCards ?? []), ...(cmsSalesCards ?? [])].map((card) => card.slug);
+
+  for (const slug of cmsOrder) {
+    if (seen.has(slug)) continue;
+    const def = catalogBySlug.get(slug);
+    if (!def) continue;
+    seen.add(slug);
+    ordered.push(overlayResourceCard(def, overlays.get(slug)));
+  }
+
+  for (const def of catalog) {
+    if (seen.has(def.slug)) continue;
+    ordered.push(overlayResourceCard(def, overlays.get(def.slug)));
+  }
+
+  return ordered;
+}
+
+function deriveSalesResourceCards(cards: DashboardResourceCardCopy[]): DashboardSalesResourceCardCopy[] {
+  return cards
+    .map(asSalesResourceCard)
+    .filter((card): card is DashboardSalesResourceCardCopy => card !== null);
 }
 
 function mergePromoBox(
@@ -126,6 +178,7 @@ function mergePromoBox(
 export function normalizeMemberDashboardPayload(payload: unknown): MemberDashboardContent {
   const parsed = parseMemberDashboardPayload(payload);
   if (parsed.success) {
+    const resourceCards = mergeResourceCards(parsed.data.resourceCards, parsed.data.salesResourceCards);
     return {
       ...parsed.data,
       upgradeToPro: mergePromoBox(DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToPro, parsed.data.upgradeToPro),
@@ -133,13 +186,14 @@ export function normalizeMemberDashboardPayload(payload: unknown): MemberDashboa
         DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToElite,
         parsed.data.upgradeToElite
       ),
-      resourceCards: mergeResourceCards(parsed.data.resourceCards),
-      salesResourceCards: mergeSalesResourceCards(parsed.data.salesResourceCards),
+      resourceCards,
+      salesResourceCards: deriveSalesResourceCards(resourceCards),
       salesDeliverables: normalizeSalesDashboardDeliverables(parsed.data.salesDeliverables),
     };
   }
 
   const partial = (payload ?? {}) as Partial<MemberDashboardContent>;
+  const resourceCards = mergeResourceCards(partial.resourceCards, partial.salesResourceCards);
   return {
     starterPack: { ...DEFAULT_MEMBER_DASHBOARD_CONTENT.starterPack, ...partial.starterPack },
     upgradeToPro: mergePromoBox(DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToPro, partial.upgradeToPro),
@@ -147,8 +201,8 @@ export function normalizeMemberDashboardPayload(payload: unknown): MemberDashboa
       DEFAULT_MEMBER_DASHBOARD_CONTENT.upgradeToElite,
       partial.upgradeToElite
     ),
-    resourceCards: mergeResourceCards(partial.resourceCards),
-    salesResourceCards: mergeSalesResourceCards(partial.salesResourceCards),
+    resourceCards,
+    salesResourceCards: deriveSalesResourceCards(resourceCards),
     salesDeliverables: normalizeSalesDashboardDeliverables(
       partial.salesDeliverables ?? DEFAULT_SALES_DASHBOARD_DELIVERABLES
     ),

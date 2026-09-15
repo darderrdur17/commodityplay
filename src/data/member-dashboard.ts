@@ -22,19 +22,23 @@ export type DashboardDeliverableKey =
   | "salesEdgeNote"
   | "industryGuideForSales";
 
-/** Editable description under each resource card title on /dashboard. */
+/** Editable title/description/track for each resource card on /dashboard. */
 export interface DashboardResourceCardCopy {
   slug: string;
   title: string;
   description: string;
-  /** Product track. Code-owned — CMS may edit title/description but not this. */
+  /** CMS-owned. Career members see Career+Both; Sales see Sales+Both; Both/admin see all. */
   track: DashboardModuleTrack;
   /** Code-owned delivery pattern. */
   cardKind?: DashboardCardKind;
   /** When set, unlocked Pro+ members open the uploaded CMS file instead of href. */
   deliverableKey?: DashboardDeliverableKey;
-  /** Fallback route when no file is uploaded yet. */
+  /** Product route / download fallback. Slug identity — not the CMS title. */
   href?: string;
+  /** Code-owned access tier. */
+  requiredTier?: "PRO" | "ELITE";
+  /** When true, this card is rendered as a PrepLibraryCard in the UI. */
+  isPrepLibrary?: boolean;
 }
 
 /** Sales-track-only cards in the dashboard grid (Career members never see these). */
@@ -55,9 +59,12 @@ export interface MemberDashboardContent {
   upgradeToPro: DashboardPromoBox;
   /** Dark-blue upgrade banner — shown to Pro members (upsell to Elite). */
   upgradeToElite: DashboardPromoBox;
-  /** Resource grid card descriptions (counts live in product — not repeated here). */
+  /** Unified resource grid (career + sales). CMS owns title, description, track, and order. */
   resourceCards: DashboardResourceCardCopy[];
-  /** Sales track only — extra greyed-out / unlocked cards on the member dashboard. */
+  /**
+   * Legacy/derived sales-catalog subset of `resourceCards` (same slugs).
+   * Kept so older CMS JSON still round-trips; the live dashboard reads `resourceCards`.
+   */
   salesResourceCards: DashboardSalesResourceCardCopy[];
   /** PDF/file uploads for Sales Edge Note and Industry Guide for Sales. */
   salesDeliverables: SalesDashboardDeliverables;
@@ -70,6 +77,8 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
     description:
       "{chapterCount} chapters, {sectionCount} sections — industry foundations through commercial decision-making.",
     track: "Both",
+    href: "/playbook",
+    requiredTier: "PRO",
   },
   {
     slug: "career-intelligence-brief",
@@ -77,12 +86,15 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
     description: "Biweekly email digest on market note that builds you professionally",
     track: "Career",
     cardKind: "email-digest",
+    requiredTier: "PRO",
   },
   {
     slug: "resume-templates",
     title: "Resume Templates",
     description: "{templateCount} tailored templates with persona analysis quiz.",
     track: "Career",
+    href: "/resume-templates",
+    requiredTier: "PRO",
   },
   {
     slug: "career-roadmap",
@@ -90,6 +102,8 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
     description:
       "{roleCount} role blueprints, navigation guide, comp benchmarks, and 12-month action plans.",
     track: "Career",
+    href: "/career-roadmap",
+    requiredTier: "PRO",
   },
   {
     slug: "career-navigation-guide",
@@ -99,6 +113,7 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
     cardKind: "file",
     deliverableKey: "careerNavigationGuide",
     href: "/career-roadmap",
+    requiredTier: "PRO",
   },
   {
     slug: "interview-questions",
@@ -106,36 +121,48 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
     description:
       "{interviewCount} desk interview questions with model answers across technical and commercial tabs.",
     track: "Career",
+    href: "/interview-questions",
+    requiredTier: "PRO",
   },
   {
     slug: "knowledge-test",
     title: "Knowledge Test",
     description: "{knowledgeTestCount}-question gap analysis with personalised study recommendations.",
     track: "Both",
+    href: "/knowledge-test",
+    requiredTier: "PRO",
   },
   {
     slug: "case-studies",
     title: "Case Studies",
     description: "{caseStudyCount} real-world trading scenarios with full P&L breakdowns.",
     track: "Both",
+    href: "/case-studies",
+    requiredTier: "ELITE",
   },
   {
     slug: "desk-channel",
     title: "Desk Channel",
     description: "{deskQaCount} practitioner Q&As across {deskSegmentCount} coverage segments.",
     track: "Both",
+    href: "/desk-channel",
+    requiredTier: "ELITE",
   },
   {
     slug: "mentor-connect",
     title: "Mentor Connect",
     description: "One question. One mentor. One honest answer — {mentorCount} anonymous practitioners.",
     track: "Both",
+    href: "/mentor-connect",
+    requiredTier: "ELITE",
   },
   {
     slug: "job-openings",
     title: "Job Openings",
     description: "{jobCount} curated commodity trading roles across regions.",
     track: "Both",
+    href: "/job-openings",
+    requiredTier: "ELITE",
   },
 ];
 
@@ -179,6 +206,36 @@ export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardC
   },
 ];
 
+export const DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
+  ...DEFAULT_DASHBOARD_RESOURCE_CARDS,
+  ...DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS,
+];
+
+export const SALES_DASHBOARD_RESOURCE_SLUGS = new Set(
+  DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS.map((card) => card.slug)
+);
+
+const RESOURCE_CARD_CATALOG_BY_SLUG = new Map(
+  DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.map((card) => [card.slug, card])
+);
+
+export function isDashboardModuleTrack(value: unknown): value is DashboardModuleTrack {
+  return value === "Career" || value === "Sales" || value === "Both";
+}
+
+/** Live dashboard title: CMS value, else catalog default for the slug. */
+export function resolveResourceCardTitle(
+  card: Pick<DashboardResourceCardCopy, "slug" | "title">
+): string {
+  const trimmed = card.title?.trim() ?? "";
+  if (trimmed) return trimmed;
+  return RESOURCE_CARD_CATALOG_BY_SLUG.get(card.slug)?.title ?? "Resource";
+}
+
+export function isSalesCatalogResourceSlug(slug: string): boolean {
+  return SALES_DASHBOARD_RESOURCE_SLUGS.has(slug);
+}
+
 export const DEFAULT_MEMBER_DASHBOARD_CONTENT: MemberDashboardContent = {
   starterPack: {
     badge: "Starter Pack",
@@ -200,7 +257,7 @@ export const DEFAULT_MEMBER_DASHBOARD_CONTENT: MemberDashboardContent = {
     description: ELITE_SUBSCRIPTION.fullNote,
     cta: UPGRADE_TO_ACCESS,
   },
-  resourceCards: DEFAULT_DASHBOARD_RESOURCE_CARDS,
+  resourceCards: DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS,
   salesResourceCards: DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS,
   salesDeliverables: DEFAULT_SALES_DASHBOARD_DELIVERABLES,
 };

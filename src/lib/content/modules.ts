@@ -129,7 +129,8 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
   {
     slug: "member-dashboard",
     title: "Member Dashboard",
-    description: "Blue marketing banners on the member dashboard — Starter Pack and upgrade prompts for all tiers",
+    description:
+      "Member dashboard banners and resource cards (title, description, Career/Sales/Both track) for all members",
     requiredTier: "STARTER",
   },
   {

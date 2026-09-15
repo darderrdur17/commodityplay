@@ -19,9 +19,10 @@ import { UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import type { NavigationGuideAttachment } from "@/lib/content/accessors";
 import {
-  DEFAULT_DASHBOARD_RESOURCE_CARDS,
   DEFAULT_MEMBER_DASHBOARD_CONTENT,
-  type DashboardSalesResourceCardCopy,
+  DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS,
+  resolveResourceCardTitle,
+  type DashboardModuleTrack,
   type MemberDashboardContent,
 } from "@/data/member-dashboard";
 import {
@@ -45,7 +46,7 @@ import {
   type MentorCreditUsage,
 } from "@/lib/mentor-credits";
 import { PrepLibraryCard, PREP_LIBRARY_COUNT_EVENT } from "@/components/dashboard/prep-library-section";
-import { ModuleTrackBadge, type ModuleTrack } from "@/components/dashboard/module-track-badge";
+import { ModuleTrackBadge } from "@/components/dashboard/module-track-badge";
 
 interface Props {
   contentTiers?: Record<string, string>;
@@ -88,127 +89,36 @@ interface Props {
   starterPackAssetUrls?: Record<string, string>;
 }
 
-const CONTENT_CARDS = [
-  {
-    slug: "playbook",
-    icon: BookOpen,
-    title: "Full Playbook",
-    href: "/playbook",
-    requiredTier: "PRO",
-    color: "#3280ff",
-    track: "Both",
-  },
-  {
-    slug: "career-intelligence-brief",
-    icon: Mail,
-    title: "Career Intelligence Brief",
-    requiredTier: "PRO",
-    color: "#3280ff",
-    track: "Career",
-    cardKind: "email-digest" as const,
-  },
-  {
-    slug: "resume-templates",
-    icon: FileText,
-    title: "Resume Templates",
-    href: "/resume-templates",
-    requiredTier: "PRO",
-    color: "#3280ff",
-    track: "Career",
-  },
-  {
-    slug: "career-roadmap",
-    icon: Map,
-    title: "Career Roadmap",
-    href: "/career-roadmap",
-    requiredTier: "PRO",
-    color: "#3280ff",
-    track: "Career",
-  },
-  {
-    slug: "career-navigation-guide",
-    icon: Compass,
-    title: "Career Navigation Guide",
-    requiredTier: "PRO",
-    color: "#3280ff",
-    track: "Career",
-    cardKind: "file" as const,
-    deliverableKey: "careerNavigationGuide" as const,
-  },
-  {
-    slug: "interview-questions",
-    icon: BarChart3,
-    title: "Interview Questions",
-    href: "/interview-questions",
-    requiredTier: "PRO",
-    color: "#3280ff",
-    track: "Career",
-  },
-  {
-    slug: "knowledge-test",
-    icon: TrendingUp,
-    title: "Knowledge Test",
-    href: "/knowledge-test",
-    requiredTier: "PRO",
-    color: "#3280ff",
-    track: "Both",
-  },
-  {
-    slug: "case-studies",
-    icon: Briefcase,
-    title: "Case Studies",
-    href: "/case-studies",
-    requiredTier: "ELITE",
-    color: "#B45309",
-    track: "Both",
-  },
-  {
-    slug: "desk-channel",
-    icon: MessageSquare,
-    title: "Desk Channel",
-    href: "/desk-channel",
-    requiredTier: "ELITE",
-    color: "#B45309",
-    track: "Both",
-  },
-  {
-    slug: "mentor-connect",
-    icon: Users,
-    title: "Mentor Connect",
-    href: "/mentor-connect",
-    requiredTier: "ELITE",
-    color: "#B45309",
-    track: "Both",
-  },
-  {
-    slug: "job-openings",
-    icon: Briefcase,
-    title: "Job Openings",
-    href: "/job-openings",
-    requiredTier: "ELITE",
-    color: "#B45309",
-    track: "Both",
-  },
-] as const satisfies ReadonlyArray<{
-  slug: string;
-  icon: typeof BookOpen;
-  title: string;
-  href?: string;
-  requiredTier: "PRO" | "ELITE";
-  color: string;
-  track: ModuleTrack;
-  cardKind?: "page" | "file" | "email-digest";
-  deliverableKey?: DashboardDeliverableKey;
-}>;
-
-const SALES_CARD_ICONS: Record<string, typeof FileText> = {
+const RESOURCE_CARD_ICONS: Record<string, typeof BookOpen> = {
+  playbook: BookOpen,
+  "career-intelligence-brief": Mail,
+  "resume-templates": FileText,
+  "career-roadmap": Map,
+  "career-navigation-guide": Compass,
+  "interview-questions": BarChart3,
+  "knowledge-test": TrendingUp,
+  "case-studies": Briefcase,
+  "desk-channel": MessageSquare,
+  "mentor-connect": Users,
+  "job-openings": Briefcase,
   "sales-market-nudges": ScrollText,
   "industry-guide-for-sales": BookOpen,
   "sales-prep-library": NotebookPen,
   "account-intelligence": Users,
 };
 
-const SALES_CARD_COLORS: Record<string, string> = {
+const RESOURCE_CARD_COLORS: Record<string, string> = {
+  playbook: "#3280ff",
+  "career-intelligence-brief": "#3280ff",
+  "resume-templates": "#3280ff",
+  "career-roadmap": "#3280ff",
+  "career-navigation-guide": "#3280ff",
+  "interview-questions": "#3280ff",
+  "knowledge-test": "#3280ff",
+  "case-studies": "#B45309",
+  "desk-channel": "#B45309",
+  "mentor-connect": "#B45309",
+  "job-openings": "#B45309",
   "sales-market-nudges": "#3280ff",
   "industry-guide-for-sales": "#3280ff",
   "sales-prep-library": "#3280ff",
@@ -276,7 +186,8 @@ export function DashboardClient({
     user.resumePersonaDone
   );
   const greeting = user.name?.split(" ")[0] || "there";
-  const isCareerTrack = effectiveTrack.toUpperCase() === "CAREER";
+  const trackUpper = effectiveTrack.toUpperCase();
+  const isCareerTrack = trackUpper === "CAREER";
   const audience = dashboardAudienceFromPreview({
     isAdmin: isAdminUser,
     isMentorUser,
@@ -286,38 +197,18 @@ export function DashboardClient({
   const isAdminUnfiltered = audience === "ALL";
   const memberTrack: "CAREER" | "SALES" | null = isAdminUnfiltered
     ? null
-    : effectiveTrack.toUpperCase() === "SALES"
+    : trackUpper === "SALES"
       ? "SALES"
       : "CAREER";
   const planHref = (tier: "pro" | "elite") =>
-    isCareerTrack ? CAREER_PLAN_HREF(tier) : SALES_PLAN_HREF(tier);
-  const visibleContentCards = filterByDashboardAudience(
-    CONTENT_CARDS.map((card) => ({
-      ...card,
-      track:
-        DEFAULT_DASHBOARD_RESOURCE_CARDS.find((resource) => resource.slug === card.slug)?.track ??
-        card.track,
-    })),
-    audience
-  );
+    isCareerTrack || trackUpper === "BOTH" ? CAREER_PLAN_HREF(tier) : SALES_PLAN_HREF(tier);
+  const visibleResourceCards = filterByDashboardAudience(dashboardContent.resourceCards, audience);
   const visibleQuickLinks = filterByDashboardAudience(QUICK_LINKS, audience);
-  const visibleSalesCards = filterByDashboardAudience(
-    dashboardContent.salesResourceCards,
-    audience
-  );
-  const showSalesTrackCards = visibleSalesCards.length > 0;
   const showPlaybookProgress =
     hasAccess(effectiveTier, "PRO") && isDashboardModuleVisible("Both", audience);
   const showCareerPrepLibrarySlot = isDashboardModuleVisible("Career", audience);
   const isStarter = effectiveTier === "STARTER";
   const isElite = hasAccess(effectiveTier, "ELITE");
-
-  const resourceCopyBySlug = Object.fromEntries(
-    dashboardContent.resourceCards.map((c) => [c.slug, c.description])
-  );
-  const salesResourceCopyBySlug = Object.fromEntries(
-    dashboardContent.salesResourceCards.map((c) => [c.slug, c.description])
-  );
 
   const [careerTopicCount, setCareerTopicCount] = useState(0);
   const [salesTopicCount, setSalesTopicCount] = useState(0);
@@ -374,8 +265,8 @@ export function DashboardClient({
     return () => window.removeEventListener(PREP_LIBRARY_COUNT_EVENT, onPrepLibraryCount);
   }, [effectiveTier]);
 
-  const firstEliteContentCardIndex = visibleContentCards.findIndex(
-    (card) => (contentTiers[card.slug] || card.requiredTier) === "ELITE"
+  const firstEliteContentCardIndex = visibleResourceCards.findIndex(
+    (card) => (contentTiers[card.slug] || card.requiredTier || "PRO") === "ELITE"
   );
 
   const fileDeliverableSources = {
@@ -420,7 +311,7 @@ export function DashboardClient({
     delay?: number;
     pendingLabel?: string;
     accessLabel?: string;
-    trackLabel: ModuleTrack;
+    trackLabel: DashboardModuleTrack;
     cardKind?: "page" | "file" | "email-digest";
   }) {
     const locked = !unlocked || Boolean(pendingLabel);
@@ -644,7 +535,9 @@ export function DashboardClient({
                 ? "Career & Sales"
                 : user.track === "CAREER"
                   ? "Career"
-                  : "Sales",
+                  : user.track.toUpperCase() === "BOTH"
+                    ? "Both"
+                    : "Sales",
             icon: TrendingUp,
             color: "#3280ff",
           },
@@ -831,7 +724,7 @@ export function DashboardClient({
               });
             });
 
-            visibleContentCards.forEach((card, i) => {
+            visibleResourceCards.forEach((card, i) => {
               if (showCareerPrepLibrarySlot && i === firstEliteContentCardIndex) {
                 items.push({
                   key: "career-prep-library",
@@ -851,36 +744,56 @@ export function DashboardClient({
                 });
               }
 
-              const tier = (contentTiers[card.slug] || card.requiredTier) as "PRO" | "ELITE";
+              if (card.isPrepLibrary) {
+                items.push({
+                  key: card.slug,
+                  accessible: hasAccess(effectiveTier, "PRO"),
+                  node: (
+                    <PrepLibraryCard
+                      track="SALES"
+                      userTier={effectiveTier}
+                      topicCount={salesTopicCount}
+                      showTrackBadge={shouldShowTrackBadge({
+                        trackLabel: card.track === "Career" ? "Career" : "Sales",
+                        memberTrack,
+                        isAdminUnfiltered,
+                      })}
+                    />
+                  ),
+                });
+                return;
+              }
+
+              const catalog = DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.find(
+                (resource) => resource.slug === card.slug
+              );
+              const tier = (contentTiers[card.slug] || card.requiredTier || catalog?.requiredTier || "PRO") as
+                | "PRO"
+                | "ELITE";
               const tierUnlocked = hasAccess(effectiveTier, tier);
-              const cardDef = DEFAULT_DASHBOARD_RESOURCE_CARDS.find((resource) => resource.slug === card.slug);
-              const cardKind =
-                ("cardKind" in card ? card.cardKind : undefined) ??
-                cardDef?.cardKind ??
-                "page";
-              const deliverableKey =
-                ("deliverableKey" in card ? card.deliverableKey : undefined) ?? cardDef?.deliverableKey;
+              const cardKind = card.cardKind ?? catalog?.cardKind ?? "page";
+              const deliverableKey = card.deliverableKey ?? catalog?.deliverableKey;
               const isFileCard = cardKind === "file";
               const fileReady = isDashboardFileReady(deliverableKey, fileDeliverableSources);
               const pendingLabel =
                 tierUnlocked && isFileCard && !fileReady ? "Coming soon" : undefined;
               const description =
-                resourceCopyBySlug[card.slug] ??
-                DEFAULT_MEMBER_DASHBOARD_CONTENT.resourceCards.find((c) => c.slug === card.slug)?.description ??
+                card.description?.trim() ||
+                catalog?.description ||
                 "";
               const href = resolveDeliverableHref(
                 deliverableKey,
-                "href" in card ? card.href : cardDef?.href,
+                card.href ?? catalog?.href,
                 cardKind
               );
               items.push({
                 key: card.slug,
                 accessible: isDashboardCardAccessible({ unlocked: tierUnlocked, pendingLabel }),
                 node: renderResourceCard({
-                  title: card.title,
+                  title: resolveResourceCardTitle(card),
                   description,
-                  icon: card.icon,
-                  color: card.color,
+                  icon: RESOURCE_CARD_ICONS[card.slug] ?? FileText,
+                  color: RESOURCE_CARD_COLORS[card.slug] ?? (tier === "ELITE" ? "#B45309" : "#3280ff"),
                   tier,
                   unlocked: tierUnlocked,
                   href,
@@ -908,62 +821,6 @@ export function DashboardClient({
                     })}
                   />
                 ),
-              });
-            }
-
-            if (showSalesTrackCards) {
-              visibleSalesCards.forEach((card, i) => {
-                const tier = card.requiredTier;
-                const description =
-                  salesResourceCopyBySlug[card.slug] ??
-                  DEFAULT_MEMBER_DASHBOARD_CONTENT.salesResourceCards.find((c) => c.slug === card.slug)
-                    ?.description ??
-                  "";
-                const href = resolveDeliverableHref(card.deliverableKey, card.href, card.cardKind);
-                const Icon = SALES_CARD_ICONS[card.slug] ?? FileText;
-                const color = SALES_CARD_COLORS[card.slug] ?? "#3280ff";
-                const tierUnlocked = hasAccess(effectiveTier, tier);
-                const fileReady = isDashboardFileReady(card.deliverableKey, fileDeliverableSources);
-                const pendingLabel =
-                  tierUnlocked && card.cardKind === "file" && !fileReady ? "Coming soon" : undefined;
-
-                if (card.isPrepLibrary) {
-                  items.push({
-                    key: card.slug,
-                    accessible: hasAccess(effectiveTier, "PRO"),
-                    node: (
-                      <PrepLibraryCard
-                        track="SALES"
-                        userTier={effectiveTier}
-                        topicCount={salesTopicCount}
-                        showTrackBadge={shouldShowTrackBadge({
-                          trackLabel: "Sales",
-                          memberTrack,
-                          isAdminUnfiltered,
-                        })}
-                      />
-                    ),
-                  });
-                  return;
-                }
-
-                items.push({
-                  key: card.slug,
-                  accessible: isDashboardCardAccessible({ unlocked: tierUnlocked, pendingLabel }),
-                  node: renderResourceCard({
-                    title: card.title,
-                    description,
-                    icon: Icon,
-                    color,
-                    tier,
-                    unlocked: tierUnlocked,
-                    href,
-                    delay: (visibleContentCards.length + i) * 0.05,
-                    pendingLabel,
-                    trackLabel: card.track,
-                    cardKind: card.cardKind ?? "page",
-                  }),
-                });
               });
             }
 

@@ -105,10 +105,12 @@ export function applyContentStatsToMemberDashboard(
     ...content,
     resourceCards: content.resourceCards.map((card) => ({
       ...card,
+      title: formatContentPlaceholders(card.title, stats),
       description: formatContentPlaceholders(card.description, stats),
     })),
     salesResourceCards: content.salesResourceCards.map((card) => ({
       ...card,
+      title: formatContentPlaceholders(card.title, stats),
       description: formatContentPlaceholders(card.description, stats),
     })),
   };
