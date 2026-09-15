@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from "react-nat
 import { useLocalSearchParams } from "expo-router";
 import { playbookMetaApi } from "../../lib/api";
 
+const NAVY = "#0830a0";
 const PRIMARY = "#3280ff";
 
 export default function PlaybookChapterScreen() {
@@ -47,7 +48,7 @@ export default function PlaybookChapterScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={[styles.hero, { backgroundColor: chapterMeta.color || "#0830a0" }]}>
+      <View style={[styles.hero, { backgroundColor: chapterMeta.color || NAVY }]}>
         <Text style={styles.letter}>Chapter {chapterMeta.letter}</Text>
         <Text style={styles.title}>{chapterMeta.title}</Text>
         <Text style={styles.sub}>{chapterMeta.subtitle}</Text>

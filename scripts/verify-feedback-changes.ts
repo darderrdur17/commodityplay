@@ -909,6 +909,21 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       playbookEditor.includes("releasing-soon") &&
       playbookEditor.includes("Live — members can read")
   );
+  const mobilePlaybookApi = fs.readFileSync(
+    path.join(process.cwd(), "src/app/api/mobile/playbook/route.ts"),
+    "utf8"
+  );
+  const mobilePlaybookHub = fs.readFileSync(
+    path.join(process.cwd(), "mobile/app/(tabs)/playbook.tsx"),
+    "utf8"
+  );
+  ok(
+    "Mobile playbook sends a paint-able chapter color and light-blue unreleased letters",
+    mobilePlaybookApi.includes("playbookChapterHeroColor") &&
+      mobilePlaybookHub.includes("chapterLetterSoon") &&
+      mobilePlaybookHub.includes("chapters.length") &&
+      !mobilePlaybookHub.includes("5 chapters · 40 sections")
+  );
   ok(
     "Admin landing Chapter Coverage can add chapters",
     landingEditor.includes("Add chapter") &&

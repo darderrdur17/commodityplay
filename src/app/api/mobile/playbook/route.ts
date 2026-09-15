@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getContentTierForSlug, getPlaybookChapters } from "@/lib/content/accessors";
 import { getPublishedPayload } from "@/lib/content/repository";
-import { resolvePlaybookPayload } from "@/lib/content/playbook-payload";
+import { resolvePlaybookPayload, isPlaybookChapterReleasingSoon, playbookChapterHeroColor } from "@/lib/content/playbook-payload";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { getMobileUser, hasTierAccess } from "@/lib/mobile-auth";
 import { memberMayAccessCareerPlaybook } from "@/lib/dashboard-module-visibility";
-import { isPlaybookChapterReleasingSoon } from "@/lib/content/playbook-payload";
 
 export async function GET(req: NextRequest) {
   const user = await getMobileUser(req);
@@ -43,7 +42,7 @@ export async function GET(req: NextRequest) {
           letter: c.letter,
           title: c.title,
           subtitle: c.subtitle,
-          color: c.color,
+          color: playbookChapterHeroColor(c),
           sectionCount: releasingSoon && !isAdminUser ? 0 : c.sections.length,
           preview: c.preview,
           releasingSoon,

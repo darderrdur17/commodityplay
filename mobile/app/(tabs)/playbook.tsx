@@ -60,7 +60,9 @@ export default function PlaybookTab() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>The Full Playbook</Text>
-        <Text style={styles.headerSub}>5 chapters · 40 sections</Text>
+        <Text style={styles.headerSub}>
+          {chapters.length} chapter{chapters.length === 1 ? "" : "s"}
+        </Text>
       </View>
 
       <FlatList
@@ -84,8 +86,17 @@ export default function PlaybookTab() {
             }}
             activeOpacity={canOpen ? 0.7 : 1}
           >
-            <View style={[styles.chapterLetter, { backgroundColor: chapter.color }]}>
-              <Text style={styles.chapterLetterText}>{chapter.letter}</Text>
+            <View
+              style={[
+                styles.chapterLetter,
+                releasingSoon
+                  ? styles.chapterLetterSoon
+                  : { backgroundColor: chapter.color || NAVY },
+              ]}
+            >
+              <Text style={[styles.chapterLetterText, releasingSoon && styles.chapterLetterSoonText]}>
+                {chapter.letter}
+              </Text>
             </View>
             <View style={styles.chapterInfo}>
               <View style={styles.chapterTitleRow}>
@@ -150,7 +161,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
+  chapterLetterSoon: {
+    backgroundColor: "#E8F1FF",
+    borderWidth: 1,
+    borderColor: "#B9D4FF",
+  },
   chapterLetterText: { color: "#fff", fontSize: 20, fontWeight: "bold" },
+  chapterLetterSoonText: { color: "#3280ff" },
   chapterInfo: { flex: 1, minWidth: 0 },
   chapterTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
   chapterTitle: { fontSize: 14, fontWeight: "700", color: "#1a1a1a", flexShrink: 1 },
