@@ -30,7 +30,8 @@ import {
   mergeKnowledgeTestHero,
 } from "@/lib/content/knowledge-test-payload";
 import { RESUME_TEMPLATES } from "@/data/resume-templates";
-import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS, type JobOpening } from "@/data/job-openings";
+import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS } from "@/data/job-openings";
+import { withHirerFallback } from "@/lib/job-openings-hirer";
 import {
   DEFAULT_JOB_OPENINGS_HERO,
   mergeJobOpeningsHero,
@@ -605,25 +606,6 @@ export async function getResumeTemplatesData() {
   };
 }
 
-function jobHirerKey(job: Pick<JobOpening, "title" | "company">) {
-  return `${job.title.trim().toLowerCase()}::${job.company.trim().toLowerCase()}`;
-}
-
-function withHirerFallback(job: JobOpening, fallback?: JobOpening): JobOpening {
-  if (job.hirerEmail?.trim()) {
-    return {
-      ...job,
-      hirerName: job.hirerName?.trim() ? job.hirerName : fallback?.hirerName,
-    };
-  }
-  if (!fallback?.hirerEmail?.trim()) return job;
-  return {
-    ...job,
-    hirerEmail: fallback.hirerEmail,
-    hirerName: job.hirerName?.trim() ? job.hirerName : fallback.hirerName,
-  };
-}
-
 export async function getJobOpeningsData() {
   const raw = await getPublishedPayload<unknown>("job-openings");
   let jobs = JOB_OPENINGS;
@@ -654,10 +636,7 @@ export async function getJobOpeningsData() {
   );
 
   const defaultById = new Map(JOB_OPENINGS.map((job) => [job.id, job]));
-  const defaultByTitleCompany = new Map(JOB_OPENINGS.map((job) => [jobHirerKey(job), job]));
-  jobs = jobs.map((job) =>
-    withHirerFallback(job, defaultById.get(job.id) ?? defaultByTitleCompany.get(jobHirerKey(job)))
-  );
+  jobs = jobs.map((job) => withHirerFallback(job, defaultById.get(job.id)));
 
   return { jobs, regions, levels, segments, hero };
 }

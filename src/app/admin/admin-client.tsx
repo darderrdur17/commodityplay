@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Users, Shield, MessageSquare, Mail, Crown, TrendingUp,
   CheckCircle, Clock, ArrowLeft, RefreshCw, FileJson, Pencil,
-  BarChart2, UserCheck, CreditCard,
+  BarChart2, UserCheck, CreditCard, Copy, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +112,7 @@ interface DemoEmail {
   bodyText: string;
   delivered: boolean;
   createdAt: string;
+  hirerReplyUrl?: string | null;
 }
 
 const CHAPTERS = ["a", "b", "c", "d", "e"];
@@ -1332,7 +1333,9 @@ export function AdminClient({
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <p className="text-sm text-muted-fg">
-                Demo notification log for Mentor Connect and system emails. Live Chat messages between Elite members and hirers are private — logs show delivery metadata only, not conversation content.
+                Demo notification log for Mentor Connect and system emails. Live Chat logs show delivery metadata
+                (not conversation content). For job-chat questions, open or copy the hirer reply link here to test
+                without waiting for inbox delivery.
               </p>
               <Button variant="outline" size="sm" onClick={loadDemoEmails} loading={emailsLoading}>
                 <RefreshCw className="w-4 h-4" /> Refresh
@@ -1390,6 +1393,27 @@ export function AdminClient({
                         <pre className="text-sm text-gray-800 whitespace-pre-wrap font-sans leading-relaxed">
                           {selectedDemoEmail.bodyText}
                         </pre>
+                        {selectedDemoEmail.hirerReplyUrl ? (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <Button variant="outline" size="sm" asChild>
+                              <a href={selectedDemoEmail.hirerReplyUrl} target="_blank" rel="noreferrer">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                Open hirer reply
+                              </a>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                void navigator.clipboard.writeText(selectedDemoEmail.hirerReplyUrl!);
+                              }}
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              Copy hirer reply link
+                            </Button>
+                          </div>
+                        ) : null}
                       </div>
                       {!selectedDemoEmail.delivered && (
                         <div className="px-5 py-3 bg-amber-50 border-t border-amber-100 text-xs text-amber-800 flex items-center gap-2">

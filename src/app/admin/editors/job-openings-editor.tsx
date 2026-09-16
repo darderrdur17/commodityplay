@@ -229,6 +229,18 @@ export function JobOpeningsEditor({
         <HeroTab data={data} onChange={commit} />
       ) : (
         <>
+          <div className="rounded-xl border border-border bg-secondary/50 px-3 py-3 text-xs text-muted-fg leading-relaxed space-y-1">
+            <p className="font-semibold text-gray-800">Live chat testing</p>
+            <p>
+              Each listing uses <strong>its own</strong> Hirer email / name. Editing a template into a new role
+              does not keep the old listing’s hirer — set (and publish) the fields on this row.
+            </p>
+            <p>
+              Elite members can send 3 questions per job. After Q1, wait for the hirer reply (email, Admin → Email Log,
+              or Copy hirer reply link on the live-chat panel), then Q2. Admins can <strong>Reset this chat</strong> on
+              the member panel to send Q1 again without wiping Email Log.
+            </p>
+          </div>
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-fg">{items.length} listings</p>
             <Button variant="outline" size="sm" onClick={addItem}>
@@ -348,7 +360,7 @@ export function JobOpeningsEditor({
                       onChange={(e) => patchItem(i, { ...item, salary: e.target.value })}
                     />
                   </EditorField>
-                  <EditorField label="Hirer email" hint="Required for Live Chat — receives question emails">
+                  <EditorField label="Hirer email" hint="Required for Live Chat — this listing only (not inherited from a template you edited)">
                     <input
                       className={inputClass}
                       value={item.hirerEmail ?? ""}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { listDemoEmails, demoEmailKindLabel } from "@/lib/demo-email-log";
+import { extractHirerReplyUrlFromLog } from "@/lib/job-chat";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export async function GET() {
       bodyText: e.bodyText,
       delivered: e.delivered,
       createdAt: e.createdAt.toISOString(),
+      hirerReplyUrl: extractHirerReplyUrlFromLog(e.bodyText),
     }))
   );
 }

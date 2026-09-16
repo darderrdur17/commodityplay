@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { extractHirerReplyUrlFromLog } from "@/lib/job-chat";
 
 export type DemoEmailKind =
   | "mentee_answer"
@@ -41,7 +42,7 @@ function redactPrivateLiveChatLog(
   html?: string
 ): { text: string; html: string } {
   const respondLink =
-    kind === "job_chat_question" ? text?.match(/https?:\/\/[^\s]+/)?.[0] : undefined;
+    kind === "job_chat_question" && text ? extractHirerReplyUrlFromLog(text) ?? undefined : undefined;
   const demoLinkNote = respondLink
     ? `\n\nHirer reply link (demo testing only): ${respondLink}`
     : "";
@@ -63,7 +64,12 @@ export async function logDemoEmail(params: {
   delivered: boolean;
 }): Promise<void> {
   const to = Array.isArray(params.to) ? params.to.join(", ") : params.to;
-  const shouldLog = !params.delivered || isDemoRecipient(params.to) || process.env.DEMO_EMAIL_LOG === "true";
+  const isLiveChatLog = PRIVATE_LIVE_CHAT_KINDS.has(params.kind);
+  const shouldLog =
+    isLiveChatLog ||
+    !params.delivered ||
+    isDemoRecipient(params.to) ||
+    process.env.DEMO_EMAIL_LOG === "true";
   if (!shouldLog) return;
 
   const redacted = PRIVATE_LIVE_CHAT_KINDS.has(params.kind)

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getJobOpeningsData } from "@/lib/content/accessors";
 import {
   canCandidateSend,
+  jobChatRespondUrl,
   parseJobChatMessages,
   type JobChatMessage,
 } from "@/lib/job-chat";
@@ -16,16 +17,21 @@ const postSchema = z.object({
   message: z.string().min(10, "Message must be at least 10 characters").max(500),
 });
 
-function serializeThread(thread: {
-  id: string;
-  jobId: string;
-  jobTitle: string;
-  company: string;
-  messages: unknown;
-  exchangeCount: number;
-  interviewOffered: boolean;
-  updatedAt: Date;
-}) {
+function serializeThread(
+  thread: {
+    id: string;
+    jobId: string;
+    jobTitle: string;
+    company: string;
+    hirerEmail: string;
+    hirerToken: string;
+    messages: unknown;
+    exchangeCount: number;
+    interviewOffered: boolean;
+    updatedAt: Date;
+  },
+  isAdmin: boolean
+) {
   const messages = parseJobChatMessages(thread.messages);
   return {
     id: thread.id,
@@ -37,7 +43,21 @@ function serializeThread(thread: {
     interviewOffered: thread.interviewOffered,
     canSend: canCandidateSend(messages, thread.exchangeCount),
     updatedAt: thread.updatedAt.toISOString(),
+    canReset: isAdmin,
+    ...(isAdmin
+      ? {
+          hirerRespondUrl: jobChatRespondUrl(thread.hirerToken),
+          hirerEmail: thread.hirerEmail,
+        }
+      : {}),
   };
+}
+
+async function loadChatUser(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { tier: true, role: true, email: true, name: true },
+  });
 }
 
 export async function GET(req: NextRequest) {
@@ -47,13 +67,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { tier: true },
-  });
+  const user = await loadChatUser(session.user.id);
   if (!user || user.tier !== "ELITE") {
     return NextResponse.json({ error: "Elite membership required" }, { status: 403 });
   }
+  const isAdmin = user.role === "ADMIN";
 
   const jobId = req.nextUrl.searchParams.get("jobId");
   if (jobId) {
@@ -61,16 +79,20 @@ export async function GET(req: NextRequest) {
       where: { userId_jobId: { userId: session.user.id, jobId } },
     });
     if (!thread) {
-      return NextResponse.json({ thread: null });
+      return NextResponse.json({
+        thread: null,
+        canReset: false,
+        ...(isAdmin ? { adminRetest: true } : {}),
+      });
     }
-    return NextResponse.json({ thread: serializeThread(thread) });
+    return NextResponse.json({ thread: serializeThread(thread, isAdmin) });
   }
 
   const threads = await prisma.jobChatThread.findMany({
     where: { userId: session.user.id },
     orderBy: { updatedAt: "desc" },
   });
-  return NextResponse.json({ threads: threads.map(serializeThread) });
+  return NextResponse.json({ threads: threads.map((t) => serializeThread(t, isAdmin)) });
 }
 
 export async function POST(req: NextRequest) {
@@ -80,13 +102,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { tier: true, email: true, name: true },
-  });
+  const user = await loadChatUser(session.user.id);
   if (!user || user.tier !== "ELITE") {
     return NextResponse.json({ error: "Elite membership required" }, { status: 403 });
   }
+  const isAdmin = user.role === "ADMIN";
 
   const body = await req.json();
   const parsed = postSchema.safeParse(body);
@@ -102,6 +122,13 @@ export async function POST(req: NextRequest) {
   if (!job.hirerEmail?.trim()) {
     return NextResponse.json({ error: "This listing does not support live chat yet" }, { status: 400 });
   }
+
+  const listingHirer = {
+    jobTitle: job.title,
+    company: job.company,
+    hirerEmail: job.hirerEmail.trim(),
+    hirerName: job.hirerName?.trim() || null,
+  };
 
   let thread = await prisma.jobChatThread.findUnique({
     where: { userId_jobId: { userId: session.user.id, jobId: job.id } },
@@ -127,30 +154,58 @@ export async function POST(req: NextRequest) {
       data: {
         userId: session.user.id,
         jobId: job.id,
-        jobTitle: job.title,
-        company: job.company,
-        hirerEmail: job.hirerEmail.trim(),
-        hirerName: job.hirerName?.trim() || null,
+        ...listingHirer,
         messages: messages as unknown as import("@prisma/client/runtime/library").InputJsonValue,
       },
     });
   } else {
     thread = await prisma.jobChatThread.update({
       where: { id: thread.id },
-      data: { messages: messages as unknown as import("@prisma/client/runtime/library").InputJsonValue },
+      data: {
+        ...listingHirer,
+        messages: messages as unknown as import("@prisma/client/runtime/library").InputJsonValue,
+      },
     });
   }
 
   sendJobChatQuestionToHirer({
-    to: thread.hirerEmail,
-    hirerName: thread.hirerName,
-    jobTitle: thread.jobTitle,
-    company: thread.company,
+    to: listingHirer.hirerEmail,
+    hirerName: listingHirer.hirerName,
+    jobTitle: listingHirer.jobTitle,
+    company: listingHirer.company,
     candidateLabel: user.name?.trim() || user.email,
     message: newMessage.text,
     respondToken: thread.hirerToken,
     exchangeNumber: messages.filter((m) => m.role === "candidate").length,
   }).catch((err) => console.error("[job-chat] hirer notify failed", err));
 
-  return NextResponse.json({ thread: serializeThread(thread) }, { status: 201 });
+  return NextResponse.json({ thread: serializeThread(thread, isAdmin) }, { status: 201 });
+}
+
+/** Admin retest: clear this member's thread with this job. Email Log is left intact. */
+export async function DELETE(req: NextRequest) {
+  await ensureJobChatInfrastructure();
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const user = await loadChatUser(session.user.id);
+  if (!user || user.tier !== "ELITE") {
+    return NextResponse.json({ error: "Elite membership required" }, { status: 403 });
+  }
+  if (user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Admin only" }, { status: 403 });
+  }
+
+  const jobId = req.nextUrl.searchParams.get("jobId");
+  if (!jobId) {
+    return NextResponse.json({ error: "jobId is required" }, { status: 400 });
+  }
+
+  await prisma.jobChatThread.deleteMany({
+    where: { userId: session.user.id, jobId },
+  });
+
+  return NextResponse.json({ thread: null, canReset: false, adminRetest: true });
 }

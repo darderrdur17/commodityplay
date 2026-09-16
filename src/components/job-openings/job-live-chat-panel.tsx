@@ -1,8 +1,8 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Building2, CheckCircle, MessageSquare, Send, X } from "lucide-react";
+import { Building2, CheckCircle, Copy, MessageSquare, RotateCcw, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MAX_JOB_CHAT_EXCHANGES, type JobChatMessage } from "@/lib/job-chat";
@@ -17,6 +17,9 @@ interface JobChatThreadState {
   exchangeCount: number;
   interviewOffered: boolean;
   canSend: boolean;
+  canReset?: boolean;
+  hirerRespondUrl?: string;
+  hirerEmail?: string;
 }
 
 interface Props {
@@ -26,10 +29,14 @@ interface Props {
 
 export function JobLiveChatPanel({ job, onClose }: Props) {
   const [thread, setThread] = useState<JobChatThreadState | null>(null);
+  const [isAdminRetest, setIsAdminRetest] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [error, setError] = useState("");
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,7 +50,10 @@ export function JobLiveChatPanel({ job, onClose }: Props) {
           if (!cancelled) setError(data.error || "Could not load chat");
           return;
         }
-        if (!cancelled) setThread(data.thread ?? null);
+        if (!cancelled) {
+          setThread(data.thread ?? null);
+          setIsAdminRetest(Boolean(data.adminRetest || data.thread?.canReset || data.thread?.hirerRespondUrl));
+        }
       } catch {
         if (!cancelled) setError("Network error loading chat");
       } finally {
@@ -53,6 +63,7 @@ export function JobLiveChatPanel({ job, onClose }: Props) {
     load();
     return () => {
       cancelled = true;
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
     };
   }, [job.id]);
 
@@ -74,11 +85,48 @@ export function JobLiveChatPanel({ job, onClose }: Props) {
         return;
       }
       setThread(data.thread);
+      setIsAdminRetest(Boolean(data.thread?.canReset || data.thread?.hirerRespondUrl));
       setMessage("");
     } catch {
       setError("Network error. Please try again.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleReset() {
+    if (!confirm("Reset this chat? Your questions on this job will be cleared so you can send Q1 again. Email Log history is kept.")) {
+      return;
+    }
+    setResetting(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/job-chat?jobId=${encodeURIComponent(job.id)}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Could not reset chat");
+        return;
+      }
+      setThread(null);
+      setMessage("");
+      setIsAdminRetest(true);
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  async function handleCopyHirerLink() {
+    const url = thread?.hirerRespondUrl;
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      setError("Could not copy link");
     }
   }
 
@@ -127,6 +175,41 @@ export function JobLiveChatPanel({ job, onClose }: Props) {
         <p className="text-sm text-muted-fg leading-relaxed mt-4">
           Ask up to {MAX_JOB_CHAT_EXCHANGES} short questions directly to the hiring team. Replies arrive here and by email.
         </p>
+        {isAdminRetest && (
+          <div className="mt-4 rounded-xl border border-primary-line bg-primary-soft/40 px-3 py-3 text-xs text-gray-700 leading-relaxed space-y-2">
+            <p className="font-semibold text-primary-800 uppercase tracking-wider text-[10px]">Admin retest</p>
+            <p>
+              After Q1, wait for a hirer reply (email link, Email Log, or Copy hirer reply link) before Q2.
+              Or Reset this chat to send Q1 again. Cap stays {MAX_JOB_CHAT_EXCHANGES} questions per member per job.
+            </p>
+            {(job.hirerEmail || thread?.hirerEmail) && (
+              <p className="text-muted-fg">
+                Questions go to this listing’s hirer: {job.hirerEmail || thread?.hirerEmail}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {thread?.hirerRespondUrl && (
+                <>
+                  <Button type="button" variant="outline" size="sm" onClick={handleCopyHirerLink}>
+                    <Copy className="w-3.5 h-3.5" />
+                    {copiedLink ? "Copied" : "Copy hirer reply link"}
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" asChild>
+                    <a href={thread.hirerRespondUrl} target="_blank" rel="noreferrer">
+                      Open hirer reply
+                    </a>
+                  </Button>
+                </>
+              )}
+              {thread && (
+                <Button type="button" variant="outline" size="sm" onClick={handleReset} loading={resetting}>
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset this chat
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2 mt-3">
           <Badge variant="outline" size="sm">
             {questionCount}/{MAX_JOB_CHAT_EXCHANGES} questions

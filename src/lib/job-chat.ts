@@ -62,3 +62,11 @@ export function jobChatRespondUrl(token: string): string {
   const base = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
   return `${base}/job-chat/respond/${token}`;
 }
+
+const HIRER_REPLY_URL_RE = /https?:\/\/[^\s]+\/job-chat\/respond\/[A-Za-z0-9_-]+/;
+
+/** Pull the hirer respond URL from a redacted Email Log body (admin retest). */
+export function extractHirerReplyUrlFromLog(bodyText: string): string | null {
+  const match = bodyText.match(HIRER_REPLY_URL_RE);
+  return match?.[0] ?? null;
+}

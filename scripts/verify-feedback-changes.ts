@@ -40,10 +40,13 @@ import {
   formatCaseStudiesHeroCopy,
   mergeCaseStudiesHero,
 } from "../src/lib/content/case-studies-payload";
+import { JOB_OPENINGS } from "../src/data/job-openings";
 import {
   DEFAULT_JOB_OPENINGS_DISCLAIMER,
   mergeJobOpeningsHero,
 } from "../src/data/job-openings-content";
+import { withHirerFallback } from "../src/lib/job-openings-hirer";
+import { extractHirerReplyUrlFromLog, MAX_JOB_CHAT_EXCHANGES } from "../src/lib/job-chat";
 import {
   buildDefaultResumeAdminPayload,
   mergeResumeAdminQuiz,
@@ -1187,6 +1190,65 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
         description:
           "Only 3 questions per chat for Elite Members. Note: The live chat does not guarantee a job advancement.",
       }).disclaimer.includes("does not guarantee")
+  );
+  const jobChatApi = fs.readFileSync(path.join(process.cwd(), "src/app/api/job-chat/route.ts"), "utf8");
+  const jobChatPanel = fs.readFileSync(
+    path.join(process.cwd(), "src/components/job-openings/job-live-chat-panel.tsx"),
+    "utf8"
+  );
+  const emailsApi = fs.readFileSync(path.join(process.cwd(), "src/app/api/admin/emails/route.ts"), "utf8");
+  const seedHirer = JOB_OPENINGS[0]!;
+  const editedFromTemplate = withHirerFallback(
+    {
+      ...seedHirer,
+      title: "Senior Sales Specialist (Genfuels)",
+      company: "Argus",
+      hirerEmail: "frances.hirer@example.com",
+      hirerName: "Frances Test",
+    },
+    seedHirer
+  );
+  const editedBlankHirer = withHirerFallback(
+    { ...seedHirer, title: "Senior Sales Specialist (Genfuels)", company: "Argus", hirerEmail: "", hirerName: "" },
+    seedHirer
+  );
+  const editedEmailOnly = withHirerFallback(
+    {
+      ...seedHirer,
+      title: "Senior Sales Specialist (Genfuels)",
+      company: "Argus",
+      hirerEmail: "frances.hirer@example.com",
+      hirerName: "",
+    },
+    seedHirer
+  );
+  const demoEmailLogSrc = fs.readFileSync(path.join(process.cwd(), "src/lib/demo-email-log.ts"), "utf8");
+  const candidateUrlThenHirer =
+    "Question 1 of 3:\nSee https://evil.example/phish\n\nReply here: https://app.example.com/job-chat/respond/abc123";
+  ok(
+    "Job live chat retest: reset this thread, copy hirer reply link, CMS hirer not stale template",
+    MAX_JOB_CHAT_EXCHANGES === 3 &&
+      jobChatApi.includes("export async function DELETE") &&
+      jobChatApi.includes("hirerRespondUrl") &&
+      jobChatApi.includes("listingHirer") &&
+      jobChatApi.includes("userId: session.user.id, jobId") &&
+      jobChatPanel.includes("Reset this chat") &&
+      jobChatPanel.includes("Copy hirer reply link") &&
+      jobHeroEditor.includes("Live chat testing") &&
+      emailsApi.includes("hirerReplyUrl") &&
+      demoEmailLogSrc.includes("isLiveChatLog") &&
+      demoEmailLogSrc.includes("extractHirerReplyUrlFromLog") &&
+      extractHirerReplyUrlFromLog(
+        "Hirer reply link (demo testing only): https://app.example.com/job-chat/respond/abc123"
+      ) === "https://app.example.com/job-chat/respond/abc123" &&
+      extractHirerReplyUrlFromLog(candidateUrlThenHirer) ===
+        "https://app.example.com/job-chat/respond/abc123" &&
+      editedFromTemplate.hirerEmail === "frances.hirer@example.com" &&
+      editedFromTemplate.hirerName === "Frances Test" &&
+      editedEmailOnly.hirerEmail === "frances.hirer@example.com" &&
+      !editedEmailOnly.hirerName &&
+      !editedBlankHirer.hirerEmail &&
+      withHirerFallback(seedHirer, seedHirer).hirerEmail === seedHirer.hirerEmail
   );
   ok(
     "Career Intelligence on the career landing uses bg-primary-soft, not sales mint",
