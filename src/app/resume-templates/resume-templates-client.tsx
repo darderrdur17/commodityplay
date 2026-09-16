@@ -30,7 +30,6 @@ import {
   INDUSTRY_MAP,
   POSITIONING_PRINCIPLE,
   TEMPLATE_CARD_DETAILS,
-  RESUME_VETTING_ARCHETYPE_OPTIONS,
   RESUME_VETTING_SECTION,
   type ResumeTemplate,
   type PersonaQuizStep,
@@ -43,6 +42,8 @@ import {
   DEFAULT_RESUME_PAGE_HERO,
   DEFAULT_RESUME_QUIZ_SECTION,
   DEFAULT_RESUME_TEMPLATES_SECTION,
+  resumeVettingArchetypeOptions,
+  type ResumeAdminPersona,
   type ResumePageHero,
   type ResumeQuizSectionCopy,
   type ResumeSectionCopy,
@@ -72,6 +73,7 @@ interface Props {
   templatesSection?: ResumeSectionCopy;
   positioningPrinciple?: { title: string; body: string };
   templateCardDetails?: Record<string, TemplateCardDetails>;
+  personas?: ResumeAdminPersona[];
 }
 
 const ARCHETYPE_ICONS: Record<PersonaId, React.ElementType> = {
@@ -128,7 +130,14 @@ function TemplatePreview({
   );
 }
 
-function ResumeVettingSection({ content }: { content: ResumeVettingSection }) {
+function ResumeVettingSection({
+  content,
+  personas,
+}: {
+  content: ResumeVettingSection;
+  personas?: ResumeAdminPersona[];
+}) {
+  const archetypeOptions = resumeVettingArchetypeOptions(personas);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [archetype, setArchetype] = useState("");
@@ -240,13 +249,13 @@ function ResumeVettingSection({ content }: { content: ResumeVettingSection }) {
                     <select
                       value={archetype}
                       onChange={(e) => setArchetype(e.target.value)}
-                      className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white focus:outline-none focus:border-primary-400/60"
+                      className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white focus:outline-none focus:border-primary-400/60 [&>option]:bg-white [&>option]:text-gray-900"
                     >
-                      <option value="" disabled>
+                      <option value="" disabled className="bg-white text-gray-900">
                         Select your archetype
                       </option>
-                      {RESUME_VETTING_ARCHETYPE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
+                      {archetypeOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-white text-gray-900">
                           {opt.label}
                         </option>
                       ))}
@@ -332,6 +341,7 @@ export function ResumeTemplatesClient({
   templatesSection = DEFAULT_RESUME_TEMPLATES_SECTION,
   positioningPrinciple = POSITIONING_PRINCIPLE,
   templateCardDetails = TEMPLATE_CARD_DETAILS,
+  personas,
 }: Props) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -821,7 +831,7 @@ export function ResumeTemplatesClient({
           </div>
         </section>
 
-        <ResumeVettingSection content={vettingSection} />
+        <ResumeVettingSection content={vettingSection} personas={personas} />
 
         {!quizComplete && persona && (
           <p className="text-sm text-muted-fg text-center">

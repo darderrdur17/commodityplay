@@ -41,6 +41,13 @@ import {
   mergeCaseStudiesHero,
 } from "../src/lib/content/case-studies-payload";
 import {
+  buildDefaultResumeAdminPayload,
+  mergeResumeAdminQuiz,
+  resolveEditorResumePayload,
+  resumeVettingArchetypeOptions,
+} from "../src/lib/content/resume-payload";
+import { PERSONA_QUIZ_STEPS } from "../src/data/resume-templates";
+import {
   DEFAULT_CAREER_ROADMAP_BOTTOM_STRIP,
   mergeCareerRoadmapBottomStrip,
 } from "../src/lib/content/career-roadmap-payload";
@@ -1123,6 +1130,36 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       formatCaseStudiesHeroCopy(DEFAULT_CASE_STUDIES_HERO.eyebrow, 12) === "ELITE · 12 STUDIES" &&
       formatCmsHeroCopy("ELITE · {studyCount} STUDIES", { studyCount: 2 }) === "ELITE · 2 STUDIES"
   );
+  ok(
+    "Case Studies hero keeps a separate disclaimer below the description",
+    caseEditor.includes('label="Disclaimer"') &&
+      caseClient.includes("hero.disclaimer") &&
+      caseClient.includes("text-white/70") &&
+      mergeCaseStudiesHero({}).disclaimer.includes("illustrative and hypothetical") &&
+      mergeCaseStudiesHero({ disclaimer: "  " }).disclaimer.includes("illustrative") &&
+      mergeCaseStudiesHero({ disclaimer: "Custom legal line." }).disclaimer === "Custom legal line." &&
+      !mergeCaseStudiesHero({
+        description:
+          "Study with commercial reasoning. Disclaimer: Case studies are hypothetical unless stated otherwise.",
+      }).description.includes("Disclaimer:") &&
+      mergeCaseStudiesHero({
+        description:
+          "Study with commercial reasoning. Disclaimer: Case studies are hypothetical unless stated otherwise.",
+      }).disclaimer.includes("hypothetical") &&
+      formatCaseStudiesHeroCopy("Built by {brandName}", 1).includes("CommodityPlay")
+  );
+  ok(
+    "Career Intelligence on the career landing uses bg-primary-soft, not sales mint",
+    fs
+      .readFileSync(path.join(process.cwd(), "src/components/landing/landing-page-client.tsx"), "utf8")
+      .includes('sectionClassName="bg-primary-soft"') &&
+      fs
+        .readFileSync(path.join(process.cwd(), "src/components/landing/market-note-strip.tsx"), "utf8")
+        .includes("sectionClassName") &&
+      !fs
+        .readFileSync(path.join(process.cwd(), "src/components/landing/landing-page-client.tsx"), "utf8")
+        .includes("SALES_SECTION_MINT")
+  );
   const adminPayload = fs.readFileSync(
     path.join(process.cwd(), "src/lib/content/admin-payload.ts"),
     "utf8"
@@ -1134,6 +1171,61 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
   ok(
     "Admin payload merge fills playbook section bodies from repo",
     adminPayload.includes('slug === "playbook"') && adminPayload.includes("resolvePlaybookPayload")
+  );
+
+  const seededResume = buildDefaultResumeAdminPayload();
+  const sparseQuiz = resolveEditorResumePayload({
+    quiz: [
+      {
+        id: "background",
+        question: "What best describes your current background?",
+        options: [{ id: "o1", label: "Banking", value: "switcher" }],
+      },
+    ],
+  });
+  ok(
+    "Resume admin quiz merge seeds all default questions when CMS only has a stub",
+    (sparseQuiz.quiz?.length ?? 0) >= PERSONA_QUIZ_STEPS.length &&
+      sparseQuiz.quiz?.some((q) => q.question === "What best describes your current background?") === true &&
+      PERSONA_QUIZ_STEPS.every((step) => sparseQuiz.quiz?.some((q) => q.id === step.id))
+  );
+  const editedQ1 = resolveEditorResumePayload({
+    quiz: [
+      { id: "q1", question: "Frances edited Q1", options: [{ id: "a", label: "A", value: "switcher" }] },
+      { id: "extra", question: "Sixth question Frances added", options: [] },
+    ],
+  });
+  ok(
+    "Resume quiz merge keeps Q1 edits and extra questions beyond the default five",
+    editedQ1.quiz?.some((q) => q.question === "Frances edited Q1") === true &&
+      editedQ1.quiz?.some((q) => q.id === "extra") === true &&
+      (editedQ1.quiz?.length ?? 0) > PERSONA_QUIZ_STEPS.length
+  );
+  const sixPersonas = resolveEditorResumePayload({
+    personas: [
+      ...(seededResume.personas ?? []),
+      { id: "quant", name: "The Quant", label: "Extra path", desc: "Added by Frances" },
+    ],
+  });
+  const vettingOpts = resumeVettingArchetypeOptions(sixPersonas.personas);
+  ok(
+    "Resume vetting archetype options come from merged CMS personas (N, not hardcoded to 5)",
+    vettingOpts.length === (sixPersonas.personas?.length ?? 0) &&
+      vettingOpts.length > 5 &&
+      vettingOpts.some((o) => o.value === "quant") &&
+      fs
+        .readFileSync(path.join(process.cwd(), "src/app/resume-templates/resume-templates-client.tsx"), "utf8")
+        .includes("resumeVettingArchetypeOptions") &&
+      !fs
+        .readFileSync(path.join(process.cwd(), "src/app/resume-templates/resume-templates-client.tsx"), "utf8")
+        .includes("RESUME_VETTING_ARCHETYPE_OPTIONS")
+  );
+  ok(
+    "Sparse CMS quiz list is filled from repo defaults without wiping later questions she adds",
+    mergeResumeAdminQuiz(
+      [{ id: "q1", question: "Edited", options: [] }],
+      (seededResume.quiz ?? []).map((q) => ({ ...q, options: [...q.options] }))
+    ).length === (seededResume.quiz?.length ?? 0)
   );
 
   const nudgesSection = fs.readFileSync(

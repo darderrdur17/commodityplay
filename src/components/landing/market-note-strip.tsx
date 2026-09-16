@@ -42,6 +42,8 @@ interface Props {
   secondaryCta?: SecondaryCta;
   /** Optional green confirmation line below description (e.g. starter-pack subscribe state) */
   subscribedNote?: string;
+  /** Career landing Career Intelligence: brand light blue (`bg-primary-soft`), not sales mint. */
+  sectionClassName?: string;
 }
 
 export function MarketNoteStrip({
@@ -57,13 +59,14 @@ export function MarketNoteStrip({
   cta,
   secondaryCta,
   subscribedNote,
+  sectionClassName,
 }: Props) {
   const isToolsAccordion = Boolean(features && features.length > 0);
   const cardHeading = topicsHeading || "Recent Topics";
 
   return (
     <section
-      className={cn("py-16 sm:py-24", !isToolsAccordion && "bg-[#f4f6f9]")}
+      className={cn("py-16 sm:py-24", !isToolsAccordion && (sectionClassName ?? "bg-[#f4f6f9]"))}
       style={isToolsAccordion ? { backgroundColor: SALES_SECTION_MINT } : undefined}
     >
       <div className="page-container">

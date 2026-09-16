@@ -44,6 +44,7 @@ export default async function ResumeTemplatesPage() {
       templatesSection={data.templatesSection}
       positioningPrinciple={data.positioningPrinciple}
       templateCardDetails={data.templateCardDetails}
+      personas={data.personas}
     />
   );
 }

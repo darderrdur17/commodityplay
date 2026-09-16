@@ -110,7 +110,7 @@ export function CaseStudiesEditor({
     <div className="space-y-4">
       <EditorSection
         title="Page hero strip"
-        description="Blue banner on /case-studies — kicker, title, and description. Use {studyCount} for the live study total."
+        description="Blue banner on /case-studies — kicker, title, and description. Disclaimer sits below the description in smaller muted type. Use {studyCount} and {brandName} if needed."
         defaultOpen
       >
         <EditorField label="Kicker / eyebrow">
@@ -125,6 +125,17 @@ export function CaseStudiesEditor({
             rows={3}
             value={hero.description}
             onChange={(e) => patchHero({ description: e.target.value })}
+          />
+        </EditorField>
+        <EditorField
+          label="Disclaimer"
+          hint="Shown at the bottom of the navy strip in smaller muted white. Leave blank to use the default hypothetical/illustrative copy."
+        >
+          <textarea
+            className={textareaClass}
+            rows={4}
+            value={hero.disclaimer}
+            onChange={(e) => patchHero({ disclaimer: e.target.value })}
           />
         </EditorField>
       </EditorSection>

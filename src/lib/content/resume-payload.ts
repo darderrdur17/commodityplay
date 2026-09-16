@@ -240,6 +240,109 @@ function isAdminTemplate(
   return "personaId" in t || "fileKey" in t;
 }
 
+function filled(value?: string | null): value is string {
+  return Boolean(value?.trim());
+}
+
+function cloneAdminQuiz(steps: ResumeAdminQuizStep[]): ResumeAdminQuizStep[] {
+  return steps.map((step) => ({
+    ...step,
+    options: (step.options ?? []).map((opt) => ({ ...opt })),
+  }));
+}
+
+/** Seed missing default quiz questions when CMS only has a stub; keep Frances's edits and extras. */
+export function mergeResumeAdminQuiz(
+  stored: ResumeAdminQuizStep[] | undefined,
+  defaults: ResumeAdminQuizStep[]
+): ResumeAdminQuizStep[] {
+  if (!defaults.length) return stored?.length ? cloneAdminQuiz(stored) : [];
+  if (!stored?.length) return cloneAdminQuiz(defaults);
+
+  const defaultsById = new Map(defaults.map((step) => [step.id, step]));
+  const usedDefaultIds = new Set<string>();
+
+  const fromCms = stored.map((cms, i) => {
+    const byId = filled(cms.id) ? defaultsById.get(cms.id) : undefined;
+    const byIndex = !byId && !filled(cms.id) ? defaults[i] : undefined;
+    const base = byId ?? byIndex;
+    if (base) usedDefaultIds.add(base.id);
+    if (!base) {
+      return {
+        id: cms.id || `qq-${i}`,
+        question: cms.question ?? "",
+        sub: cms.sub,
+        options: (cms.options ?? []).map((opt) => ({ ...opt })),
+      };
+    }
+    return {
+      id: filled(cms.id) ? cms.id : base.id,
+      question: filled(cms.question) ? cms.question : base.question,
+      sub: filled(cms.sub) ? cms.sub : base.sub,
+      options: cms.options?.length ? cms.options.map((opt) => ({ ...opt })) : base.options.map((opt) => ({ ...opt })),
+    };
+  });
+
+  const missing = defaults.filter((step) => !usedDefaultIds.has(step.id));
+  return [...fromCms, ...cloneAdminQuiz(missing)];
+}
+
+/** Seed missing persona types from repo defaults; keep extras Frances adds. */
+export function mergeResumeAdminPersonas(
+  stored: ResumeAdminPersona[] | undefined,
+  defaults: ResumeAdminPersona[]
+): ResumeAdminPersona[] {
+  if (!defaults.length) return stored?.length ? stored.map((p) => ({ ...p })) : [];
+  if (!stored?.length) return defaults.map((p) => ({ ...p }));
+
+  const defaultsById = new Map(defaults.map((p) => [p.id, p]));
+  const used = new Set<string>();
+
+  const fromCms = stored.map((cms, i) => {
+    const byId = filled(cms.id) ? defaultsById.get(cms.id) : undefined;
+    const byIndex = !byId && !filled(cms.id) ? defaults[i] : undefined;
+    const base = byId ?? byIndex;
+    if (base) used.add(base.id);
+    if (!base) return { ...cms };
+    return {
+      id: filled(cms.id) ? cms.id : base.id,
+      name: filled(cms.name) ? cms.name : base.name,
+      label: filled(cms.label) ? cms.label : base.label,
+      desc: filled(cms.desc) ? cms.desc : base.desc,
+    };
+  });
+
+  return [...fromCms, ...defaults.filter((p) => !used.has(p.id)).map((p) => ({ ...p }))];
+}
+
+/** Member vetting dropdown — CMS personas when present, otherwise live archetype list (N, not capped). */
+export function resumeVettingArchetypeOptions(
+  personas: ResumeAdminPersona[] | undefined
+): { value: string; label: string }[] {
+  const fromCms = (personas ?? [])
+    .filter((p) => filled(p.id) && (filled(p.name) || filled(p.label)))
+    .map((p) => ({ value: p.id, label: (p.name || p.label).trim() }));
+  if (fromCms.length) return fromCms;
+  return Object.values(PERSONA_ARCHETYPES).map((a) => ({ value: a.id, label: a.name }));
+}
+
+function storedQuizAsAdmin(stored: ResumeAdminPayload): ResumeAdminQuizStep[] | undefined {
+  if (Array.isArray(stored.quiz) && stored.quiz.length) return stored.quiz;
+  if (Array.isArray(stored.quizSteps) && stored.quizSteps.length) {
+    return stored.quizSteps.map((step, i) => ({
+      id: step.id,
+      question: step.question,
+      sub: step.sub,
+      options: (step.options ?? []).map((opt, j) => ({
+        id: `${step.id || `q${i}`}-opt-${j}`,
+        label: opt.label,
+        value: opt.value,
+      })),
+    }));
+  }
+  return undefined;
+}
+
 export function adminQuizToQuizSteps(quiz: ResumeAdminQuizStep[] | undefined): PersonaQuizStep[] {
   if (!quiz?.length) return PERSONA_QUIZ_STEPS;
   return quiz.map((step) => ({
@@ -291,20 +394,9 @@ export function resolveEditorResumePayload(payload: unknown): ResumeAdminPayload
   const seeded = buildDefaultResumeAdminPayload();
   const stored = (payload && typeof payload === "object" ? payload : {}) as ResumeAdminPayload;
 
-  const personas =
-    Array.isArray(stored.personas) && stored.personas.length > 0
-      ? stored.personas
-      : seeded.personas;
-
-  const quiz =
-    Array.isArray(stored.quiz) && stored.quiz.length > 0
-      ? stored.quiz
-      : seeded.quiz;
-
-  const quizSteps =
-    Array.isArray(stored.quizSteps) && stored.quizSteps.length > 0
-      ? stored.quizSteps
-      : adminQuizToQuizSteps(quiz);
+  const personas = mergeResumeAdminPersonas(stored.personas, seeded.personas ?? []);
+  const quiz = mergeResumeAdminQuiz(storedQuizAsAdmin(stored), seeded.quiz ?? []);
+  const quizSteps = adminQuizToQuizSteps(quiz);
 
   const templates =
     Array.isArray(stored.templates) && stored.templates.length > 0

@@ -243,6 +243,7 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
 
           <MarketNoteStrip
             {...toMarketNoteStripProps(edgeNotes.career, CAREER_MARKET_NOTE.topics, { variant: "tags" })}
+            sectionClassName="bg-primary-soft"
           />
 
           <CaseStudiesSection content={caseStudySample} />

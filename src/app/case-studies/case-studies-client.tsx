@@ -29,6 +29,7 @@ export function CaseStudiesClient({
   const eyebrow = formatCaseStudiesHeroCopy(hero.eyebrow, studies.length);
   const title = formatCaseStudiesHeroCopy(hero.title, studies.length);
   const description = formatCaseStudiesHeroCopy(hero.description, studies.length);
+  const disclaimer = formatCaseStudiesHeroCopy(hero.disclaimer, studies.length);
 
   return (
     <div className="page-container py-6 sm:py-10">
@@ -39,6 +40,9 @@ export function CaseStudiesClient({
           </div>
           <h1 className="font-serif text-2xl sm:text-4xl font-bold text-white mb-3">{title}</h1>
           <p className="text-white/65 text-sm sm:text-lg max-w-xl">{description}</p>
+          {disclaimer.trim() ? (
+            <p className="mt-6 text-white/70 text-xs sm:text-sm max-w-xl leading-relaxed">{disclaimer}</p>
+          ) : null}
         </Reveal>
       </section>
 

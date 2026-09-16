@@ -29,7 +29,7 @@ import {
   memberKnowledgeTestHeroVars,
   mergeKnowledgeTestHero,
 } from "@/lib/content/knowledge-test-payload";
-import { RESUME_TEMPLATES, PERSONA_QUIZ_QUESTIONS } from "@/data/resume-templates";
+import { RESUME_TEMPLATES } from "@/data/resume-templates";
 import { JOB_OPENINGS, JOB_REGIONS, JOB_LEVELS, JOB_SEGMENTS, type JobOpening } from "@/data/job-openings";
 import {
   DEFAULT_JOB_OPENINGS_HERO,
@@ -589,26 +589,18 @@ export async function getCareerRoles() {
 
 export async function getResumeTemplatesData() {
   const data = await getPublishedPayload<import("./resume-payload").ResumeAdminPayload>("resume-templates");
-  const {
-    PERSONA_QUIZ_STEPS,
-    INDUSTRY_MAP,
-    mergeResumeVettingSection,
-  } = await import("@/data/resume-templates");
-  const {
-    adminQuizToQuizSteps,
-    adminTemplatesToPublic,
-    resolvePublicResumePageCopy,
-  } = await import("./resume-payload");
-  const pageCopy = resolvePublicResumePageCopy(data);
+  const { INDUSTRY_MAP, mergeResumeVettingSection } = await import("@/data/resume-templates");
+  const { adminTemplatesToPublic, resolveEditorResumePayload, resolvePublicResumePageCopy } =
+    await import("./resume-payload");
+  const resolved = resolveEditorResumePayload(data);
+  const pageCopy = resolvePublicResumePageCopy(resolved);
   return {
-    templates: adminTemplatesToPublic(data.templates),
-    quiz: data.quiz ?? PERSONA_QUIZ_QUESTIONS,
-    quizSteps:
-      data.quizSteps?.length
-        ? data.quizSteps
-        : adminQuizToQuizSteps(data.quiz),
-    industryMap: mergeIndustryMap(INDUSTRY_MAP, data.industryMap),
-    vettingSection: mergeResumeVettingSection(data.vettingSection),
+    templates: adminTemplatesToPublic(resolved.templates),
+    quiz: resolved.quiz,
+    quizSteps: resolved.quizSteps,
+    personas: resolved.personas,
+    industryMap: mergeIndustryMap(INDUSTRY_MAP, resolved.industryMap),
+    vettingSection: mergeResumeVettingSection(resolved.vettingSection),
     ...pageCopy,
   };
 }
