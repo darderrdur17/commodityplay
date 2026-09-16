@@ -158,7 +158,7 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
   },
   {
     slug: "job-openings",
-    title: "Job Openings",
+    title: "Job Openings - Live Chat Feature",
     description: "{jobCount} curated commodity trading roles across regions.",
     track: "Both",
     href: "/job-openings",
@@ -228,6 +228,9 @@ export function resolveResourceCardTitle(
   card: Pick<DashboardResourceCardCopy, "slug" | "title">
 ): string {
   const trimmed = card.title?.trim() ?? "";
+  if (card.slug === "job-openings" && (!trimmed || trimmed === "Job Openings")) {
+    return RESOURCE_CARD_CATALOG_BY_SLUG.get("job-openings")?.title ?? "Job Openings - Live Chat Feature";
+  }
   if (trimmed) return trimmed;
   return RESOURCE_CARD_CATALOG_BY_SLUG.get(card.slug)?.title ?? "Resource";
 }

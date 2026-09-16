@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_JOB_OPENINGS_HERO,
+  mergeJobOpeningsHero,
   type JobOpeningsHero,
 } from "@/data/job-openings-content";
 import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
@@ -71,12 +72,7 @@ function newJob(): JobOpening {
 function HeroTab({ data, onChange }: { data: JobOpeningsPayload; onChange: (d: JobOpeningsPayload) => void }) {
   const stored = data.hero ?? {};
   const defaults = DEFAULT_JOB_OPENINGS_HERO;
-
-  function fieldValue(key: keyof JobOpeningsHero): string {
-    const value = stored[key];
-    if (typeof value === "string") return value;
-    return defaults[key] as string;
-  }
+  const merged = mergeJobOpeningsHero(stored);
 
   function statChips(): string[] {
     if (Array.isArray(stored.statChips)) return stored.statChips;
@@ -105,27 +101,38 @@ function HeroTab({ data, onChange }: { data: JobOpeningsPayload; onChange: (d: J
     <div className="space-y-4">
       <p className="text-xs text-muted-fg">
         Top blue hero strip on <strong>/job-openings</strong> — eyebrow pill, headline, description,
-        and stat chips.
+        disclaimer (smaller muted text at the bottom of the strip), and stat chips.
       </p>
       <EditorField label="Eyebrow pill">
         <input
           className={inputClass}
-          value={fieldValue("eyebrow")}
+          value={merged.eyebrow}
           onChange={(e) => patch({ eyebrow: e.target.value })}
         />
       </EditorField>
       <EditorField label="Title">
         <input
           className={inputClass}
-          value={fieldValue("title")}
+          value={merged.title}
           onChange={(e) => patch({ title: e.target.value })}
         />
       </EditorField>
       <EditorField label="Description">
         <textarea
           className={textareaClass}
-          value={fieldValue("description")}
+          value={merged.description}
           onChange={(e) => patch({ description: e.target.value })}
+        />
+      </EditorField>
+      <EditorField
+        label="Disclaimer"
+        hint="Shown at the bottom of the navy strip in smaller muted white, same as Case Studies."
+      >
+        <textarea
+          className={textareaClass}
+          rows={3}
+          value={merged.disclaimer}
+          onChange={(e) => patch({ disclaimer: e.target.value })}
         />
       </EditorField>
       <EditorField

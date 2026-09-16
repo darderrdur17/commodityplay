@@ -87,7 +87,7 @@ function overlayResourceCard(
   return {
     ...def,
     slug: def.slug,
-    title: saved?.title?.trim() || def.title,
+    title: overlayResourceCardTitle(def, saved?.title),
     description: saved?.description?.trim() || def.description,
     track: isDashboardModuleTrack(saved?.track) ? saved.track : def.track,
     cardKind: def.cardKind,
@@ -96,6 +96,14 @@ function overlayResourceCard(
     requiredTier: def.requiredTier,
     isPrepLibrary: def.isPrepLibrary,
   };
+}
+
+function overlayResourceCardTitle(def: DashboardResourceCardCopy, savedTitle?: string): string {
+  const trimmed = savedTitle?.trim() ?? "";
+  if (def.slug === "job-openings" && (!trimmed || trimmed === "Job Openings")) {
+    return def.title;
+  }
+  return trimmed || def.title;
 }
 
 function asSalesResourceCard(card: DashboardResourceCardCopy): DashboardSalesResourceCardCopy | null {

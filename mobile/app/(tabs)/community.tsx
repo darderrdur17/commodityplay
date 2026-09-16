@@ -38,7 +38,7 @@ const COMMUNITY_LINKS = [
     color: ELITE,
   },
   {
-    title: "Job Openings",
+    title: "Job Openings - Live Chat Feature",
     desc: "Curated commodity trading roles",
     route: "/community/job-openings",
     tier: "ELITE",

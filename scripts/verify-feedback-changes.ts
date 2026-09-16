@@ -41,6 +41,10 @@ import {
   mergeCaseStudiesHero,
 } from "../src/lib/content/case-studies-payload";
 import {
+  DEFAULT_JOB_OPENINGS_DISCLAIMER,
+  mergeJobOpeningsHero,
+} from "../src/data/job-openings-content";
+import {
   buildDefaultResumeAdminPayload,
   mergeResumeAdminQuiz,
   resolveEditorResumePayload,
@@ -552,6 +556,18 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     ok(
       "Blank CMS title falls back to catalog label",
       playbook.title === "Full Playbook" && resolveResourceCardTitle({ slug: "playbook", title: "" }) === "Full Playbook"
+    );
+    ok(
+      "Job Openings dashboard card uses Live Chat Feature label",
+      DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.find((c) => c.slug === "job-openings")?.title ===
+        "Job Openings - Live Chat Feature" &&
+        normalizeMemberDashboardPayload({
+          ...DEFAULT_MEMBER_DASHBOARD_CONTENT,
+          resourceCards: DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.map((c) =>
+            c.slug === "job-openings" ? { ...c, title: "Job Openings" } : c
+          ),
+        }).resourceCards.find((c) => c.slug === "job-openings")?.title ===
+          "Job Openings - Live Chat Feature"
     );
     const retargeted = normalizeMemberDashboardPayload({
       ...DEFAULT_MEMBER_DASHBOARD_CONTENT,
@@ -1147,6 +1163,30 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
           "Study with commercial reasoning. Disclaimer: Case studies are hypothetical unless stated otherwise.",
       }).disclaimer.includes("hypothetical") &&
       formatCaseStudiesHeroCopy("Built by {brandName}", 1).includes("CommodityPlay")
+  );
+  const jobHeroEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/job-openings-editor.tsx"),
+    "utf8"
+  );
+  const jobHeroClient = fs.readFileSync(
+    path.join(process.cwd(), "src/app/job-openings/job-openings-client.tsx"),
+    "utf8"
+  );
+  ok(
+    "Job Openings navy strip has a Case Studies-style disclaimer at the bottom",
+    jobHeroEditor.includes('label="Disclaimer"') &&
+      jobHeroClient.includes("hero.disclaimer") &&
+      jobHeroClient.includes("text-white/70") &&
+      mergeJobOpeningsHero({}).disclaimer === DEFAULT_JOB_OPENINGS_DISCLAIMER &&
+      mergeJobOpeningsHero({ disclaimer: "Custom note." }).disclaimer === "Custom note." &&
+      !mergeJobOpeningsHero({
+        description:
+          "Only 3 questions per chat for Elite Members. Note: The live chat does not guarantee a job advancement.",
+      }).description.includes("Note:") &&
+      mergeJobOpeningsHero({
+        description:
+          "Only 3 questions per chat for Elite Members. Note: The live chat does not guarantee a job advancement.",
+      }).disclaimer.includes("does not guarantee")
   );
   ok(
     "Career Intelligence on the career landing uses bg-primary-soft, not sales mint",

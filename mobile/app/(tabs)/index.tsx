@@ -30,7 +30,7 @@ const CONTENT_TILES = [
   { slug: "case-studies", title: "Case Studies", desc: "10 P&L studies", route: "/community/case-studies", defaultTier: "ELITE", color: "#B45309" },
   { slug: "desk-channel", title: "Desk Channel", desc: "40 practitioner Q&As", route: "/community/desk-channel", defaultTier: "ELITE", color: "#B45309" },
   { slug: "mentor-connect", title: "Mentor Connect", desc: "Ask practitioners", route: "/community/mentor-connect", defaultTier: "ELITE", color: "#B45309" },
-  { slug: "job-openings", title: "Job Openings", desc: "Curated roles", route: "/community/job-openings", defaultTier: "ELITE", color: "#B45309" },
+  { slug: "job-openings", title: "Job Openings - Live Chat Feature", desc: "Curated roles", route: "/community/job-openings", defaultTier: "ELITE", color: "#B45309" },
 ];
 
 export default function DashboardTab() {

@@ -77,6 +77,9 @@ export function JobOpeningsClient({
               </div>
             ))}
           </div>
+          {hero.disclaimer.trim() ? (
+            <p className="mt-6 text-white/70 text-xs sm:text-sm max-w-xl leading-relaxed">{hero.disclaimer}</p>
+          ) : null}
         </Reveal>
       </section>
 
