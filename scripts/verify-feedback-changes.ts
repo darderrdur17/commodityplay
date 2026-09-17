@@ -1278,6 +1278,8 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       shouldShowCaseStudySidebar(false) === false &&
       shouldShowCaseStudySidebar(true) === true &&
       caseEditor.includes("Show “In this case study” sidebar") &&
+      caseEditor.includes("leave unchecked (default)") &&
+      caseEditor.includes("checked={item.showSidebar === true}") &&
       caseDetail.includes("In this case study")
   );
   ok(
@@ -1305,6 +1307,12 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       Boolean(richSection.sourcesNote?.includes("cited dates")) &&
       caseEditor.includes("Numbered mechanism list") &&
       caseEditor.includes("Data table") &&
+      caseEditor.includes("Add column") &&
+      caseEditor.includes("Add row") &&
+      caseEditor.includes("Header row = column titles") &&
+      caseEditor.includes("you do not edit JSON") &&
+      caseEditor.includes("placeholder=\"Cell\"") &&
+      !caseEditor.includes("Reset empty table") &&
       caseEditor.includes("Navy callout") &&
       caseEditor.includes("Sourced timeline") &&
       caseEditor.includes("Key lesson cards") &&

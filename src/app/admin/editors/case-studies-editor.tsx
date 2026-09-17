@@ -71,7 +71,10 @@ function newSection(index: number): CaseStudySection {
 }
 
 function emptyTable(): CaseStudyTable {
-  return { headers: ["Column 1", "Column 2"], rows: [["", ""]] };
+  return {
+    headers: ["MARKET", "BEFORE", "DURING", "SOURCE"],
+    rows: [["", "", "", ""]],
+  };
 }
 
 function emptyTimeline(): CaseStudyTimeline {
@@ -314,7 +317,7 @@ export function CaseStudiesEditor({
                   checked={item.showSidebar === true}
                   onChange={(e) => patchItem(i, { ...item, showSidebar: e.target.checked })}
                 />
-                Show “In this case study” sidebar (off by default)
+                Show “In this case study” sidebar — leave unchecked (default). It stays hidden unless you tick this box.
               </label>
               <EditorField label="Track">
                 <TrackToggle value={item.track ?? "both"} onChange={(v) => patchItem(i, { ...item, track: v })} />
@@ -472,9 +475,22 @@ function SectionEditor({
 
       <BlockHeader
         title="Data table"
-        hint="Navy header row. N columns and N rows. Empty = hide."
-        onAdd={() => onChange({ ...section, table: table ?? emptyTable() })}
-        addLabel={table ? "Reset empty table" : "Add table"}
+        hint="Spreadsheet, not JSON. Header row = column titles. Each following row is a market or event. Add or remove as many columns and rows as you need."
+        onAdd={() =>
+          onChange({
+            ...section,
+            table: table
+              ? {
+                  ...table,
+                  rows: [
+                    ...table.rows,
+                    Array.from({ length: Math.max(table.headers.length, 1) }, () => ""),
+                  ],
+                }
+              : emptyTable(),
+          })
+        }
+        addLabel={table ? "Add row" : "Add table"}
       />
       {table ? (
         <TableEditor
@@ -833,15 +849,16 @@ function TableEditor({
   onClear: () => void;
 }) {
   const colCount = Math.max(table.headers.length, 1);
+  const gridCols = `7rem repeat(${colCount}, minmax(7rem, 1fr)) auto`;
 
   function setHeader(ci: number, value: string) {
-    const headers = [...table.headers];
+    const headers = Array.from({ length: colCount }, (_, i) => table.headers[i] ?? "");
     headers[ci] = value;
     onChange({ ...table, headers });
   }
 
   function setCell(ri: number, ci: number, value: string) {
-    const rows = table.rows.map((row) => [...row]);
+    const rows = table.rows.map((row) => Array.from({ length: colCount }, (_, i) => row[i] ?? ""));
     const row = rows[ri] ?? Array.from({ length: colCount }, () => "");
     row[ci] = value;
     rows[ri] = row;
@@ -850,53 +867,60 @@ function TableEditor({
 
   function addColumn() {
     onChange({
-      headers: [...table.headers, `Column ${table.headers.length + 1}`],
-      rows: table.rows.map((row) => [...row, ""]),
+      headers: [...Array.from({ length: colCount }, (_, i) => table.headers[i] ?? ""), ""],
+      rows: table.rows.map((row) => [...Array.from({ length: colCount }, (_, i) => row[i] ?? ""), ""]),
     });
   }
 
   function removeColumn(ci: number) {
+    if (colCount <= 1) return;
     onChange({
       headers: table.headers.filter((_, i) => i !== ci),
       rows: table.rows.map((row) => row.filter((_, i) => i !== ci)),
     });
   }
 
+  function addRow() {
+    onChange({
+      ...table,
+      rows: [...table.rows, Array.from({ length: colCount }, () => "")],
+    });
+  }
+
   return (
     <div className="space-y-2 overflow-x-auto">
-      <div className="flex gap-2">
+      <p className="text-[11px] text-muted-fg">
+        First row of headers = column titles (for example MARKET / BEFORE / DURING / SOURCE). Each following row is a market or event. Type in the boxes — you do not edit JSON.
+      </p>
+      <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" size="sm" onClick={addColumn}>
           Add column
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            onChange({
-              ...table,
-              rows: [...table.rows, Array.from({ length: colCount }, () => "")],
-            })
-          }
-        >
+        <Button type="button" variant="outline" size="sm" onClick={addRow}>
           Add row
         </Button>
         <button type="button" className="text-xs text-muted-fg hover:text-red-600" onClick={onClear}>
           Remove table
         </button>
       </div>
-      <div className="min-w-[28rem] space-y-1">
-        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${colCount}, minmax(6rem, 1fr)) auto` }}>
-          {table.headers.map((header, ci) => (
+      <div className="min-w-[36rem] space-y-1">
+        <div className="grid gap-1 items-end" style={{ gridTemplateColumns: gridCols }}>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-muted-fg pb-2">Titles</p>
+          {Array.from({ length: colCount }, (_, ci) => (
             <div key={ci} className="space-y-1">
               <input
                 className={inputClass}
-                value={header}
-                placeholder={`Header ${ci + 1}`}
+                value={table.headers[ci] ?? ""}
+                placeholder={`Column ${ci + 1}`}
                 onChange={(e) => setHeader(ci, e.target.value)}
               />
-              <button type="button" className="text-[10px] text-muted-fg hover:text-red-600" onClick={() => removeColumn(ci)}>
-                Remove col
+              <button
+                type="button"
+                className="text-[10px] text-muted-fg hover:text-red-600 disabled:opacity-40"
+                disabled={colCount <= 1}
+                onClick={() => removeColumn(ci)}
+              >
+                Remove column
               </button>
             </div>
           ))}
@@ -905,15 +929,16 @@ function TableEditor({
         {table.rows.map((row, ri) => (
           <div
             key={ri}
-            className="grid gap-1"
-            style={{ gridTemplateColumns: `repeat(${colCount}, minmax(6rem, 1fr)) auto` }}
+            className="grid gap-1 items-center"
+            style={{ gridTemplateColumns: gridCols }}
           >
+            <p className="text-[10px] font-semibold text-muted-fg">Row {ri + 1}</p>
             {Array.from({ length: colCount }, (_, ci) => (
-              <textarea
+              <input
                 key={ci}
-                className={textareaClass}
-                rows={2}
+                className={inputClass}
                 value={row[ci] ?? ""}
+                placeholder="Cell"
                 onChange={(e) => setCell(ri, ci, e.target.value)}
               />
             ))}
@@ -922,7 +947,7 @@ function TableEditor({
               className="text-xs text-muted-fg hover:text-red-600"
               onClick={() => onChange({ ...table, rows: table.rows.filter((_, j) => j !== ri) })}
             >
-              Remove
+              Remove row
             </button>
           </div>
         ))}
