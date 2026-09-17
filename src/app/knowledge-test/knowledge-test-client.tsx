@@ -202,7 +202,7 @@ export function KnowledgeTestClient({
               <div className="rounded-xl border border-dashed border-border bg-secondary/30 p-4">
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-1">Upcoming</p>
                 <p className="text-sm text-muted-fg mb-3">
-                  Scheduled banks you can see ahead of time. They open when Frances publishes them — you cannot start them yet.
+                  Scheduled Test Sets you can see ahead of time.
                 </p>
                 <div className="space-y-4">
                   {upcomingWeeks.map((week) => (
