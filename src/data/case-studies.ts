@@ -1,6 +1,59 @@
 import index from "./case-studies-index.json";
 import details from "./case-studies-details.json";
 
+export interface CaseStudyStat {
+  value: string;
+  label: string;
+}
+
+export interface CaseStudyNumberedPoint {
+  lead: string;
+  body: string;
+}
+
+export interface CaseStudyTable {
+  headers: string[];
+  rows: string[][];
+}
+
+export interface CaseStudyCallout {
+  kicker: string;
+  items: string[];
+}
+
+export type CaseStudyTimelineTone = "negative" | "positive" | "neutral";
+
+export interface CaseStudyTimelineEvent {
+  date: string;
+  body: string;
+  tone?: CaseStudyTimelineTone;
+}
+
+export interface CaseStudyTimeline {
+  kicker: string;
+  events: CaseStudyTimelineEvent[];
+}
+
+export interface CaseStudyLesson {
+  title: string;
+  body: string;
+}
+
+export interface CaseStudySelfTestQuestion {
+  question: string;
+  answer: string;
+}
+
+export interface CaseStudySelfTest {
+  kicker: string;
+  questions: CaseStudySelfTestQuestion[];
+}
+
+export interface CaseStudySource {
+  name: string;
+  detail: string;
+}
+
 export interface CaseStudyCard {
   slug: string;
   id: string;
@@ -11,6 +64,13 @@ export interface CaseStudyCard {
   readMinutes: number;
   status: "published" | "coming-soon";
   hasFullContent: boolean;
+  /** Override for “CASE STUDY {n}”. If omitted, list order (1-based) is used. */
+  number?: number;
+  subtitle?: string;
+  heroBody?: string;
+  stats?: CaseStudyStat[];
+  /** Member TOC. Default off so the page stays uncluttered. */
+  showSidebar?: boolean;
 }
 
 export interface CaseStudySection {
@@ -18,6 +78,15 @@ export interface CaseStudySection {
   label: string;
   title: string;
   paragraphs: string[];
+  quote?: string;
+  numberedPoints?: CaseStudyNumberedPoint[];
+  table?: CaseStudyTable;
+  callout?: CaseStudyCallout;
+  timeline?: CaseStudyTimeline;
+  lessons?: CaseStudyLesson[];
+  selfTest?: CaseStudySelfTest;
+  sources?: CaseStudySource[];
+  sourcesNote?: string;
 }
 
 function slugify(title: string) {

@@ -38,6 +38,7 @@ export default async function CaseStudyDetailPage({ params }: { params: Promise<
     <CaseStudyDetailClient
       card={data.card}
       sections={data.sections}
+      displayNumber={data.displayNumber}
       userTier={user.tier}
     />
   );

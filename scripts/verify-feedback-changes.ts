@@ -37,8 +37,23 @@ import {
 import { formatCmsHeroCopy, sanitizeMemberHref } from "../src/lib/content/cms-page-copy";
 import {
   DEFAULT_CASE_STUDIES_HERO,
+  caseStudyDisplayNumber,
   formatCaseStudiesHeroCopy,
+  formatCaseStudySourceLabel,
   mergeCaseStudiesHero,
+  normalizeCaseStudyCard,
+  normalizeCaseStudySection,
+  parseCaseStudyInline,
+  resolveCaseStudiesPayload,
+  shouldShowCaseStudySidebar,
+  visibleCallout,
+  visibleCaseStudyStats,
+  visibleCaseStudyTable,
+  visibleLessons,
+  visibleNumberedPoints,
+  visibleSelfTest,
+  visibleSources,
+  visibleTimeline,
 } from "../src/lib/content/case-studies-payload";
 import { JOB_OPENINGS } from "../src/data/job-openings";
 import {
@@ -1166,6 +1181,137 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
           "Study with commercial reasoning. Disclaimer: Case studies are hypothetical unless stated otherwise.",
       }).disclaimer.includes("hypothetical") &&
       formatCaseStudiesHeroCopy("Built by {brandName}", 1).includes("CommodityPlay")
+  );
+  const caseDetail = fs.readFileSync(
+    path.join(process.cwd(), "src/app/case-studies/[slug]/case-study-detail-client.tsx"),
+    "utf8"
+  );
+  const sourceParts = parseCaseStudyInline("Before the strikes {{CNBC}} and **Brent** moved.");
+  const fiveStats = visibleCaseStudyStats([
+    { value: "$72", label: "A" },
+    { value: "+51%", label: "B" },
+    { value: "10%", label: "C" },
+    { value: "x", label: "D" },
+    { value: "", label: "" },
+  ]);
+  const emptySection = normalizeCaseStudySection({
+    id: "s",
+    label: "01 · Setup",
+    title: "Setup",
+    paragraphs: ["Hello {{IEA}}"],
+  });
+  const richSection = normalizeCaseStudySection({
+    id: "s2",
+    label: "02",
+    title: "Markets",
+    paragraphs: ["Intro"],
+    quote: "A pull quote",
+    numberedPoints: [
+      { lead: "The crude price", body: "Less oil. {{IEA}}" },
+      { lead: "Freight", body: "Rates rise." },
+    ],
+    table: {
+      headers: ["Market", "Before", "After"],
+      rows: [["Brent", "$72", "$120"], ["", "", ""]],
+    },
+    callout: { kicker: "Reading order", items: ["Check insurance", "Watch freight"] },
+    timeline: {
+      kicker: "Timeline",
+      events: [
+        { date: "28 Feb", body: "Strikes begin", tone: "negative" },
+        { date: "", body: "   ", tone: "neutral" },
+      ],
+    },
+    lessons: [
+      { title: "Chokepoints", body: "More than crude." },
+      { title: "", body: "" },
+    ],
+    selfTest: {
+      kicker: "Four questions",
+      questions: [
+        { question: "Why insurance first?", answer: "Threat pricing." },
+        { question: "", answer: "" },
+      ],
+    },
+    sources: [
+      { name: "IEA", detail: "Oil Market Report" },
+      { name: "", detail: "" },
+    ],
+    sourcesNote: "Figures as of the cited dates.",
+  });
+  ok(
+    "Case study member hero uses CMS kicker, optional stats, and hides empty stats",
+    caseDetail.includes("Back to Case Studies") &&
+      caseDetail.includes("Case Study {displayNumber}") &&
+      caseEditor.includes("Hero body") &&
+      caseEditor.includes("Key stats") &&
+      caseStudyDisplayNumber({}, 0) === 1 &&
+      caseStudyDisplayNumber({ number: 12 }, 0) === 12 &&
+      caseStudyDisplayNumber({ number: 0 }, 4) === 5 &&
+      visibleCaseStudyStats([]).length === 0 &&
+      visibleCaseStudyStats(undefined).length === 0 &&
+      fiveStats.length === 4 &&
+      normalizeCaseStudyCard({
+        slug: "x",
+        id: "01",
+        category: "Risk",
+        title: "T",
+        catchLine: "",
+        description: "",
+        readMinutes: 1,
+        status: "published",
+        hasFullContent: true,
+      }).showSidebar === false
+  );
+  ok(
+    "Case study sources use {{marker}} italic-blue parsing without colliding with **bold**",
+    formatCaseStudySourceLabel("IEA") === "(IEA)" &&
+      formatCaseStudySourceLabel("(CNBC)") === "(CNBC)" &&
+      sourceParts.some((p) => p.kind === "source" && p.text === "CNBC") &&
+      sourceParts.some((p) => p.kind === "strong" && p.text === "Brent") &&
+      caseEditor.includes("{{IEA}}") &&
+      caseDetail.includes("CaseStudyInline")
+  );
+  ok(
+    "Case study sidebar is off unless Frances opts in",
+    shouldShowCaseStudySidebar(undefined) === false &&
+      shouldShowCaseStudySidebar(false) === false &&
+      shouldShowCaseStudySidebar(true) === true &&
+      caseEditor.includes("Show “In this case study” sidebar") &&
+      caseDetail.includes("In this case study")
+  );
+  ok(
+    "Case study section blocks scale to N and hide when empty",
+    !emptySection.quote &&
+      !emptySection.numberedPoints &&
+      !emptySection.table &&
+      !emptySection.callout &&
+      !emptySection.timeline &&
+      !emptySection.lessons &&
+      !emptySection.selfTest &&
+      !emptySection.sources &&
+      emptySection.paragraphs[0] === "Hello {{IEA}}" &&
+      richSection.quote === "A pull quote" &&
+      visibleNumberedPoints(richSection.numberedPoints).length === 2 &&
+      (visibleCaseStudyTable(richSection.table)?.headers.length ?? 0) === 3 &&
+      visibleCaseStudyTable({ headers: [], rows: [] }) === null &&
+      (visibleCallout(richSection.callout)?.items.length ?? 0) === 2 &&
+      visibleCallout({ kicker: "", items: [] }) === null &&
+      (visibleTimeline(richSection.timeline)?.events.length ?? 0) === 1 &&
+      visibleLessons(richSection.lessons).length === 1 &&
+      (visibleSelfTest(richSection.selfTest)?.questions.length ?? 0) === 1 &&
+      visibleSelfTest({ kicker: "", questions: [] }) === null &&
+      visibleSources(richSection.sources).length === 1 &&
+      Boolean(richSection.sourcesNote?.includes("cited dates")) &&
+      caseEditor.includes("Numbered mechanism list") &&
+      caseEditor.includes("Data table") &&
+      caseEditor.includes("Navy callout") &&
+      caseEditor.includes("Sourced timeline") &&
+      caseEditor.includes("Key lesson cards") &&
+      caseEditor.includes("Self-test") &&
+      caseEditor.includes("Sources list") &&
+      caseDetail.includes("Reveal Answers") &&
+      Array.isArray(resolveCaseStudiesPayload(undefined).studies)
   );
   const jobHeroEditor = fs.readFileSync(
     path.join(process.cwd(), "src/app/admin/editors/job-openings-editor.tsx"),

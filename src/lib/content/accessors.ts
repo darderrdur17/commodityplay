@@ -13,7 +13,11 @@ import {
 } from "@/data/glossary-content";
 import type { MentorOverridesPayload } from "@/data/mentors";
 import { getPublishedPayload, tryReadPublishedPayload, getContentModulePayload } from "./repository";
-import { resolveCaseStudiesPayload, type CaseStudiesPayload } from "@/lib/content/case-studies-payload";
+import {
+  caseStudyDisplayNumber,
+  resolveCaseStudiesPayload,
+  type CaseStudiesPayload,
+} from "@/lib/content/case-studies-payload";
 import { DESK_CATEGORIES, DESK_QA, mergeDeskCategories } from "@/data/desk-channel";
 import { GLOSSARY_TERMS } from "@/data/glossary";
 import {
@@ -478,9 +482,14 @@ export async function getCaseStudiesList() {
 
 export async function getCaseStudyBySlug(slug: string) {
   const { studies, details } = await getCaseStudiesPageData();
-  const card = studies.find((c) => c.slug === slug);
-  if (!card) return null;
-  return { card, sections: details[slug] || null };
+  const index = studies.findIndex((c) => c.slug === slug);
+  if (index < 0) return null;
+  const card = studies[index]!;
+  return {
+    card,
+    sections: details[slug] || null,
+    displayNumber: caseStudyDisplayNumber(card, index),
+  };
 }
 
 export async function getDeskChannelData() {
