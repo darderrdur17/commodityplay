@@ -1,5 +1,11 @@
 import { formatContentPlaceholders } from "@/lib/content/content-stat-placeholders";
 import { MENTOR_SEGMENTS } from "@/data/mentors";
+import {
+  DEFAULT_MENTOR_APPLY_PAGE_COPY,
+  type MentorApplyPageCopy,
+} from "@/data/mentor-apply-content";
+
+export type { MentorApplyPageCopy } from "@/data/mentor-apply-content";
 
 export interface MentorConnectHero {
   eyebrow: string;
@@ -46,6 +52,8 @@ export interface MentorConnectContent {
   /** Segment headings and blurbs — merged with mentors.json defaults by id. */
   segments: MentorConnectSegmentCopy[];
   howItWorks: MentorConnectHowItWorks;
+  /** Public /mentor-apply copy (invitation form). */
+  application: MentorApplyPageCopy;
 }
 
 export const DEFAULT_MENTOR_CONNECT_HOW_IT_WORKS: MentorConnectHowItWorks = {
@@ -87,6 +95,7 @@ export const DEFAULT_MENTOR_CONNECT_CONTENT: MentorConnectContent = {
   categories: [],
   segments: defaultMentorConnectSegments(),
   howItWorks: DEFAULT_MENTOR_CONNECT_HOW_IT_WORKS,
+  application: DEFAULT_MENTOR_APPLY_PAGE_COPY,
 };
 
 export function formatMentorConnectSubtitle(

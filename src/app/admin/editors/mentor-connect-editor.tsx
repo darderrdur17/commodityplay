@@ -9,6 +9,7 @@ import {
   type MentorConnectContent,
   type MentorConnectSegmentCopy,
 } from "@/data/mentor-connect-content";
+import type { MentorApplyPageCopy } from "@/data/mentor-apply-content";
 import { normalizeMentorConnectPayload, mergeMentorConnectSegmentCopy } from "@/lib/content/mentor-connect-schema";
 import { EditorField, EditorSection, TrackToggle, inputClass, textareaClass } from "./shared";
 
@@ -16,19 +17,53 @@ function newCategory(): MentorConnectCategory {
   return { id: `mc-${Date.now()}`, label: "", track: "both" };
 }
 
+function LabelAndPlaceholder({
+  labelCaption,
+  placeholderCaption,
+  label,
+  placeholder,
+  onLabel,
+  onPlaceholder,
+}: {
+  labelCaption: string;
+  placeholderCaption: string;
+  label: string;
+  placeholder: string;
+  onLabel: (v: string) => void;
+  onPlaceholder: (v: string) => void;
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <EditorField label={labelCaption}>
+        <input className={inputClass} value={label} onChange={(e) => onLabel(e.target.value)} />
+      </EditorField>
+      <EditorField label={placeholderCaption}>
+        <input className={inputClass} value={placeholder} onChange={(e) => onPlaceholder(e.target.value)} />
+      </EditorField>
+    </div>
+  );
+}
+
 export function MentorConnectEditor({
   payload,
   onChange,
+  focus = "connect",
 }: {
   payload: unknown;
   onChange: (p: unknown) => void;
+  focus?: "connect" | "apply";
 }) {
   const content: MentorConnectContent = normalizeMentorConnectPayload(
     payload ?? DEFAULT_MENTOR_CONNECT_CONTENT
   );
+  const apply = content.application;
 
   function patch(next: MentorConnectContent) {
     onChange(next);
+  }
+
+  function patchApply(updates: Partial<MentorApplyPageCopy>) {
+    patch({ ...content, application: { ...apply, ...updates } });
   }
 
   function patchCategory(i: number, cat: MentorConnectCategory) {
@@ -62,13 +97,24 @@ export function MentorConnectEditor({
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-muted-fg bg-secondary/50 rounded-lg px-3 py-2">
-        Edit copy on <code className="text-[11px]">/mentor-connect</code>. With{" "}
-        <strong>Published</strong> checked, Save updates the live page. In the hero subtitle and step 01
-        body, use <code className="text-[11px]">{`{mentorCount}`}</code> and{" "}
-        <code className="text-[11px]">{`{segmentCount}`}</code> for live practitioner/segment counts.
-      </p>
+      {focus === "connect" ? (
+        <p className="text-xs text-muted-fg bg-secondary/50 rounded-lg px-3 py-2">
+          Edit copy on <code className="text-[11px]">/mentor-connect</code>. With{" "}
+          <strong>Published</strong> checked, Save updates the live page. In the hero subtitle and step 01
+          body, use <code className="text-[11px]">{`{mentorCount}`}</code> and{" "}
+          <code className="text-[11px]">{`{segmentCount}`}</code> for live practitioner/segment counts.
+        </p>
+      ) : (
+        <p className="text-xs text-muted-fg bg-secondary/50 rounded-lg px-3 py-2">
+          Edit the public invitation form at <code className="text-[11px]">/mentor-apply</code>. With{" "}
+          <strong>Published</strong> checked, Save updates that page. Fields marked with * on the live form
+          stay public on Mentor Connect; that rule is not editable here. Name, company, LinkedIn, and email
+          stay internal.
+        </p>
+      )}
 
+      {focus === "connect" && (
+        <>
       <EditorSection title="Page hero" description="Eyebrow, title, and subtitle on the Mentor Connect page" defaultOpen>
         <div className="grid gap-4 sm:grid-cols-2">
           <EditorField label="Eyebrow (pill label)">
@@ -253,6 +299,235 @@ export function MentorConnectEditor({
           )}
         </div>
       </EditorSection>
+        </>
+      )}
+
+      {focus === "apply" && (
+        <>
+          <EditorSection title="Hero" description="Blue header on /mentor-apply" defaultOpen>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <EditorField label="Eyebrow (pill)">
+                <input
+                  className={inputClass}
+                  value={apply.hero.eyebrow}
+                  onChange={(e) =>
+                    patchApply({ hero: { ...apply.hero, eyebrow: e.target.value } })
+                  }
+                />
+              </EditorField>
+              <EditorField label="Title">
+                <input
+                  className={inputClass}
+                  value={apply.hero.title}
+                  onChange={(e) => patchApply({ hero: { ...apply.hero, title: e.target.value } })}
+                />
+              </EditorField>
+            </div>
+            <EditorField label="Description">
+              <textarea
+                className={textareaClass}
+                value={apply.hero.description}
+                onChange={(e) =>
+                  patchApply({ hero: { ...apply.hero, description: e.target.value } })
+                }
+              />
+            </EditorField>
+          </EditorSection>
+
+          <EditorSection title="Section headings" description="Form group titles">
+            <EditorField label="Your details">
+              <input
+                className={inputClass}
+                value={apply.detailsHeading}
+                onChange={(e) => patchApply({ detailsHeading: e.target.value })}
+              />
+            </EditorField>
+            <EditorField label="Professional background">
+              <input
+                className={inputClass}
+                value={apply.backgroundHeading}
+                onChange={(e) => patchApply({ backgroundHeading: e.target.value })}
+              />
+            </EditorField>
+            <EditorField label="What can you mentor on?">
+              <input
+                className={inputClass}
+                value={apply.mentorOnHeading}
+                onChange={(e) => patchApply({ mentorOnHeading: e.target.value })}
+              />
+            </EditorField>
+          </EditorSection>
+
+          <EditorSection title="Your details fields" description="Labels and placeholders">
+            <LabelAndPlaceholder
+              labelCaption="Full name label"
+              placeholderCaption="Placeholder"
+              label={apply.nameLabel}
+              placeholder={apply.namePlaceholder}
+              onLabel={(v) => patchApply({ nameLabel: v })}
+              onPlaceholder={(v) => patchApply({ namePlaceholder: v })}
+            />
+            <LabelAndPlaceholder
+              labelCaption="Email label"
+              placeholderCaption="Placeholder"
+              label={apply.emailLabel}
+              placeholder={apply.emailPlaceholder}
+              onLabel={(v) => patchApply({ emailLabel: v })}
+              onPlaceholder={(v) => patchApply({ emailPlaceholder: v })}
+            />
+            <LabelAndPlaceholder
+              labelCaption="LinkedIn label"
+              placeholderCaption="Placeholder"
+              label={apply.linkedInLabel}
+              placeholder={apply.linkedInPlaceholder}
+              onLabel={(v) => patchApply({ linkedInLabel: v })}
+              onPlaceholder={(v) => patchApply({ linkedInPlaceholder: v })}
+            />
+            <LabelAndPlaceholder
+              labelCaption="Location label (public *)"
+              placeholderCaption="Placeholder"
+              label={apply.locationLabel}
+              placeholder={apply.locationPlaceholder}
+              onLabel={(v) => patchApply({ locationLabel: v })}
+              onPlaceholder={(v) => patchApply({ locationPlaceholder: v })}
+            />
+          </EditorSection>
+
+          <EditorSection title="Professional background fields">
+            <LabelAndPlaceholder
+              labelCaption="Company label"
+              placeholderCaption="Placeholder"
+              label={apply.companyLabel}
+              placeholder={apply.companyPlaceholder}
+              onLabel={(v) => patchApply({ companyLabel: v })}
+              onPlaceholder={(v) => patchApply({ companyPlaceholder: v })}
+            />
+            <LabelAndPlaceholder
+              labelCaption="Role label"
+              placeholderCaption="Placeholder"
+              label={apply.roleLabel}
+              placeholder={apply.rolePlaceholder}
+              onLabel={(v) => patchApply({ roleLabel: v })}
+              onPlaceholder={(v) => patchApply({ rolePlaceholder: v })}
+            />
+            <LabelAndPlaceholder
+              labelCaption="Years of experience label (public *)"
+              placeholderCaption="Placeholder"
+              label={apply.yearsLabel}
+              placeholder={apply.yearsPlaceholder}
+              onLabel={(v) => patchApply({ yearsLabel: v })}
+              onPlaceholder={(v) => patchApply({ yearsPlaceholder: v })}
+            />
+            <LabelAndPlaceholder
+              labelCaption="Commodity focus label (public *)"
+              placeholderCaption="Placeholder"
+              label={apply.commodityLabel}
+              placeholder={apply.commodityPlaceholder}
+              onLabel={(v) => patchApply({ commodityLabel: v })}
+              onPlaceholder={(v) => patchApply({ commodityPlaceholder: v })}
+            />
+            <LabelAndPlaceholder
+              labelCaption="Headline label (public *)"
+              placeholderCaption="Placeholder"
+              label={apply.headlineLabel}
+              placeholder={apply.headlinePlaceholder}
+              onLabel={(v) => patchApply({ headlineLabel: v })}
+              onPlaceholder={(v) => patchApply({ headlinePlaceholder: v })}
+            />
+            <EditorField label="Experience label (public *)">
+              <input
+                className={inputClass}
+                value={apply.bioLabel}
+                onChange={(e) => patchApply({ bioLabel: e.target.value })}
+              />
+            </EditorField>
+            <EditorField label="Experience placeholder">
+              <textarea
+                className={textareaClass}
+                value={apply.bioPlaceholder}
+                onChange={(e) => patchApply({ bioPlaceholder: e.target.value })}
+              />
+            </EditorField>
+            <LabelAndPlaceholder
+              labelCaption="Mentorship subjects label (public *)"
+              placeholderCaption="Placeholder"
+              label={apply.tagsLabel}
+              placeholder={apply.tagsPlaceholder}
+              onLabel={(v) => patchApply({ tagsLabel: v })}
+              onPlaceholder={(v) => patchApply({ tagsPlaceholder: v })}
+            />
+          </EditorSection>
+
+          <EditorSection title="Suggested topic chips" description="Tap-to-add subjects on the form">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-muted-fg">{apply.topics.length} topics</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => patchApply({ topics: [...apply.topics, ""] })}
+              >
+                <Plus className="w-3.5 h-3.5" /> Add topic
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {apply.topics.map((topic, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    className={inputClass}
+                    value={topic}
+                    onChange={(e) => {
+                      const topics = [...apply.topics];
+                      topics[i] = e.target.value;
+                      patchApply({ topics });
+                    }}
+                    placeholder="e.g. Risk management"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      patchApply({ topics: apply.topics.filter((_, j) => j !== i) })
+                    }
+                    className="text-red-400 hover:text-red-600 p-1 shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </EditorSection>
+
+          <EditorSection title="Confirm, submit, and success">
+            <EditorField label="Confirmation checkbox text">
+              <textarea
+                className={textareaClass}
+                value={apply.confirmText}
+                onChange={(e) => patchApply({ confirmText: e.target.value })}
+              />
+            </EditorField>
+            <EditorField label="Submit button">
+              <input
+                className={inputClass}
+                value={apply.submitLabel}
+                onChange={(e) => patchApply({ submitLabel: e.target.value })}
+              />
+            </EditorField>
+            <EditorField label="Success title">
+              <input
+                className={inputClass}
+                value={apply.successTitle}
+                onChange={(e) => patchApply({ successTitle: e.target.value })}
+              />
+            </EditorField>
+            <EditorField label="Success body">
+              <textarea
+                className={textareaClass}
+                value={apply.successBody}
+                onChange={(e) => patchApply({ successBody: e.target.value })}
+              />
+            </EditorField>
+          </EditorSection>
+        </>
+      )}
     </div>
   );
 }

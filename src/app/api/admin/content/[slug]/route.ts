@@ -26,6 +26,7 @@ import {
 import {
   parseMentorConnectPayload,
   formatMentorConnectValidationErrors,
+  normalizeMentorConnectPayload,
 } from "@/lib/content/mentor-connect-schema";
 import {
   prepareSiteFooterForSave,
@@ -87,6 +88,7 @@ export async function PUT(
     }
     if (slug === "mentor-connect") {
       revalidatePath("/mentor-connect");
+      revalidatePath("/mentor-apply");
     }
     return NextResponse.json({ ok: true, version: row.version, canRevert: await hasContentModuleRevision(slug) });
   }
@@ -101,6 +103,7 @@ export async function PUT(
       }
       if (slug === "mentor-connect") {
         revalidatePath("/mentor-connect");
+        revalidatePath("/mentor-apply");
       }
       return NextResponse.json({
         ok: true,
@@ -206,7 +209,7 @@ export async function PUT(
           { status: 400 }
         );
       }
-      parsed.data.payload = mentorValidation.data;
+      parsed.data.payload = normalizeMentorConnectPayload(parsed.data.payload);
     }
 
     if (slug === "site-footer") {
@@ -248,6 +251,7 @@ export async function PUT(
   }
   if (slug === "mentor-connect") {
     revalidatePath("/mentor-connect", "page");
+    revalidatePath("/mentor-apply", "page");
   }
   if (slug === "site-footer") {
     revalidatePath("/", "layout");

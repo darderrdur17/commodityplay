@@ -61,6 +61,7 @@ import {
   type MentorConnectHero,
   type MentorConnectHowItWorks,
 } from "@/data/mentor-connect-content";
+import type { MentorApplyPageCopy } from "@/data/mentor-apply-content";
 import { normalizeMentorConnectPayload } from "@/lib/content/mentor-connect-schema";
 import { DEFAULT_FAQ_CONTENT, type FaqContent } from "@/data/faq";
 import { normalizeBrandReferences } from "@/lib/brand";
@@ -139,6 +140,12 @@ export async function getMentorConnectHowItWorks(): Promise<MentorConnectHowItWo
     "mentor-connect"
   );
   return normalizeMentorConnectPayload(cms ?? {}).howItWorks;
+}
+
+/** Public mentor application form copy — CMS module `mentor-connect`.application. */
+export async function getMentorApplyPageCopy(): Promise<MentorApplyPageCopy> {
+  const cms = await tryReadPublishedPayload("mentor-connect");
+  return normalizeMentorConnectPayload(cms ?? {}).application;
 }
 
 export async function getMemberDashboardContent(): Promise<MemberDashboardContent> {

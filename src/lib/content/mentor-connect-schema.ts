@@ -9,6 +9,7 @@ import {
   type MentorConnectSegmentCopy,
   type MentorConnectStep,
 } from "@/data/mentor-connect-content";
+import { mergeMentorApplyPageCopy } from "@/data/mentor-apply-content";
 
 const heroSchema = z.object({
   eyebrow: z.string().min(1).max(80),
@@ -45,11 +46,52 @@ const segmentCopySchema = z.object({
   blurb: z.string().min(1).max(400),
 });
 
+const applicationSchema = z.object({
+  hero: z
+    .object({
+      eyebrow: z.string().max(80).optional(),
+      title: z.string().max(120).optional(),
+      description: z.string().max(2000).optional(),
+    })
+    .optional(),
+  detailsHeading: z.string().max(120).optional(),
+  backgroundHeading: z.string().max(120).optional(),
+  mentorOnHeading: z.string().max(120).optional(),
+  nameLabel: z.string().max(80).optional(),
+  namePlaceholder: z.string().max(200).optional(),
+  emailLabel: z.string().max(80).optional(),
+  emailPlaceholder: z.string().max(200).optional(),
+  linkedInLabel: z.string().max(80).optional(),
+  linkedInPlaceholder: z.string().max(300).optional(),
+  locationLabel: z.string().max(80).optional(),
+  locationPlaceholder: z.string().max(200).optional(),
+  companyLabel: z.string().max(80).optional(),
+  companyPlaceholder: z.string().max(200).optional(),
+  roleLabel: z.string().max(80).optional(),
+  rolePlaceholder: z.string().max(200).optional(),
+  yearsLabel: z.string().max(80).optional(),
+  yearsPlaceholder: z.string().max(200).optional(),
+  commodityLabel: z.string().max(80).optional(),
+  commodityPlaceholder: z.string().max(200).optional(),
+  headlineLabel: z.string().max(80).optional(),
+  headlinePlaceholder: z.string().max(200).optional(),
+  bioLabel: z.string().max(120).optional(),
+  bioPlaceholder: z.string().max(2000).optional(),
+  tagsLabel: z.string().max(80).optional(),
+  tagsPlaceholder: z.string().max(300).optional(),
+  confirmText: z.string().max(800).optional(),
+  submitLabel: z.string().max(80).optional(),
+  successTitle: z.string().max(120).optional(),
+  successBody: z.string().max(800).optional(),
+  topics: z.array(z.string().max(80)).max(200).optional(),
+});
+
 export const mentorConnectSchema = z.object({
   hero: heroSchema,
   categories: z.array(categorySchema),
   segments: z.array(segmentCopySchema),
   howItWorks: howItWorksSchema,
+  application: applicationSchema.optional(),
 });
 
 export function parseMentorConnectPayload(payload: unknown) {
@@ -94,6 +136,7 @@ export function normalizeMentorConnectPayload(payload: unknown): MentorConnectCo
       ...parsed.data,
       segments: mergeMentorConnectSegmentCopy(parsed.data.segments),
       howItWorks: mergeHowItWorks(parsed.data.howItWorks),
+      application: mergeMentorApplyPageCopy(parsed.data.application),
     };
   }
 
@@ -106,5 +149,6 @@ export function normalizeMentorConnectPayload(payload: unknown): MentorConnectCo
     categories: partial?.categories ?? DEFAULT_MENTOR_CONNECT_CONTENT.categories,
     segments: mergeMentorConnectSegmentCopy(partial?.segments),
     howItWorks: mergeHowItWorks(partial?.howItWorks),
+    application: mergeMentorApplyPageCopy(partial?.application),
   };
 }

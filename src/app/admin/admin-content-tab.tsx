@@ -50,7 +50,13 @@ interface SidebarItem {
   label: string;
   track?: TrackLabel;
   tier?: string;
-  editorVariant?: "default" | "career-nav" | "sales-nav" | "industry-guide" | "track-captions";
+  editorVariant?:
+    | "default"
+    | "career-nav"
+    | "sales-nav"
+    | "industry-guide"
+    | "track-captions"
+    | "mentor-apply";
   listSlug?: string;
 }
 
@@ -116,6 +122,14 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { slug: "case-studies", label: "Case Studies", track: "Both", tier: "ELITE" },
       { slug: "desk-channel", label: "Desk Channel", track: "Both", tier: "ELITE" },
       { slug: "mentor-connect", label: "Mentor Connect", track: "Both", tier: "ELITE" },
+      {
+        slug: "mentor-connect",
+        label: "Mentor Application",
+        track: "Both",
+        tier: "ELITE",
+        editorVariant: "mentor-apply",
+        listSlug: "mentor-apply",
+      },
       { slug: "job-openings", label: "Market Role Openings", track: "Both", tier: "ELITE" },
       { slug: "library", label: "Library Resources", track: "Both", tier: "ELITE" },
       { slug: "account-intelligence", label: "Account Intelligence", track: "Sales", tier: "ELITE" },
@@ -250,7 +264,13 @@ function ModuleEditor({
       case "resume-templates":
         return <ResumeEditor {...editorProps} contentVersion={version} />;
       case "mentor-connect":
-        return <MentorConnectEditor payload={payload} onChange={setPayload} />;
+        return (
+          <MentorConnectEditor
+            payload={payload}
+            onChange={setPayload}
+            focus={editorVariant === "mentor-apply" ? "apply" : "connect"}
+          />
+        );
       case "library":
         return <LibraryEditor {...editorProps} />;
       case "site-footer":

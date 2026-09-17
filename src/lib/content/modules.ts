@@ -105,7 +105,7 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
   {
     slug: "mentor-connect",
     title: "Mentor Connect",
-    description: "Subject categories for mentor Q&A",
+    description: "Mentor Connect browse page and Mentor Application (/mentor-apply) copy",
     requiredTier: "ELITE",
   },
   {
