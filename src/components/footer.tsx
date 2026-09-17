@@ -88,17 +88,17 @@ export function Footer({ content }: Props) {
           </p>
           <div className="flex items-center gap-[18px] text-[13px]">
             <Link
-              href="/privacy"
+              href={content.legal.privacy.href}
               className="text-white/60 underline decoration-white/20 underline-offset-[3px] hover:text-white hover:decoration-white/40 transition-colors"
             >
-              Privacy
+              {content.legal.privacy.label}
             </Link>
             <span className="text-white/20">·</span>
             <Link
-              href="/terms"
+              href={content.legal.terms.href}
               className="text-white/60 underline decoration-white/20 underline-offset-[3px] hover:text-white hover:decoration-white/40 transition-colors"
             >
-              Terms
+              {content.legal.terms.label}
             </Link>
           </div>
         </div>

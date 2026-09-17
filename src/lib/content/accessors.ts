@@ -403,9 +403,11 @@ export async function getNavigationGuides(): Promise<{
 }
 
 export async function getLibraryContent(): Promise<{ files: LibraryFilePublic[] }> {
+  const { normalizeLibraryPayload } = await import("./library-schema");
   const data = await getPublishedPayload<{ files?: (LibraryFilePublic & { accessTier?: "free" | "elite" })[] }>("library");
+  const { files } = normalizeLibraryPayload(data);
   return {
-    files: (data.files ?? [])
+    files: files
       .filter((f) => f.assetId && f.label)
       .map((f) => ({
         ...f,

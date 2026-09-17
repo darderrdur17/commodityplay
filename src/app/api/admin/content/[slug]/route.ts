@@ -255,6 +255,12 @@ export async function PUT(
   }
   if (slug === "site-footer") {
     revalidatePath("/", "layout");
+    revalidatePath("/privacy", "page");
+    revalidatePath("/terms", "page");
+  }
+  if (slug === "library") {
+    revalidatePath("/library", "page");
+    revalidatePath("/dashboard", "page");
   }
   if (slug === "desk-channel") {
     revalidatePath("/desk-channel", "page");

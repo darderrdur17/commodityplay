@@ -4,6 +4,7 @@ import React, { useRef, useState } from "react";
 import { Plus, Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { normalizeLibraryPayload } from "@/lib/content/library-schema";
 import { EditorField, TrackToggle, inputClass } from "./shared";
 
 interface LibraryFile {
@@ -41,11 +42,7 @@ export function LibraryEditor({
   moduleSlug: string;
   requiredTier: string;
 }) {
-  const raw = payload as { files?: LibraryFile[] } | null;
-  const files: LibraryFile[] = (raw?.files ?? []).map((f) => ({
-    ...f,
-    accessTier: f.accessTier ?? "elite",
-  }));
+  const files: LibraryFile[] = normalizeLibraryPayload(payload).files;
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadMsg, setUploadMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -54,16 +51,16 @@ export function LibraryEditor({
   function patchFile(i: number, f: LibraryFile) {
     const next = [...files];
     next[i] = f;
-    onChange({ ...raw, files: next });
+    onChange({ files: next });
   }
 
   function deleteFile(i: number) {
     if (!confirm("Delete this file?")) return;
-    onChange({ ...raw, files: files.filter((_, j) => j !== i) });
+    onChange({ files: files.filter((_, j) => j !== i) });
   }
 
   function addFile() {
-    onChange({ ...raw, files: [...files, newFile()] });
+    onChange({ files: [...files, newFile()] });
   }
 
   async function uploadFile(file: File, fileId: string, idx: number) {
@@ -95,7 +92,10 @@ export function LibraryEditor({
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-fg">
-        Resources published at <strong>/library</strong>. Mark files as <strong>Free</strong> (any logged-in member) or <strong>Elite</strong> (Elite tier required). For playbook chapter files, use Full Playbook → section attachments.
+        Published files appear on the member <strong>Resource Library</strong> at <strong>/library</strong> and as the
+        Elite <strong>Library Resources</strong> dashboard card. Free files are open to any logged-in member; Elite files
+        show with a lock until the member is Elite. Add as many files as you need — this is not limited to a few slots.
+        For playbook chapter files, use Full Playbook → section attachments.
       </p>
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-fg">{files.length} library files</p>

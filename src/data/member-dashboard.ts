@@ -164,6 +164,15 @@ export const DEFAULT_DASHBOARD_RESOURCE_CARDS: DashboardResourceCardCopy[] = [
     href: "/job-openings",
     requiredTier: "ELITE",
   },
+  {
+    slug: "library",
+    title: "Library Resources",
+    description:
+      "Free and Elite reference files — guides, PDFs, and desk materials published from the CMS library.",
+    track: "Both",
+    href: "/library",
+    requiredTier: "ELITE",
+  },
 ];
 
 export const DEFAULT_SALES_DASHBOARD_RESOURCE_CARDS: DashboardSalesResourceCardCopy[] = [

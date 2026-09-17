@@ -19,6 +19,7 @@ export default async function LibraryPage() {
 
   const { files } = await getLibraryContent();
   const hasEliteAccess = hasAccess(session.user.tier ?? "STARTER", "ELITE");
+  const memberTrack = session.user.track ?? "BOTH";
 
-  return <LibraryClient files={files} hasEliteAccess={hasEliteAccess} />;
+  return <LibraryClient files={files} hasEliteAccess={hasEliteAccess} memberTrack={memberTrack} />;
 }

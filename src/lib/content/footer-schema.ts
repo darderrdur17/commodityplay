@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { DEFAULT_SITE_FOOTER, type FooterLinkItem, type SiteFooterContent } from "@/data/footer-content";
 import { deepMerge } from "@/lib/content/merge";
+import { normalizeLegalPages } from "@/data/legal-content";
 
 const footerLinkSchema = z.object({
   label: z.string().min(1),
@@ -16,6 +17,19 @@ const siteFooterNewsletterSchema = z.object({
   successMessage: z.string().min(1),
 });
 
+const legalSectionSchema = z.object({
+  heading: z.string().min(1),
+  body: z.string().min(1),
+});
+
+const legalPageSchema = z.object({
+  label: z.string().min(1),
+  href: z.string().min(1),
+  pageTitle: z.string().min(1),
+  lastUpdated: z.string().min(1),
+  sections: z.array(legalSectionSchema).min(1),
+});
+
 export const siteFooterSchema = z.object({
   blurb: z.string().min(1),
   newsletter: siteFooterNewsletterSchema,
@@ -23,6 +37,10 @@ export const siteFooterSchema = z.object({
     contents: z.array(footerLinkSchema).min(1),
     community: z.array(footerLinkSchema).min(1),
     access: z.array(footerLinkSchema).min(1),
+  }),
+  legal: z.object({
+    privacy: legalPageSchema,
+    terms: legalPageSchema,
   }),
 });
 
@@ -69,6 +87,7 @@ export function mergeSiteFooterContent(
   return {
     ...merged,
     columns: normalizeFooterColumns(merged.columns ?? DEFAULT_SITE_FOOTER.columns),
+    legal: normalizeLegalPages(merged.legal),
   };
 }
 

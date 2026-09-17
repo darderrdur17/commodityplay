@@ -135,6 +135,7 @@ import {
 import { normalizeMemberDashboardPayload } from "../src/lib/content/member-dashboard-schema";
 import { DEFAULT_SITE_FOOTER } from "../src/data/footer-content";
 import { mergeSiteFooterContent } from "../src/lib/content/footer-schema";
+import { normalizeLibraryPayload } from "../src/lib/content/library-schema";
 import {
   isDashboardFileReady,
   resolveDashboardFileDownloadHref,
@@ -394,6 +395,25 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       "CMS Be a Mentor with contact action still routes to mentor sign-up",
       mentorLink?.href === "/mentor-apply" && mentorLink.action !== "contact"
     );
+    ok(
+      "Footer Privacy and Terms of Use stay on /privacy and /terms by default",
+      footer.legal.privacy.href === "/privacy" &&
+        footer.legal.terms.href === "/terms" &&
+        footer.legal.privacy.label === "Privacy" &&
+        footer.legal.terms.label === "Terms"
+    );
+    const legacyFooter = mergeSiteFooterContent({
+      blurb: DEFAULT_SITE_FOOTER.blurb,
+      newsletter: DEFAULT_SITE_FOOTER.newsletter,
+      columns: DEFAULT_SITE_FOOTER.columns,
+    });
+    ok(
+      "Published footer payloads without legal keys still show Privacy and Terms",
+      legacyFooter.legal.privacy.href === "/privacy" &&
+        legacyFooter.legal.terms.pageTitle === "Terms of Service" &&
+        legacyFooter.legal.privacy.sections.length > 1 &&
+        legacyFooter.legal.terms.sections.length > 1
+    );
   }
   {
     const contactModal = fs.readFileSync(
@@ -562,6 +582,40 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
         DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.some((u) => u.slug === c.slug)
       )
   );
+  ok(
+    "Library Resources dashboard card opens /library for Elite",
+    DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.find((c) => c.slug === "library")?.href === "/library" &&
+      DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.find((c) => c.slug === "library")?.requiredTier === "ELITE" &&
+      DEFAULT_UNIFIED_DASHBOARD_RESOURCE_CARDS.find((c) => c.slug === "library")?.track === "Both"
+  );
+  {
+    const libraryEditor = fs.readFileSync(
+      path.join(process.cwd(), "src/app/admin/editors/library-editor.tsx"),
+      "utf8"
+    );
+    ok(
+      "Library CMS editor explains /library, dashboard card, and Elite lock",
+      libraryEditor.includes("/library") &&
+        libraryEditor.includes("Library Resources") &&
+        libraryEditor.includes("dashboard") &&
+        libraryEditor.includes("Elite")
+    );
+    const many = Array.from({ length: 8 }, (_, i) => ({
+      id: `lib-${i}`,
+      label: `File ${i}`,
+      fileName: `file-${i}.pdf`,
+      assetId: `asset-${i}`,
+      mimeType: "application/pdf",
+      delivery: "view-only" as const,
+      track: "both" as const,
+      accessTier: i % 2 === 0 ? ("free" as const) : ("elite" as const),
+    }));
+    ok(
+      "Library CMS accepts N files, not a 1–3 slot cap",
+      normalizeLibraryPayload({ files: many }).files.length === 8 &&
+        normalizeLibraryPayload(null).files.length === 0
+    );
+  }
   {
     const titled = normalizeMemberDashboardPayload({
       ...DEFAULT_MEMBER_DASHBOARD_CONTENT,

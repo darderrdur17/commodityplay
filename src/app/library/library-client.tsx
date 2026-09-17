@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { PAGE_HERO_TOP } from "@/lib/layout-constants";
 import { attachmentHref } from "@/lib/content/attachments";
 import type { LibraryFilePublic } from "@/lib/content/accessors";
+import { libraryFileVisibleToTrack } from "@/lib/content/library-schema";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 import { FOR_ELITE_ACCESS } from "@/data/pricing-shared";
 
@@ -64,13 +65,16 @@ function LibraryFileCard({ file, locked }: { file: LibraryFilePublic; locked?: b
 export function LibraryClient({
   files,
   hasEliteAccess,
+  memberTrack,
 }: {
   files: LibraryFilePublic[];
   hasEliteAccess: boolean;
+  memberTrack?: string;
 }) {
-  const freeFiles = files.filter((f) => f.accessTier === "free");
-  const eliteFiles = files.filter((f) => f.accessTier === "elite");
-  const hasAnyFiles = files.length > 0;
+  const visibleFiles = files.filter((f) => libraryFileVisibleToTrack(f, memberTrack));
+  const freeFiles = visibleFiles.filter((f) => f.accessTier === "free");
+  const eliteFiles = visibleFiles.filter((f) => f.accessTier === "elite");
+  const hasAnyFiles = visibleFiles.length > 0;
 
   return (
     <div className="overflow-hidden">

@@ -8,7 +8,7 @@ import {
   BookOpen, Map, FileText, MessageSquare, BarChart3, Briefcase,
   Users, Lock, ArrowRight, TrendingUp, Award, ChevronRight,
   CheckCircle, Shield, ExternalLink, Compass, NotebookPen, ScrollText,
-  Calendar, Inbox, Clock, Mail,
+  Calendar, Inbox, Clock, Mail, FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,6 +101,7 @@ const RESOURCE_CARD_ICONS: Record<string, typeof BookOpen> = {
   "desk-channel": MessageSquare,
   "mentor-connect": Users,
   "job-openings": Briefcase,
+  library: FolderOpen,
   "sales-market-nudges": ScrollText,
   "industry-guide-for-sales": BookOpen,
   "sales-prep-library": NotebookPen,
@@ -119,6 +120,7 @@ const RESOURCE_CARD_COLORS: Record<string, string> = {
   "desk-channel": "#B45309",
   "mentor-connect": "#B45309",
   "job-openings": "#B45309",
+  library: "#B45309",
   "sales-market-nudges": "#3280ff",
   "industry-guide-for-sales": "#3280ff",
   "sales-prep-library": "#3280ff",

@@ -111,13 +111,13 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
   {
     slug: "library",
     title: "Library Resources",
-    description: "Elite bonus files and miscellaneous free resources in one library",
+    description: "Member Resource Library at /library — unbounded free and Elite files",
     requiredTier: "ELITE",
   },
   {
     slug: "site-footer",
     title: "Site Footer",
-    description: "Shared footer blurb and link columns for all pages",
+    description: "Shared footer blurb, link columns, Terms of Use, and Privacy",
     requiredTier: "STARTER",
   },
   {
