@@ -159,7 +159,7 @@ export function visibleCaseStudyTable(table?: CaseStudyTable | null): CaseStudyT
   if (colCount === 0) return null;
   const paddedHeaders = Array.from({ length: colCount }, (_, i) => headers[i] ?? "");
   const paddedRows = rows.map((row) => Array.from({ length: colCount }, (_, i) => row[i] ?? ""));
-  if (!paddedHeaders.some(Boolean) && paddedRows.length === 0) return null;
+  if (paddedRows.length === 0) return null;
   return { headers: paddedHeaders, rows: paddedRows };
 }
 

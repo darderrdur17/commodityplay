@@ -1297,6 +1297,7 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       visibleNumberedPoints(richSection.numberedPoints).length === 2 &&
       (visibleCaseStudyTable(richSection.table)?.headers.length ?? 0) === 3 &&
       visibleCaseStudyTable({ headers: [], rows: [] }) === null &&
+      visibleCaseStudyTable({ headers: ["MARKET", "BEFORE"], rows: [["", ""]] }) === null &&
       (visibleCallout(richSection.callout)?.items.length ?? 0) === 2 &&
       visibleCallout({ kicker: "", items: [] }) === null &&
       (visibleTimeline(richSection.timeline)?.events.length ?? 0) === 1 &&
@@ -1307,11 +1308,17 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       Boolean(richSection.sourcesNote?.includes("cited dates")) &&
       caseEditor.includes("Numbered mechanism list") &&
       caseEditor.includes("Data table") &&
+      caseEditor.includes("Career Feature Comparison") &&
+      caseEditor.includes("Optional — skip if this section is text only.") &&
+      caseEditor.includes("onAdd={table ? undefined") &&
       caseEditor.includes("Add column") &&
       caseEditor.includes("Add row") &&
-      caseEditor.includes("Header row = column titles") &&
-      caseEditor.includes("you do not edit JSON") &&
+      caseEditor.includes("Add feature row") &&
       caseEditor.includes("placeholder=\"Cell\"") &&
+      caseEditor.includes("gridTemplateColumns") &&
+      caseEditor.includes("title=\"Delete row\"") &&
+      caseEditor.includes("smallButtonClass") &&
+      !caseEditor.includes("<table className=") &&
       !caseEditor.includes("Reset empty table") &&
       caseEditor.includes("Navy callout") &&
       caseEditor.includes("Sourced timeline") &&

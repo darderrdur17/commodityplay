@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EditorField, EditorRow, EditorSection, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
 import type {
@@ -475,22 +475,9 @@ function SectionEditor({
 
       <BlockHeader
         title="Data table"
-        hint="Spreadsheet, not JSON. Header row = column titles. Each following row is a market or event. Add or remove as many columns and rows as you need."
-        onAdd={() =>
-          onChange({
-            ...section,
-            table: table
-              ? {
-                  ...table,
-                  rows: [
-                    ...table.rows,
-                    Array.from({ length: Math.max(table.headers.length, 1) }, () => ""),
-                  ],
-                }
-              : emptyTable(),
-          })
-        }
-        addLabel={table ? "Add row" : "Add table"}
+        hint="Optional — skip if this section is text only. Same controls as Career Feature Comparison (landing Pricing → pricing comparison): a visual grid of cells. Type in each cell. Use Add row / Add column at the bottom of the grid — the same pattern as Add feature row."
+        onAdd={table ? undefined : () => onChange({ ...section, table: emptyTable() })}
+        addLabel="Add table"
       />
       {table ? (
         <TableEditor
@@ -822,22 +809,28 @@ function BlockHeader({
 }: {
   title: string;
   hint: string;
-  onAdd: () => void;
+  onAdd?: () => void;
   addLabel: string;
   onAddExtra?: () => void;
 }) {
+  const add = onAddExtra ?? onAdd;
   return (
     <div className="flex items-start justify-between gap-2 pt-2">
       <div>
         <p className="text-xs font-semibold text-gray-900">{title}</p>
         <p className="text-[11px] text-muted-fg">{hint}</p>
       </div>
-      <Button type="button" variant="outline" size="sm" onClick={onAddExtra ?? onAdd}>
-        <Plus className="w-3.5 h-3.5" /> {addLabel}
-      </Button>
+      {add ? (
+        <Button type="button" variant="outline" size="sm" onClick={add}>
+          <Plus className="w-3.5 h-3.5" /> {addLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }
+
+const smallButtonClass =
+  "inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-border hover:bg-secondary/60 transition-colors";
 
 function TableEditor({
   table,
@@ -849,17 +842,25 @@ function TableEditor({
   onClear: () => void;
 }) {
   const colCount = Math.max(table.headers.length, 1);
-  const gridCols = `7rem repeat(${colCount}, minmax(7rem, 1fr)) auto`;
+  const gridTemplateColumns = `repeat(${colCount}, minmax(8rem, 1fr)) 2.25rem`;
+
+  function paddedHeaders() {
+    return Array.from({ length: colCount }, (_, i) => table.headers[i] ?? "");
+  }
+
+  function paddedRow(row: string[] | undefined) {
+    return Array.from({ length: colCount }, (_, i) => row?.[i] ?? "");
+  }
 
   function setHeader(ci: number, value: string) {
-    const headers = Array.from({ length: colCount }, (_, i) => table.headers[i] ?? "");
+    const headers = paddedHeaders();
     headers[ci] = value;
     onChange({ ...table, headers });
   }
 
   function setCell(ri: number, ci: number, value: string) {
-    const rows = table.rows.map((row) => Array.from({ length: colCount }, (_, i) => row[i] ?? ""));
-    const row = rows[ri] ?? Array.from({ length: colCount }, () => "");
+    const rows = table.rows.map((row) => paddedRow(row));
+    const row = rows[ri] ?? paddedRow([]);
     row[ci] = value;
     rows[ri] = row;
     onChange({ ...table, rows });
@@ -867,8 +868,8 @@ function TableEditor({
 
   function addColumn() {
     onChange({
-      headers: [...Array.from({ length: colCount }, (_, i) => table.headers[i] ?? ""), ""],
-      rows: table.rows.map((row) => [...Array.from({ length: colCount }, (_, i) => row[i] ?? ""), ""]),
+      headers: [...paddedHeaders(), ""],
+      rows: table.rows.map((row) => [...paddedRow(row), ""]),
     });
   }
 
@@ -883,74 +884,82 @@ function TableEditor({
   function addRow() {
     onChange({
       ...table,
-      rows: [...table.rows, Array.from({ length: colCount }, () => "")],
+      rows: [...table.rows, paddedRow([])],
     });
   }
 
+  function removeItem(itemIndex: number) {
+    onChange({ ...table, rows: table.rows.filter((_, j) => j !== itemIndex) });
+  }
+
   return (
-    <div className="space-y-2 overflow-x-auto">
-      <p className="text-[11px] text-muted-fg">
-        First row of headers = column titles (for example MARKET / BEFORE / DURING / SOURCE). Each following row is a market or event. Type in the boxes — you do not edit JSON.
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={addColumn}>
-          Add column
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={addRow}>
-          Add row
-        </Button>
-        <button type="button" className="text-xs text-muted-fg hover:text-red-600" onClick={onClear}>
-          Remove table
-        </button>
-      </div>
-      <div className="min-w-[36rem] space-y-1">
-        <div className="grid gap-1 items-end" style={{ gridTemplateColumns: gridCols }}>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-muted-fg pb-2">Titles</p>
-          {Array.from({ length: colCount }, (_, ci) => (
-            <div key={ci} className="space-y-1">
-              <input
-                className={inputClass}
-                value={table.headers[ci] ?? ""}
-                placeholder={`Column ${ci + 1}`}
-                onChange={(e) => setHeader(ci, e.target.value)}
-              />
-              <button
-                type="button"
-                className="text-[10px] text-muted-fg hover:text-red-600 disabled:opacity-40"
-                disabled={colCount <= 1}
-                onClick={() => removeColumn(ci)}
-              >
-                Remove column
-              </button>
+    <div className="space-y-4">
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <div className="min-w-[36rem]">
+            <div className="grid gap-0 bg-secondary/40" style={{ gridTemplateColumns }}>
+              {Array.from({ length: colCount }, (_, ci) => (
+                <div key={ci} className="p-2.5 border-l border-border first:border-l-0 min-w-[8rem]">
+                  <input
+                    type="text"
+                    className={`${inputClass} min-w-[160px]`}
+                    value={table.headers[ci] ?? ""}
+                    placeholder={`Column ${ci + 1}`}
+                    onChange={(e) => setHeader(ci, e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="mt-1 text-red-400 hover:text-red-600 p-1.5 shrink-0 disabled:opacity-40"
+                    disabled={colCount <= 1}
+                    title="Delete column"
+                    onClick={() => removeColumn(ci)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <div className="p-2.5 border-l border-border" />
             </div>
-          ))}
-          <span />
-        </div>
-        {table.rows.map((row, ri) => (
-          <div
-            key={ri}
-            className="grid gap-1 items-center"
-            style={{ gridTemplateColumns: gridCols }}
-          >
-            <p className="text-[10px] font-semibold text-muted-fg">Row {ri + 1}</p>
-            {Array.from({ length: colCount }, (_, ci) => (
-              <input
-                key={ci}
-                className={inputClass}
-                value={row[ci] ?? ""}
-                placeholder="Cell"
-                onChange={(e) => setCell(ri, ci, e.target.value)}
-              />
-            ))}
-            <button
-              type="button"
-              className="text-xs text-muted-fg hover:text-red-600"
-              onClick={() => onChange({ ...table, rows: table.rows.filter((_, j) => j !== ri) })}
-            >
-              Remove row
-            </button>
+            <div className="divide-y divide-border">
+              {table.rows.map((row, ri) => (
+                <div key={ri} className="grid gap-0" style={{ gridTemplateColumns }}>
+                  {Array.from({ length: colCount }, (_, ci) => (
+                    <div key={ci} className="p-2.5 border-l border-border first:border-l-0">
+                      <input
+                        type="text"
+                        className={`${inputClass} min-w-[180px]`}
+                        value={row[ci] ?? ""}
+                        placeholder="Cell"
+                        onChange={(e) => setCell(ri, ci, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                  <div className="p-2.5 border-l border-border">
+                    <button
+                      type="button"
+                      className="text-red-400 hover:text-red-600 p-1 shrink-0"
+                      title="Delete row"
+                      onClick={() => removeItem(ri)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
+        </div>
+        <div className="p-2.5 bg-secondary/20 flex flex-wrap items-center gap-2">
+          <button type="button" onClick={addColumn} className={smallButtonClass}>
+            <Plus className="w-3.5 h-3.5" /> Add column
+          </button>
+          <button type="button" onClick={addRow} className={smallButtonClass}>
+            <Plus className="w-3.5 h-3.5" /> Add row
+          </button>
+          <button type="button" className="text-xs text-muted-fg hover:text-red-600 ml-auto" onClick={onClear}>
+            Remove table
+          </button>
+        </div>
       </div>
     </div>
   );
