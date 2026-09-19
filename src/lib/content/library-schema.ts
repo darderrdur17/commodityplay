@@ -1,3 +1,5 @@
+import { mergeCmsSimpleHero, type CmsSimpleHero } from "@/lib/content/cms-page-copy";
+
 export interface LibraryFileRecord {
   id: string;
   label: string;
@@ -9,11 +11,20 @@ export interface LibraryFileRecord {
   accessTier: "free" | "elite";
 }
 
+export type LibraryHeroCopy = CmsSimpleHero;
+
+export const DEFAULT_LIBRARY_HERO: LibraryHeroCopy = {
+  eyebrow: "Resource Library",
+  title: "Resource Library",
+  description: "Free reference files for all members, plus Elite bonus guides and desk materials.",
+};
+
 export interface LibraryPayload {
   files: LibraryFileRecord[];
+  hero: LibraryHeroCopy;
 }
 
-const EMPTY_LIBRARY: LibraryPayload = { files: [] };
+const EMPTY_LIBRARY: LibraryPayload = { files: [], hero: DEFAULT_LIBRARY_HERO };
 
 function asTrack(value: unknown): LibraryFileRecord["track"] {
   return value === "career" || value === "sales" || value === "both" ? value : "both";
@@ -27,10 +38,11 @@ function asAccessTier(value: unknown): LibraryFileRecord["accessTier"] {
   return value === "free" ? "free" : "elite";
 }
 
-/** CMS library is an unbounded file list. Empty or missing payloads still render. */
+/** CMS library is an unbounded file list. Empty or missing payloads still render the blue strip. */
 export function normalizeLibraryPayload(payload: unknown): LibraryPayload {
-  const raw = payload as { files?: unknown } | null;
-  if (!Array.isArray(raw?.files)) return EMPTY_LIBRARY;
+  const raw = (payload ?? {}) as { files?: unknown; hero?: Partial<LibraryHeroCopy> | null };
+  const hero = mergeCmsSimpleHero(DEFAULT_LIBRARY_HERO, raw.hero);
+  if (!Array.isArray(raw.files)) return { ...EMPTY_LIBRARY, hero };
   const files: LibraryFileRecord[] = [];
   for (const item of raw.files) {
     if (!item || typeof item !== "object") continue;
@@ -46,7 +58,7 @@ export function normalizeLibraryPayload(payload: unknown): LibraryPayload {
       accessTier: asAccessTier(row.accessTier),
     });
   }
-  return { files };
+  return { files, hero };
 }
 
 export function libraryFileVisibleToTrack(

@@ -4,14 +4,10 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import {
-  type CaseStudyCard,
-  type CaseStudySection,
-  type CaseStudySelfTest,
-  type CaseStudyTimelineTone,
-} from "@/data/case-studies";
-import { CaseStudyInline } from "@/components/case-studies/case-study-inline";
-import {
+  CASE_STUDY_HERO_STAT_BG,
+  caseStudySectionNavTitle,
   shouldShowCaseStudySidebar,
+  visibleCaseStudyBlocks,
   visibleCallout,
   visibleCaseStudyStats,
   visibleCaseStudyTable,
@@ -21,6 +17,14 @@ import {
   visibleSources,
   visibleTimeline,
 } from "@/lib/content/case-studies-payload";
+import type {
+  CaseStudyBlock,
+  CaseStudyCard,
+  CaseStudySection,
+  CaseStudySelfTest,
+  CaseStudyTimelineTone,
+} from "@/data/case-studies";
+import { CaseStudyInline } from "@/components/case-studies/case-study-inline";
 
 interface Props {
   card: CaseStudyCard;
@@ -114,29 +118,26 @@ function CaseStudySelfTestBlock({ test }: { test: CaseStudySelfTest }) {
   );
 }
 
-function CaseStudyArticleSection({ section, index }: { section: CaseStudySection; index: number }) {
-  const numberedPoints = visibleNumberedPoints(section.numberedPoints);
-  const table = visibleCaseStudyTable(section.table);
-  const callout = visibleCallout(section.callout);
-  const timeline = visibleTimeline(section.timeline);
-  const lessons = visibleLessons(section.lessons);
-  const selfTest = visibleSelfTest(section.selfTest);
-  const sources = visibleSources(section.sources);
-  const quote = section.quote?.trim() ?? "";
-  const sourcesNote = section.sourcesNote?.trim() ?? "";
-
-  return (
-    <section key={section.id} id={section.id} className="scroll-mt-24">
-      <p className="text-xs font-bold uppercase tracking-widest text-primary-400 mb-1">
-        — {section.label || String(index + 1).padStart(2, "0")}
-      </p>
-      <h2 className="font-serif text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4 break-words">
-        {section.title}
-      </h2>
-      {section.paragraphs.map((p, i) => (
-        <CaseStudyParagraph key={i} text={p} />
-      ))}
-      {numberedPoints.length ? (
+function CaseStudyBlockView({ block }: { block: CaseStudyBlock }) {
+  switch (block.kind) {
+    case "title":
+      return (
+        <h2 className="font-serif text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4 break-words">
+          {block.text}
+        </h2>
+      );
+    case "paragraph":
+      return <CaseStudyParagraph text={block.text} />;
+    case "quote":
+      return (
+        <blockquote className="rounded-2xl bg-primary-soft border-l-4 border-primary-400 px-4 py-3 sm:px-5 sm:py-4 my-4 italic font-serif text-gray-800">
+          <CaseStudyInline text={block.text} />
+        </blockquote>
+      );
+    case "numberedPoints": {
+      const numberedPoints = visibleNumberedPoints(block.points);
+      if (!numberedPoints.length) return null;
+      return (
         <ol className="space-y-4 mb-4">
           {numberedPoints.map((point, i) => (
             <li key={i} className="text-sm sm:text-base text-gray-700 leading-relaxed">
@@ -152,8 +153,12 @@ function CaseStudyArticleSection({ section, index }: { section: CaseStudySection
             </li>
           ))}
         </ol>
-      ) : null}
-      {table ? (
+      );
+    }
+    case "table": {
+      const table = visibleCaseStudyTable(block.table);
+      if (!table) return null;
+      return (
         <div className="overflow-x-auto rounded-xl border border-border mb-4">
           <table className="w-full text-left text-sm min-w-[32rem]">
             <thead>
@@ -178,8 +183,12 @@ function CaseStudyArticleSection({ section, index }: { section: CaseStudySection
             </tbody>
           </table>
         </div>
-      ) : null}
-      {callout ? (
+      );
+    }
+    case "callout": {
+      const callout = visibleCallout(block.callout);
+      if (!callout) return null;
+      return (
         <div className="rounded-2xl bg-primary-800 text-white p-5 sm:p-6 mb-4">
           {callout.kicker ? (
             <p className="text-[11px] font-bold uppercase tracking-widest text-white/70 mb-4">
@@ -202,8 +211,12 @@ function CaseStudyArticleSection({ section, index }: { section: CaseStudySection
             ))}
           </ul>
         </div>
-      ) : null}
-      {timeline ? (
+      );
+    }
+    case "timeline": {
+      const timeline = visibleTimeline(block.timeline);
+      if (!timeline) return null;
+      return (
         <div className="rounded-2xl border border-border bg-[#f7f9fc] p-4 sm:p-6 mb-4">
           {timeline.kicker ? (
             <p className="text-[11px] font-bold uppercase tracking-widest text-primary-400 mb-4">
@@ -226,8 +239,12 @@ function CaseStudyArticleSection({ section, index }: { section: CaseStudySection
             ))}
           </ul>
         </div>
-      ) : null}
-      {lessons.length ? (
+      );
+    }
+    case "lessons": {
+      const lessons = visibleLessons(block.lessons);
+      if (!lessons.length) return null;
+      return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
           {lessons.map((lesson, i) => (
             <article key={i} className="rounded-2xl border border-border bg-white p-4 sm:p-5">
@@ -241,38 +258,64 @@ function CaseStudyArticleSection({ section, index }: { section: CaseStudySection
             </article>
           ))}
         </div>
-      ) : null}
-      {selfTest ? <div className="mb-4"><CaseStudySelfTestBlock test={selfTest} /></div> : null}
-      {sources.length ? (
-        <div className="rounded-2xl border border-border bg-[#f7f9fc] px-4 sm:px-6 mb-4">
-          {sources.map((source, i) => (
-            <p
-              key={i}
-              className={`py-3 text-sm text-gray-700 leading-relaxed ${
-                i > 0 ? "border-t border-border/80" : ""
-              }`}
-            >
-              <strong className="font-semibold text-gray-900">{source.name}</strong>
-              {source.detail ? (
-                <>
-                  {" — "}
-                  <CaseStudyInline text={source.detail} />
-                </>
-              ) : null}
-            </p>
-          ))}
+      );
+    }
+    case "selfTest": {
+      const selfTest = visibleSelfTest(block.selfTest);
+      if (!selfTest) return null;
+      return (
+        <div className="mb-4">
+          <CaseStudySelfTestBlock test={selfTest} />
         </div>
-      ) : null}
-      {sourcesNote ? (
-        <p className="text-sm text-muted-fg leading-relaxed mb-2">
-          <CaseStudyInline text={sourcesNote} />
-        </p>
-      ) : null}
-      {quote ? (
-        <blockquote className="rounded-2xl bg-primary-soft border-l-4 border-primary-400 px-4 py-3 sm:px-5 sm:py-4 my-4 italic font-serif text-gray-800">
-          <CaseStudyInline text={quote} />
-        </blockquote>
-      ) : null}
+      );
+    }
+    case "sources": {
+      const sources = visibleSources(block.sources);
+      const sourcesNote = block.note?.trim() ?? "";
+      return (
+        <>
+          {sources.length ? (
+            <div className="rounded-2xl border border-border bg-[#f7f9fc] px-4 sm:px-6 mb-4">
+              {sources.map((source, i) => (
+                <p
+                  key={i}
+                  className={`py-3 text-sm text-gray-700 leading-relaxed ${
+                    i > 0 ? "border-t border-border/80" : ""
+                  }`}
+                >
+                  <strong className="font-semibold text-gray-900">{source.name}</strong>
+                  {source.detail ? (
+                    <>
+                      {" — "}
+                      <CaseStudyInline text={source.detail} />
+                    </>
+                  ) : null}
+                </p>
+              ))}
+            </div>
+          ) : null}
+          {sourcesNote ? (
+            <p className="text-sm text-muted-fg leading-relaxed mb-2">
+              <CaseStudyInline text={sourcesNote} />
+            </p>
+          ) : null}
+        </>
+      );
+    }
+  }
+}
+
+function CaseStudyArticleSection({ section, index }: { section: CaseStudySection; index: number }) {
+  const blocks = visibleCaseStudyBlocks(section.blocks);
+
+  return (
+    <section key={section.id} id={section.id} className="scroll-mt-24">
+      <p className="text-xs font-bold uppercase tracking-widest text-primary-400 mb-1">
+        — {section.label || String(index + 1).padStart(2, "0")}
+      </p>
+      {blocks.map((block) => (
+        <CaseStudyBlockView key={block.id} block={block} />
+      ))}
     </section>
   );
 }
@@ -316,16 +359,20 @@ export function CaseStudyDetailClient({ card, sections, displayNumber }: Props) 
           </div>
         ) : null}
         {stats.length ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-6">
+          <div
+            className="grid gap-3 mt-6"
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 12rem), 1fr))" }}
+          >
             {stats.map((stat, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-white/20 bg-white/5 px-4 py-3 sm:px-5 sm:py-4"
+                className="rounded-xl border border-emerald-200/80 px-4 py-3 sm:px-5 sm:py-4"
+                style={{ backgroundColor: CASE_STUDY_HERO_STAT_BG }}
               >
-                <p className="font-serif text-xl sm:text-2xl font-bold text-white break-words">
+                <p className="font-serif text-xl sm:text-2xl font-bold text-primary-800 break-words">
                   {stat.value}
                 </p>
-                <p className="text-xs sm:text-sm text-white/70 mt-1 leading-snug">{stat.label}</p>
+                <p className="text-xs sm:text-sm text-gray-700 mt-1 leading-snug">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -368,7 +415,7 @@ export function CaseStudyDetailClient({ card, sections, displayNumber }: Props) 
                   href={`#${section.id}`}
                   className="block text-sm text-gray-600 hover:text-primary-400 py-1"
                 >
-                  {section.title || section.label}
+                  {caseStudySectionNavTitle(section)}
                 </a>
               ))}
             </nav>

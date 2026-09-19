@@ -402,10 +402,13 @@ export async function getNavigationGuides(): Promise<{
   return { career, sales };
 }
 
-export async function getLibraryContent(): Promise<{ files: LibraryFilePublic[] }> {
+export async function getLibraryContent(): Promise<{
+  files: LibraryFilePublic[];
+  hero: import("./library-schema").LibraryHeroCopy;
+}> {
   const { normalizeLibraryPayload } = await import("./library-schema");
   const data = await getPublishedPayload<{ files?: (LibraryFilePublic & { accessTier?: "free" | "elite" })[] }>("library");
-  const { files } = normalizeLibraryPayload(data);
+  const { files, hero } = normalizeLibraryPayload(data);
   return {
     files: files
       .filter((f) => f.assetId && f.label)
@@ -413,6 +416,7 @@ export async function getLibraryContent(): Promise<{ files: LibraryFilePublic[] 
         ...f,
         accessTier: f.accessTier ?? "elite",
       })),
+    hero,
   };
 }
 

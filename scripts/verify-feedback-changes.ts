@@ -36,6 +36,7 @@ import {
 } from "../src/lib/content/knowledge-test-results";
 import { formatCmsHeroCopy, sanitizeMemberHref } from "../src/lib/content/cms-page-copy";
 import {
+  CASE_STUDY_HERO_STAT_BG,
   DEFAULT_CASE_STUDIES_HERO,
   caseStudyDisplayNumber,
   formatCaseStudiesHeroCopy,
@@ -47,6 +48,7 @@ import {
   resolveCaseStudiesPayload,
   shouldShowCaseStudySidebar,
   visibleCallout,
+  visibleCaseStudyBlocks,
   visibleCaseStudyStats,
   visibleCaseStudyTable,
   visibleLessons,
@@ -135,7 +137,7 @@ import {
 import { normalizeMemberDashboardPayload } from "../src/lib/content/member-dashboard-schema";
 import { DEFAULT_SITE_FOOTER } from "../src/data/footer-content";
 import { mergeSiteFooterContent } from "../src/lib/content/footer-schema";
-import { normalizeLibraryPayload } from "../src/lib/content/library-schema";
+import { DEFAULT_LIBRARY_HERO, normalizeLibraryPayload } from "../src/lib/content/library-schema";
 import {
   isDashboardFileReady,
   resolveDashboardFileDownloadHref,
@@ -614,6 +616,32 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       "Library CMS accepts N files, not a 1–3 slot cap",
       normalizeLibraryPayload({ files: many }).files.length === 8 &&
         normalizeLibraryPayload(null).files.length === 0
+    );
+    ok(
+      "Library CMS blue strip copy merges defaults when files are empty",
+      normalizeLibraryPayload({ files: [] }).hero.title === DEFAULT_LIBRARY_HERO.title &&
+        normalizeLibraryPayload({ files: [] }).hero.eyebrow === DEFAULT_LIBRARY_HERO.eyebrow &&
+        normalizeLibraryPayload(null).hero.description === DEFAULT_LIBRARY_HERO.description &&
+        normalizeLibraryPayload({
+          files: [],
+          hero: { eyebrow: "Elite files", title: "Desk Library", description: "Custom strip." },
+        }).hero.title === "Desk Library" &&
+        libraryEditor.includes('label="Kicker / eyebrow"') &&
+        libraryEditor.includes('label="Title"') &&
+        libraryEditor.includes('label="Description"') &&
+        libraryEditor.includes("Page hero strip") &&
+        libraryEditor.includes("/library")
+    );
+    const libraryClient = fs.readFileSync(
+      path.join(process.cwd(), "src/app/library/library-client.tsx"),
+      "utf8"
+    );
+    ok(
+      "Live /library renders CMS hero copy fields, not hardcoded Resource Library title",
+      libraryClient.includes("hero.eyebrow") &&
+        libraryClient.includes("hero.title") &&
+        libraryClient.includes("hero.description") &&
+        !libraryClient.includes("Free reference files for all members, plus Elite bonus guides and desk materials.")
     );
   }
   {
@@ -1202,10 +1230,12 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
 }
 
 {
-  const caseEditor = fs.readFileSync(
-    path.join(process.cwd(), "src/app/admin/editors/case-studies-editor.tsx"),
-    "utf8"
-  );
+  const caseEditor =
+    fs.readFileSync(path.join(process.cwd(), "src/app/admin/editors/case-studies-editor.tsx"), "utf8") +
+    fs.readFileSync(
+      path.join(process.cwd(), "src/app/admin/editors/case-study-section-editor.tsx"),
+      "utf8"
+    );
   ok(
     "Case studies admin reads payload.studies not a top-level array",
     caseEditor.includes("studies: Array.isArray(data.studies)") &&
@@ -1345,6 +1375,19 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       caseEditor.includes("checked={item.showSidebar === true}") &&
       caseDetail.includes("In this case study")
   );
+  const afterList = normalizeCaseStudySection({
+    id: "s3",
+    label: "02",
+    title: "",
+    paragraphs: [],
+    blocks: [
+      { id: "b1", kind: "title", text: "The mechanism" },
+      { id: "b2", kind: "paragraph", text: "Intro" },
+      { id: "b3", kind: "numberedPoints", points: [{ lead: "A", body: "B" }] },
+      { id: "b4", kind: "paragraph", text: "After the list" },
+    ],
+  });
+  const afterListKinds = visibleCaseStudyBlocks(afterList.blocks).map((b) => b.kind);
   ok(
     "Case study section blocks scale to N and hide when empty",
     !emptySection.quote &&
@@ -1356,6 +1399,8 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       !emptySection.selfTest &&
       !emptySection.sources &&
       emptySection.paragraphs[0] === "Hello {{IEA}}" &&
+      (emptySection.blocks ?? []).some((b) => b.kind === "title") &&
+      (emptySection.blocks ?? []).some((b) => b.kind === "paragraph") &&
       richSection.quote === "A pull quote" &&
       visibleNumberedPoints(richSection.numberedPoints).length === 2 &&
       (visibleCaseStudyTable(richSection.table)?.headers.length ?? 0) === 3 &&
@@ -1369,17 +1414,19 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       visibleSelfTest({ kicker: "", questions: [] }) === null &&
       visibleSources(richSection.sources).length === 1 &&
       Boolean(richSection.sourcesNote?.includes("cited dates")) &&
+      afterListKinds.join(",") === "title,paragraph,numberedPoints,paragraph" &&
       caseEditor.includes("Numbered mechanism list") &&
+      caseEditor.includes("Add paragraph") &&
+      caseEditor.includes("Add list") &&
       caseEditor.includes("Data table") &&
       caseEditor.includes("Career Feature Comparison") &&
       caseEditor.includes("Optional — skip if this section is text only.") &&
-      caseEditor.includes("onAdd={table ? undefined") &&
       caseEditor.includes("Add column") &&
       caseEditor.includes("Add row") &&
       caseEditor.includes("Add feature row") &&
-      caseEditor.includes("placeholder=\"Cell\"") &&
+      caseEditor.includes('placeholder="Cell"') &&
       caseEditor.includes("gridTemplateColumns") &&
-      caseEditor.includes("title=\"Delete row\"") &&
+      caseEditor.includes('title="Delete row"') &&
       caseEditor.includes("smallButtonClass") &&
       !caseEditor.includes("<table className=") &&
       !caseEditor.includes("Reset empty table") &&
@@ -1388,8 +1435,17 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       caseEditor.includes("Key lesson cards") &&
       caseEditor.includes("Self-test") &&
       caseEditor.includes("Sources list") &&
+      caseDetail.includes("visibleCaseStudyBlocks") &&
       caseDetail.includes("Reveal Answers") &&
       Array.isArray(resolveCaseStudiesPayload(undefined).studies)
+  );
+  ok(
+    "Case study hero stats use light mint cards for N stats",
+    caseDetail.includes("CASE_STUDY_HERO_STAT_BG") &&
+      caseDetail.includes("auto-fit") &&
+      caseDetail.includes("text-primary-800") &&
+      CASE_STUDY_HERO_STAT_BG === "#F0FDF4" &&
+      !caseDetail.includes("bg-white/5")
   );
   const jobHeroEditor = fs.readFileSync(
     path.join(process.cwd(), "src/app/admin/editors/job-openings-editor.tsx"),

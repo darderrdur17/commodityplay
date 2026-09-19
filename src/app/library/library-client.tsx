@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { PAGE_HERO_TOP } from "@/lib/layout-constants";
 import { attachmentHref } from "@/lib/content/attachments";
 import type { LibraryFilePublic } from "@/lib/content/accessors";
-import { libraryFileVisibleToTrack } from "@/lib/content/library-schema";
+import { libraryFileVisibleToTrack, type LibraryHeroCopy } from "@/lib/content/library-schema";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 import { FOR_ELITE_ACCESS } from "@/data/pricing-shared";
 
@@ -64,10 +64,12 @@ function LibraryFileCard({ file, locked }: { file: LibraryFilePublic; locked?: b
 
 export function LibraryClient({
   files,
+  hero,
   hasEliteAccess,
   memberTrack,
 }: {
   files: LibraryFilePublic[];
+  hero: LibraryHeroCopy;
   hasEliteAccess: boolean;
   memberTrack?: string;
 }) {
@@ -83,13 +85,13 @@ export function LibraryClient({
         <div className="relative z-10 page-container text-center">
           <Reveal>
             <div className="pill pill-dark mb-5 mx-auto">
-              <FileText className="w-3 h-3" /> Resource Library
+              <FileText className="w-3 h-3" /> {hero.eyebrow}
             </div>
             <h1 className="font-serif text-[clamp(36px,6vw,60px)] font-bold text-white mb-4 tracking-tight">
-              Resource Library
+              {hero.title}
             </h1>
             <p className="text-white/65 text-lg max-w-xl mx-auto">
-              Free reference files for all members, plus Elite bonus guides and desk materials.
+              {hero.description}
             </p>
           </Reveal>
         </div>

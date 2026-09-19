@@ -4,8 +4,8 @@ import React, { useRef, useState } from "react";
 import { Plus, Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { normalizeLibraryPayload } from "@/lib/content/library-schema";
-import { EditorField, TrackToggle, inputClass } from "./shared";
+import { DEFAULT_LIBRARY_HERO, normalizeLibraryPayload, type LibraryHeroCopy } from "@/lib/content/library-schema";
+import { EditorField, EditorSection, TrackToggle, inputClass, textareaClass } from "./shared";
 
 interface LibraryFile {
   id: string;
@@ -42,25 +42,35 @@ export function LibraryEditor({
   moduleSlug: string;
   requiredTier: string;
 }) {
-  const files: LibraryFile[] = normalizeLibraryPayload(payload).files;
+  const data = normalizeLibraryPayload(payload);
+  const files: LibraryFile[] = data.files;
+  const hero = data.hero;
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadMsg, setUploadMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<string | null>(null);
 
+  function emit(next: { files?: LibraryFile[]; hero?: LibraryHeroCopy }) {
+    onChange({ files: next.files ?? files, hero: next.hero ?? hero });
+  }
+
+  function patchHero(updates: Partial<LibraryHeroCopy>) {
+    emit({ hero: { ...hero, ...updates } });
+  }
+
   function patchFile(i: number, f: LibraryFile) {
     const next = [...files];
     next[i] = f;
-    onChange({ files: next });
+    emit({ files: next });
   }
 
   function deleteFile(i: number) {
     if (!confirm("Delete this file?")) return;
-    onChange({ files: files.filter((_, j) => j !== i) });
+    emit({ files: files.filter((_, j) => j !== i) });
   }
 
   function addFile() {
-    onChange({ files: [...files, newFile()] });
+    emit({ files: [...files, newFile()] });
   }
 
   async function uploadFile(file: File, fileId: string, idx: number) {
@@ -91,6 +101,40 @@ export function LibraryEditor({
 
   return (
     <div className="space-y-4">
+      <EditorSection
+        title="Page hero strip"
+        description="Blue banner on /library — kicker, title, and description. Same copy fields as other CMS pages. Empty fields fall back to the current Resource Library strip. The dashboard Library Resources card is a link only; this strip is the /library page."
+        defaultOpen
+      >
+        <EditorField label="Kicker / eyebrow">
+          <input
+            className={inputClass}
+            value={hero.eyebrow}
+            onChange={(e) => patchHero({ eyebrow: e.target.value })}
+            placeholder={DEFAULT_LIBRARY_HERO.eyebrow}
+          />
+        </EditorField>
+        <EditorField label="Title">
+          <input
+            className={inputClass}
+            value={hero.title}
+            onChange={(e) => patchHero({ title: e.target.value })}
+            placeholder={DEFAULT_LIBRARY_HERO.title}
+          />
+        </EditorField>
+        <EditorField
+          label="Description"
+          hint="Shown under the title on the navy strip. This page does not use a separate disclaimer field."
+        >
+          <textarea
+            className={textareaClass}
+            rows={3}
+            value={hero.description}
+            onChange={(e) => patchHero({ description: e.target.value })}
+            placeholder={DEFAULT_LIBRARY_HERO.description}
+          />
+        </EditorField>
+      </EditorSection>
       <p className="text-xs text-muted-fg">
         Published files appear on the member <strong>Resource Library</strong> at <strong>/library</strong> and as the
         Elite <strong>Library Resources</strong> dashboard card. Free files are open to any logged-in member; Elite files

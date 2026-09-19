@@ -73,6 +73,20 @@ export interface CaseStudyCard {
   showSidebar?: boolean;
 }
 
+export type CaseStudyBlock =
+  | { id: string; kind: "title"; text: string }
+  | { id: string; kind: "paragraph"; text: string }
+  | { id: string; kind: "quote"; text: string }
+  | { id: string; kind: "numberedPoints"; points: CaseStudyNumberedPoint[] }
+  | { id: string; kind: "table"; table: CaseStudyTable }
+  | { id: string; kind: "callout"; callout: CaseStudyCallout }
+  | { id: string; kind: "timeline"; timeline: CaseStudyTimeline }
+  | { id: string; kind: "lessons"; lessons: CaseStudyLesson[] }
+  | { id: string; kind: "selfTest"; selfTest: CaseStudySelfTest }
+  | { id: string; kind: "sources"; sources: CaseStudySource[]; note?: string };
+
+export type CaseStudyBlockKind = CaseStudyBlock["kind"];
+
 export interface CaseStudySection {
   id: string;
   label: string;
@@ -87,6 +101,8 @@ export interface CaseStudySection {
   selfTest?: CaseStudySelfTest;
   sources?: CaseStudySource[];
   sourcesNote?: string;
+  /** Ordered article body. Legacy sections without this are migrated on read. */
+  blocks?: CaseStudyBlock[];
 }
 
 function slugify(title: string) {
