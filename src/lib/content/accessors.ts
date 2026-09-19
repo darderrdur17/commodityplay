@@ -405,10 +405,12 @@ export async function getNavigationGuides(): Promise<{
 export async function getLibraryContent(): Promise<{
   files: LibraryFilePublic[];
   hero: import("./library-schema").LibraryHeroCopy;
+  freeSection: import("./library-schema").LibrarySectionCopy;
+  eliteSection: import("./library-schema").LibrarySectionCopy;
 }> {
   const { normalizeLibraryPayload } = await import("./library-schema");
   const data = await getPublishedPayload<{ files?: (LibraryFilePublic & { accessTier?: "free" | "elite" })[] }>("library");
-  const { files, hero } = normalizeLibraryPayload(data);
+  const { files, hero, freeSection, eliteSection } = normalizeLibraryPayload(data);
   return {
     files: files
       .filter((f) => f.assetId && f.label)
@@ -417,6 +419,8 @@ export async function getLibraryContent(): Promise<{
         accessTier: f.accessTier ?? "elite",
       })),
     hero,
+    freeSection,
+    eliteSection,
   };
 }
 

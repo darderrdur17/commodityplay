@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { PAGE_HERO_TOP } from "@/lib/layout-constants";
 import { attachmentHref } from "@/lib/content/attachments";
 import type { LibraryFilePublic } from "@/lib/content/accessors";
-import { libraryFileVisibleToTrack, type LibraryHeroCopy } from "@/lib/content/library-schema";
+import { libraryFileVisibleToTrack, type LibraryHeroCopy, type LibrarySectionCopy } from "@/lib/content/library-schema";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 import { FOR_ELITE_ACCESS } from "@/data/pricing-shared";
 
@@ -65,11 +65,15 @@ function LibraryFileCard({ file, locked }: { file: LibraryFilePublic; locked?: b
 export function LibraryClient({
   files,
   hero,
+  freeSection,
+  eliteSection,
   hasEliteAccess,
   memberTrack,
 }: {
   files: LibraryFilePublic[];
   hero: LibraryHeroCopy;
+  freeSection: LibrarySectionCopy;
+  eliteSection: LibrarySectionCopy;
   hasEliteAccess: boolean;
   memberTrack?: string;
 }) {
@@ -107,8 +111,8 @@ export function LibraryClient({
             {freeFiles.length > 0 && (
               <div>
                 <Reveal className="mb-5">
-                  <h2 className="font-serif text-xl font-bold text-gray-900">Free Resources</h2>
-                  <p className="text-sm text-muted-fg mt-1">Available to all logged-in members.</p>
+                  <h2 className="font-serif text-xl font-bold text-gray-900">{freeSection.title}</h2>
+                  <p className="text-sm text-muted-fg mt-1">{freeSection.description}</p>
                 </Reveal>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
                   {freeFiles.map((file) => (
@@ -121,10 +125,8 @@ export function LibraryClient({
             {eliteFiles.length > 0 && (
               <div>
                 <Reveal className="mb-5">
-                  <h2 className="font-serif text-xl font-bold text-gray-900">Elite Resources</h2>
-                  <p className="text-sm text-muted-fg mt-1">
-                    Bonus guides and reference materials for Elite members.
-                  </p>
+                  <h2 className="font-serif text-xl font-bold text-gray-900">{eliteSection.title}</h2>
+                  <p className="text-sm text-muted-fg mt-1">{eliteSection.description}</p>
                 </Reveal>
 
                 {!hasEliteAccess ? (

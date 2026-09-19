@@ -643,6 +643,21 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
         libraryClient.includes("hero.description") &&
         !libraryClient.includes("Free reference files for all members, plus Elite bonus guides and desk materials.")
     );
+    ok(
+      "Library list headings Elite Resources and Free Resources are CMS-editable",
+      libraryClient.includes("eliteSection.title") &&
+        libraryClient.includes("eliteSection.description") &&
+        libraryClient.includes("freeSection.title") &&
+        libraryClient.includes("freeSection.description") &&
+        !libraryClient.includes("Bonus guides and reference materials for Elite members.") &&
+        libraryEditor.includes("Elite heading") &&
+        libraryEditor.includes("Elite caption") &&
+        normalizeLibraryPayload({ files: [] }).eliteSection.title === "Elite Resources" &&
+        normalizeLibraryPayload({
+          files: [],
+          eliteSection: { title: "Desk extras", description: "Elite-only PDFs." },
+        }).eliteSection.title === "Desk extras"
+    );
   }
   {
     const titled = normalizeMemberDashboardPayload({

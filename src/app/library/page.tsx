@@ -17,9 +17,18 @@ export default async function LibraryPage() {
   const session = await auth();
   if (!session?.user) redirect("/login?callbackUrl=/library");
 
-  const { files, hero } = await getLibraryContent();
+  const { files, hero, freeSection, eliteSection } = await getLibraryContent();
   const hasEliteAccess = hasAccess(session.user.tier ?? "STARTER", "ELITE");
   const memberTrack = session.user.track ?? "BOTH";
 
-  return <LibraryClient files={files} hero={hero} hasEliteAccess={hasEliteAccess} memberTrack={memberTrack} />;
+  return (
+    <LibraryClient
+      files={files}
+      hero={hero}
+      freeSection={freeSection}
+      eliteSection={eliteSection}
+      hasEliteAccess={hasEliteAccess}
+      memberTrack={memberTrack}
+    />
+  );
 }

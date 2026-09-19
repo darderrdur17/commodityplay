@@ -4,7 +4,7 @@ import React, { useRef, useState } from "react";
 import { Plus, Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { DEFAULT_LIBRARY_HERO, normalizeLibraryPayload, type LibraryHeroCopy } from "@/lib/content/library-schema";
+import { DEFAULT_LIBRARY_HERO, normalizeLibraryPayload, type LibraryHeroCopy, type LibrarySectionCopy } from "@/lib/content/library-schema";
 import { EditorField, EditorSection, TrackToggle, inputClass, textareaClass } from "./shared";
 
 interface LibraryFile {
@@ -45,17 +45,37 @@ export function LibraryEditor({
   const data = normalizeLibraryPayload(payload);
   const files: LibraryFile[] = data.files;
   const hero = data.hero;
+  const freeSection = data.freeSection;
+  const eliteSection = data.eliteSection;
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadMsg, setUploadMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<string | null>(null);
 
-  function emit(next: { files?: LibraryFile[]; hero?: LibraryHeroCopy }) {
-    onChange({ files: next.files ?? files, hero: next.hero ?? hero });
+  function emit(next: {
+    files?: LibraryFile[];
+    hero?: LibraryHeroCopy;
+    freeSection?: LibrarySectionCopy;
+    eliteSection?: LibrarySectionCopy;
+  }) {
+    onChange({
+      files: next.files ?? files,
+      hero: next.hero ?? hero,
+      freeSection: next.freeSection ?? freeSection,
+      eliteSection: next.eliteSection ?? eliteSection,
+    });
   }
 
   function patchHero(updates: Partial<LibraryHeroCopy>) {
     emit({ hero: { ...hero, ...updates } });
+  }
+
+  function patchFreeSection(updates: Partial<LibrarySectionCopy>) {
+    emit({ freeSection: { ...freeSection, ...updates } });
+  }
+
+  function patchEliteSection(updates: Partial<LibrarySectionCopy>) {
+    emit({ eliteSection: { ...eliteSection, ...updates } });
   }
 
   function patchFile(i: number, f: LibraryFile) {
@@ -132,6 +152,48 @@ export function LibraryEditor({
             value={hero.description}
             onChange={(e) => patchHero({ description: e.target.value })}
             placeholder={DEFAULT_LIBRARY_HERO.description}
+          />
+        </EditorField>
+      </EditorSection>
+      <EditorSection
+        title="List headings"
+        description="Headings above the free and Elite file lists on /library (not the navy strip). Blank fields fall back to the current copy."
+        defaultOpen
+      >
+        <p className="text-xs font-semibold text-muted-fg uppercase tracking-wider">Elite Resources</p>
+        <EditorField label="Elite heading">
+          <input
+            className={inputClass}
+            value={eliteSection.title}
+            onChange={(e) => patchEliteSection({ title: e.target.value })}
+            placeholder="Elite Resources"
+          />
+        </EditorField>
+        <EditorField label="Elite caption">
+          <textarea
+            className={textareaClass}
+            rows={2}
+            value={eliteSection.description}
+            onChange={(e) => patchEliteSection({ description: e.target.value })}
+            placeholder="Bonus guides and reference materials for Elite members."
+          />
+        </EditorField>
+        <p className="text-xs font-semibold text-muted-fg uppercase tracking-wider pt-2">Free Resources</p>
+        <EditorField label="Free heading">
+          <input
+            className={inputClass}
+            value={freeSection.title}
+            onChange={(e) => patchFreeSection({ title: e.target.value })}
+            placeholder="Free Resources"
+          />
+        </EditorField>
+        <EditorField label="Free caption">
+          <textarea
+            className={textareaClass}
+            rows={2}
+            value={freeSection.description}
+            onChange={(e) => patchFreeSection({ description: e.target.value })}
+            placeholder="Available to all logged-in members."
           />
         </EditorField>
       </EditorSection>

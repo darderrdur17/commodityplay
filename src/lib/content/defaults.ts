@@ -35,7 +35,7 @@ import {
   STARTER_CHAPTER_PREVIEW,
 } from "@/data/starter-pack";
 import { DEFAULT_SITE_FOOTER } from "@/data/footer-content";
-import { DEFAULT_LIBRARY_HERO } from "./library-schema";
+import { DEFAULT_LIBRARY_HERO, DEFAULT_LIBRARY_FREE_SECTION, DEFAULT_LIBRARY_ELITE_SECTION } from "./library-schema";
 import type { ContentSlug } from "./modules";
 
 
@@ -93,7 +93,12 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
     case "mentor-connect":
       return DEFAULT_MENTOR_CONNECT_CONTENT;
     case "library":
-      return { files: [], hero: DEFAULT_LIBRARY_HERO };
+      return {
+        files: [],
+        hero: DEFAULT_LIBRARY_HERO,
+        freeSection: DEFAULT_LIBRARY_FREE_SECTION,
+        eliteSection: DEFAULT_LIBRARY_ELITE_SECTION,
+      };
     case "site-footer":
       return DEFAULT_SITE_FOOTER;
     case "footer-guides":
