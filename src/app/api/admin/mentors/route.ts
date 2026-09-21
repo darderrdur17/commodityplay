@@ -12,6 +12,12 @@ import {
   linkMentorUserByEmail,
   overlayMentorLiveContact,
 } from "@/lib/mentor-profile-sync";
+import {
+  computeMentorRewardProgress,
+  getMentorAnsweredCountsByEmail,
+  mentorAnsweredCountForEmail,
+} from "@/lib/mentor-reward-ladder";
+import { normalizeMentorConnectPayload } from "@/lib/content/mentor-connect-schema";
 
 export async function GET() {
   const session = await requireAdmin();
@@ -32,6 +38,9 @@ export async function GET() {
   const resolvedSegments = await getResolvedMentorSegments();
   const liveByProfileId = await getMentorLiveContactsByProfileId();
   const liveByEmail = await getMentorLiveContactsByEmail();
+  const answeredCountsByEmail = await getMentorAnsweredCountsByEmail();
+  const mentorConnectCms = await getContentModulePayload("mentor-connect");
+  const rewardRungs = normalizeMentorConnectPayload(mentorConnectCms ?? {}).rewardLadder.rungs;
 
   // Surface pending applications first within each segment so admins spot them at a glance.
   const segments = resolvedSegments.map((seg) => ({
@@ -52,6 +61,8 @@ export async function GET() {
           liveByProfileId,
           liveByEmail
         );
+        const answeredCount = mentorAnsweredCountForEmail(answeredCountsByEmail, live.email);
+        const rewardProgress = computeMentorRewardProgress(answeredCount, rewardRungs);
         return {
           id: m.id,
           years: m.years,
@@ -69,6 +80,8 @@ export async function GET() {
           status: m.status ?? "active",
           isNew: m.isNew ?? false,
           segmentId: seg.id,
+          answeredCount,
+          rewardProgress,
         };
       }),
   }));

@@ -4,6 +4,13 @@ import {
   DEFAULT_MENTOR_APPLY_PAGE_COPY,
   type MentorApplyPageCopy,
 } from "@/data/mentor-apply-content";
+import {
+  DEFAULT_MENTOR_REWARD_RUNGS,
+  type MentorRewardLadder,
+  type MentorRewardRung,
+} from "@/lib/mentor-reward-ladder";
+
+export type { MentorRewardLadder, MentorRewardRung } from "@/lib/mentor-reward-ladder";
 
 export type { MentorApplyPageCopy } from "@/data/mentor-apply-content";
 
@@ -52,6 +59,8 @@ export interface MentorConnectContent {
   /** Segment headings and blurbs — merged with mentors.json defaults by id. */
   segments: MentorConnectSegmentCopy[];
   howItWorks: MentorConnectHowItWorks;
+  /** Ordered reward rungs — Frances edits thresholds and copy; v1 is tracking only. */
+  rewardLadder: MentorRewardLadder;
   /** Public /mentor-apply copy (invitation form). */
   application: MentorApplyPageCopy;
 }
@@ -95,6 +104,7 @@ export const DEFAULT_MENTOR_CONNECT_CONTENT: MentorConnectContent = {
   categories: [],
   segments: defaultMentorConnectSegments(),
   howItWorks: DEFAULT_MENTOR_CONNECT_HOW_IT_WORKS,
+  rewardLadder: { rungs: DEFAULT_MENTOR_REWARD_RUNGS },
   application: DEFAULT_MENTOR_APPLY_PAGE_COPY,
 };
 

@@ -10,6 +10,7 @@ import {
   type MentorConnectStep,
 } from "@/data/mentor-connect-content";
 import { mergeMentorApplyPageCopy } from "@/data/mentor-apply-content";
+import { mergeMentorRewardLadder } from "@/lib/mentor-reward-ladder";
 
 const heroSchema = z.object({
   eyebrow: z.string().min(1).max(80),
@@ -44,6 +45,17 @@ const segmentCopySchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1).max(160),
   blurb: z.string().min(1).max(400),
+});
+
+const rewardRungSchema = z.object({
+  id: z.string().min(1).max(80),
+  minQuestions: z.number().int().min(0).max(100_000),
+  label: z.string().min(1).max(120),
+  reward: z.string().min(1).max(300),
+});
+
+const rewardLadderSchema = z.object({
+  rungs: z.array(rewardRungSchema).min(1).max(20),
 });
 
 const applicationSchema = z.object({
@@ -91,6 +103,7 @@ export const mentorConnectSchema = z.object({
   categories: z.array(categorySchema),
   segments: z.array(segmentCopySchema),
   howItWorks: howItWorksSchema,
+  rewardLadder: rewardLadderSchema.optional(),
   application: applicationSchema.optional(),
 });
 
@@ -136,6 +149,7 @@ export function normalizeMentorConnectPayload(payload: unknown): MentorConnectCo
       ...parsed.data,
       segments: mergeMentorConnectSegmentCopy(parsed.data.segments),
       howItWorks: mergeHowItWorks(parsed.data.howItWorks),
+      rewardLadder: mergeMentorRewardLadder(parsed.data.rewardLadder),
       application: mergeMentorApplyPageCopy(parsed.data.application),
     };
   }
@@ -149,6 +163,7 @@ export function normalizeMentorConnectPayload(payload: unknown): MentorConnectCo
     categories: partial?.categories ?? DEFAULT_MENTOR_CONNECT_CONTENT.categories,
     segments: mergeMentorConnectSegmentCopy(partial?.segments),
     howItWorks: mergeHowItWorks(partial?.howItWorks),
+    rewardLadder: mergeMentorRewardLadder(partial?.rewardLadder),
     application: mergeMentorApplyPageCopy(partial?.application),
   };
 }

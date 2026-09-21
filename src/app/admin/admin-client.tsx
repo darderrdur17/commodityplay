@@ -25,6 +25,8 @@ import {
   matchesAdminSearch,
   normalizeAdminSearch,
 } from "./admin-table-filters";
+import { MentorRewardProgressDisplay } from "@/components/mentor-connect/mentor-reward-progress";
+import type { MentorRewardProgress } from "@/lib/mentor-reward-ladder";
 
 function formatAdminMentorCreditsCell(user: AdminUserDetail): string {
   if (user.tier !== "ELITE") return "M: —";
@@ -100,6 +102,8 @@ interface MentorSegmentRow {
     status: "pending" | "active";
     isNew: boolean;
     segmentId: string;
+    answeredCount: number;
+    rewardProgress: MentorRewardProgress;
   }[];
 }
 
@@ -824,8 +828,9 @@ export function AdminClient({
                       <th className="px-4 py-2 font-semibold text-muted-fg">Headline</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Years</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Tags</th>
-                      <th className="px-4 py-2 font-semibold text-muted-fg">Track</th>
-                      <th className="px-4 py-2 font-semibold text-muted-fg" />
+                        <th className="px-4 py-2 font-semibold text-muted-fg">Track</th>
+                        <th className="px-4 py-2 font-semibold text-muted-fg">Reward ladder</th>
+                        <th className="px-4 py-2 font-semibold text-muted-fg" />
                     </tr>
                   </thead>
                   <tbody>
@@ -880,6 +885,17 @@ export function AdminClient({
                           >
                             {m.track === "career" ? "Career" : m.track === "sales" ? "Sales" : "Both"}
                           </Badge>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <MentorRewardProgressDisplay
+                            progress={m.rewardProgress ?? {
+                              answeredCount: m.answeredCount ?? 0,
+                              unlockedRung: null,
+                              nextRung: null,
+                              progressPercent: 0,
+                            }}
+                            variant="compact"
+                          />
                         </td>
                         <td className="px-4 py-2.5">
                           <button

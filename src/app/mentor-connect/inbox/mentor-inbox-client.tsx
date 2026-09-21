@@ -11,6 +11,8 @@ import { Reveal } from "@/components/animations";
 import { formatDate, PERSONA_LABELS } from "@/lib/utils";
 import { MENTOR_SEGMENT_LABELS } from "@/lib/mentor-demo";
 import { isDeskChannelShareCandidate } from "@/lib/mentor-share-consent";
+import { MentorRewardProgressDisplay } from "@/components/mentor-connect/mentor-reward-progress";
+import type { MentorRewardProgress } from "@/lib/mentor-reward-ladder";
 
 type FilterTab = "all" | "pending" | "answered";
 
@@ -41,6 +43,7 @@ interface InboxStats {
 
 interface Props {
   mentorName: string;
+  rewardProgress: MentorRewardProgress;
   initialRequests: MentorRequest[];
   initialStats: InboxStats;
 }
@@ -202,7 +205,7 @@ function RequestDetailPanel({
   );
 }
 
-export function MentorInboxClient({ mentorName, initialRequests }: Props) {
+export function MentorInboxClient({ mentorName, rewardProgress, initialRequests }: Props) {
   const [requests, setRequests] = useState(initialRequests);
   const [filter, setFilter] = useState<FilterTab>("pending");
   const [selectedMonth, setSelectedMonth] = useState<string>(ALL_TIME_KEY);
@@ -363,20 +366,23 @@ export function MentorInboxClient({ mentorName, initialRequests }: Props) {
               </Link>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-lg">
-            {[
-              { label: "Pending", value: stats.pending, icon: Clock },
-              { label: "Answered", value: stats.answered, icon: CheckCircle },
-              { label: "Total", value: stats.total, icon: Inbox },
-            ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="glass-card px-4 py-3 text-white">
-                <div className="flex items-center gap-2 mb-1">
-                  <Icon className="w-3.5 h-3.5 text-accent" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">{label}</span>
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] gap-4 items-start">
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-lg">
+              {[
+                { label: "Pending", value: stats.pending, icon: Clock },
+                { label: "Answered", value: stats.answered, icon: CheckCircle },
+                { label: "Total", value: stats.total, icon: Inbox },
+              ].map(({ label, value, icon: Icon }) => (
+                <div key={label} className="glass-card px-4 py-3 text-white">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icon className="w-3.5 h-3.5 text-accent" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">{label}</span>
+                  </div>
+                  <p className="font-serif text-2xl font-bold">{value}</p>
                 </div>
-                <p className="font-serif text-2xl font-bold">{value}</p>
-              </div>
-            ))}
+              ))}
+            </div>
+            <MentorRewardProgressDisplay progress={rewardProgress} />
           </div>
         </Reveal>
       </section>

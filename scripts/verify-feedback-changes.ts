@@ -107,6 +107,12 @@ import { defaultSalesEdgeNote, resolveSalesTalkingPoints } from "../src/lib/cont
 import { SALES_SECTION_MINT } from "../src/lib/sales-brand-colors";
 import { mergeStarterEmailDigest, splitLegacyDigestTopicLine } from "../src/data/starter-pack";
 import { formatCreditMonthLabel } from "../src/lib/mentor-credits";
+import {
+  computeMentorRewardProgress,
+  mergeMentorRewardLadder,
+  mergeMentorRewardRungs,
+} from "../src/lib/mentor-reward-ladder";
+import { normalizeMentorConnectPayload } from "../src/lib/content/mentor-connect-schema";
 import { isPaymentsLive } from "../src/lib/payments";
 import {
   DEFAULT_SALES_MARKET_NUDGES_CONTENT,
@@ -1770,6 +1776,61 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
         weeklyHeading: "   ",
         briefsHeading: "",
       }).briefsHeading === "Talking Points"
+  );
+}
+
+// ── Mentor reward ladder (answered questions → CMS rungs) ───────────────────
+{
+  const defaults = mergeMentorRewardRungs(null);
+  ok(
+    "Default mentor reward rungs are 50/100/150/200/250 with $160 at 250",
+    defaults.length === 5 &&
+      defaults[0]?.minQuestions === 50 &&
+      defaults[4]?.minQuestions === 250 &&
+      defaults[4]?.reward === "$160"
+  );
+  ok(
+    "CMS can add N reward rungs, not hardcoded to five",
+    mergeMentorRewardRungs([
+      { id: "a", minQuestions: 25, label: "25 questions", reward: "Sticker" },
+      { id: "b", minQuestions: 75, label: "75 questions", reward: "Lunch" },
+      { id: "c", minQuestions: 125, label: "125 questions", reward: "Voucher" },
+    ]).length === 3
+  );
+  ok(
+    "Reward progress counts answered questions toward the next rung",
+    computeMentorRewardProgress(0, defaults).nextRung?.minQuestions === 50 &&
+      computeMentorRewardProgress(49, defaults).unlockedRung === null &&
+      computeMentorRewardProgress(50, defaults).unlockedRung?.minQuestions === 50 &&
+      computeMentorRewardProgress(250, defaults).unlockedRung?.reward === "$160" &&
+      computeMentorRewardProgress(250, defaults).nextRung === null
+  );
+  const legacy = normalizeMentorConnectPayload({});
+  ok(
+    "Legacy mentor-connect CMS without rewardLadder still merges defaults",
+    legacy.rewardLadder.rungs.length === 5 &&
+      mergeMentorRewardLadder({ rungs: [] }).rungs.length === 5
+  );
+  const mentorEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/mentor-connect-editor.tsx"),
+    "utf8"
+  );
+  const mentorInbox = fs.readFileSync(
+    path.join(process.cwd(), "src/app/mentor-connect/inbox/mentor-inbox-client.tsx"),
+    "utf8"
+  );
+  const adminClient = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/admin-client.tsx"),
+    "utf8"
+  );
+  ok(
+    "Frances edits reward rungs in Mentor Connect CMS; admin Mentors tab and inbox show progress",
+    mentorEditor.includes("Mentor reward ladder") &&
+      mentorEditor.includes("minQuestions") &&
+      mentorEditor.includes("no Stripe") &&
+      mentorInbox.includes("MentorRewardProgressDisplay") &&
+      adminClient.includes("Reward ladder") &&
+      adminClient.includes("MentorRewardProgressDisplay")
   );
 }
 

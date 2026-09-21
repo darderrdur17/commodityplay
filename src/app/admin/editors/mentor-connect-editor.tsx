@@ -95,6 +95,41 @@ export function MentorConnectEditor({
     patch({ ...content, categories: [...content.categories, newCategory()] });
   }
 
+  function patchRung(i: number, rung: MentorConnectContent["rewardLadder"]["rungs"][number]) {
+    const next = [...content.rewardLadder.rungs];
+    next[i] = rung;
+    patch({ ...content, rewardLadder: { rungs: next } });
+  }
+
+  function addRung() {
+    const last = content.rewardLadder.rungs.at(-1);
+    const minQuestions = (last?.minQuestions ?? 0) + 50;
+    patch({
+      ...content,
+      rewardLadder: {
+        rungs: [
+          ...content.rewardLadder.rungs,
+          {
+            id: `rung-${Date.now()}`,
+            minQuestions,
+            label: `${minQuestions} questions`,
+            reward: "Reward (TBD)",
+          },
+        ],
+      },
+    });
+  }
+
+  function deleteRung(i: number) {
+    if (!confirm("Delete this reward rung?")) return;
+    patch({
+      ...content,
+      rewardLadder: {
+        rungs: content.rewardLadder.rungs.filter((_, j) => j !== i),
+      },
+    });
+  }
+
   return (
     <div className="space-y-4">
       {focus === "connect" ? (
@@ -255,6 +290,68 @@ export function MentorConnectEditor({
               }
             />
           </EditorField>
+        </div>
+      </EditorSection>
+
+      <EditorSection
+        title="Mentor reward ladder"
+        description="Ordered rungs unlocked when a mentor's answered-question count hits each threshold. v1 tracks and displays only — no Stripe or auto payout."
+        defaultOpen
+      >
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs text-muted-fg">{content.rewardLadder.rungs.length} rungs</p>
+          <Button variant="outline" size="sm" onClick={addRung}>
+            <Plus className="w-3.5 h-3.5" /> Add rung
+          </Button>
+        </div>
+        <div className="space-y-3">
+          {content.rewardLadder.rungs.map((rung, i) => (
+            <div key={rung.id} className="border border-border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-muted-fg uppercase tracking-wider">
+                  Rung {i + 1}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => deleteRung(i)}
+                  className="text-red-400 hover:text-red-600 p-1"
+                  disabled={content.rewardLadder.rungs.length <= 1}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <EditorField label="Minimum answered questions">
+                  <input
+                    type="number"
+                    min={0}
+                    className={inputClass}
+                    value={rung.minQuestions}
+                    onChange={(e) =>
+                      patchRung(i, {
+                        ...rung,
+                        minQuestions: Math.max(0, Number(e.target.value) || 0),
+                      })
+                    }
+                  />
+                </EditorField>
+                <EditorField label="Label (shown to mentors/admin)">
+                  <input
+                    className={inputClass}
+                    value={rung.label}
+                    onChange={(e) => patchRung(i, { ...rung, label: e.target.value })}
+                  />
+                </EditorField>
+              </div>
+              <EditorField label="Reward copy" hint="e.g. $160, gift card, or Reward (TBD).">
+                <input
+                  className={inputClass}
+                  value={rung.reward}
+                  onChange={(e) => patchRung(i, { ...rung, reward: e.target.value })}
+                />
+              </EditorField>
+            </div>
+          ))}
         </div>
       </EditorSection>
 
