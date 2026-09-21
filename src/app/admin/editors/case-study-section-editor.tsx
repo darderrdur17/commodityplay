@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
   CaseStudyBlock,
@@ -63,17 +63,32 @@ function blockLabel(kind: CaseStudyBlockKind): string {
   }
 }
 
+function sectionSummary(section: CaseStudySection, index: number): string {
+  const normalized = normalizeCaseStudySection(section);
+  const titleBlock = normalized.blocks?.find((b) => b.kind === "title" && b.text.trim());
+  const title = titleBlock?.kind === "title" ? titleBlock.text.trim() : "";
+  const label = normalized.label.trim();
+  if (label && title) return `Section ${index + 1} · ${label} — ${title}`;
+  if (label) return `Section ${index + 1} · ${label}`;
+  if (title) return `Section ${index + 1} — ${title}`;
+  return `Section ${index + 1}`;
+}
+
 export function SectionEditor({
   index,
   section,
   onChange,
   onRemove,
+  defaultOpen = false,
 }: {
   index: number;
   section: CaseStudySection;
   onChange: (section: CaseStudySection) => void;
   onRemove: () => void;
+  /** When true, section body starts expanded (e.g. the section just added). */
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
   const normalized = normalizeCaseStudySection(section);
   const blocks = normalized.blocks ?? [];
 
@@ -102,13 +117,29 @@ export function SectionEditor({
   }
 
   return (
-    <div className="rounded-md border border-border/70 p-3 space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-bold uppercase text-muted-fg">Section {index + 1}</p>
-        <button type="button" className="text-xs text-muted-fg hover:text-red-600" onClick={onRemove}>
+    <div className="rounded-md border border-border/70 overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2.5 bg-secondary/30 hover:bg-secondary/50">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="flex-1 min-w-0 text-left flex items-center gap-2"
+        >
+          {open ? (
+            <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-fg" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-fg" />
+          )}
+          <span className="text-sm font-semibold text-gray-900 truncate">{sectionSummary(section, index)}</span>
+          <span className="text-[10px] text-muted-fg shrink-0">
+            {blocks.length} block{blocks.length === 1 ? "" : "s"}
+          </span>
+        </button>
+        <button type="button" className="text-xs text-muted-fg hover:text-red-600 shrink-0" onClick={onRemove}>
           Remove
         </button>
       </div>
+      {open && (
+      <div className="p-3 space-y-3 border-t border-border/70">
       <EditorField label="Kicker / label" hint="e.g. 01 · THE SETUP — stays at the top of the section.">
         <input
           className={inputClass}
@@ -162,6 +193,8 @@ export function SectionEditor({
           </Button>
         ))}
       </div>
+      </div>
+      )}
     </div>
   );
 }

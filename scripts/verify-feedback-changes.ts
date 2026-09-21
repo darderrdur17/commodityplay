@@ -1534,6 +1534,13 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       Array.isArray(resolveCaseStudiesPayload(undefined).studies)
   );
   ok(
+    "Case study article sections are collapsible in admin (N sections)",
+    caseEditor.includes("defaultOpen={si === sections.length - 1}") &&
+      caseEditor.includes("sectionSummary") &&
+      caseEditor.includes("ChevronDown") &&
+      caseEditor.includes("block{blocks.length === 1 ? \"\" : \"s\"}")
+  );
+  ok(
     "Case study hero stats use light mint cards for N stats",
     caseDetail.includes("CASE_STUDY_HERO_STAT_BG") &&
       caseDetail.includes("auto-fit") &&

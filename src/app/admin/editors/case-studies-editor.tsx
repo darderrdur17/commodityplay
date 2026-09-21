@@ -330,6 +330,7 @@ export function CaseStudiesEditor({
                   <SectionEditor
                     key={section.id}
                     index={si}
+                    defaultOpen={si === sections.length - 1}
                     section={section}
                     onChange={(nextSection) => {
                       const next = [...sections];
