@@ -89,10 +89,16 @@ export interface MentorOverridesPayload {
 export type PublicMentorProfile = Pick<
   MentorProfile,
   "id" | "years" | "headline" | "bio" | "tags" | "sampleReply" | "track"
->;
+> & {
+  /** Unlocked reward-rung label only — never reward/cash copy, never a real name. */
+  recognitionLabel?: string | null;
+};
 
 /** Strip admin-only fields before rendering on Mentor Connect or any public surface. */
-export function toPublicMentorProfile(m: MentorProfile): PublicMentorProfile {
+export function toPublicMentorProfile(
+  m: MentorProfile,
+  recognitionLabel?: string | null
+): PublicMentorProfile {
   return {
     id: m.id,
     years: m.years,
@@ -101,6 +107,7 @@ export function toPublicMentorProfile(m: MentorProfile): PublicMentorProfile {
     tags: m.tags,
     sampleReply: m.sampleReply,
     track: m.track,
+    recognitionLabel: recognitionLabel ?? null,
   };
 }
 

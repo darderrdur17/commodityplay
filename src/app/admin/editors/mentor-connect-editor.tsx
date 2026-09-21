@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DEFAULT_MENTOR_CONNECT_CONTENT,
@@ -128,6 +128,16 @@ export function MentorConnectEditor({
         rungs: content.rewardLadder.rungs.filter((_, j) => j !== i),
       },
     });
+  }
+
+  function moveRung(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= content.rewardLadder.rungs.length) return;
+    const next = [...content.rewardLadder.rungs];
+    const tmp = next[i];
+    next[i] = next[j];
+    next[j] = tmp;
+    patch({ ...content, rewardLadder: { rungs: next } });
   }
 
   return (
@@ -311,14 +321,35 @@ export function MentorConnectEditor({
                 <p className="text-xs font-semibold text-muted-fg uppercase tracking-wider">
                   Rung {i + 1}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => deleteRung(i)}
-                  className="text-red-400 hover:text-red-600 p-1"
-                  disabled={content.rewardLadder.rungs.length <= 1}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => moveRung(i, -1)}
+                    className="text-muted-fg hover:text-primary-800 p-1 disabled:opacity-30"
+                    disabled={i === 0}
+                    aria-label="Move rung up"
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveRung(i, 1)}
+                    className="text-muted-fg hover:text-primary-800 p-1 disabled:opacity-30"
+                    disabled={i === content.rewardLadder.rungs.length - 1}
+                    aria-label="Move rung down"
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteRung(i)}
+                    className="text-red-400 hover:text-red-600 p-1"
+                    disabled={content.rewardLadder.rungs.length <= 1}
+                    aria-label="Delete rung"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <EditorField label="Minimum answered questions">

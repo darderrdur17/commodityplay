@@ -55,7 +55,7 @@ const rewardRungSchema = z.object({
 });
 
 const rewardLadderSchema = z.object({
-  rungs: z.array(rewardRungSchema).min(1).max(20),
+  rungs: z.array(rewardRungSchema).max(50),
 });
 
 const applicationSchema = z.object({

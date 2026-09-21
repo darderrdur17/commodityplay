@@ -93,6 +93,16 @@ import {
   toPublicMentorProfile,
   type PublishedMentorSegment,
 } from "@/data/mentors";
+import {
+  computeMentorRewardProgress,
+  mentorAnsweredCountForEmail,
+} from "@/lib/mentor-reward-ladder";
+import { getMentorAnsweredCountsByEmail } from "@/lib/mentor-reward-counts";
+import {
+  getMentorLiveContactsByEmail,
+  getMentorLiveContactsByProfileId,
+  overlayMentorLiveContact,
+} from "@/lib/mentor-profile-sync";
 import type { PlaybookHubHeroCopy } from "@/data/playbook-hub-hero";
 import { resolvePlaybookPayload } from "./playbook-payload";
 
@@ -451,14 +461,17 @@ export async function getResolvedMentorSegments() {
  * Respects the mentors module published flag — overrides are ignored when draft.
  */
 export async function getPublishedMentorSegments(): Promise<PublishedMentorSegment[]> {
-  const [mentorsCms, mentorConnectCms] = await Promise.all([
-    tryReadPublishedPayload<Partial<MentorOverridesPayload>>("mentors"),
-    tryReadPublishedPayload<Partial<{ segments?: { id: string; title: string; blurb: string }[] }>>(
-      "mentor-connect"
-    ),
-  ]);
-  const segmentCopy = normalizeMentorConnectPayload(mentorConnectCms ?? {}).segments;
-  const copyById = new Map(segmentCopy.map((s) => [s.id, s]));
+  const [mentorsCms, mentorConnectCms, answeredCounts, liveByProfileId, liveByEmail] =
+    await Promise.all([
+      tryReadPublishedPayload<Partial<MentorOverridesPayload>>("mentors"),
+      tryReadPublishedPayload("mentor-connect"),
+      getMentorAnsweredCountsByEmail(),
+      getMentorLiveContactsByProfileId(),
+      getMentorLiveContactsByEmail(),
+    ]);
+  const normalized = normalizeMentorConnectPayload(mentorConnectCms ?? {});
+  const copyById = new Map(normalized.segments.map((s) => [s.id, s]));
+  const rewardRungs = normalized.rewardLadder.rungs;
   const resolved = resolveMentorSegments(MENTOR_SEGMENTS, mentorsCms?.overrides ?? []);
   return resolved
     .filter((seg) => seg.id !== UNASSIGNED_SEGMENT_ID)
@@ -471,7 +484,16 @@ export async function getPublishedMentorSegments(): Promise<PublishedMentorSegme
         blurb: copy?.blurb ?? seg.blurb,
         mentors: seg.mentors
           .filter((m) => (m.status ?? "active") === "active")
-          .map(toPublicMentorProfile),
+          .map((m) => {
+            const live = overlayMentorLiveContact(
+              { id: m.id, email: m.email ?? null, company: m.company ?? null },
+              liveByProfileId,
+              liveByEmail
+            );
+            const answeredCount = mentorAnsweredCountForEmail(answeredCounts, live.email);
+            const progress = computeMentorRewardProgress(answeredCount, rewardRungs);
+            return toPublicMentorProfile(m, progress.recognitionLabel);
+          }),
       };
     })
     .filter((seg) => seg.mentors.length > 0);

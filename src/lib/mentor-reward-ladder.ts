@@ -1,5 +1,3 @@
-import { prisma } from "@/lib/prisma";
-
 export interface MentorRewardRung {
   id: string;
   minQuestions: number;
@@ -21,14 +19,12 @@ export const DEFAULT_MENTOR_REWARD_RUNGS: MentorRewardRung[] = [
 
 export function mergeMentorRewardRungs(cms?: MentorRewardRung[] | null): MentorRewardRung[] {
   if (!cms?.length) return [...DEFAULT_MENTOR_REWARD_RUNGS];
-  return cms
-    .map((rung, index) => ({
-      id: rung.id?.trim() || `rung-${index + 1}`,
-      minQuestions: Math.max(0, Math.floor(Number(rung.minQuestions) || 0)),
-      label: rung.label?.trim() || `${rung.minQuestions} questions`,
-      reward: rung.reward?.trim() || "Reward (TBD)",
-    }))
-    .sort((a, b) => a.minQuestions - b.minQuestions);
+  return cms.map((rung, index) => ({
+    id: rung.id?.trim() || `rung-${index + 1}`,
+    minQuestions: Math.max(0, Math.floor(Number(rung.minQuestions) || 0)),
+    label: rung.label?.trim() || `${rung.minQuestions} questions`,
+    reward: rung.reward?.trim() || "Reward (TBD)",
+  }));
 }
 
 export function mergeMentorRewardLadder(
@@ -37,12 +33,48 @@ export function mergeMentorRewardLadder(
   return { rungs: mergeMentorRewardRungs(cms?.rungs) };
 }
 
+export interface MentorAnswerRecord {
+  isAnswered: boolean;
+  answer?: string | null;
+  answeredByEmail?: string | null;
+}
+
+/** A question counts when the mentor actually replied — not credits remaining or pending asks. */
+export function isCountedMentorAnswer(q: MentorAnswerRecord): boolean {
+  return q.isAnswered === true && Boolean(q.answer?.trim()) && Boolean(q.answeredByEmail?.trim());
+}
+
+export function countAnswersByMentorEmail(questions: MentorAnswerRecord[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const q of questions) {
+    if (!isCountedMentorAnswer(q) || !q.answeredByEmail) continue;
+    const key = q.answeredByEmail.trim().toLowerCase();
+    map.set(key, (map.get(key) ?? 0) + 1);
+  }
+  return map;
+}
+
+export function mentorAnsweredCountForEmail(
+  countsByEmail: Map<string, number>,
+  email: string | null | undefined
+): number {
+  if (!email?.trim()) return 0;
+  return countsByEmail.get(email.trim().toLowerCase()) ?? 0;
+}
+
 export interface MentorRewardProgress {
   answeredCount: number;
   unlockedRung: MentorRewardRung | null;
   nextRung: MentorRewardRung | null;
+  remainingToNext: number | null;
   /** 0–100 progress from the last unlocked threshold toward the next rung. */
   progressPercent: number;
+  /** Member-facing badge copy — rung label only, never the reward/cash text. */
+  recognitionLabel: string | null;
+}
+
+function sortRungs(rungs: MentorRewardRung[]): MentorRewardRung[] {
+  return [...rungs].sort((a, b) => a.minQuestions - b.minQuestions || a.id.localeCompare(b.id));
 }
 
 /** Count = questions this mentor answered (reply saved), matched by answeredByEmail. */
@@ -50,9 +82,16 @@ export function computeMentorRewardProgress(
   answeredCount: number,
   rungs: MentorRewardRung[]
 ): MentorRewardProgress {
-  const sorted = mergeMentorRewardRungs(rungs);
+  const sorted = sortRungs(mergeMentorRewardRungs(rungs));
   if (sorted.length === 0) {
-    return { answeredCount, unlockedRung: null, nextRung: null, progressPercent: 0 };
+    return {
+      answeredCount,
+      unlockedRung: null,
+      nextRung: null,
+      remainingToNext: null,
+      progressPercent: 0,
+      recognitionLabel: null,
+    };
   }
 
   let unlocked: MentorRewardRung | null = null;
@@ -76,28 +115,12 @@ export function computeMentorRewardProgress(
     );
   }
 
-  return { answeredCount, unlockedRung: unlocked, nextRung: next, progressPercent };
-}
-
-export async function getMentorAnsweredCountsByEmail(): Promise<Map<string, number>> {
-  const rows = await prisma.mentorQuestion.groupBy({
-    by: ["answeredByEmail"],
-    where: { isAnswered: true, answeredByEmail: { not: null } },
-    _count: { id: true },
-  });
-
-  const map = new Map<string, number>();
-  for (const row of rows) {
-    if (!row.answeredByEmail) continue;
-    map.set(row.answeredByEmail.toLowerCase(), row._count.id);
-  }
-  return map;
-}
-
-export function mentorAnsweredCountForEmail(
-  countsByEmail: Map<string, number>,
-  email: string | null | undefined
-): number {
-  if (!email?.trim()) return 0;
-  return countsByEmail.get(email.trim().toLowerCase()) ?? 0;
+  return {
+    answeredCount,
+    unlockedRung: unlocked,
+    nextRung: next,
+    remainingToNext: next ? Math.max(0, next.minQuestions - answeredCount) : null,
+    progressPercent,
+    recognitionLabel: unlocked?.label ?? null,
+  };
 }

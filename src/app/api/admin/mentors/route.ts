@@ -14,9 +14,9 @@ import {
 } from "@/lib/mentor-profile-sync";
 import {
   computeMentorRewardProgress,
-  getMentorAnsweredCountsByEmail,
   mentorAnsweredCountForEmail,
 } from "@/lib/mentor-reward-ladder";
+import { getMentorAnsweredCountsByEmail } from "@/lib/mentor-reward-counts";
 import { normalizeMentorConnectPayload } from "@/lib/content/mentor-connect-schema";
 
 export async function GET() {
