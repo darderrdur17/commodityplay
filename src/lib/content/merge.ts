@@ -137,8 +137,14 @@ export function resolveCaseStudySample(
     categoryTags: cms?.categoryTags ?? defaults.caseStudySample.categoryTags,
     disclaimer: cms?.disclaimer ?? defaults.caseStudySample.disclaimer,
     viewMoreHref: cms?.viewMoreHref ?? defaults.caseStudySample.viewMoreHref,
+    featuredSlugs: (() => {
+      const fromFeatured = (cms?.featuredSlugs ?? []).map((slug) => slug.trim()).filter(Boolean);
+      if (fromFeatured.length > 0) return fromFeatured;
+      if (cms?.cards?.length) return cms.cards.map((card) => card.slug).filter(Boolean);
+      return defaults.caseStudySample.featuredSlugs ?? defaults.caseStudySample.cards.map((card) => card.slug);
+    })(),
     cards: cms?.cards?.length
-      ? mergeByKey(defaults.caseStudySample.cards, cms.cards, "slug")
+      ? cms.cards
       : defaults.caseStudySample.cards,
   };
 }

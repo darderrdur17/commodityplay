@@ -14,6 +14,7 @@ import {
 } from "@/lib/content/edge-notes";
 import { WeeklyEdgeNoteEditor } from "./sales-edge-note-editor";
 import { CONTENT_STAT_PLACEHOLDER_HINT } from "@/lib/content/content-stat-placeholders";
+import { resolveCaseStudiesPayload } from "@/lib/content/case-studies-payload";
 
 type TrackFilter = "career" | "sales" | "both";
 
@@ -68,12 +69,50 @@ export function LandingEditorWrapper({
 }) {
   const [track, setTrack] = useState<TrackFilter>(initialTrackFilter);
   const [content, setContent] = useState<LandingContent>(() => resolveEditorLandingContent(payload));
+  const [caseStudyCatalog, setCaseStudyCatalog] = useState<
+    {
+      slug: string;
+      title: string;
+      category: string;
+      catchLine: string;
+      excerpt: string;
+      readMinutes: number;
+      status?: string;
+    }[]
+  >([]);
 
   useEffect(() => {
     if (payload == null) return;
     setContent(resolveEditorLandingContent(payload));
     // Re-sync only after load / save / revert — not on every local edit (payload changes each keystroke).
     // eslint-disable-next-line react-hooks/exhaustive-deps -- payload read when contentVersion bumps
+  }, [contentVersion]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/content/case-studies", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((row) => {
+        if (cancelled || !row?.payload) return;
+        const studies = resolveCaseStudiesPayload(row.payload).studies;
+        setCaseStudyCatalog(
+          studies.map((study) => ({
+            slug: study.slug,
+            title: study.title,
+            category: study.category,
+            catchLine: study.catchLine,
+            excerpt: study.description,
+            readMinutes: study.readMinutes,
+            status: study.status,
+          }))
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setCaseStudyCatalog([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [contentVersion]);
 
   const rawPayload = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
@@ -133,6 +172,7 @@ export function LandingEditorWrapper({
         content={content}
         onChange={handleLandingChange}
         trackFilter={track}
+        caseStudyCatalog={caseStudyCatalog}
         afterSalesTrackTools={
           showSalesNote ? (
             <EditorSection

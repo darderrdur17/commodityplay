@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { FeatureComparisonTable, LandingContent } from "@/data/landing-content";
+import type { FeatureComparisonTable, LandingContent, CaseStudyPreviewCard } from "@/data/landing-content";
 
 interface Props {
   content: LandingContent;
@@ -11,6 +11,16 @@ interface Props {
   trackFilter?: "career" | "sales" | "both";
   /** Rendered immediately under Sales Track Only — Tools (example talking points). */
   afterSalesTrackTools?: React.ReactNode;
+  /** Live Case Studies CMS catalog for the Career landing featured picker. */
+  caseStudyCatalog?: {
+    slug: string;
+    title: string;
+    category: string;
+    catchLine: string;
+    excerpt: string;
+    readMinutes: number;
+    status?: string;
+  }[];
 }
 
 function Section({
@@ -347,6 +357,7 @@ export function AdminLandingEditor({
   onChange,
   trackFilter = "both",
   afterSalesTrackTools,
+  caseStudyCatalog = [],
 }: Props) {
   function patch<K extends keyof LandingContent>(key: K, value: LandingContent[K]) {
     onChange({ ...content, [key]: value });
@@ -686,74 +697,122 @@ export function AdminLandingEditor({
             rows={3}
           />
         </Field>
-        <div className="space-y-4">
-          {content.caseStudySample.cards.map((card, i) => (
-            <div key={card.slug} className="p-3 rounded-lg border border-border space-y-2">
-              <p className="text-xs font-bold text-muted-fg uppercase">
-                Preview card {i + 1}
-                <span className="font-normal normal-case text-muted-fg/80 ml-2">({card.slug})</span>
-              </p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Field label="Category">
-                  <TextInput
-                    value={card.category}
-                    onChange={(v) => {
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-gray-700">Featured on Career landing</p>
+          <p className="text-[11px] text-muted-fg">
+            Pick which case studies appear in this section, in order. Title, excerpt, catch line, and read time come
+            from Elite Pack → Case Studies. Add as many as you need — not limited to three.
+          </p>
+          {content.caseStudySample.cards.map((card, i) => {
+            const catalogHit = caseStudyCatalog.find((item) => item.slug === card.slug);
+            return (
+              <div key={`${card.slug}-${i}`} className="flex items-start gap-3 p-3 rounded-lg border border-border">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">{card.title}</p>
+                  <p className="text-[11px] text-muted-fg mt-0.5">
+                    {card.category}
+                    {catalogHit?.status === "coming-soon" ? " · coming soon" : ""}
+                    <span className="ml-2 font-mono">{card.slug}</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    className={smallButtonClass}
+                    disabled={i === 0}
+                    onClick={() => {
                       const cards = [...content.caseStudySample.cards];
-                      cards[i] = { ...card, category: v };
-                      patch("caseStudySample", { ...content.caseStudySample, cards });
+                      [cards[i - 1], cards[i]] = [cards[i], cards[i - 1]];
+                      patch("caseStudySample", {
+                        ...content.caseStudySample,
+                        cards,
+                        featuredSlugs: cards.map((c) => c.slug),
+                      });
                     }}
-                  />
-                </Field>
-                <Field label="Read time (minutes)">
-                  <input
-                    type="number"
-                    min={1}
-                    value={card.readMinutes}
-                    onChange={(e) => {
+                  >
+                    Up
+                  </button>
+                  <button
+                    type="button"
+                    className={smallButtonClass}
+                    disabled={i === content.caseStudySample.cards.length - 1}
+                    onClick={() => {
                       const cards = [...content.caseStudySample.cards];
-                      cards[i] = { ...card, readMinutes: Number(e.target.value) || 1 };
-                      patch("caseStudySample", { ...content.caseStudySample, cards });
+                      [cards[i + 1], cards[i]] = [cards[i], cards[i + 1]];
+                      patch("caseStudySample", {
+                        ...content.caseStudySample,
+                        cards,
+                        featuredSlugs: cards.map((c) => c.slug),
+                      });
                     }}
-                    className={inputClass}
-                  />
-                </Field>
+                  >
+                    Down
+                  </button>
+                  <button
+                    type="button"
+                    className="text-red-400 hover:text-red-600 p-1"
+                    disabled={content.caseStudySample.cards.length <= 1}
+                    onClick={() => {
+                      if (content.caseStudySample.cards.length <= 1) return;
+                      const cards = content.caseStudySample.cards.filter((_, j) => j !== i);
+                      patch("caseStudySample", {
+                        ...content.caseStudySample,
+                        cards,
+                        featuredSlugs: cards.map((c) => c.slug),
+                      });
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <Field label="Title">
-                <TextInput
-                  value={card.title}
-                  onChange={(v) => {
-                    const cards = [...content.caseStudySample.cards];
-                    cards[i] = { ...card, title: v };
-                    patch("caseStudySample", { ...content.caseStudySample, cards });
-                  }}
-                />
-              </Field>
-              <Field label="Catch line (italic quote)">
-                <TextInput
-                  value={card.catchLine}
-                  onChange={(v) => {
-                    const cards = [...content.caseStudySample.cards];
-                    cards[i] = { ...card, catchLine: v };
-                    patch("caseStudySample", { ...content.caseStudySample, cards });
-                  }}
-                  multiline
-                  rows={2}
-                />
-              </Field>
-              <Field label="Excerpt">
-                <TextInput
-                  value={card.excerpt}
-                  onChange={(v) => {
-                    const cards = [...content.caseStudySample.cards];
-                    cards[i] = { ...card, excerpt: v };
-                    patch("caseStudySample", { ...content.caseStudySample, cards });
-                  }}
-                  multiline
-                  rows={3}
-                />
-              </Field>
-            </div>
-          ))}
+            );
+          })}
+          <Field label="Add a case study">
+            <select
+              className={inputClass}
+              value=""
+              onChange={(e) => {
+                const slug = e.target.value;
+                if (!slug) return;
+                if (content.caseStudySample.cards.some((card) => card.slug === slug)) return;
+                const item = caseStudyCatalog.find((entry) => entry.slug === slug);
+                    const nextCard: CaseStudyPreviewCard = item
+                  ? {
+                      slug: item.slug,
+                      category: item.category || "Case study",
+                      title: item.title || item.slug,
+                      catchLine: item.catchLine.trim() || item.title || item.slug,
+                      excerpt: item.excerpt.trim() || item.title || item.slug,
+                      readMinutes: item.readMinutes || 10,
+                    }
+                  : {
+                      slug,
+                      category: "Case study",
+                      title: slug,
+                      catchLine: slug,
+                      excerpt: slug,
+                      readMinutes: 10,
+                    };
+                const cards = [...content.caseStudySample.cards, nextCard];
+                patch("caseStudySample", {
+                  ...content.caseStudySample,
+                  cards,
+                  featuredSlugs: cards.map((c) => c.slug),
+                });
+              }}
+            >
+              <option value="">Select from Case Studies CMS…</option>
+              {caseStudyCatalog
+                .filter((item) => !content.caseStudySample.cards.some((card) => card.slug === item.slug))
+                .map((item) => (
+                  <option key={item.slug} value={item.slug}>
+                    {item.title}
+                    {item.status === "coming-soon" ? " (coming soon)" : ""}
+                  </option>
+                ))}
+            </select>
+          </Field>
         </div>
       </Section>
 

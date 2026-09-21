@@ -212,6 +212,8 @@ export interface LandingContent {
     titleAccent: string;
     description: string;
     cards: CaseStudyPreviewCard[];
+    /** Ordered slugs featured on the Career landing. Empty uses `cards` order. */
+    featuredSlugs?: string[];
     categoryTags: string[];
     disclaimer: string;
     viewMoreHref?: string;
@@ -615,6 +617,11 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
           "Three consecutive bullish EIA draws — and the price falls anyway. The US Dollar Index was strengthening quietly in the background, driving speculative long liquidation…",
         readMinutes: 18,
       },
+    ],
+    featuredSlugs: [
+      "the-inventory-divergence",
+      "the-cargo-diversion-window",
+      "when-the-dollar-spoke-first",
     ],
     categoryTags: ["Physical arb", "Cross-market", "Freight & logistics", "Supply disruption"],
     disclaimer:

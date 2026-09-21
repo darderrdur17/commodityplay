@@ -79,6 +79,7 @@ import { DEFAULT_SITE_FOOTER, type SiteFooterContent } from "@/data/footer-conte
 import { mergeSiteFooterContent } from "@/lib/content/footer-schema";
 import type { ContentAttachment } from "./attachments";
 import { mergeLandingContent, resolveMentorSegments } from "./merge";
+import { hydrateLandingCaseStudyCards } from "./landing-case-study-preview";
 import {
   defaultCareerEdgeNote,
   resolveSalesEdgeNote,
@@ -98,10 +99,16 @@ import { resolvePlaybookPayload } from "./playbook-payload";
 
 export async function getLandingContent(): Promise<LandingContent> {
   const cms = await tryReadPublishedPayload<Partial<LandingContent>>("landing");
-  if (cms === null) {
-    return DEFAULT_LANDING_CONTENT;
-  }
-  return mergeLandingContent(DEFAULT_LANDING_CONTENT, cms);
+  const merged =
+    cms === null ? DEFAULT_LANDING_CONTENT : mergeLandingContent(DEFAULT_LANDING_CONTENT, cms);
+  const studies = await getCaseStudiesList();
+  return {
+    ...merged,
+    caseStudySample: {
+      ...merged.caseStudySample,
+      cards: hydrateLandingCaseStudyCards(merged.caseStudySample, studies),
+    },
+  };
 }
 
 type LandingPayload = Partial<LandingContent> & LandingEdgeNotes;

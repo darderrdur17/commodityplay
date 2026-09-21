@@ -207,6 +207,7 @@ export const landingContentSchema = z.object({
         readMinutes: z.number(),
       })
     ).min(1),
+    featuredSlugs: z.array(z.string().min(1).max(160)).max(48).optional(),
     categoryTags: z.array(z.string().min(1)).min(1),
     disclaimer: z.string().min(1),
     viewMoreHref: z.string().optional(),

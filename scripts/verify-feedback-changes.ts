@@ -3,6 +3,7 @@
  */
 import { DEFAULT_LANDING_CONTENT } from "../src/data/landing-content";
 import { mergeLandingContent } from "../src/lib/content/merge";
+import { hydrateLandingCaseStudyCards } from "../src/lib/content/landing-case-study-preview";
 import {
   prepareLandingContentForSave,
   formatLandingValidationErrors,
@@ -315,6 +316,78 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     withExtra.chapterCoverage.chapters.length ===
       DEFAULT_LANDING_CONTENT.chapterCoverage.chapters.length + 1 &&
       withExtra.chapterCoverage.chapters.at(-1)?.letter === "J"
+  );
+  const featuredFour = mergeLandingContent(DEFAULT_LANDING_CONTENT, {
+    caseStudySample: {
+      ...DEFAULT_LANDING_CONTENT.caseStudySample,
+      featuredSlugs: [
+        "the-inventory-divergence",
+        "the-cargo-diversion-window",
+        "when-the-dollar-spoke-first",
+        "the-strait-that-repriced-everything",
+      ],
+    },
+  } as never);
+  const hydratedFour = hydrateLandingCaseStudyCards(featuredFour.caseStudySample, [
+    {
+      slug: "the-strait-that-repriced-everything",
+      id: "cs-x",
+      category: "Supply disruption",
+      title: "The Strait That Repriced Everything",
+      catchLine: "Quote",
+      description: "Live excerpt from Case Studies CMS.",
+      readMinutes: 12,
+      status: "published",
+      hasFullContent: true,
+    },
+    {
+      slug: "the-inventory-divergence",
+      id: "cs-1",
+      category: "Physical arbitrage",
+      title: "The Inventory Divergence",
+      catchLine: "Live catch",
+      description: "Live inventory excerpt.",
+      readMinutes: 14,
+      status: "published",
+      hasFullContent: true,
+    },
+    {
+      slug: "the-cargo-diversion-window",
+      id: "cs-2",
+      category: "Physical arbitrage",
+      title: "The Cargo Diversion Window",
+      catchLine: "Live cargo",
+      description: "Live cargo excerpt.",
+      readMinutes: 16,
+      status: "published",
+      hasFullContent: true,
+    },
+    {
+      slug: "when-the-dollar-spoke-first",
+      id: "cs-3",
+      category: "Cross-market",
+      title: "When the Dollar Spoke First",
+      catchLine: "Live dollar",
+      description: "Live dollar excerpt.",
+      readMinutes: 18,
+      status: "published",
+      hasFullContent: true,
+    },
+  ]);
+  const landingEditor = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/admin-landing-editor.tsx"),
+    "utf8"
+  );
+  ok(
+    "Career landing case studies featured list is CMS-owned (N, not a hardcoded trio)",
+    featuredFour.caseStudySample.featuredSlugs?.length === 4 &&
+      hydratedFour.length === 4 &&
+      hydratedFour[0]?.title === "The Inventory Divergence" &&
+      hydratedFour[3]?.title === "The Strait That Repriced Everything" &&
+      hydratedFour[3]?.excerpt === "Live excerpt from Case Studies CMS." &&
+      landingEditor.includes("Featured on Career landing") &&
+      landingEditor.includes("Select from Case Studies CMS") &&
+      mergeLandingContent(DEFAULT_LANDING_CONTENT, {} as never).caseStudySample.featuredSlugs?.length === 3
   );
 }
 
