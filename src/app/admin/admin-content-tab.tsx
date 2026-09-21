@@ -258,7 +258,7 @@ function ModuleEditor({
       case "job-openings":
         return <JobOpeningsEditor {...editorProps} />;
       case "case-studies":
-        return <CaseStudiesEditor {...editorProps} />;
+        return <CaseStudiesEditor payload={payload} onChange={setPayload} />;
       case "starter-pack":
         return <StarterPackEditor {...editorProps} contentVersion={version} />;
       case "resume-templates":

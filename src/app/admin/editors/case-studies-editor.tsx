@@ -3,7 +3,7 @@
 import React from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EditorField, EditorRow, EditorSection, TrackToggle, UploadSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, EditorSection, TrackToggle, inputClass, textareaClass } from "./shared";
 import { SectionEditor } from "./case-study-section-editor";
 import type {
   CaseStudyCard,
@@ -76,13 +76,9 @@ function newSection(index: number): CaseStudySection {
 export function CaseStudiesEditor({
   payload,
   onChange,
-  moduleSlug,
-  requiredTier,
 }: {
   payload: unknown;
   onChange: (p: unknown) => void;
-  moduleSlug: string;
-  requiredTier: string;
 }) {
   const data = readPayload(payload);
   const { studies: items, details } = data;
@@ -353,8 +349,6 @@ export function CaseStudiesEditor({
           <p className="text-center text-sm text-muted-fg py-8">No case studies yet.</p>
         )}
       </div>
-
-      <UploadSection moduleSlug={moduleSlug} requiredTier={requiredTier} />
     </div>
   );
 }
