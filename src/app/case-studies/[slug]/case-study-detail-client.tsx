@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronDown, ChevronUp, Clock } from "lucide-react";
+import { caseStudyCategoryHeroStyle } from "@/lib/case-study-category-style";
 import {
   CASE_STUDY_HERO_STAT_BG,
   caseStudySectionNavTitle,
@@ -327,6 +328,7 @@ export function CaseStudyDetailClient({ card, sections, displayNumber }: Props) 
   const heroBody = card.heroBody?.trim() ?? "";
   const articleSections = sections ?? [];
   const hasArticle = articleSections.length > 0;
+  const categoryStyle = card.category ? caseStudyCategoryHeroStyle(card.category) : null;
 
   return (
     <div className="page-container py-6 sm:py-10">
@@ -339,8 +341,11 @@ export function CaseStudyDetailClient({ card, sections, displayNumber }: Props) 
         </Link>
         <div className="flex flex-wrap items-center gap-3 mb-5">
           <span className="pill pill-dark">Case Study {displayNumber}</span>
-          {card.category ? (
-            <span className="text-xs font-bold uppercase tracking-widest text-white/80">
+          {categoryStyle ? (
+            <span
+              className="inline-flex px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide"
+              style={{ backgroundColor: categoryStyle.bg, color: categoryStyle.text }}
+            >
               {card.category}
             </span>
           ) : null}

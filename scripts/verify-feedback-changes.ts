@@ -58,6 +58,10 @@ import {
   visibleSources,
   visibleTimeline,
 } from "../src/lib/content/case-studies-payload";
+import {
+  CASE_STUDY_CATEGORY_HERO_STYLE,
+  caseStudyCategoryHeroStyle,
+} from "../src/lib/case-study-category-style";
 import { JOB_OPENINGS } from "../src/data/job-openings";
 import {
   DEFAULT_JOB_OPENINGS_DISCLAIMER,
@@ -1547,6 +1551,13 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       caseDetail.includes("text-primary-800") &&
       CASE_STUDY_HERO_STAT_BG === "#F0FDF4" &&
       !caseDetail.includes("bg-white/5")
+  );
+  ok(
+    "Case study hero category uses a light blue pill",
+    caseDetail.includes("caseStudyCategoryHeroStyle") &&
+      caseDetail.includes("backgroundColor: categoryStyle.bg") &&
+      CASE_STUDY_CATEGORY_HERO_STYLE.bg === "#dbeafe" &&
+      caseStudyCategoryHeroStyle("Cross-Market Intelligence").text === "#2563eb"
   );
   const jobHeroEditor = fs.readFileSync(
     path.join(process.cwd(), "src/app/admin/editors/job-openings-editor.tsx"),

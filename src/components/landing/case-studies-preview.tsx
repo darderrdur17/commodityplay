@@ -4,17 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CaseStudyPreviewCard } from "@/data/landing-content";
-
-const CATEGORY_STYLES: Record<string, { bg: string; text: string }> = {
-  "Physical arbitrage": { bg: "#dbeafe", text: "#2563eb" },
-  "Physical Arbitrage": { bg: "#dbeafe", text: "#2563eb" },
-  "Cross-market": { bg: "#ede9fe", text: "#7c3aed" },
-  "Cross-Market": { bg: "#ede9fe", text: "#7c3aed" },
-  "Freight & logistics": { bg: "#e0f2fe", text: "#0369a1" },
-  "Freight & Logistics": { bg: "#e0f2fe", text: "#0369a1" },
-  "Supply disruption": { bg: "#fce7f3", text: "#db2777" },
-  "Supply Disruption": { bg: "#fce7f3", text: "#db2777" },
-};
+import { caseStudyCategoryPreviewStyle } from "@/lib/case-study-category-style";
 
 interface Props {
   cards: CaseStudyPreviewCard[];
@@ -33,7 +23,7 @@ export function CaseStudiesPreview({
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
         {cards.map((card) => {
-          const style = CATEGORY_STYLES[card.category] ?? { bg: "#eef2ff", text: "#3280ff" };
+          const style = caseStudyCategoryPreviewStyle(card.category);
           return (
             <article
               key={card.slug}
