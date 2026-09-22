@@ -10,6 +10,7 @@ import type {
   CaseStudySection,
 } from "@/data/case-studies";
 import {
+  caseStudyDisplayNumber,
   mergeCaseStudiesHero,
   normalizeCaseStudySection,
   type CaseStudiesHeroCopy,
@@ -116,6 +117,16 @@ export function CaseStudiesEditor({
     emit({ studies: [...items, newCase()] });
   }
 
+  function moveItem(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= items.length) return;
+    const next = [...items];
+    const tmp = next[i];
+    next[i] = next[j]!;
+    next[j] = tmp!;
+    emit({ studies: next });
+  }
+
   function patchSections(slug: string, sections: CaseStudySection[]) {
     if (!slug) return;
     emit({ details: { ...details, [slug]: sections } });
@@ -156,7 +167,9 @@ export function CaseStudiesEditor({
       </EditorSection>
 
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-fg">{items.length} case studies</p>
+        <p className="text-xs text-muted-fg">
+          {items.length} case studies — list order sets Case Study # on the live page (unless a case number override is set)
+        </p>
         <Button variant="outline" size="sm" onClick={addItem}>
           <Plus className="w-3.5 h-3.5" /> Add case study
         </Button>
@@ -171,6 +184,9 @@ export function CaseStudiesEditor({
               key={item.id}
               summary={
                 <span>
+                  <span className="text-[10px] font-bold uppercase text-muted-fg mr-2">
+                    #{caseStudyDisplayNumber(item, i)}
+                  </span>
                   <span className="font-medium">{item.title || "(untitled)"}</span>
                   <span className="ml-2 text-xs text-muted-fg">{item.category}</span>
                   <span className={`ml-2 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${item.status === "published" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
@@ -178,6 +194,10 @@ export function CaseStudiesEditor({
                   </span>
                 </span>
               }
+              onMoveUp={() => moveItem(i, -1)}
+              onMoveDown={() => moveItem(i, 1)}
+              canMoveUp={i > 0}
+              canMoveDown={i < items.length - 1}
               onDelete={() => deleteItem(i)}
             >
               <div className="grid gap-3 sm:grid-cols-2">

@@ -127,6 +127,14 @@ export function caseStudyDisplayNumber(
   return index + 1;
 }
 
+export function isCaseStudyComingSoon(study: { status?: CaseStudyCard["status"] }): boolean {
+  return study.status === "coming-soon";
+}
+
+export function isCaseStudyPublished(study: { status?: CaseStudyCard["status"] }): boolean {
+  return !isCaseStudyComingSoon(study);
+}
+
 export function shouldShowCaseStudySidebar(showSidebar?: boolean): boolean {
   return showSidebar === true;
 }
@@ -515,13 +523,16 @@ export function normalizeCaseStudyCard(raw: CaseStudyCard): CaseStudyCard {
     typeof raw.number === "number" && Number.isFinite(raw.number) && raw.number > 0
       ? Math.floor(raw.number)
       : undefined;
+  const comingSoon = raw.status === "coming-soon";
   return {
     ...raw,
+    status: comingSoon ? "coming-soon" : "published",
     number,
     subtitle: asTrimmed(raw.subtitle) || undefined,
     heroBody: asTrimmed(raw.heroBody) || undefined,
     stats: visibleCaseStudyStats(raw.stats),
     showSidebar: raw.showSidebar === true,
+    hasFullContent: comingSoon ? false : raw.hasFullContent === true,
   };
 }
 

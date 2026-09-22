@@ -1,7 +1,19 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Save, RotateCcw, Undo2, Upload, Download, Trash2, Copy, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Save,
+  RotateCcw,
+  Undo2,
+  Upload,
+  Download,
+  Trash2,
+  Copy,
+  ChevronDown,
+  ChevronRight,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -72,11 +84,19 @@ export function EditorSection({
 export function EditorRow({
   summary,
   onDelete,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp = true,
+  canMoveDown = true,
   defaultOpen = false,
   children,
 }: {
   summary: React.ReactNode;
   onDelete?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
@@ -87,11 +107,37 @@ export function EditorRow({
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="flex-1 text-left flex items-center gap-2"
+          className="flex-1 text-left flex items-center gap-2 min-w-0"
         >
           {open ? <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-fg" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-fg" />}
-          <span className="text-sm">{summary}</span>
+          <span className="text-sm min-w-0">{summary}</span>
         </button>
+        {(onMoveUp || onMoveDown) && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            {onMoveUp && (
+              <button
+                type="button"
+                onClick={onMoveUp}
+                disabled={!canMoveUp}
+                className="text-muted-fg hover:text-primary-800 p-1 disabled:opacity-30"
+                aria-label="Move up"
+              >
+                <ArrowUp className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onMoveDown && (
+              <button
+                type="button"
+                onClick={onMoveDown}
+                disabled={!canMoveDown}
+                className="text-muted-fg hover:text-primary-800 p-1 disabled:opacity-30"
+                aria-label="Move down"
+              >
+                <ArrowDown className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
         {onDelete && (
           <button
             type="button"

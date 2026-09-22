@@ -7,6 +7,7 @@ import { caseStudyCategoryHeroStyle } from "@/lib/case-study-category-style";
 import {
   CASE_STUDY_HERO_STAT_BG,
   caseStudySectionNavTitle,
+  isCaseStudyComingSoon,
   shouldShowCaseStudySidebar,
   visibleCaseStudyBlocks,
   visibleCallout,
@@ -322,6 +323,7 @@ function CaseStudyArticleSection({ section, index }: { section: CaseStudySection
 }
 
 export function CaseStudyDetailClient({ card, sections, displayNumber }: Props) {
+  const comingSoon = isCaseStudyComingSoon(card);
   const stats = visibleCaseStudyStats(card.stats);
   const showSidebar = shouldShowCaseStudySidebar(card.showSidebar);
   const subtitle = card.subtitle?.trim() ?? "";
@@ -349,21 +351,31 @@ export function CaseStudyDetailClient({ card, sections, displayNumber }: Props) 
               {card.category}
             </span>
           ) : null}
+          {comingSoon ? (
+            <span className="inline-flex px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide bg-white/15 text-white/90 border border-white/25">
+              Coming soon
+            </span>
+          ) : null}
         </div>
         <h1 className="font-serif text-3xl sm:text-5xl font-bold text-white mb-4 break-words">
           {card.title}
         </h1>
-        {subtitle ? (
+        {comingSoon ? (
+          <p className="text-base sm:text-lg text-white/75 max-w-3xl">
+            This case study is not published yet. Check back soon — it will appear on Case Studies when ready.
+          </p>
+        ) : null}
+        {!comingSoon && subtitle ? (
           <p className="text-base sm:text-lg italic text-white/80 mb-5 max-w-3xl break-words">
             {subtitle}
           </p>
         ) : null}
-        {heroBody ? (
+        {!comingSoon && heroBody ? (
           <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 sm:px-5 sm:py-4 text-sm sm:text-base text-white/85 leading-relaxed max-w-4xl">
             <CaseStudyInline text={heroBody} />
           </div>
         ) : null}
-        {stats.length ? (
+        {!comingSoon && stats.length ? (
           <div
             className="grid gap-3 mt-6"
             style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 12rem), 1fr))" }}
@@ -384,6 +396,7 @@ export function CaseStudyDetailClient({ card, sections, displayNumber }: Props) 
         ) : null}
       </section>
 
+      {comingSoon ? null : (
       <div
         className={
           showSidebar && hasArticle
@@ -427,6 +440,7 @@ export function CaseStudyDetailClient({ card, sections, displayNumber }: Props) 
           </aside>
         ) : null}
       </div>
+      )}
     </div>
   );
 }

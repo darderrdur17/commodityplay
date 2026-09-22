@@ -25,6 +25,7 @@ export interface CaseStudyPreviewCard {
   catchLine: string;
   excerpt: string;
   readMinutes: number;
+  status?: "published" | "coming-soon";
 }
 
 export interface SalesWhoCard {

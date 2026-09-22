@@ -40,6 +40,8 @@ import {
   CASE_STUDY_HERO_STAT_BG,
   DEFAULT_CASE_STUDIES_HERO,
   caseStudyDisplayNumber,
+  isCaseStudyComingSoon,
+  isCaseStudyPublished,
   formatCaseStudiesHeroCopy,
   formatCaseStudySourceLabel,
   mergeCaseStudiesHero,
@@ -1558,6 +1560,32 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       caseDetail.includes("backgroundColor: categoryStyle.bg") &&
       CASE_STUDY_CATEGORY_HERO_STYLE.bg === "#dbeafe" &&
       caseStudyCategoryHeroStyle("Cross-Market Intelligence").text === "#2563eb"
+  );
+  ok(
+    "Case studies admin can reorder list and order drives case study numbers",
+    caseEditor.includes("function moveItem") &&
+      caseEditor.includes("onMoveUp={() => moveItem(i, -1)}") &&
+      caseEditor.includes("caseStudyDisplayNumber(item, i)")
+  );
+  ok(
+    "Coming-soon case studies show as coming soon on list and hide full breakdown",
+    caseClient.includes("isCaseStudyComingSoon") &&
+      caseClient.includes("Coming soon") &&
+      caseClient.includes("if (comingSoon)") &&
+      caseDetail.includes("isCaseStudyComingSoon") &&
+      normalizeCaseStudyCard({
+        slug: "x",
+        id: "1",
+        category: "Test",
+        title: "T",
+        catchLine: "",
+        description: "",
+        readMinutes: 1,
+        status: "coming-soon",
+        hasFullContent: true,
+      }).hasFullContent === false &&
+      isCaseStudyComingSoon({ status: "coming-soon" }) &&
+      isCaseStudyPublished({ status: "published" })
   );
   const jobHeroEditor = fs.readFileSync(
     path.join(process.cwd(), "src/app/admin/editors/job-openings-editor.tsx"),

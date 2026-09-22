@@ -533,7 +533,7 @@ export async function getCaseStudyBySlug(slug: string) {
   const card = studies[index]!;
   return {
     card,
-    sections: details[slug] || null,
+    sections: card.status === "coming-soon" ? null : details[slug] || null,
     displayNumber: caseStudyDisplayNumber(card, index),
   };
 }
