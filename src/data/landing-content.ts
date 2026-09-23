@@ -26,6 +26,7 @@ export interface CaseStudyPreviewCard {
   excerpt: string;
   readMinutes: number;
   status?: "published" | "coming-soon";
+  track?: "career" | "sales" | "both";
 }
 
 export interface SalesWhoCard {

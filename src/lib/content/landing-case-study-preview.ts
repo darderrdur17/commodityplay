@@ -10,6 +10,7 @@ export function landingCaseStudyPreviewFromCard(study: CaseStudyCard): CaseStudy
     excerpt: study.description,
     readMinutes: study.readMinutes,
     status: study.status,
+    track: study.track,
   };
 }
 

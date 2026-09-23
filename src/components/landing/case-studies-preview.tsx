@@ -24,7 +24,7 @@ export function CaseStudiesPreview({
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
         {cards.map((card) => {
-          const style = caseStudyCategoryPreviewStyle(card.category);
+          const style = caseStudyCategoryPreviewStyle(card.category, card.track);
           const comingSoon = isCaseStudyComingSoon(card);
           return (
             <article

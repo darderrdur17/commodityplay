@@ -62,8 +62,10 @@ import {
   visibleTimeline,
 } from "../src/lib/content/case-studies-payload";
 import {
-  CASE_STUDY_CATEGORY_HERO_STYLE,
+  CASE_STUDY_CATEGORY_CAREER_HERO_STYLE,
+  CASE_STUDY_CATEGORY_SALES_STYLE,
   caseStudyCategoryHeroStyle,
+  caseStudyCategoryPreviewStyle,
 } from "../src/lib/case-study-category-style";
 import { JOB_OPENINGS } from "../src/data/job-openings";
 import {
@@ -1559,8 +1561,11 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     "Case study hero category uses a light blue pill",
     caseDetail.includes("caseStudyCategoryHeroStyle") &&
       caseDetail.includes("backgroundColor: categoryStyle.bg") &&
-      CASE_STUDY_CATEGORY_HERO_STYLE.bg === "#dbeafe" &&
-      caseStudyCategoryHeroStyle("Cross-Market Intelligence").text === "#2563eb"
+      CASE_STUDY_CATEGORY_CAREER_HERO_STYLE.bg === "#dbeafe" &&
+      caseStudyCategoryHeroStyle("Cross-Market Intelligence").text === "#2563eb" &&
+      caseStudyCategoryHeroStyle("Sales", "sales").bg === CASE_STUDY_CATEGORY_SALES_STYLE.bg &&
+      caseStudyCategoryPreviewStyle("Cross-Market", "sales").text === CASE_STUDY_CATEGORY_SALES_STYLE.text &&
+      normalizeCaseStudyCard({ slug: "x", id: "1", category: "T", title: "T", catchLine: "", description: "", readMinutes: 1, status: "published", hasFullContent: true, track: "sales" }).track === "sales"
   );
   ok(
     "Case studies admin can reorder list and order drives case study numbers",

@@ -16,6 +16,7 @@ import {
   type CaseStudyTimelineTone,
 } from "@/data/case-studies";
 import { BRAND_NAME } from "@/lib/brand";
+import { normalizeCaseStudyTrack } from "@/lib/case-study-category-style";
 import { formatCmsHeroCopy, mergeCmsSimpleHero, type CmsSimpleHero } from "@/lib/content/cms-page-copy";
 import { SALES_SECTION_MINT } from "@/lib/sales-brand-colors";
 
@@ -550,6 +551,7 @@ export function normalizeCaseStudyCard(raw: CaseStudyCard): CaseStudyCard {
     stats: visibleCaseStudyStats(raw.stats),
     showSidebar: raw.showSidebar === true,
     hasFullContent: comingSoon ? false : raw.hasFullContent === true,
+    track: normalizeCaseStudyTrack(raw.track),
   };
 }
 

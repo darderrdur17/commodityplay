@@ -71,6 +71,8 @@ export interface CaseStudyCard {
   stats?: CaseStudyStat[];
   /** Member TOC. Default off so the page stays uncluttered. */
   showSidebar?: boolean;
+  /** Career, Sales, or Both — drives category pill color on list/detail (sales = green). */
+  track?: "career" | "sales" | "both";
 }
 
 export type CaseStudyBlock =

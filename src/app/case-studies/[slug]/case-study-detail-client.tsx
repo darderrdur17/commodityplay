@@ -333,7 +333,7 @@ export function CaseStudyDetailClient({ card, sections, displayNumber, previousS
   const heroBody = card.heroBody?.trim() ?? "";
   const articleSections = sections ?? [];
   const hasArticle = articleSections.length > 0;
-  const categoryStyle = card.category ? caseStudyCategoryHeroStyle(card.category) : null;
+  const categoryStyle = card.category ? caseStudyCategoryHeroStyle(card.category, card.track) : null;
 
   return (
     <div className="page-container py-6 sm:py-10">

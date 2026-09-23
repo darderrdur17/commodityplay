@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Clock } from "lucide-react";
 import { TierGate } from "@/components/tier-gate";
 import { Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
-import { Badge } from "@/components/ui/badge";
+import { CaseStudyCategoryPill } from "@/components/case-studies/case-study-category-pill";
 import type { CaseStudyCard } from "@/data/case-studies";
 import {
   caseStudyDisplayNumber,
@@ -61,7 +61,7 @@ export function CaseStudiesClient({
                 <StaggerItem key={study.slug || `${study.id}-${index}`}>
                   <div className="rounded-2xl border border-dashed border-border bg-secondary/30 p-5 sm:p-6 h-full opacity-90">
                     <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-                      <Badge size="sm">{study.category}</Badge>
+                      <CaseStudyCategoryPill category={study.category} track={study.track} />
                       <span className="text-xs font-semibold uppercase tracking-wide text-muted-fg bg-white px-2 py-0.5 rounded-full border border-border">
                         Coming soon
                       </span>
@@ -89,7 +89,7 @@ export function CaseStudiesClient({
                   className="block rounded-2xl border border-border bg-white p-5 sm:p-6 hover:border-primary-line hover:shadow-md transition-all h-full"
                 >
                   <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-                    <Badge size="sm">{study.category}</Badge>
+                    <CaseStudyCategoryPill category={study.category} track={study.track} />
                     {study.hasFullContent && (
                       <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
                         Full breakdown
