@@ -40,6 +40,7 @@ import {
   CASE_STUDY_HERO_STAT_BG,
   DEFAULT_CASE_STUDIES_HERO,
   caseStudyDisplayNumber,
+  caseStudyPreviousPeer,
   isCaseStudyComingSoon,
   isCaseStudyPublished,
   formatCaseStudiesHeroCopy,
@@ -1566,6 +1567,27 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
     caseEditor.includes("function moveItem") &&
       caseEditor.includes("onMoveUp={() => moveItem(i, -1)}") &&
       caseEditor.includes("caseStudyDisplayNumber(item, i)")
+  );
+  ok(
+    "Case study detail footer links to previous study and full library",
+    caseDetail.includes("CaseStudyFooterNav") &&
+      caseDetail.includes("previousStudy") &&
+      fs.readFileSync(
+        path.join(process.cwd(), "src/components/case-studies/case-study-footer-nav.tsx"),
+        "utf8"
+      ).includes("Back to the full library") &&
+      caseStudyPreviousPeer(
+        [
+          { slug: "a", title: "A", status: "published" } as never,
+          { slug: "b", title: "B", status: "published" } as never,
+          { slug: "c", title: "C", status: "coming-soon" } as never,
+        ],
+        "b"
+      )?.slug === "a" &&
+      caseStudyPreviousPeer(
+        [{ slug: "a", title: "A", status: "published" } as never],
+        "a"
+      ) === null
   );
   ok(
     "Coming-soon case studies show as coming soon on list and hide full breakdown",

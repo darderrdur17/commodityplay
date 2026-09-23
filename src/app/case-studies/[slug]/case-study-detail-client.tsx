@@ -27,11 +27,14 @@ import type {
   CaseStudyTimelineTone,
 } from "@/data/case-studies";
 import { CaseStudyInline } from "@/components/case-studies/case-study-inline";
+import { CaseStudyFooterNav } from "@/components/case-studies/case-study-footer-nav";
+import type { CaseStudyNavPeer } from "@/lib/content/case-studies-payload";
 
 interface Props {
   card: CaseStudyCard;
   sections: CaseStudySection[] | null;
   displayNumber: number;
+  previousStudy: CaseStudyNavPeer | null;
   userTier: string;
 }
 
@@ -322,7 +325,7 @@ function CaseStudyArticleSection({ section, index }: { section: CaseStudySection
   );
 }
 
-export function CaseStudyDetailClient({ card, sections, displayNumber }: Props) {
+export function CaseStudyDetailClient({ card, sections, displayNumber, previousStudy }: Props) {
   const comingSoon = isCaseStudyComingSoon(card);
   const stats = visibleCaseStudyStats(card.stats);
   const showSidebar = shouldShowCaseStudySidebar(card.showSidebar);
@@ -441,6 +444,8 @@ export function CaseStudyDetailClient({ card, sections, displayNumber }: Props) 
         ) : null}
       </div>
       )}
+
+      <CaseStudyFooterNav previousStudy={previousStudy} />
     </div>
   );
 }

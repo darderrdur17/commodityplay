@@ -135,6 +135,23 @@ export function isCaseStudyPublished(study: { status?: CaseStudyCard["status"] }
   return !isCaseStudyComingSoon(study);
 }
 
+export type CaseStudyNavPeer = {
+  slug: string;
+  title: string;
+};
+
+/** Previous published study in CMS list order (skips coming-soon). */
+export function caseStudyPreviousPeer(
+  studies: CaseStudyCard[],
+  currentSlug: string
+): CaseStudyNavPeer | null {
+  const published = studies.filter(isCaseStudyPublished);
+  const index = published.findIndex((s) => s.slug === currentSlug);
+  if (index <= 0) return null;
+  const prev = published[index - 1]!;
+  return { slug: prev.slug, title: prev.title };
+}
+
 export function shouldShowCaseStudySidebar(showSidebar?: boolean): boolean {
   return showSidebar === true;
 }

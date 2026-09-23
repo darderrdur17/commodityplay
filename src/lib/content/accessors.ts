@@ -15,6 +15,7 @@ import type { MentorOverridesPayload } from "@/data/mentors";
 import { getPublishedPayload, tryReadPublishedPayload, getContentModulePayload } from "./repository";
 import {
   caseStudyDisplayNumber,
+  caseStudyPreviousPeer,
   resolveCaseStudiesPayload,
   type CaseStudiesPayload,
 } from "@/lib/content/case-studies-payload";
@@ -535,6 +536,7 @@ export async function getCaseStudyBySlug(slug: string) {
     card,
     sections: card.status === "coming-soon" ? null : details[slug] || null,
     displayNumber: caseStudyDisplayNumber(card, index),
+    previousStudy: caseStudyPreviousPeer(studies, slug),
   };
 }
 
