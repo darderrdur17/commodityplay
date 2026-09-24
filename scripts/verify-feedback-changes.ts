@@ -12,6 +12,7 @@ import { resolveMemberPersonaLabel } from "../src/lib/persona-display";
 import { getDemoAccountDisplayPersona } from "../src/data/demo-accounts";
 import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
 import { canAccessInternalDemo, FRANCES_DEMO_LOGIN_EMAIL } from "../src/lib/demo-access";
+import { BRAND_EMAIL_SUPPORT } from "../src/lib/brand";
 import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import playbookSections from "../src/data/playbook-sections.json";
 import {
@@ -2587,6 +2588,27 @@ async function verifyPdfStampWrites() {
       canAccessInternalDemo({ role: "USER", email: "frances@commodityplay.ai" }) &&
       !canAccessInternalDemo({ role: "USER", email: "member@example.com" }) &&
       !canAccessInternalDemo(null)
+  );
+  const newsletterRoute = fs.readFileSync(
+    path.join(process.cwd(), "src/app/api/newsletter/subscribe/route.ts"),
+    "utf8"
+  );
+  const contactRoute = fs.readFileSync(path.join(process.cwd(), "src/app/api/contact/route.ts"), "utf8");
+  const mentorApplyRoute = fs.readFileSync(
+    path.join(process.cwd(), "src/app/api/mentor-apply/route.ts"),
+    "utf8"
+  );
+  const registerRoute = fs.readFileSync(path.join(process.cwd(), "src/app/api/auth/register/route.ts"), "utf8");
+  ok(
+    "Operator leads email Frances (newsletter, contact, mentor apply, starter signup)",
+    BRAND_EMAIL_SUPPORT === "frances@commodityplay.ai" &&
+      fs.readFileSync(path.join(process.cwd(), "src/lib/email.ts"), "utf8").includes(
+        "ADMIN_NOTIFY_EMAIL"
+      ) &&
+      newsletterRoute.includes("notifyOperatorLead") &&
+      contactRoute.includes("notifyOperatorLead") &&
+      mentorApplyRoute.includes("notifyOperatorLead") &&
+      registerRoute.includes("notifyOperatorLead")
   );
 }
 

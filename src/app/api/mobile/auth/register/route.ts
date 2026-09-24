@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { notifyOperatorLead } from "@/lib/email";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -28,6 +29,18 @@ export async function POST(req: NextRequest) {
       tier: "STARTER",
       track: parsed.data.track,
     },
+  });
+
+  void notifyOperatorLead({
+    kind: "operator_member_signup",
+    subject: "New starter member signup",
+    lines: [
+      { label: "Name", value: parsed.data.name },
+      { label: "Email", value: parsed.data.email },
+      { label: "Track", value: parsed.data.track },
+      { label: "Tier", value: "STARTER" },
+      { label: "Source", value: "Mobile" },
+    ],
   });
 
   const token = sign({ userId: user.id }, process.env.AUTH_SECRET!, { expiresIn: "30d" });

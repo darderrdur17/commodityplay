@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { notifyOperatorLead } from "@/lib/email";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -44,6 +45,17 @@ export async function POST(req: NextRequest) {
       where: { email },
       update: { subscribed: true },
       create: { email, name, source: "starter-signup", subscribed: true },
+    });
+
+    void notifyOperatorLead({
+      kind: "operator_member_signup",
+      subject: "New starter member signup",
+      lines: [
+        { label: "Name", value: name },
+        { label: "Email", value: email },
+        { label: "Track", value: track },
+        { label: "Tier", value: "STARTER" },
+      ],
     });
 
     return NextResponse.json({ id: user.id, email: user.email }, { status: 201 });

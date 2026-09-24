@@ -8,7 +8,11 @@ export type DemoEmailKind =
   | "job_chat_question"
   | "job_chat_answer"
   | "job_interview_offer"
-  | "billing_receipt";
+  | "billing_receipt"
+  | "operator_newsletter"
+  | "operator_contact"
+  | "operator_mentor_apply"
+  | "operator_member_signup";
 
 const DEMO_EMAIL_KIND_LABELS: Record<DemoEmailKind, string> = {
   mentee_answer: "Answer sent to member",
@@ -18,6 +22,10 @@ const DEMO_EMAIL_KIND_LABELS: Record<DemoEmailKind, string> = {
   job_chat_answer: "Job chat answer to candidate",
   job_interview_offer: "Interview offer to both parties",
   billing_receipt: "Subscription payment receipt",
+  operator_newsletter: "Newsletter signup to Frances",
+  operator_contact: "Contact Us message to Frances",
+  operator_mentor_apply: "Mentor application to Frances",
+  operator_member_signup: "New member signup to Frances",
 };
 
 export function demoEmailKindLabel(kind: string): string {

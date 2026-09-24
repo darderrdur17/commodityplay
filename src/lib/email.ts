@@ -18,6 +18,49 @@ function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || BRAND_SITE_URL;
 }
 
+/** Operator inbox for leads — Frances. Override with ADMIN_NOTIFY_EMAIL if needed. */
+export function getOperatorNotifyEmail(): string {
+  const override = process.env.ADMIN_NOTIFY_EMAIL?.trim();
+  return override || BRAND_EMAIL_SUPPORT;
+}
+
+export type OperatorLeadKind =
+  | "operator_newsletter"
+  | "operator_contact"
+  | "operator_mentor_apply"
+  | "operator_member_signup";
+
+export async function notifyOperatorLead(params: {
+  kind: OperatorLeadKind;
+  subject: string;
+  lines: { label: string; value: string }[];
+}): Promise<SendEmailResult> {
+  const to = getOperatorNotifyEmail();
+  const textBody = params.lines.map((line) => `${line.label}: ${line.value}`).join("\n");
+  const text = `${params.subject}\n\n${textBody}\n\nReview in Admin if needed.`;
+  const rows = params.lines
+    .map(
+      (line) =>
+        `<tr><td style="padding:6px 0;color:#677184;vertical-align:top">${escapeHtml(line.label)}</td><td style="padding:6px 0;font-weight:600">${escapeHtml(line.value)}</td></tr>`
+    )
+    .join("");
+  const html = `
+      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
+        <p style="color:#0830a0;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">${BRAND_NAME}</p>
+        <h1 style="font-size:20px;margin:0 0 16px">${escapeHtml(params.subject)}</h1>
+        <table style="width:100%;font-size:14px;border-collapse:collapse">${rows}</table>
+        <p style="font-size:12px;color:#677184;margin-top:24px">Sent to ${escapeHtml(to)}</p>
+      </div>
+    `;
+  return sendAndLog({
+    kind: params.kind,
+    to,
+    subject: params.subject,
+    text,
+    html,
+  });
+}
+
 export type SendEmailResult =
   | { ok: true; id?: string }
   | { ok: false; skipped: true; reason: string }

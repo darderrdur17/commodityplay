@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getContentModulePayload, updateContentModule } from "@/lib/content/repository";
 import { UNASSIGNED_SEGMENT_ID, generateMentorId } from "@/data/mentors";
+import { notifyOperatorLead } from "@/lib/email";
 import type { MentorOverride, MentorOverridesPayload } from "@/data/mentors";
 
 /**
@@ -72,6 +73,19 @@ export async function POST(req: NextRequest) {
     await updateContentModule("mentors", {
       payload: { overrides: [...overrides, newOverride] },
       published: true,
+    });
+
+    void notifyOperatorLead({
+      kind: "operator_mentor_apply",
+      subject: "New mentor application",
+      lines: [
+        { label: "Name", value: data.name },
+        { label: "Email", value: data.email },
+        { label: "Company", value: data.company },
+        { label: "Role", value: data.role },
+        { label: "Headline", value: data.headline },
+        { label: "LinkedIn", value: data.linkedIn },
+      ],
     });
 
     return NextResponse.json({ ok: true });
