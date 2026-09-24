@@ -4,16 +4,14 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, ArrowRight, AlertCircle, Sparkles } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { GradientOrbs, HeroParticles } from "@/components/animations";
-import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/data/demo-accounts";
 import { MAIN_MIN_HEIGHT_BELOW_NAV } from "@/lib/layout-constants";
 
 const schema = z.object({
@@ -32,32 +30,8 @@ export function LoginForm({ heroStats }: { heroStats: string[] }) {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
-
-  async function quickDemoLogin(email: string, redirectTo: string) {
-    setAuthError(null);
-    const result = await signIn("credentials", {
-      email,
-      password: DEMO_PASSWORD,
-      redirect: false,
-    });
-    if (result?.error) {
-      setAuthError(
-        process.env.NODE_ENV === "production"
-          ? "Demo sign-in is not available here yet. Use your member account or contact the team."
-          : "Demo account not found. Run: npm run db:push && npm run db:seed"
-      );
-    } else {
-      router.push(redirectTo);
-    }
-  }
-
-  function fillDemo(email: string) {
-    setValue("email", email);
-    setValue("password", DEMO_PASSWORD);
-  }
 
   async function onSubmit(data: FormData) {
     setAuthError(null);
@@ -192,62 +166,6 @@ export function LoginForm({ heroStats }: { heroStats: string[] }) {
               Sign in <ArrowRight className="w-4 h-4" />
             </Button>
           </form>
-
-          <div className="mt-8 pt-6 border-t border-border">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-fg flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" /> Demo accounts
-              </p>
-              <Link href="/demo" className="text-xs text-primary-400 hover:text-primary-500 font-medium">
-                View all →
-              </Link>
-            </div>
-            <p className="text-xs text-muted-fg mb-3">
-              Password: <code className="font-mono bg-secondary px-1.5 py-0.5 rounded">{DEMO_PASSWORD}</code>
-            </p>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {DEMO_ACCOUNTS.map((account) => (
-                <div
-                  key={account.email}
-                  className="flex items-center gap-2 p-2.5 rounded-lg border border-border hover:border-primary-line hover:bg-primary-soft/30 transition-all"
-                >
-                  <span className="text-lg">{account.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-gray-800 truncate">{account.name}</p>
-                    <p className="text-[10px] text-muted-fg font-mono truncate">{account.email}</p>
-                  </div>
-                  <Badge
-                    variant={
-                      account.role === "ADMIN"
-                        ? "danger"
-                        : account.tier === "ELITE"
-                          ? "elite"
-                          : account.tier === "PRO"
-                            ? "pro"
-                            : "starter"
-                    }
-                    size="sm"
-                  >
-                    {account.role === "ADMIN" ? "Admin" : account.tier}
-                  </Badge>
-                  <button
-                    type="button"
-                    onClick={() => fillDemo(account.email)}
-                    className="text-[10px] text-muted-fg hover:text-primary-400 px-1.5 py-1"
-                  >
-                    Fill
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => quickDemoLogin(account.email, account.redirectTo)}
-                    className="text-[10px] font-semibold text-primary-400 hover:text-primary-500 px-1.5 py-1"
-                  >
-                    Go
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
         </motion.div>
       </div>
     </div>

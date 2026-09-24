@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { canAccessInternalDemo } from "@/lib/demo-access";
 
 const PROTECTED_PATHS = [
   "/dashboard",
@@ -30,6 +31,17 @@ export const proxy = auth((req) => {
     signupUrl.searchParams.set("plan", "starter");
     signupUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(signupUrl);
+  }
+
+  if (pathname.startsWith("/demo")) {
+    if (!req.auth) {
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    if (!canAccessInternalDemo(req.auth.user)) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
   }
 
   if (isProtected && !req.auth) {

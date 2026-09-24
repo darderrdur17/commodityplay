@@ -11,6 +11,7 @@ import {
 import { resolveMemberPersonaLabel } from "../src/lib/persona-display";
 import { getDemoAccountDisplayPersona } from "../src/data/demo-accounts";
 import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
+import { canAccessInternalDemo } from "../src/lib/demo-access";
 import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import playbookSections from "../src/data/playbook-sections.json";
 import {
@@ -2564,6 +2565,26 @@ async function verifyPdfStampWrites() {
   ok(
     "Knowledge Test blue hero strip remains CMS-editable",
     ktEditor.includes("Page hero strip") && ktClient.includes("formatKnowledgeTestHeroCopy")
+  );
+}
+
+{
+  const loginForm = fs.readFileSync(path.join(process.cwd(), "src/app/(auth)/login/login-form.tsx"), "utf8");
+  const proxySrc = fs.readFileSync(path.join(process.cwd(), "src/proxy.ts"), "utf8");
+  ok(
+    "Public login hides the demo account list",
+    !loginForm.includes("Demo accounts") &&
+      !loginForm.includes("DEMO_ACCOUNTS") &&
+      !loginForm.includes("quickDemoLogin")
+  );
+  ok(
+    "Internal /demo is gated to Frances admin (not public)",
+    proxySrc.includes('pathname.startsWith("/demo")') &&
+      proxySrc.includes("canAccessInternalDemo") &&
+      canAccessInternalDemo({ role: "ADMIN", email: "anyone@example.com" }) &&
+      canAccessInternalDemo({ role: "USER", email: "frances@commodityplay.ai" }) &&
+      !canAccessInternalDemo({ role: "USER", email: "member@example.com" }) &&
+      !canAccessInternalDemo(null)
   );
 }
 

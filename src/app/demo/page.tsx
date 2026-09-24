@@ -64,13 +64,13 @@ export default function DemoPage() {
           <Reveal>
             <div className="pill pill-dark mb-4 mx-auto">
               <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-              Demo Mode
+              Internal only
             </div>
             <h1 className="font-serif text-4xl font-bold text-white mb-4">
               Try every tier &amp; persona
             </h1>
             <p className="text-white/65 text-lg max-w-xl mx-auto mb-6">
-              One-click sign-in with pre-built demo accounts. All use the same password.
+              Signed-in admin only. One-click switch into pre-built demo accounts — all use the same password.
             </p>
             <div className="inline-flex items-center gap-2 glass-card px-4 py-2.5 text-sm text-white">
               <span className="text-white/50">Password for all:</span>
