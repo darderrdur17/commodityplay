@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { isGoogleSignInConfigured } from "@/lib/auth";
 import { LoginForm } from "./login-form";
 
 const LOGIN_HERO_STATS = ["Industry-Standard", "Your Community"];
@@ -12,7 +13,7 @@ export default function LoginPage() {
         </div>
       }
     >
-      <LoginForm heroStats={LOGIN_HERO_STATS} />
+      <LoginForm heroStats={LOGIN_HERO_STATS} googleEnabled={isGoogleSignInConfigured()} />
     </Suspense>
   );
 }

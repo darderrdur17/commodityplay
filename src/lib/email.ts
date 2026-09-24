@@ -1,7 +1,8 @@
 import { Resend } from "resend";
 import { logDemoEmail, type DemoEmailKind } from "@/lib/demo-email-log";
-import { getSiteFooterContent } from "@/lib/content/accessors";
-import { normalizeOperatorNotifyEmails } from "@/lib/content/footer-schema";
+import type { SiteFooterContent } from "@/data/footer-content";
+import { tryReadPublishedPayload } from "@/lib/content/repository";
+import { mergeSiteFooterContent, normalizeOperatorNotifyEmails } from "@/lib/content/footer-schema";
 import { BRAND_NAME, BRAND_SITE_URL, BRAND_TAGLINE, BRAND_EMAIL_SUPPORT } from "@/lib/brand";
 import { jobChatRespondUrl } from "@/lib/job-chat";
 import type { JobChatMessage } from "@/lib/job-chat";
@@ -24,7 +25,8 @@ function appUrl() {
 export async function getOperatorNotifyEmails(): Promise<string[]> {
   let cmsEmails: string[] = [BRAND_EMAIL_SUPPORT];
   try {
-    const footer = await getSiteFooterContent();
+    const data = await tryReadPublishedPayload<Partial<SiteFooterContent>>("site-footer");
+    const footer = mergeSiteFooterContent(data);
     cmsEmails = normalizeOperatorNotifyEmails(footer.operatorNotifyEmails);
   } catch {
     cmsEmails = [BRAND_EMAIL_SUPPORT];

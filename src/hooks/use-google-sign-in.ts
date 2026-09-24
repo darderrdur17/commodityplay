@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from "react";
 
-export function useGoogleSignInAvailable() {
-  const [available, setAvailable] = useState(false);
+export function useGoogleSignInAvailable(initial = false) {
+  const [available, setAvailable] = useState(initial);
 
   useEffect(() => {
-    fetch("/api/auth/providers")
+    if (initial) return;
+    fetch("/api/auth/google-status")
       .then((response) => response.json())
-      .then((providers: Record<string, unknown> | null) => {
-        setAvailable(Boolean(providers?.google));
+      .then((payload: { available?: boolean } | null) => {
+        setAvailable(Boolean(payload?.available));
       })
       .catch(() => setAvailable(false));
-  }, []);
+  }, [initial]);
 
   return available;
 }

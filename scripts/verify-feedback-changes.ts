@@ -2614,11 +2614,18 @@ async function verifyPdfStampWrites() {
   const footerCustom = mergeSiteFooterContent({
     operatorNotifyEmails: ["support@commodityplay.ai", "frances@commodityplay.ai"],
   });
+  const footerCapped = mergeSiteFooterContent({
+    operatorNotifyEmails: Array.from({ length: 25 }, (_, i) => `desk${i}@commodityplay.ai`),
+  });
+  const emailSrc = fs.readFileSync(path.join(process.cwd(), "src/lib/email.ts"), "utf8");
   ok(
     "Footer CMS defaults operator alerts to Frances and keeps extra inboxes",
     footerMerged.operatorNotifyEmails.join(",") === BRAND_EMAIL_SUPPORT &&
       footerCustom.operatorNotifyEmails.includes("support@commodityplay.ai") &&
-      footerCustom.operatorNotifyEmails.includes("frances@commodityplay.ai")
+      footerCustom.operatorNotifyEmails.includes("frances@commodityplay.ai") &&
+      footerCapped.operatorNotifyEmails.length === 20 &&
+      !emailSrc.includes('from "@/lib/content/accessors"') &&
+      emailSrc.includes("tryReadPublishedPayload")
   );
   const forgotPage = fs.readFileSync(
     path.join(process.cwd(), "src/app/(auth)/forgot-password/page.tsx"),
@@ -2643,7 +2650,8 @@ async function verifyPdfStampWrites() {
       forgotApi.includes("createPasswordResetToken") &&
       resetApi.includes("passwordHash") &&
       loginForm.includes("useGoogleSignInAvailable") &&
-      loginForm.includes("/forgot-password")
+      loginForm.includes("/forgot-password") &&
+      fs.existsSync(path.join(process.cwd(), "src/app/api/auth/google-status/route.ts"))
   );
 }
 

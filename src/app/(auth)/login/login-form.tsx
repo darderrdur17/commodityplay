@@ -21,13 +21,19 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
-export function LoginForm({ heroStats }: { heroStats: string[] }) {
+export function LoginForm({
+  heroStats,
+  googleEnabled = false,
+}: {
+  heroStats: string[];
+  googleEnabled?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const googleAvailable = useGoogleSignInAvailable();
+  const googleAvailable = useGoogleSignInAvailable(googleEnabled);
   const resetSuccess = searchParams.get("reset") === "1";
 
   const {

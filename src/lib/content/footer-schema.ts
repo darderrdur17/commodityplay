@@ -56,7 +56,8 @@ export function normalizeOperatorNotifyEmails(raw?: string[] | null): string[] {
         .filter((email) => emailCheck.safeParse(email).success)
     ),
   ];
-  return list.length > 0 ? list : [BRAND_EMAIL_SUPPORT];
+  const unique = list.length > 0 ? list : [BRAND_EMAIL_SUPPORT];
+  return unique.slice(0, 20);
 }
 
 const MENTOR_APPLY_HREF = "/mentor-apply";
