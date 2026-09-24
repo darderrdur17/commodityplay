@@ -11,7 +11,7 @@ import {
 import { resolveMemberPersonaLabel } from "../src/lib/persona-display";
 import { getDemoAccountDisplayPersona } from "../src/data/demo-accounts";
 import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
-import { canAccessInternalDemo } from "../src/lib/demo-access";
+import { canAccessInternalDemo, FRANCES_DEMO_LOGIN_EMAIL } from "../src/lib/demo-access";
 import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import playbookSections from "../src/data/playbook-sections.json";
 import {
@@ -2581,6 +2581,8 @@ async function verifyPdfStampWrites() {
     "Internal /demo is gated to Frances admin (not public)",
     proxySrc.includes('pathname.startsWith("/demo")') &&
       proxySrc.includes("canAccessInternalDemo") &&
+      FRANCES_DEMO_LOGIN_EMAIL === "francestho@gmail.com" &&
+      canAccessInternalDemo({ role: "USER", email: "francestho@gmail.com" }) &&
       canAccessInternalDemo({ role: "ADMIN", email: "anyone@example.com" }) &&
       canAccessInternalDemo({ role: "USER", email: "frances@commodityplay.ai" }) &&
       !canAccessInternalDemo({ role: "USER", email: "member@example.com" }) &&
