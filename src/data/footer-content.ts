@@ -1,5 +1,5 @@
 import { CAREER_PRICING_HREF, SALES_PRICING_HREF } from "@/lib/pricing-routes";
-import { BRAND_EMAIL_HELLO } from "@/lib/brand";
+import { BRAND_EMAIL_HELLO, BRAND_EMAIL_SUPPORT } from "@/lib/brand";
 import { DEFAULT_LEGAL_PAGES, type FooterLegalPages } from "@/data/legal-content";
 
 export type FooterLinkAction = "link" | "contact" | "mailto";
@@ -28,6 +28,8 @@ export interface SiteFooterContent {
   };
   /** Footer bar links + body copy for /privacy and /terms. */
   legal: FooterLegalPages;
+  /** Inboxes that receive newsletter, Contact Us, mentor apply, and member signup alerts. */
+  operatorNotifyEmails: string[];
 }
 
 export const DEFAULT_SITE_FOOTER: SiteFooterContent = {
@@ -63,4 +65,5 @@ export const DEFAULT_SITE_FOOTER: SiteFooterContent = {
     ],
   },
   legal: DEFAULT_LEGAL_PAGES,
+  operatorNotifyEmails: [BRAND_EMAIL_SUPPORT],
 };

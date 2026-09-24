@@ -240,7 +240,29 @@ export function SiteFooterEditor({
       <p className="text-xs text-muted-fg bg-secondary/50 rounded-lg px-3 py-2">
         Shared site footer for Career and Sales tracks. Updates every page after Save. Edit{" "}
         <strong>Terms of Use</strong> and <strong>Privacy</strong> in the section below — labels, URLs, and page copy.
+        Alert emails for newsletter, Contact Us, mentor apply, and member signups are in{" "}
+        <strong>Operator alert emails</strong>.
       </p>
+      <EditorSection
+        title="Operator alert emails"
+        description="Where newsletter signups, Contact Us messages, mentor applications, and new member signups are sent. One address per line. Default is Frances; add a second support inbox later without a code change."
+        defaultOpen
+      >
+        <EditorField label="Alert email addresses">
+          <textarea
+            className={textareaClass}
+            value={content.operatorNotifyEmails.join("\n")}
+            onChange={(e) =>
+              patch({
+                operatorNotifyEmails: e.target.value
+                  .split(/\n/)
+                  .map((line) => line.trim())
+                  .filter(Boolean),
+              })
+            }
+          />
+        </EditorField>
+      </EditorSection>
       <EditorField label="Brand blurb (under logo)">
         <textarea
           className="w-full min-h-[96px] px-3 py-2 rounded-lg border border-border text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-400 resize-y"

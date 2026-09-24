@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DEFAULT_SITE_FOOTER, type FooterLinkItem, type SiteFooterContent } from "@/data/footer-content";
+import { BRAND_EMAIL_SUPPORT } from "@/lib/brand";
 import { deepMerge } from "@/lib/content/merge";
 import { normalizeLegalPages } from "@/data/legal-content";
 
@@ -42,7 +43,21 @@ export const siteFooterSchema = z.object({
     privacy: legalPageSchema,
     terms: legalPageSchema,
   }),
+  operatorNotifyEmails: z.array(z.string().email()).min(1).max(20),
 });
+
+const emailCheck = z.string().email();
+
+export function normalizeOperatorNotifyEmails(raw?: string[] | null): string[] {
+  const list = [
+    ...new Set(
+      (raw ?? [])
+        .map((email) => email.trim().toLowerCase())
+        .filter((email) => emailCheck.safeParse(email).success)
+    ),
+  ];
+  return list.length > 0 ? list : [BRAND_EMAIL_SUPPORT];
+}
 
 const MENTOR_APPLY_HREF = "/mentor-apply";
 const BE_A_MENTOR_LINK: FooterLinkItem = { label: "Be a Mentor", href: MENTOR_APPLY_HREF };
@@ -88,6 +103,7 @@ export function mergeSiteFooterContent(
     ...merged,
     columns: normalizeFooterColumns(merged.columns ?? DEFAULT_SITE_FOOTER.columns),
     legal: normalizeLegalPages(merged.legal),
+    operatorNotifyEmails: normalizeOperatorNotifyEmails(merged.operatorNotifyEmails),
   };
 }
 

@@ -80,7 +80,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
         tier: "STARTER",
         editorVariant: "track-captions",
       },
-      { slug: "site-footer", label: "Footer", track: "Both", tier: "STARTER" },
+      { slug: "site-footer", label: "Footer & alert emails", track: "Both", tier: "STARTER" },
       { slug: "faq", label: "FAQ", track: "Both", tier: "STARTER" },
       { slug: "member-dashboard", label: "Member Dashboard", track: "Both", tier: "STARTER" },
     ],

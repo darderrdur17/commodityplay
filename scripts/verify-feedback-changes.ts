@@ -2603,12 +2603,47 @@ async function verifyPdfStampWrites() {
     "Operator leads email Frances (newsletter, contact, mentor apply, starter signup)",
     BRAND_EMAIL_SUPPORT === "frances@commodityplay.ai" &&
       fs.readFileSync(path.join(process.cwd(), "src/lib/email.ts"), "utf8").includes(
-        "ADMIN_NOTIFY_EMAIL"
+        "getOperatorNotifyEmails"
       ) &&
       newsletterRoute.includes("notifyOperatorLead") &&
       contactRoute.includes("notifyOperatorLead") &&
       mentorApplyRoute.includes("notifyOperatorLead") &&
       registerRoute.includes("notifyOperatorLead")
+  );
+  const footerMerged = mergeSiteFooterContent({});
+  const footerCustom = mergeSiteFooterContent({
+    operatorNotifyEmails: ["support@commodityplay.ai", "frances@commodityplay.ai"],
+  });
+  ok(
+    "Footer CMS defaults operator alerts to Frances and keeps extra inboxes",
+    footerMerged.operatorNotifyEmails.join(",") === BRAND_EMAIL_SUPPORT &&
+      footerCustom.operatorNotifyEmails.includes("support@commodityplay.ai") &&
+      footerCustom.operatorNotifyEmails.includes("frances@commodityplay.ai")
+  );
+  const forgotPage = fs.readFileSync(
+    path.join(process.cwd(), "src/app/(auth)/forgot-password/page.tsx"),
+    "utf8"
+  );
+  const resetPage = fs.readFileSync(
+    path.join(process.cwd(), "src/app/(auth)/reset-password/page.tsx"),
+    "utf8"
+  );
+  const forgotApi = fs.readFileSync(
+    path.join(process.cwd(), "src/app/api/auth/forgot-password/route.ts"),
+    "utf8"
+  );
+  const resetApi = fs.readFileSync(
+    path.join(process.cwd(), "src/app/api/auth/reset-password/route.ts"),
+    "utf8"
+  );
+  ok(
+    "Forgot password can set a password and Google is hidden unless configured",
+    forgotPage.includes("Send reset link") &&
+      resetPage.includes("Choose a password") &&
+      forgotApi.includes("createPasswordResetToken") &&
+      resetApi.includes("passwordHash") &&
+      loginForm.includes("useGoogleSignInAvailable") &&
+      loginForm.includes("/forgot-password")
   );
 }
 

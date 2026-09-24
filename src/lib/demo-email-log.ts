@@ -12,7 +12,8 @@ export type DemoEmailKind =
   | "operator_newsletter"
   | "operator_contact"
   | "operator_mentor_apply"
-  | "operator_member_signup";
+  | "operator_member_signup"
+  | "password_reset";
 
 const DEMO_EMAIL_KIND_LABELS: Record<DemoEmailKind, string> = {
   mentee_answer: "Answer sent to member",
@@ -26,6 +27,7 @@ const DEMO_EMAIL_KIND_LABELS: Record<DemoEmailKind, string> = {
   operator_contact: "Contact Us message to Frances",
   operator_mentor_apply: "Mentor application to Frances",
   operator_member_signup: "New member signup to Frances",
+  password_reset: "Password reset link",
 };
 
 export function demoEmailKindLabel(kind: string): string {

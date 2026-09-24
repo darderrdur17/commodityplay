@@ -1,5 +1,7 @@
 import { Resend } from "resend";
 import { logDemoEmail, type DemoEmailKind } from "@/lib/demo-email-log";
+import { getSiteFooterContent } from "@/lib/content/accessors";
+import { normalizeOperatorNotifyEmails } from "@/lib/content/footer-schema";
 import { BRAND_NAME, BRAND_SITE_URL, BRAND_TAGLINE, BRAND_EMAIL_SUPPORT } from "@/lib/brand";
 import { jobChatRespondUrl } from "@/lib/job-chat";
 import type { JobChatMessage } from "@/lib/job-chat";
@@ -18,10 +20,20 @@ function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || BRAND_SITE_URL;
 }
 
-/** Operator inbox for leads — Frances. Override with ADMIN_NOTIFY_EMAIL if needed. */
-export function getOperatorNotifyEmail(): string {
-  const override = process.env.ADMIN_NOTIFY_EMAIL?.trim();
-  return override || BRAND_EMAIL_SUPPORT;
+/** Operator inboxes for leads — CMS Footer list, then ADMIN_NOTIFY_EMAIL extras, then Frances. */
+export async function getOperatorNotifyEmails(): Promise<string[]> {
+  let cmsEmails: string[] = [BRAND_EMAIL_SUPPORT];
+  try {
+    const footer = await getSiteFooterContent();
+    cmsEmails = normalizeOperatorNotifyEmails(footer.operatorNotifyEmails);
+  } catch {
+    cmsEmails = [BRAND_EMAIL_SUPPORT];
+  }
+  const envExtras = (process.env.ADMIN_NOTIFY_EMAIL ?? "")
+    .split(/[,;\s]+/)
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+  return normalizeOperatorNotifyEmails([...cmsEmails, ...envExtras]);
 }
 
 export type OperatorLeadKind =
@@ -35,7 +47,8 @@ export async function notifyOperatorLead(params: {
   subject: string;
   lines: { label: string; value: string }[];
 }): Promise<SendEmailResult> {
-  const to = getOperatorNotifyEmail();
+  const to = await getOperatorNotifyEmails();
+  const toLabel = to.join(", ");
   const textBody = params.lines.map((line) => `${line.label}: ${line.value}`).join("\n");
   const text = `${params.subject}\n\n${textBody}\n\nReview in Admin if needed.`;
   const rows = params.lines
@@ -49,13 +62,33 @@ export async function notifyOperatorLead(params: {
         <p style="color:#0830a0;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">${BRAND_NAME}</p>
         <h1 style="font-size:20px;margin:0 0 16px">${escapeHtml(params.subject)}</h1>
         <table style="width:100%;font-size:14px;border-collapse:collapse">${rows}</table>
-        <p style="font-size:12px;color:#677184;margin-top:24px">Sent to ${escapeHtml(to)}</p>
+        <p style="font-size:12px;color:#677184;margin-top:24px">Sent to ${escapeHtml(toLabel)}</p>
       </div>
     `;
   return sendAndLog({
     kind: params.kind,
     to,
     subject: params.subject,
+    text,
+    html,
+  });
+}
+
+export async function sendPasswordResetEmail(params: { to: string; resetUrl: string }) {
+  const text = `Reset your ${BRAND_NAME} password\n\nUse this link within 1 hour:\n${params.resetUrl}\n\nIf you did not ask for this, you can ignore the email.`;
+  const html = `
+      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
+        <p style="color:#0830a0;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">${BRAND_NAME}</p>
+        <h1 style="font-size:22px;margin:0 0 16px">Reset your password</h1>
+        <p>Use the button below within 1 hour to set a new password.</p>
+        <p><a href="${params.resetUrl}" style="display:inline-block;background:#0830a0;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Set password</a></p>
+        <p style="font-size:12px;color:#677184;margin-top:24px">If you did not ask for this, you can ignore the email.</p>
+      </div>
+    `;
+  return sendAndLog({
+    kind: "password_reset",
+    to: params.to,
+    subject: `Reset your ${BRAND_NAME} password`,
     text,
     html,
   });

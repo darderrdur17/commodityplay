@@ -5,5 +5,6 @@ import { Footer } from "./footer";
 export async function FooterWrapper() {
   await connection();
   const content = await getSiteFooterContent();
-  return <Footer content={content} />;
+  const { operatorNotifyEmails: _operatorNotifyEmails, ...publicContent } = content;
+  return <Footer content={{ ...publicContent, operatorNotifyEmails: [] }} />;
 }
