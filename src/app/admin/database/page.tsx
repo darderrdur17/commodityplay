@@ -2,14 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Database } from "lucide-react";
 import { auth } from "@/lib/auth";
-import {
-  getAdminDatabaseTableCounts,
-  prepareAdminDatabase,
-  searchAdminDatabaseContacts,
-  searchAdminDatabaseSubscribers,
-  searchAdminDatabaseUsers,
-  type AdminDatabaseTableCount,
-} from "@/lib/admin-database";
+import { loadAdminDatabasePage, type AdminDatabaseTableCount } from "@/lib/admin-database";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
@@ -85,13 +78,7 @@ export default async function AdminDatabasePage({ searchParams }: PageProps) {
   const q = params.q?.trim() ?? "";
   const view = (VIEWS.some((item) => item.id === params.view) ? params.view : "overview") as ViewId;
 
-  await prepareAdminDatabase();
-  const [tables, users, subscribers, contacts] = await Promise.all([
-    getAdminDatabaseTableCounts(),
-    searchAdminDatabaseUsers(q),
-    searchAdminDatabaseSubscribers(q),
-    searchAdminDatabaseContacts(q),
-  ]);
+  const { tables, users, subscribers, contacts } = await loadAdminDatabasePage(q);
 
   const missing = tables.filter((table) => table.count === null);
   const memberCount = tables.find((table) => table.model === "User")?.count ?? users.length;

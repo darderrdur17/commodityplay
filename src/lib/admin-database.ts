@@ -68,8 +68,36 @@ const TABLE_DEFS: {
 ];
 
 export async function prepareAdminDatabase(): Promise<void> {
-  await ensureContentInfrastructure();
-  await ensureFeaturesInfrastructure();
+  try {
+    await ensureContentInfrastructure();
+  } catch (err) {
+    console.error("[admin-database] CMS schema repair skipped:", err);
+  }
+  try {
+    await ensureFeaturesInfrastructure();
+  } catch (err) {
+    console.error("[admin-database] Feature schema repair skipped:", err);
+  }
+}
+
+export async function loadAdminDatabasePage(query: string) {
+  await prepareAdminDatabase();
+  const [tables, users, subscribers, contacts] = await Promise.all([
+    getAdminDatabaseTableCounts(),
+    searchAdminDatabaseUsers(query).catch((err) => {
+      console.error("[admin-database] users query failed:", err);
+      return [] as AdminDatabaseUserRow[];
+    }),
+    searchAdminDatabaseSubscribers(query).catch((err) => {
+      console.error("[admin-database] subscribers query failed:", err);
+      return [] as AdminDatabaseSubscriberRow[];
+    }),
+    searchAdminDatabaseContacts(query).catch((err) => {
+      console.error("[admin-database] contacts query failed:", err);
+      return [] as AdminDatabaseContactRow[];
+    }),
+  ]);
+  return { tables, users, subscribers, contacts };
 }
 
 async function safeCount(def: (typeof TABLE_DEFS)[number]): Promise<AdminDatabaseTableCount> {
