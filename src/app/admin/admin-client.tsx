@@ -463,10 +463,17 @@ export function AdminClient({
                 </div>
               </div>
             </div>
-            <Button variant="outline-dark" size="sm" onClick={loadAll} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link href="/admin/database">
+                <Button variant="outline-dark" size="sm">
+                  Database
+                </Button>
+              </Link>
+              <Button variant="outline-dark" size="sm" onClick={loadAll} disabled={loading}>
+                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
         </div>
       </div>

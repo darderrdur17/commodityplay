@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "tsc --noEmit",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio",
+    "db:studio": "npx prisma@6.16.3 studio --browser none",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:seed-assets": "npx tsx prisma/seed-assets.ts",
     "build:content": "node scripts/build-all-content.mjs",
