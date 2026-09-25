@@ -2647,7 +2647,7 @@ async function verifyPdfStampWrites() {
     "Admin database browser lists Prisma table counts and user search",
     fs.existsSync(path.join(process.cwd(), "src/app/admin/database/page.tsx")) &&
       fs.readFileSync(path.join(process.cwd(), "src/lib/admin-database.ts"), "utf8").includes(
-        "getAdminDatabaseTableCounts"
+        "prepareAdminDatabase"
       ) &&
       fs.readFileSync(path.join(process.cwd(), "src/app/admin/admin-client.tsx"), "utf8").includes(
         'href="/admin/database"'

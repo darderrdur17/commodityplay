@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { ensureContentInfrastructure } from "@/lib/content/repository";
+import { ensureFeaturesInfrastructure } from "@/lib/setup-database";
 
 export type AdminDatabaseTableCount = {
   model: string;
+  label: string;
+  group: "Accounts" | "Content" | "Leads" | "Activity";
   count: number | null;
 };
 
@@ -9,6 +13,7 @@ export type AdminDatabaseUserRow = {
   id: string;
   name: string | null;
   email: string;
+  company: string | null;
   role: string;
   tier: string;
   track: string;
@@ -17,37 +22,66 @@ export type AdminDatabaseUserRow = {
   createdAt: Date;
 };
 
-async function safeCount(model: string, run: () => Promise<number>): Promise<AdminDatabaseTableCount> {
+export type AdminDatabaseSubscriberRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  source: string | null;
+  subscribed: boolean;
+  createdAt: Date;
+};
+
+export type AdminDatabaseContactRow = {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  createdAt: Date;
+};
+
+const TABLE_DEFS: {
+  model: string;
+  label: string;
+  group: AdminDatabaseTableCount["group"];
+  count: () => Promise<number>;
+}[] = [
+  { model: "User", label: "Members", group: "Accounts", count: () => prisma.user.count() },
+  { model: "Account", label: "Sign-in links", group: "Accounts", count: () => prisma.account.count() },
+  { model: "Session", label: "Sessions", group: "Accounts", count: () => prisma.session.count() },
+  { model: "VerificationToken", label: "Reset tokens", group: "Accounts", count: () => prisma.verificationToken.count() },
+  { model: "ContentModule", label: "CMS modules", group: "Content", count: () => prisma.contentModule.count() },
+  { model: "ContentModuleRevision", label: "CMS revisions", group: "Content", count: () => prisma.contentModuleRevision.count() },
+  { model: "ContentAsset", label: "Uploaded files", group: "Content", count: () => prisma.contentAsset.count() },
+  { model: "EmailSubscriber", label: "Newsletter", group: "Leads", count: () => prisma.emailSubscriber.count() },
+  { model: "ContactMessage", label: "Contact Us", group: "Leads", count: () => prisma.contactMessage.count() },
+  { model: "JobWaitlistEntry", label: "Job waitlist", group: "Leads", count: () => prisma.jobWaitlistEntry.count() },
+  { model: "DemoEmailLog", label: "Email log", group: "Leads", count: () => prisma.demoEmailLog.count() },
+  { model: "ChapterProgress", label: "Chapter progress", group: "Activity", count: () => prisma.chapterProgress.count() },
+  { model: "MentorQuestion", label: "Mentor questions", group: "Activity", count: () => prisma.mentorQuestion.count() },
+  { model: "QuizResult", label: "Persona quizzes", group: "Activity", count: () => prisma.quizResult.count() },
+  { model: "KnowledgeTestResult", label: "Knowledge tests", group: "Activity", count: () => prisma.knowledgeTestResult.count() },
+  { model: "TalkingPoint", label: "Prep notes", group: "Activity", count: () => prisma.talkingPoint.count() },
+  { model: "TrackedAccount", label: "Tracked accounts", group: "Activity", count: () => prisma.trackedAccount.count() },
+  { model: "AccountBookmark", label: "Bookmarks", group: "Activity", count: () => prisma.accountBookmark.count() },
+  { model: "JobChatThread", label: "Job chat threads", group: "Activity", count: () => prisma.jobChatThread.count() },
+  { model: "UserMarketNudgeStatus", label: "Nudge status", group: "Activity", count: () => prisma.userMarketNudgeStatus.count() },
+];
+
+export async function prepareAdminDatabase(): Promise<void> {
+  await ensureContentInfrastructure();
+  await ensureFeaturesInfrastructure();
+}
+
+async function safeCount(def: (typeof TABLE_DEFS)[number]): Promise<AdminDatabaseTableCount> {
   try {
-    return { model, count: await run() };
+    return { model: def.model, label: def.label, group: def.group, count: await def.count() };
   } catch {
-    return { model, count: null };
+    return { model: def.model, label: def.label, group: def.group, count: null };
   }
 }
 
 export async function getAdminDatabaseTableCounts(): Promise<AdminDatabaseTableCount[]> {
-  return Promise.all([
-    safeCount("User", () => prisma.user.count()),
-    safeCount("Account", () => prisma.account.count()),
-    safeCount("Session", () => prisma.session.count()),
-    safeCount("VerificationToken", () => prisma.verificationToken.count()),
-    safeCount("ChapterProgress", () => prisma.chapterProgress.count()),
-    safeCount("MentorQuestion", () => prisma.mentorQuestion.count()),
-    safeCount("QuizResult", () => prisma.quizResult.count()),
-    safeCount("KnowledgeTestResult", () => prisma.knowledgeTestResult.count()),
-    safeCount("JobWaitlistEntry", () => prisma.jobWaitlistEntry.count()),
-    safeCount("ContentModule", () => prisma.contentModule.count()),
-    safeCount("ContentModuleRevision", () => prisma.contentModuleRevision.count()),
-    safeCount("ContentAsset", () => prisma.contentAsset.count()),
-    safeCount("EmailSubscriber", () => prisma.emailSubscriber.count()),
-    safeCount("ContactMessage", () => prisma.contactMessage.count()),
-    safeCount("TalkingPoint", () => prisma.talkingPoint.count()),
-    safeCount("TrackedAccount", () => prisma.trackedAccount.count()),
-    safeCount("AccountBookmark", () => prisma.accountBookmark.count()),
-    safeCount("JobChatThread", () => prisma.jobChatThread.count()),
-    safeCount("DemoEmailLog", () => prisma.demoEmailLog.count()),
-    safeCount("UserMarketNudgeStatus", () => prisma.userMarketNudgeStatus.count()),
-  ]);
+  return Promise.all(TABLE_DEFS.map(safeCount));
 }
 
 export async function searchAdminDatabaseUsers(query: string): Promise<AdminDatabaseUserRow[]> {
@@ -58,15 +92,17 @@ export async function searchAdminDatabaseUsers(query: string): Promise<AdminData
           OR: [
             { email: { contains: q, mode: "insensitive" } },
             { name: { contains: q, mode: "insensitive" } },
+            { company: { contains: q, mode: "insensitive" } },
           ],
         }
       : undefined,
-    orderBy: { email: "asc" },
+    orderBy: { createdAt: "desc" },
     take: 200,
     select: {
       id: true,
       name: true,
       email: true,
+      company: true,
       role: true,
       tier: true,
       track: true,
@@ -80,6 +116,7 @@ export async function searchAdminDatabaseUsers(query: string): Promise<AdminData
     id: user.id,
     name: user.name,
     email: user.email,
+    company: user.company,
     role: user.role,
     tier: user.tier,
     track: user.track,
@@ -87,4 +124,37 @@ export async function searchAdminDatabaseUsers(query: string): Promise<AdminData
     hasPassword: Boolean(user.passwordHash),
     createdAt: user.createdAt,
   }));
+}
+
+export async function searchAdminDatabaseSubscribers(query: string): Promise<AdminDatabaseSubscriberRow[]> {
+  const q = query.trim();
+  return prisma.emailSubscriber.findMany({
+    where: q
+      ? {
+          OR: [
+            { email: { contains: q, mode: "insensitive" } },
+            { name: { contains: q, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+}
+
+export async function searchAdminDatabaseContacts(query: string): Promise<AdminDatabaseContactRow[]> {
+  const q = query.trim();
+  return prisma.contactMessage.findMany({
+    where: q
+      ? {
+          OR: [
+            { email: { contains: q, mode: "insensitive" } },
+            { name: { contains: q, mode: "insensitive" } },
+            { message: { contains: q, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
 }

@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Users, Shield, MessageSquare, Mail, Crown, TrendingUp,
   CheckCircle, Clock, ArrowLeft, RefreshCw, FileJson, Pencil,
-  BarChart2, UserCheck, CreditCard, Copy, ExternalLink,
+  BarChart2, UserCheck, CreditCard, Copy, ExternalLink, Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -466,6 +466,7 @@ export function AdminClient({
             <div className="flex items-center gap-2">
               <Link href="/admin/database">
                 <Button variant="outline-dark" size="sm">
+                  <Database className="w-4 h-4" />
                   Database
                 </Button>
               </Link>
