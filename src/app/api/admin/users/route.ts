@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { isAdminEmail, recordAdminAudit, requireSoleAdmin } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { getCurrentMonthStart } from "@/lib/mentor-credits";
 
 export async function GET() {
-  const session = await requireAdmin();
-  if (!session) {
+  const admin = await requireSoleAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -60,13 +60,19 @@ export async function GET() {
   );
 }
 
+/**
+ * Writable member fields.
+ *
+ * `role` and `tier` are deliberately absent. `role` is not the source of admin
+ * authority (the `ADMIN_EMAILS` allowlist is), and `tier` is purchased through
+ * Stripe — accepting either here would let any operator promote an account or
+ * grant themselves ELITE for free.
+ */
 const updateSchema = z.object({
   userId: z.string(),
   email: z.string().email().max(200).optional(),
   company: z.string().max(120).nullable().optional(),
   profession: z.string().max(120).nullable().optional(),
-  tier: z.enum(["STARTER", "PRO", "ELITE"]).optional(),
-  role: z.enum(["USER", "ADMIN"]).optional(),
   track: z.enum(["CAREER", "SALES"]).optional(),
   persona: z
     .enum(["FRESH_GRAD", "CAREER_SWITCHER", "INSIDER", "ANALYST_TRADER", "VENDOR"])
@@ -76,9 +82,12 @@ const updateSchema = z.object({
   onboardingDone: z.boolean().optional(),
 });
 
+/** Fields an operator may never write through this endpoint. */
+const FORBIDDEN_WRITE_FIELDS = ["role", "tier"] as const;
+
 export async function PATCH(req: NextRequest) {
-  const session = await requireAdmin();
-  if (!session) {
+  const admin = await requireSoleAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -88,16 +97,52 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
+  // Zod strips unknown keys, so `parsed.data` can never carry these. Rejecting
+  // them explicitly turns a silent ignore into a loud, auditable refusal.
+  const attemptedForbidden = FORBIDDEN_WRITE_FIELDS.filter(
+    (field) => body && typeof body === "object" && field in body
+  );
+  if (attemptedForbidden.length > 0) {
+    return NextResponse.json(
+      {
+        error: `Cannot change ${attemptedForbidden.join(" and ")}. Role is managed by the ADMIN_EMAILS allowlist; tier is managed by Stripe.`,
+      },
+      { status: 400 }
+    );
+  }
+
   const { userId, email, company, profession, ...data } = parsed.data;
 
-  if (userId === session.user.id && data.role === "USER") {
-    return NextResponse.json({ error: "Cannot demote yourself" }, { status: 400 });
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true },
+  });
+  if (!target) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
   const updateData: Record<string, unknown> = { ...data };
 
   if (email !== undefined) {
     const nextEmail = email.trim().toLowerCase();
+
+    // The allowlist is keyed on email, so moving an address moves admin
+    // authority. Both directions are refused: changing an administrator's
+    // address (locks the operator out) and changing anyone else's address to an
+    // allowlisted one (hands authority over).
+    if (isAdminEmail(target.email) || isAdminEmail(nextEmail)) {
+      await recordAdminAudit({
+        actorEmail: admin.user.email,
+        action: "user.email_change.refused",
+        targetUserId: userId,
+        metadata: { currentEmail: target.email, requestedEmail: nextEmail },
+      });
+      return NextResponse.json(
+        { error: "The email address of an administrator cannot be changed." },
+        { status: 403 }
+      );
+    }
+
     const taken = await prisma.user.findUnique({
       where: { email: nextEmail },
       select: { id: true },
@@ -131,6 +176,13 @@ export async function PATCH(req: NextRequest) {
       persona: true,
       onboardingDone: true,
     },
+  });
+
+  await recordAdminAudit({
+    actorEmail: admin.user.email,
+    action: "user.update",
+    targetUserId: userId,
+    metadata: { fields: Object.keys(updateData) },
   });
 
   return NextResponse.json(user);

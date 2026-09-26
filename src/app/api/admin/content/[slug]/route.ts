@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireSoleAdmin } from "@/lib/admin-access";
 import {
   getContentModuleRecord,
   hasContentModuleRevision,
@@ -49,8 +49,8 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = await requireSoleAdmin();
+  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { slug } = await params;
   if (!getModuleMeta(slug)) {
@@ -66,8 +66,8 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = await requireSoleAdmin();
+  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { slug } = await params;
   if (!getModuleMeta(slug)) {
@@ -81,7 +81,7 @@ export async function PUT(
   }
 
   if (parsed.data.reset) {
-    const row = await resetContentModule(slug, session.user.id);
+    const row = await resetContentModule(slug, admin.user.id);
     if (slug === "landing") {
       revalidatePath("/");
       revalidatePath("/mentor-connect");
@@ -96,7 +96,7 @@ export async function PUT(
   if (parsed.data.revertToPrevious) {
     try {
       const previousVersion = (await getContentModuleRecord(slug))?.version ?? 0;
-      const row = await revertContentModuleToPrevious(slug, session.user.id);
+      const row = await revertContentModuleToPrevious(slug, admin.user.id);
       if (slug === "landing") {
         revalidatePath("/");
         revalidatePath("/mentor-connect");
@@ -236,7 +236,7 @@ export async function PUT(
       title: parsed.data.title,
       description: parsed.data.description,
     },
-    session.user.id
+    admin.user.id
   );
 
   if (slug === "landing") {

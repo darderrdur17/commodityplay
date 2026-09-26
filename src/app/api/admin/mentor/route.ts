@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { assertSoleAdmin } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
 import { applyCmsSchemaSql } from "@/lib/setup-database";
 
 export async function GET(req: NextRequest) {
-  const session = await requireAdmin();
-  if (!session) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const denied = await assertSoleAdmin();
+  if (denied) return denied;
 
   await applyCmsSchemaSql();
 

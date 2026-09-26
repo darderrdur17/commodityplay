@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { assertSoleAdmin } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const session = await requireAdmin();
-  if (!session) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const denied = await assertSoleAdmin();
+  if (denied) return denied;
 
   const [
     totalUsers,

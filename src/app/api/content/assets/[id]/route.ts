@@ -4,6 +4,7 @@ import { getMobileUser } from "@/lib/mobile-auth";
 import { resolveContentAssetMimeType } from "@/lib/content/asset-files";
 import { getContentAsset } from "@/lib/content/repository";
 import { hasAccess } from "@/lib/utils";
+import { getEntitlements } from "@/lib/entitlements";
 import {
   shouldStampPdfFooter,
   shouldWatermarkPaidPdf,
@@ -22,8 +23,14 @@ export async function GET(
 
   const mobileUser = await getMobileUser(req);
   const session = mobileUser ? null : await auth();
-  const tier = mobileUser?.tier ?? session?.user?.tier;
   const role = mobileUser ? "USER" : session?.user?.role;
+
+  // AUTHORISATION: read the entitlement from the database instead of trusting
+  // `session.user.tier` (JWT, up to 30 days stale after a downgrade/refund/lapse)
+  // or the cached tier on the mobile token.
+  const userId = mobileUser?.id ?? session?.user?.id ?? null;
+  const entitlements = await getEntitlements(userId);
+  const isKnownMember = Boolean(userId) && entitlements.exists;
 
   const mode = req.nextUrl.searchParams.get("mode");
   const forceView = mode === "view";
@@ -35,14 +42,14 @@ export async function GET(
     !!asset.assetKey?.startsWith("starter-pack/thumbs/") &&
     mimeType.startsWith("image/");
 
-  if (!tier && !isPublicFooterGuide && !isPublicStarterThumb) {
+  if (!isKnownMember && !isPublicFooterGuide && !isPublicStarterThumb) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   if (
-    tier &&
+    isKnownMember &&
     role !== "ADMIN" &&
-    !hasAccess(tier, asset.requiredTier)
+    !hasAccess(entitlements.tier, asset.requiredTier)
   ) {
     return NextResponse.json({ error: "Insufficient tier" }, { status: 403 });
   }

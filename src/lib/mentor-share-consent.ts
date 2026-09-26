@@ -1,11 +1,15 @@
-/** Member consent at question submit (DB column: isPublic). */
-export function parseMemberShareOptIn(body: {
-  memberShareOptIn?: boolean;
-  isPublic?: boolean;
-}): boolean {
-  if (typeof body.memberShareOptIn === "boolean") return body.memberShareOptIn;
-  if (typeof body.isPublic === "boolean") return body.isPublic;
-  return false;
+/**
+ * Member consent at question submit.
+ *
+ * Accepts ONLY the `memberShareOptIn` spelling. A legacy `isPublic` alias used to
+ * be honoured here (and in the API schema), inherited from the old column name.
+ * That alias was dangerous: this field is one half of a two-party consent model
+ * sitting next to `mentorShareOptIn`, and an unrecognised-but-accepted `isPublic`
+ * key let a question the member never agreed to share be published to the desk
+ * channel. Unknown keys now default to "not shared", which is the safe direction.
+ */
+export function parseMemberShareOptIn(body: { memberShareOptIn?: boolean }): boolean {
+  return body.memberShareOptIn === true;
 }
 
 export type DeskChannelReviewStatus = "none" | "published" | "rejected";

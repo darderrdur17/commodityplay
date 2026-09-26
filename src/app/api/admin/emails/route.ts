@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { assertSoleAdmin } from "@/lib/admin-access";
 import { listDemoEmails, demoEmailKindLabel } from "@/lib/demo-email-log";
 import { extractHirerReplyUrlFromLog } from "@/lib/job-chat";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const session = await requireAdmin();
-  if (!session) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const denied = await assertSoleAdmin();
+  if (denied) return denied;
 
   const emails = await listDemoEmails(25);
   return NextResponse.json(

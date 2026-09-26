@@ -1,5 +1,4 @@
 import { BRAND_EMAIL_SUPPORT } from "@/lib/brand";
-import { isAdmin } from "@/lib/utils";
 
 /** Frances's live login — she opens /demo with this email, then switches into Maya/Chris/etc. */
 export const FRANCES_DEMO_LOGIN_EMAIL = "francestho@gmail.com";
@@ -10,12 +9,17 @@ export const INTERNAL_DEMO_EMAILS = [
   BRAND_EMAIL_SUPPORT.toLowerCase(),
 ];
 
+/**
+ * Whether `user` may open the internal demo switcher.
+ *
+ * Access is decided by email alone. `role` is writable data and is no longer
+ * consulted: a `role = 'ADMIN'` row with a non-operator email grants nothing.
+ */
 export function canAccessInternalDemo(user?: {
   role?: string | null;
   email?: string | null;
 } | null): boolean {
   if (!user) return false;
-  if (isAdmin(user.role)) return true;
   const email = user.email?.trim().toLowerCase();
   return Boolean(email && INTERNAL_DEMO_EMAILS.includes(email));
 }

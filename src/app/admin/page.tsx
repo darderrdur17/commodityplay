@@ -1,5 +1,4 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requireSoleAdminPage } from "@/lib/admin-access";
 import { AdminClient } from "./admin-client";
 
 export const metadata = { title: "Admin Panel" };
@@ -10,16 +9,15 @@ interface AdminPageProps {
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login?callbackUrl=/admin");
-  if (session.user.role !== "ADMIN") redirect("/dashboard");
+  // Allowlist gate — `User.role` is ignored on purpose.
+  const admin = await requireSoleAdminPage();
 
   const params = await searchParams;
 
   return (
     <AdminClient
-      adminName={session.user.name || "Admin"}
-      adminId={session.user.id}
+      adminName={admin.user.email.split("@")[0] || "Admin"}
+      adminId={admin.user.id}
       initialTab={params.tab}
       initialTrack={params.track}
       initialSlug={params.slug}

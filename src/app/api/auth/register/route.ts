@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { normalizeEmail } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
 import { notifyOperatorLead } from "@/lib/email";
+import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -12,6 +14,16 @@ const schema = z.object({
   track: z.enum(["CAREER", "SALES"]).default("CAREER"),
 });
 
+/**
+ * Response for a request that cannot create an account.
+ *
+ * Deliberately identical whether or not the address is already registered: a
+ * distinct "account already exists" reply is a user-enumeration oracle that
+ * tells an attacker which addresses are worth attacking.
+ */
+const GENERIC_SIGNUP_FAILURE =
+  "We could not create that account. If you already have one, sign in instead or reset your password.";
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -20,11 +32,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    const { name, email, password, track } = parsed.data;
+    const { name, password, track } = parsed.data;
+    // Store the normalised form so `Foo@X.com` and `foo@x.com` are one account.
+    const email = normalizeEmail(parsed.data.email);
+
+    const limit = checkRateLimit(
+      rateLimitKey("register", getClientIp(req)),
+      RATE_LIMITS.register
+    );
+    if (!limit.allowed) return rateLimitResponse(limit);
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
+      return NextResponse.json({ error: GENERIC_SIGNUP_FAILURE }, { status: 409 });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);

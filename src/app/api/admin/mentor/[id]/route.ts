@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireSoleAdmin } from "@/lib/admin-access";
 import { z } from "zod";
 import { answerMentorQuestion } from "@/lib/mentor-questions";
 import { prisma } from "@/lib/prisma";
@@ -13,8 +13,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireAdmin();
-  if (!session?.user?.email) {
+  const admin = await requireSoleAdmin();
+  if (!admin?.user?.email) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -30,7 +30,7 @@ export async function PATCH(
       questionId: id,
       answer: parsed.data.answer,
       mentorShareOptIn: parsed.data.mentorShareOptIn,
-      answeredByEmail: session.user.email,
+      answeredByEmail: admin.user.email,
     });
 
     const question = await prisma.mentorQuestion.findUnique({
@@ -52,8 +52,8 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireAdmin();
-  if (!session) {
+  const admin = await requireSoleAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

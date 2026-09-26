@@ -34,7 +34,9 @@ export default async function MentorConnectPage() {
     redirect("/mentor-connect/inbox");
   }
 
-  const mentorCreditUsage = await getMentorCreditUsageForUser(user.id, user.tier);
+  // Pass the whole row so the helper can authorise on the effective tier; the
+  // `include` above already carries the billing columns it needs.
+  const mentorCreditUsage = await getMentorCreditUsageForUser(user);
 
   const [mentorSegments, mentorConnectHero, mentorConnectHowItWorks] = await Promise.all([
     getPublishedMentorSegments(),

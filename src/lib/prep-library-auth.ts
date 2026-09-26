@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { hasEffectiveAccess } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
-import { hasAccess } from "@/lib/utils";
 import type { Track } from "@prisma/client";
 import { ensureFeaturesInfrastructure } from "@/lib/setup-database";
 
@@ -15,14 +15,25 @@ export async function requireProSession() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, tier: true, track: true, role: true },
+    // Billing columns are needed by `hasEffectiveAccess` so an expired Elite
+    // subscription cannot fall back to a paid tier on the stored value alone.
+    select: {
+      id: true,
+      tier: true,
+      track: true,
+      role: true,
+      stripeStatus: true,
+      stripeCurrentPeriodEnd: true,
+      stripePriceId: true,
+    },
   });
 
   if (!user) {
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 
-  if (!hasAccess(user.tier, "PRO")) {
+  // Authorise on the effective tier, not the stored one.
+  if (!hasEffectiveAccess(user, "PRO")) {
     return { error: NextResponse.json({ error: "Pro tier required" }, { status: 403 }) };
   }
 

@@ -48,7 +48,7 @@ export default async function AccountPage() {
 
   const mentorCreditUsage = isMentorUser
     ? null
-    : await getMentorCreditUsageForUser(user.id, user.tier);
+    : await getMentorCreditUsageForUser(user);
 
   let mentorStats: { total: number; answered: number; pending: number } | null = null;
   if (isMentorUser) {

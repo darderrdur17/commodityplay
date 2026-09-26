@@ -73,7 +73,8 @@ export function LibraryClient({
   files: LibraryFilePublic[];
   hero: LibraryHeroCopy;
   freeSection: LibrarySectionCopy;
-  eliteSection: LibrarySectionCopy;
+  /** Undefined for members without Elite access — the server never ships it to them. */
+  eliteSection?: LibrarySectionCopy;
   hasEliteAccess: boolean;
   memberTrack?: string;
 }) {
@@ -122,30 +123,28 @@ export function LibraryClient({
               </div>
             )}
 
-            {eliteFiles.length > 0 && (
+            {!hasEliteAccess ? (
+              <Reveal className="max-w-lg mx-auto text-center rounded-2xl border border-border bg-secondary/40 p-8">
+                <Lock className="w-8 h-8 text-muted-fg mx-auto mb-4" />
+                <h3 className="font-serif text-lg font-bold text-gray-900 mb-6">{FOR_ELITE_ACCESS}</h3>
+                <Link href={CAREER_PLAN_HREF("elite")}>
+                  <Button size="lg">View Elite plans</Button>
+                </Link>
+              </Reveal>
+            ) : eliteFiles.length > 0 && eliteSection ? (
               <div>
                 <Reveal className="mb-5">
                   <h2 className="font-serif text-xl font-bold text-gray-900">{eliteSection.title}</h2>
                   <p className="text-sm text-muted-fg mt-1">{eliteSection.description}</p>
                 </Reveal>
 
-                {!hasEliteAccess ? (
-                  <Reveal className="max-w-lg mx-auto text-center rounded-2xl border border-border bg-secondary/40 p-8 mb-6">
-                    <Lock className="w-8 h-8 text-muted-fg mx-auto mb-4" />
-                    <h3 className="font-serif text-lg font-bold text-gray-900 mb-6">{FOR_ELITE_ACCESS}</h3>
-                    <Link href={CAREER_PLAN_HREF("elite")}>
-                      <Button size="lg">View Elite plans</Button>
-                    </Link>
-                  </Reveal>
-                ) : null}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
                   {eliteFiles.map((file) => (
-                    <LibraryFileCard key={file.id} file={file} locked={!hasEliteAccess} />
+                    <LibraryFileCard key={file.id} file={file} />
                   ))}
                 </div>
               </div>
-            )}
+            ) : null}
           </>
         )}
       </section>

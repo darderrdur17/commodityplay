@@ -28,6 +28,8 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  // Every sign-in reads accounts by user; without this it is a sequential scan.
+  @@index([userId])
 }
 
 model Session {
@@ -36,6 +38,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
@@ -64,6 +68,9 @@ model User {
   persona        Persona?
   resumePersonaDone Boolean @default(false)
   onboardingDone Boolean   @default(false)
+  /// Bumping this invalidates every mobile JWT already issued to this user.
+  /// Needed because a bare 7-day JWT cannot otherwise be revoked server-side.
+  tokenVersion   Int       @default(0)
   /// True for mentor-identity demo/seed accounts — excluded from the Customers tab (see Mentors tab instead).
   isMentor       Boolean   @default(false)
   /// Links a mentor login account to an anonymous Mentor Connect profile id (e.g. PT-01).
@@ -89,6 +96,7 @@ model User {
   progress           ChapterProgress[]
   mentorQuestions    MentorQuestion[]
   quizResults        QuizResult[]
+  knowledgeTestResults KnowledgeTestResult[]
   jobWaitlistEntry   JobWaitlistEntry?
   contentUpdates     ContentModule[]  @relation("ContentUpdates")
   contentRevisions   ContentModuleRevision[] @relation("ContentRevisionUpdates")
@@ -172,7 +180,10 @@ model MentorQuestion {
   question   String   @db.Text
   answer     String?  @db.Text
   isAnswered Boolean  @default(false)
-  memberShareOptIn Boolean @default(false) @map("isPublic")
+  /// Member consent for desk-channel publication. Previously mapped onto a
+  /// column literally named `isPublic`, which sat confusingly beside
+  /// `mentorShareOptIn` and let a private question be published by mistake.
+  memberShareOptIn Boolean @default(false)
   mentorShareOptIn Boolean @default(false)
   /// none | published | rejected — queue = both consents + answered + none
   deskChannelStatus String @default("none")
@@ -184,6 +195,9 @@ model MentorQuestion {
   menteeNotifiedAt     DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isAnswered, createdAt])
 }
 
 // ── Persona Quiz Results ─────────────────────────────────────────────
@@ -205,6 +219,12 @@ model KnowledgeTestResult {
   totalQ      Int      @default(20)
   gapAreas    Json     // string[]
   completedAt DateTime @default(now())
+
+  // Previously this model had no relation at all, so deleting a user left their
+  // quiz rows behind forever — a GDPR erasure gap. Cascade closes it.
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
 }
 
 // ── Job Waitlist ─────────────────────────────────────────────────────
@@ -384,6 +404,22 @@ model DemoEmailLog {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// ── Admin audit trail ───────────────────────────────────────────────
+// One row per administrator mutation. Written through
+// `recordAdminAudit()` in src/lib/admin-access.ts.
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  actorEmail   String
+  action       String
+  targetUserId String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorEmail])
+  @@index([targetUserId])
 }
 
 // ── Member personal status on Sales Market Nudges items ─────────────

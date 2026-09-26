@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { hasEffectiveAccess } from "@/lib/billing";
 import { getContentTierForSlug, getPlaybookChapters } from "@/lib/content/accessors";
 import { getPublishedPayload } from "@/lib/content/repository";
 import { resolvePlaybookPayload, isPlaybookChapterReleasingSoon, playbookChapterHeroColor } from "@/lib/content/playbook-payload";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-import { getMobileUser, hasTierAccess } from "@/lib/mobile-auth";
+import { getMobileUser } from "@/lib/mobile-auth";
 import { memberMayAccessCareerPlaybook } from "@/lib/dashboard-module-visibility";
 
 export async function GET(req: NextRequest) {
@@ -15,7 +16,9 @@ export async function GET(req: NextRequest) {
   }
 
   const requiredTier = await getContentTierForSlug("playbook");
-  const hasPlaybookAccess = hasTierAccess(user.tier, requiredTier);
+  // Effective tier, not the stored one: a lapsed Elite subscription must not keep
+  // receiving paid playbook sections.
+  const hasPlaybookAccess = hasEffectiveAccess(user, requiredTier);
   const [chapters, payload] = await Promise.all([
     getPlaybookChapters(),
     getPublishedPayload<unknown>("playbook"),
@@ -24,15 +27,26 @@ export async function GET(req: NextRequest) {
 
   const isAdminUser = user.role === "ADMIN";
 
+  /**
+   * Whether a chapter's body may be sent to this caller at all.
+   *
+   * This is the gate that actually matters: the response used to include every
+   * chapter's sections and rely on a client-side `unlocked` flag, so a Starter
+   * member could read the entire paid playbook straight out of the JSON.
+   */
+  const mayReadChapter = (chapterId: string): boolean => {
+    const chapter = chapters.find((c) => c.id === chapterId);
+    if (!chapter) return false;
+    if (isPlaybookChapterReleasingSoon(chapter) && !isAdminUser) return false;
+    return hasPlaybookAccess || Boolean(chapter.preview);
+  };
+
   return NextResponse.json(
     {
       requiredTier,
+      // Gated bytes are omitted entirely, not merely flagged.
       sections: Object.fromEntries(
-        Object.entries(resolved.sections).filter(([id]) => {
-          const chapter = chapters.find((c) => c.id === id);
-          if (!chapter || !isPlaybookChapterReleasingSoon(chapter)) return true;
-          return isAdminUser;
-        })
+        Object.entries(resolved.sections).filter(([id]) => mayReadChapter(id))
       ),
       chapters: chapters.map((c) => {
         const releasingSoon = isPlaybookChapterReleasingSoon(c);

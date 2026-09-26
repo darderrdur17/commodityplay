@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { assertSoleAdmin } from "@/lib/admin-access";
 import { notifyMentorPendingQuestion } from "@/lib/mentor-questions";
 
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireAdmin();
-  if (!session) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const denied = await assertSoleAdmin();
+  if (denied) return denied;
 
   const { id } = await params;
 

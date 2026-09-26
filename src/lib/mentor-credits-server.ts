@@ -1,3 +1,4 @@
+import { effectiveTier, type EntitlementFields } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
 import {
   getCurrentMonthStart,
@@ -16,12 +17,18 @@ export async function countMentorCreditsUsedThisMonth(userId: string): Promise<n
   });
 }
 
+/**
+ * Mentor credits are an Elite benefit, so they follow the EFFECTIVE tier.
+ *
+ * Takes the user row rather than a bare tier string so a caller cannot pass the
+ * stored `tier` value and hand a lapsed subscriber another month of credits.
+ * The caller's Prisma `select` must therefore include the billing columns.
+ */
 export async function getMentorCreditUsageForUser(
-  userId: string,
-  tier: string
+  user: { id: string } & EntitlementFields
 ): Promise<MentorCreditUsage | null> {
-  if (tier !== "ELITE") return null;
-  const used = await countMentorCreditsUsedThisMonth(userId);
+  if (effectiveTier(user) !== "ELITE") return null;
+  const used = await countMentorCreditsUsedThisMonth(user.id);
   return getMentorCreditUsage(used);
 }
 

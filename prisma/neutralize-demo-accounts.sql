@@ -1,0 +1,23 @@
+-- ────────────────────────────────────────────────────────────────────
+-- One-off: neutralise already-seeded demo accounts in production.
+--
+-- These accounts were seeded with the publicly documented password
+-- "Demo1234!". Removing the password hash makes credentials sign-in
+-- impossible for them while preserving every row they own — their
+-- progress, mentor questions, waitlist entries and billing history all
+-- stay intact and remain visible in the admin customer database.
+--
+-- Application code already refuses these accounts at sign-in in
+-- production (see src/lib/demo-guard.ts), so this statement closes the
+-- gap only for accounts that were seeded before that guard shipped.
+--
+-- *** NOT RUN AUTOMATICALLY — execute manually against Neon. ***
+-- Review on a snapshot first, then run:
+--
+--   UPDATE "User" SET "passwordHash" = NULL WHERE email LIKE '%@demo.com';
+--
+-- Verify afterwards (expect 0):
+--
+--   SELECT count(*) FROM "User"
+--   WHERE email LIKE '%@demo.com' AND "passwordHash" IS NOT NULL;
+-- ────────────────────────────────────────────────────────────────────

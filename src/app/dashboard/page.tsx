@@ -42,7 +42,7 @@ export default async function DashboardPage({
   const isMentorUser = isMentorAccount({ isMentor: user.isMentor, email: session.user.email });
 
   const completedChapters = user.progress.filter((p) => p.completed).length;
-  const mentorCreditUsage = await getMentorCreditUsageForUser(user.id, user.tier);
+  const mentorCreditUsage = await getMentorCreditUsageForUser(user);
 
   let mentorStats: {
     dateJoined: string;

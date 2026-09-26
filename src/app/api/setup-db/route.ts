@@ -11,8 +11,10 @@ export async function GET() {
     const seeded = await isDatabaseSeeded();
     return NextResponse.json({
       seeded,
+      // Generic on purpose: echoing the demo password here would hand an
+      // unauthenticated caller a working credential for every seeded account.
       message: seeded
-        ? "Demo accounts are present. Use Demo1234! on /login."
+        ? "Database is seeded."
         : "Database not seeded — POST /api/setup-db with SETUP_SECRET (see VERCEL_DEMO_SETUP.md).",
     });
   } catch (err) {

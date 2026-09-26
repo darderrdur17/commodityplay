@@ -22,6 +22,10 @@ const TIER_UPGRADE = {
 
 interface TierGateProps {
   requiredTier: "PRO" | "ELITE";
+  /**
+   * Effective tier resolved on the server (see `getEntitlements`). Presentational
+   * only — the server must already have withheld any gated payload.
+   */
   userTier?: string;
   children: React.ReactNode;
   className?: string;
@@ -47,11 +51,15 @@ export function TierGate({
   const upgrade = requiredTier === "PRO" ? TIER_UPGRADE.STARTER : TIER_UPGRADE.PRO;
 
   if (compact) {
+    /**
+     * SECURITY: gated children must NEVER be rendered here. A `blur-sm` wrapper still
+     * puts the paid content in the DOM (and in the RSC payload), so anyone can read it
+     * from view-source. Gated content is filtered on the server instead; the teaser
+     * below is a neutral placeholder that carries no paid bytes.
+     */
     return (
       <div className={cn("relative rounded-xl overflow-hidden", className)}>
-        <div className="blur-sm pointer-events-none select-none" aria-hidden>
-          {children}
-        </div>
+        <div className="h-32 rounded-xl bg-gradient-to-b from-gray-100 to-white" aria-hidden />
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm rounded-xl">
           <Lock className="w-5 h-5 text-muted-fg mb-2" />
           <p className="text-xs font-semibold text-gray-600 mb-2">{accessLabel}</p>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth";
+import { requireSoleAdmin } from "@/lib/admin-access";
 import { applyCmsSchemaSql } from "@/lib/setup-database";
 import {
   defaultDeskCategoryForSegment,
@@ -20,8 +20,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireAdmin();
-  if (!session?.user?.id) {
+  const admin = await requireSoleAdmin();
+  if (!admin?.user?.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -49,7 +49,7 @@ export async function POST(
     const result = await publishMentorQuestionToDeskChannel({
       questionId: id,
       category,
-      adminUserId: session.user.id,
+      adminUserId: admin.user.id,
       questionText: parsed.data.question,
       answerText: parsed.data.answer,
     });
