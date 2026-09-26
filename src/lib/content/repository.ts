@@ -5,7 +5,7 @@ import { GLOSSARY_TERMS } from "@/data/glossary";
 import { getDefaultPayload, getAllDefaultPayloads } from "./defaults";
 import { deepMerge } from "./merge";
 import { resolveAdminModulePayload } from "./admin-payload";
-import { applyCmsSchemaSql } from "@/lib/setup-database";
+import { applyCmsSchemaSql, ensureCoreInfrastructure } from "@/lib/setup-database";
 import { mergeSiteFooterContent } from "./footer-schema";
 import type { SiteFooterContent } from "@/data/footer-content";
 
@@ -14,6 +14,14 @@ const MAX_REVISIONS = 20;
 let cmsTablesReady: boolean | null = null;
 
 export async function ensureContentInfrastructure() {
+  // Security-critical columns first (`User.tokenVersion`,
+  // `MentorQuestion.memberShareOptIn`).
+  //
+  // This MUST stay above the `cmsTablesReady` fast path: that path returns early
+  // whenever `ContentModule` already exists — which it does in production — so
+  // anything placed below it would never run on a live database.
+  await ensureCoreInfrastructure();
+
   if (cmsTablesReady) return;
   try {
     await prisma.contentModule.findFirst({ take: 1 });

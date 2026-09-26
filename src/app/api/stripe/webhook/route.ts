@@ -13,6 +13,17 @@ import { sendBillingReceiptEmail } from "@/lib/email";
 import { subscriptionPlanLabel, isSubscriptionLive, maxTier, normalizeTier, type BillingTier } from "@/lib/billing";
 
 /**
+ * Stripe expects a fast 2xx and retries on timeout. The handler writes to
+ * Postgres, claims an idempotency row and sends a receipt email, so give it room
+ * to finish rather than being killed part-way and leaving the event half-applied.
+ *
+ * Declared here rather than in `vercel.json`: a route-level export is the
+ * framework-native way to set this and does not depend on guessing how Vercel
+ * maps source paths to built function names.
+ */
+export const maxDuration = 60;
+
+/**
  * Grace window used only if an Elite-priced line item is somehow bought one-time.
  * Pro (the real one-time product) is lifetime and deliberately gets no expiry.
  */

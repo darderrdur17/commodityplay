@@ -76,6 +76,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
+        // Reconcile the schema before touching `User`. `findUnique` below has no
+        // `select`, so Prisma returns every scalar field and the emitted SQL
+        // includes `"tokenVersion"`. If that column is missing the query throws
+        // and sign-in breaks for every member, so this must run first.
+        //
+        // Imported lazily on purpose: `auth.ts` is pulled into the Edge
+        // middleware bundle via `src/proxy.ts`, and `setup-database` reaches
+        // into Prisma and the seed script. Loading it only when a credentials
+        // sign-in actually executes keeps it out of that bundle.
+        const { ensureCoreInfrastructure } = await import("@/lib/setup-database");
+        await ensureCoreInfrastructure();
+
         const user = await prisma.user.findUnique({ where: { email } });
 
         // Always spend exactly one bcrypt comparison. Returning early when the

@@ -1,10 +1,23 @@
 import { NextRequest } from "next/server";
 import { verify } from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
+import { ensureCoreInfrastructure } from "@/lib/setup-database";
 
-/** Must match the values used when the token is signed in the mobile login route. */
-const MOBILE_JWT_ISSUER = "commodityplay";
-const MOBILE_JWT_AUDIENCE = "mobile";
+/**
+ * Issuer/audience that pin a mobile token to this app and this client.
+ *
+ * These are exported and imported by the login and register routes so all three
+ * sites cannot drift apart. They were previously copy-pasted into each route,
+ * which meant a typo in one place would silently mint tokens that the others
+ * refuse to verify — a failure that only shows up as "logged out for no reason".
+ *
+ * They deliberately do NOT live in a route file: a Next.js route may only export
+ * HTTP verbs and a small allow-list of config values, so exporting them from
+ * `login/route.ts` failed the build with
+ * "MOBILE_JWT_ISSUER is not a valid Route export field".
+ */
+export const MOBILE_JWT_ISSUER = "commodityplay";
+export const MOBILE_JWT_AUDIENCE = "mobile";
 
 interface MobileTokenPayload {
   userId: string;
@@ -28,6 +41,12 @@ export async function getMobileUser(req: NextRequest) {
   }
 
   if (!payload?.userId) return null;
+
+  // The `select` below reads `tokenVersion`, a column added by the 2026-09-26
+  // security pass. Reconcile it first so a deploy that lands ahead of the column
+  // cannot 500 every authenticated mobile request. Cached after the first call,
+  // so this is a boolean check on the hot path.
+  await ensureCoreInfrastructure();
 
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },

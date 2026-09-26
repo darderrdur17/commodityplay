@@ -4,11 +4,10 @@ import { sign } from "jsonwebtoken";
 import { z } from "zod";
 import { normalizeEmail } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
+import { ensureCoreInfrastructure } from "@/lib/setup-database";
+import { MOBILE_JWT_AUDIENCE, MOBILE_JWT_ISSUER } from "@/lib/mobile-auth";
 import { notifyOperatorLead } from "@/lib/email";
 import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
-
-const MOBILE_JWT_ISSUER = "commodityplay";
-const MOBILE_JWT_AUDIENCE = "mobile";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -40,6 +39,10 @@ export async function POST(req: NextRequest) {
   // Normalise on write so the address matches the web signup path and the
   // lowercased admin allowlist comparison.
   const email = normalizeEmail(parsed.data.email);
+
+  // `create` below returns every scalar field, and the token reads
+  // `user.tokenVersion`. Reconcile that column before the first `User` query.
+  await ensureCoreInfrastructure();
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {

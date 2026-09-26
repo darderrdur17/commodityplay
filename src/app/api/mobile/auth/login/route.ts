@@ -5,11 +5,9 @@ import { z } from "zod";
 import { normalizeEmail } from "@/lib/admin-access";
 import { isDemoAccountEmail, isProductionRuntime } from "@/lib/demo-guard";
 import { prisma } from "@/lib/prisma";
+import { ensureCoreInfrastructure } from "@/lib/setup-database";
+import { MOBILE_JWT_AUDIENCE, MOBILE_JWT_ISSUER } from "@/lib/mobile-auth";
 import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
-
-/** Issuer/audience pin the token to this app and this client. */
-export const MOBILE_JWT_ISSUER = "commodityplay";
-export const MOBILE_JWT_AUDIENCE = "mobile";
 
 /**
  * A real bcrypt hash of a throwaway value, so the "no such account" branch costs
@@ -57,6 +55,10 @@ export async function POST(req: NextRequest) {
   if (isProductionRuntime() && isDemoAccountEmail(email)) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
+
+  // `createToken` below reads `user.tokenVersion`, and this `findUnique` has no
+  // `select` so it emits every scalar field. Reconcile the column first.
+  await ensureCoreInfrastructure();
 
   const user = await prisma.user.findUnique({ where: { email } });
 

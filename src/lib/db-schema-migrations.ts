@@ -278,3 +278,94 @@ CREATE INDEX IF NOT EXISTS "AdminAuditLog_createdAt_idx" ON "AdminAuditLog"("cre
 CREATE INDEX IF NOT EXISTS "AdminAuditLog_actorEmail_idx" ON "AdminAuditLog"("actorEmail");
 CREATE INDEX IF NOT EXISTS "AdminAuditLog_targetUserId_idx" ON "AdminAuditLog"("targetUserId");
 `;
+
+/**
+ * Core schema reconciliation for the 2026-09-26 security pass.
+ *
+ * WHY THIS EXISTS
+ *   This project has no `prisma/migrations/` directory, and nothing in the build
+ *   or deploy pipeline runs `prisma migrate deploy` or `prisma db push`. Schema
+ *   changes were previously applied by hand, which means a deploy could ship
+ *   code that references a column the database does not have yet.
+ *
+ *   That is exactly what the security commit did: `User.tokenVersion` and
+ *   `MentorQuestion.memberShareOptIn` are referenced by the new code, but the
+ *   other migration strings only ever added `mentorShareOptIn` (a different,
+ *   pre-existing column) and `AdminAuditLog`. Deploying without the manual SQL
+ *   would therefore break sign-in: Prisma's default `select` returns every
+ *   scalar field, so `prisma.user.findUnique({ where: { email } })` in the
+ *   credentials provider emits `"tokenVersion"` and fails with
+ *   `column "tokenVersion" does not exist`.
+ *
+ * DESIGN RULES — a migration that runs inside a request handler must never be
+ * able to fail and must never destroy data:
+ *   1. Additive only. Nothing is dropped or truncated.
+ *   2. Idempotent. Safe to run on every cold start, and safe to run
+ *      concurrently from two lambdas.
+ *   3. Tolerant. If a prerequisite is missing (e.g. a brand-new empty database
+ *      where `User` does not exist yet) the statement no-ops instead of
+ *      throwing and 500-ing the request.
+ *
+ * The companion file `prisma/manual-migrations-2026-09-26.sql` is still the
+ * fully-validated path: it additionally deletes orphaned `KnowledgeTestResult`
+ * rows and then adds a *validated* foreign key. This runtime version uses
+ * `NOT VALID` instead so it can never fail on pre-existing orphans.
+ */
+export const CORE_MIGRATION_SQL = `
+-- 1. User.tokenVersion — mobile JWT revocation counter.
+DO $$ BEGIN
+  ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "tokenVersion" INTEGER NOT NULL DEFAULT 0;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+
+-- 2. MentorQuestion.memberShareOptIn — member consent for desk-channel publication.
+--    This field was historically mapped onto a column literally named "isPublic".
+--    If the legacy column is still present we RENAME it, which preserves consent
+--    members have already given. Otherwise we ADD the column. The guard means a
+--    database that has neither column (a fresh one) still ends up correct.
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'MentorQuestion'
+      AND column_name = 'memberShareOptIn'
+  ) THEN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'MentorQuestion'
+        AND column_name = 'isPublic'
+    ) THEN
+      ALTER TABLE "MentorQuestion" RENAME COLUMN "isPublic" TO "memberShareOptIn";
+    ELSE
+      ALTER TABLE "MentorQuestion" ADD COLUMN "memberShareOptIn" BOOLEAN NOT NULL DEFAULT false;
+    END IF;
+  END IF;
+EXCEPTION WHEN others THEN NULL;
+END $$;
+
+-- 3. KnowledgeTestResult -> User foreign key.
+--    This model previously had no relation at all, so deleting a user left their
+--    quiz rows behind forever (a GDPR erasure gap). It also means orphan rows can
+--    already exist, which would make a plain ADD CONSTRAINT fail and abort the
+--    whole migration.
+--    NOT VALID is the deliberate choice here: Postgres enforces the constraint
+--    for every new INSERT/UPDATE immediately, but does not scan existing rows.
+--    So it can never fail and never has to delete anything. To fully validate it
+--    later, clean the orphans and run:
+--      ALTER TABLE "KnowledgeTestResult" VALIDATE CONSTRAINT "KnowledgeTestResult_userId_fkey";
+DO $$ BEGIN
+  ALTER TABLE "KnowledgeTestResult" ADD CONSTRAINT "KnowledgeTestResult_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
+    NOT VALID;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "KnowledgeTestResult_userId_completedAt_idx"
+    ON "KnowledgeTestResult" ("userId", "completedAt");
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+`;
