@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { canAccessInternalDemo } from "@/lib/demo-access";
+import { canonicalPublicUrl, isBlockedVercelAlias } from "@/lib/canonical-host";
 
 const PROTECTED_PATHS = [
   "/dashboard",
@@ -22,6 +23,10 @@ const PROTECTED_PATHS = [
 const STARTER_SIGNUP_PATHS = ["/glossary"];
 
 export const proxy = auth((req) => {
+  if (isBlockedVercelAlias(req.nextUrl.hostname)) {
+    return NextResponse.redirect(canonicalPublicUrl(req.url), 308);
+  }
+
   const { pathname } = req.nextUrl;
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
   const needsStarterSignup = STARTER_SIGNUP_PATHS.some((p) => pathname.startsWith(p));

@@ -12,6 +12,11 @@ import { resolveMemberPersonaLabel } from "../src/lib/persona-display";
 import { getDemoAccountDisplayPersona } from "../src/data/demo-accounts";
 import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
 import { canAccessInternalDemo, FRANCES_DEMO_LOGIN_EMAIL } from "../src/lib/demo-access";
+import {
+  CANONICAL_PUBLIC_HOST,
+  canonicalPublicUrl,
+  isBlockedVercelAlias,
+} from "../src/lib/canonical-host";
 import { BRAND_EMAIL_SUPPORT } from "../src/lib/brand";
 import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import playbookSections from "../src/data/playbook-sections.json";
@@ -2577,6 +2582,19 @@ async function verifyPdfStampWrites() {
     !loginForm.includes("Demo accounts") &&
       !loginForm.includes("DEMO_ACCOUNTS") &&
       !loginForm.includes("quickDemoLogin")
+  );
+  const vercelRedirected = canonicalPublicUrl("https://commodityplay.vercel.app/?track=career");
+  ok(
+    "commodityplay.vercel.app is not a second public site",
+    isBlockedVercelAlias("commodityplay.vercel.app") &&
+      !isBlockedVercelAlias("www.commodityplay.ai") &&
+      !isBlockedVercelAlias("localhost") &&
+      vercelRedirected.hostname === CANONICAL_PUBLIC_HOST &&
+      vercelRedirected.search === "?track=career" &&
+      proxySrc.includes("isBlockedVercelAlias") &&
+      fs.readFileSync(path.join(process.cwd(), "vercel.json"), "utf8").includes(
+        "commodityplay.vercel.app"
+      )
   );
   ok(
     "Internal /demo is gated to Frances admin (not public)",
