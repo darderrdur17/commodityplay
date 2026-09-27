@@ -108,6 +108,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           persona: user.persona,
           onboardingDone: user.onboardingDone,
           isMentor: user.isMentor,
+          tokenVersion: user.tokenVersion,
         };
       },
     }),
@@ -138,6 +139,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.persona = user.persona;
         token.onboardingDone = user.onboardingDone;
         token.isMentor = user.isMentor;
+        // Persist the revocation counter so a later bump (password reset,
+        // "sign out everywhere", or an admin action) can invalidate this web
+        // session — mirrors the mobile-token revocation already in place.
+        token.tokenVersion = user.tokenVersion;
+      }
+
+      // Revocation enforcement runs in the Node runtime only. The Edge middleware
+      // (src/proxy.ts) executes this callback but cannot reach Postgres, so we
+      // skip the DB lookup there; sessions are still enforced at the Node boundary
+      // because every server component and API route calls auth() in Node.
+      // Legacy tokens issued before this change carry no `tokenVersion` and are
+      // allowed to ride out their 7-day TTL (graceful, no forced mass logout).
+      const isEdge = typeof (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime !== "undefined";
+      if (!isEdge && token.id && token.tokenVersion !== undefined) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { tokenVersion: true },
+        });
+        if (!dbUser || dbUser.tokenVersion !== token.tokenVersion) {
+          // Token revoked — drop the session so the caller is signed out.
+          return null;
+        }
       }
 
       if (trigger === "update" && token.id) {

@@ -157,6 +157,19 @@ async function main() {
     fail("c.revocation", `${after.res.status} ${after.text}`);
   }
 
+  // c2. Web session revocation — same tokenVersion bump must kill the Auth.js cookie
+  const staleWeb = await jsonFetch("/api/user/persona", {}, memberLogin.jar);
+  const freshWeb = await credentialsLogin(memberEmail, memberPassword);
+  const freshPersona = await jsonFetch("/api/user/persona", {}, freshWeb.jar);
+  if (staleWeb.res.status === 401 && freshPersona.res.status === 200) {
+    pass("c.web_revocation", "stale cookie 401; fresh login 200");
+  } else {
+    fail(
+      "c.web_revocation",
+      `stale=${staleWeb.res.status} fresh=${freshPersona.res.status} ${staleWeb.text}`
+    );
+  }
+
   // d. Admin route + audit
   const existingAdmin = await prisma.user.findUnique({
     where: { email: adminEmail },
