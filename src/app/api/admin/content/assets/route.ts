@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { recordAdminAudit, requireSoleAdmin } from "@/lib/admin-access";
 import {
   buildContentAssetKey,
   resolveContentAssetMimeType,
@@ -17,8 +17,8 @@ import type { Tier } from "@prisma/client";
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = await requireSoleAdmin();
+  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
     const moduleSlug = req.nextUrl.searchParams.get("module") || undefined;
@@ -31,8 +31,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = await requireSoleAdmin();
+  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
     const form = await req.formData();
@@ -63,16 +63,22 @@ export async function POST(req: NextRequest) {
       assetKey,
       requiredTier,
       label,
-      uploadedById: session.user.id,
+      uploadedById: admin.user.id,
     });
 
     if (moduleSlug && getModuleMeta(moduleSlug)) {
       await attachUploadedAssetToModule(
         moduleSlug as ContentSlug,
         { id: asset.id, fileName: asset.fileName, assetKey: asset.assetKey },
-        session.user.id
+        admin.user.id
       );
     }
+
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "cms.asset.upsert",
+      metadata: { id: asset.id, fileName: asset.fileName, assetKey: asset.assetKey, moduleSlug: asset.moduleSlug },
+    });
 
     return NextResponse.json({
       id: asset.id,

@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { recordAdminAudit, requireSoleAdmin } from "@/lib/admin-access";
 import {
   getContentModuleRecord,
   hasContentModuleRevision,
@@ -49,8 +49,8 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = await requireSoleAdmin();
+  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { slug } = await params;
   if (!getModuleMeta(slug)) {
@@ -66,8 +66,8 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = await requireSoleAdmin();
+  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { slug } = await params;
   if (!getModuleMeta(slug)) {
@@ -81,7 +81,7 @@ export async function PUT(
   }
 
   if (parsed.data.reset) {
-    const row = await resetContentModule(slug, session.user.id);
+    const row = await resetContentModule(slug, admin.user.id);
     if (slug === "landing") {
       revalidatePath("/");
       revalidatePath("/mentor-connect");
@@ -90,13 +90,18 @@ export async function PUT(
       revalidatePath("/mentor-connect");
       revalidatePath("/mentor-apply");
     }
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "cms.reset",
+      metadata: { slug, version: row.version },
+    });
     return NextResponse.json({ ok: true, version: row.version, canRevert: await hasContentModuleRevision(slug) });
   }
 
   if (parsed.data.revertToPrevious) {
     try {
       const previousVersion = (await getContentModuleRecord(slug))?.version ?? 0;
-      const row = await revertContentModuleToPrevious(slug, session.user.id);
+      const row = await revertContentModuleToPrevious(slug, admin.user.id);
       if (slug === "landing") {
         revalidatePath("/");
         revalidatePath("/mentor-connect");
@@ -105,6 +110,11 @@ export async function PUT(
         revalidatePath("/mentor-connect");
         revalidatePath("/mentor-apply");
       }
+      await recordAdminAudit({
+        actorEmail: admin.user.email,
+        action: "cms.revert",
+        metadata: { slug, version: row.version, revertedTo: previousVersion - 1 },
+      });
       return NextResponse.json({
         ok: true,
         version: row.version,
@@ -236,7 +246,7 @@ export async function PUT(
       title: parsed.data.title,
       description: parsed.data.description,
     },
-    session.user.id
+    admin.user.id
   );
 
   if (slug === "landing") {
@@ -281,6 +291,17 @@ export async function PUT(
   if (slug === "knowledge-test") {
     revalidatePath("/knowledge-test", "page");
   }
+
+  await recordAdminAudit({
+    actorEmail: admin.user.email,
+    action: "cms.update",
+    metadata: {
+      slug: row.slug,
+      version: row.version,
+      published: parsed.data.published,
+      fields: Object.keys(parsed.data).filter((key) => key !== "payload"),
+    },
+  });
 
   return NextResponse.json({
     ok: true,

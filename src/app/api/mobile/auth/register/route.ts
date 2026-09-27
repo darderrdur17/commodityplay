@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { z } from "zod";
+import { normalizeEmail } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
+import { ensureCoreInfrastructure } from "@/lib/setup-database";
+import { MOBILE_JWT_AUDIENCE, MOBILE_JWT_ISSUER } from "@/lib/mobile-auth";
 import { notifyOperatorLead } from "@/lib/email";
+import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -12,22 +16,47 @@ const schema = z.object({
   track: z.enum(["CAREER", "SALES"]).default("CAREER"),
 });
 
+/**
+ * Same generic failure for "email taken" and "input rejected" — a distinct 409
+ * would let a caller enumerate which addresses already have accounts.
+ */
+const GENERIC_SIGNUP_FAILURE = "Could not create an account with those details.";
+
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const limit = await checkRateLimit(
+    rateLimitKey("mobile-register", getClientIp(req)),
+    RATE_LIMITS.register
+  );
+  if (!limit.allowed) return rateLimitResponse(limit);
+
+  const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json({ error: GENERIC_SIGNUP_FAILURE }, { status: 400 });
+  }
 
-  const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-  if (existing) return NextResponse.json({ error: "Email already registered" }, { status: 409 });
+  const { name, password, track } = parsed.data;
+  // Normalise on write so the address matches the web signup path and the
+  // lowercased admin allowlist comparison.
+  const email = normalizeEmail(parsed.data.email);
 
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  // `create` below returns every scalar field, and the token reads
+  // `user.tokenVersion`. Reconcile that column before the first `User` query.
+  await ensureCoreInfrastructure();
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    return NextResponse.json({ error: GENERIC_SIGNUP_FAILURE }, { status: 400 });
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
     data: {
-      name: parsed.data.name,
-      email: parsed.data.email,
+      name,
+      email,
       passwordHash,
       tier: "STARTER",
-      track: parsed.data.track,
+      track,
     },
   });
 
@@ -35,15 +64,21 @@ export async function POST(req: NextRequest) {
     kind: "operator_member_signup",
     subject: "New starter member signup",
     lines: [
-      { label: "Name", value: parsed.data.name },
-      { label: "Email", value: parsed.data.email },
-      { label: "Track", value: parsed.data.track },
+      { label: "Name", value: name },
+      { label: "Email", value: email },
+      { label: "Track", value: track },
       { label: "Tier", value: "STARTER" },
       { label: "Source", value: "Mobile" },
     ],
   });
 
-  const token = sign({ userId: user.id }, process.env.AUTH_SECRET!, { expiresIn: "30d" });
+  // 7 days, and pinned to this issuer/audience, matching the mobile login route
+  // so tokens from either path are verifiable by `getMobileUser`.
+  const token = sign({ userId: user.id, tokenVersion: user.tokenVersion }, process.env.AUTH_SECRET!, {
+    expiresIn: "7d",
+    issuer: MOBILE_JWT_ISSUER,
+    audience: MOBILE_JWT_AUDIENCE,
+  });
   return NextResponse.json({
     token,
     user: { id: user.id, name: user.name, email: user.email, tier: user.tier, track: user.track, persona: user.persona, mentorCredits: user.mentorCredits },

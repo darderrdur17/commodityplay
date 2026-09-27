@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { normalizeEmail } from "@/lib/admin-access";
 import { notifyOperatorLead } from "@/lib/email";
 
 const schema = z.object({
@@ -16,21 +17,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
-  await prisma.contactMessage.create({ data: parsed.data });
+  const { name, message } = parsed.data;
+  const email = normalizeEmail(parsed.data.email);
+
+  await prisma.contactMessage.create({ data: { name, email, message } });
 
   await prisma.emailSubscriber.upsert({
-    where: { email: parsed.data.email },
+    where: { email },
     update: {},
-    create: { email: parsed.data.email, name: parsed.data.name, source: "contact" },
+    create: { email, name, source: "contact" },
   });
 
   void notifyOperatorLead({
     kind: "operator_contact",
     subject: "New Contact Us message",
     lines: [
-      { label: "Name", value: parsed.data.name },
-      { label: "Email", value: parsed.data.email },
-      { label: "Message", value: parsed.data.message },
+      { label: "Name", value: name },
+      { label: "Email", value: email },
+      { label: "Message", value: message },
     ],
   });
 

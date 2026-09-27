@@ -30,9 +30,16 @@ type FormData = z.infer<typeof schema>;
 function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token") || "";
+  // The reset token is NOT in this page's URL. The emailed link points at
+  // `/api/auth/reset-password?token=…`, which validates the token, stores it in
+  // an httpOnly cookie and redirects here with a clean address bar — so the
+  // token never lands in browser history or leaks via `Referer`. This page only
+  // has to collect the new password; the route reads the cookie itself.
+  const linkInvalid = searchParams.get("error") === "invalid";
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    linkInvalid ? "This reset link is invalid or has expired. Request a new one." : null
+  );
   const {
     register,
     handleSubmit,
@@ -41,14 +48,10 @@ function ResetPasswordForm() {
 
   async function onSubmit(data: FormData) {
     setError(null);
-    if (!token) {
-      setError("This reset link is missing a token. Request a new one.");
-      return;
-    }
     const response = await fetch("/api/auth/reset-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, password: data.password }),
+      body: JSON.stringify({ password: data.password }),
     });
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     if (!response.ok) {

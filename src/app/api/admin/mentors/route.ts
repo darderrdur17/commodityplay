@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth";
+import { requireSoleAdmin } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
 import { getResolvedMentorSegments } from "@/lib/content/accessors";
 import { getContentModulePayload, updateContentModule } from "@/lib/content/repository";
@@ -20,8 +20,8 @@ import { getMentorAnsweredCountsByEmail } from "@/lib/mentor-reward-counts";
 import { normalizeMentorConnectPayload } from "@/lib/content/mentor-connect-schema";
 
 export async function GET() {
-  const session = await requireAdmin();
-  if (!session) {
+  const admin = await requireSoleAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -118,8 +118,8 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest) {
-  const session = await requireAdmin();
-  if (!session) {
+  const admin = await requireSoleAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -190,7 +190,7 @@ export async function PATCH(req: NextRequest) {
   await updateContentModule(
     "mentors",
     { payload: { overrides: nextOverrides }, published: true },
-    session.user.id
+    admin.user.id
   );
 
   if (patch.email !== undefined) {

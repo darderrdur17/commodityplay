@@ -498,7 +498,7 @@ export function AdminContentTab({
       <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
         <p className="text-red-700 text-sm mb-4">{loadError}</p>
         <p className="text-xs text-muted-fg mb-4">
-          Demo admin: <strong>admin@demo.com</strong> / Demo1234! — then open Content CMS tab.
+          Sign in with an allowlisted administrator account, then open the Content CMS tab.
         </p>
         <Button size="sm" onClick={loadModules}>
           <RefreshCw className="w-4 h-4" /> Retry

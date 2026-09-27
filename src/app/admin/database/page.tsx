@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeft, Database } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { requireSoleAdminPage } from "@/lib/admin-access";
 import { loadAdminDatabasePage, type AdminDatabaseTableCount } from "@/lib/admin-database";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,9 +69,8 @@ function CountGrid({ tables }: { tables: AdminDatabaseTableCount[] }) {
 }
 
 export default async function AdminDatabasePage({ searchParams }: PageProps) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login?callbackUrl=/admin/database");
-  if (session.user.role !== "ADMIN") redirect("/dashboard");
+  // Allowlist gate — `User.role` is ignored on purpose.
+  await requireSoleAdminPage();
 
   const params = await searchParams;
   const q = params.q?.trim() ?? "";

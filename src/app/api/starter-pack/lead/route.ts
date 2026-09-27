@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { normalizeEmail } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -19,7 +20,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
-  const { firstName, lastName, email, track } = parsed.data;
+  const { firstName, lastName, track } = parsed.data;
+  // Normalise: this address is used both as an `EmailSubscriber` key and to look
+  // up an existing `User`, so a mixed-case variant would miss the real account.
+  const email = normalizeEmail(parsed.data.email);
   const name = `${firstName.trim()} ${lastName.trim()}`;
 
   const source = track === "CAREER" ? "starter-pack-modal-career" : "starter-pack-modal-sales";

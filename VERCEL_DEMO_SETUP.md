@@ -2,7 +2,7 @@
 
 Get demo logins working at **https://commodityplay.vercel.app/demo** on any device.
 
-**Demo password for all accounts:** `Demo1234!`
+**Demo password:** the shared seed password is neutralized in production (`neutralizeDemoPasswords()`). Do not treat `/demo` as a live login on the public site.
 
 > **Status (June 2025):** Production database has been seeded. Demo login is live. You can skip to [Step 6 — Test](#step-6--test-demo-accounts) unless you are setting up a new environment.
 
@@ -28,8 +28,8 @@ These must be set for **Production** (and ideally Preview):
 |---|---|
 | `DATABASE_URL` | Neon **pooled** URL (`…-pooler….neon.tech/neondb?sslmode=require`) |
 | `AUTH_SECRET` | Random string: `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | `https://commodityplay.vercel.app` |
-| `NEXT_PUBLIC_APP_URL` | `https://commodityplay.vercel.app` |
+| `NEXTAUTH_URL` | `https://www.commodityplay.ai` |
+| `NEXT_PUBLIC_APP_URL` | `https://www.commodityplay.ai` |
 | `SETUP_SECRET` | One-time secret for seeding (see Step 3) |
 
 **Do not use** `localhost` in any production variable.
@@ -73,7 +73,7 @@ Success response:
 {
   "success": true,
   "message": "Database schema pushed and demo accounts seeded.",
-  "demo": { "email": "elite.insider@demo.com", "password": "Demo1234!" }
+      "demoPasswordsCleared": 7
 }
 ```
 
@@ -120,7 +120,7 @@ Open **https://commodityplay.vercel.app/demo**
 | `elite.insider@demo.com` | Elite | Desk Channel, Mentor Connect, Jobs |
 | `elite.mentor@demo.com` | Elite | **Mentor Connect** — opens `/mentor-connect` with 5 credits + sample Q&A |
 
-Password for all: **`Demo1234!`**
+Password for all: neutralized in production. Local/dev seed uses the value in `src/lib/setup-database.ts` only.
 
 Test on a phone (same URL) — no app install required for web demo.
 

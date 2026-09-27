@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verify } from "jsonwebtoken";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getMobileUser } from "@/lib/mobile-auth";
 
 const schema = z.object({
   persona: z.enum(["FRESH_GRAD", "CAREER_SWITCHER", "INSIDER", "ANALYST_TRADER", "VENDOR"]).optional(),
@@ -10,14 +10,8 @@ const schema = z.object({
 });
 
 async function getMobileUserId(req: NextRequest): Promise<string | null> {
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) return null;
-  try {
-    const payload = verify(authHeader.slice(7), process.env.AUTH_SECRET!) as { userId: string };
-    return payload.userId ?? null;
-  } catch {
-    return null;
-  }
+  const user = await getMobileUser(req);
+  return user?.id ?? null;
 }
 
 export async function GET(req: NextRequest) {

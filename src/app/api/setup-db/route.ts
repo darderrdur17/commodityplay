@@ -1,9 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
+import { recordAdminAudit } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
 import { isDatabaseSeeded, setupProductionDatabase } from "@/lib/setup-database";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
+
+/**
+ * Constant-time bearer-token comparison.
+ *
+ * A plain `===` on the secret short-circuits at the first differing byte, which
+ * leaks the secret one byte at a time to an attacker who can time the response.
+ * The length check is unavoidable (timingSafeEqual throws on a length mismatch)
+ * but only reveals the secret's length, which is not sensitive.
+ */
+function secretMatches(provided: string, expected: string): boolean {
+  const a = Buffer.from(provided, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 /** Read-only check — safe to call without auth (does not expose secrets). */
 export async function GET() {
@@ -11,8 +28,10 @@ export async function GET() {
     const seeded = await isDatabaseSeeded();
     return NextResponse.json({
       seeded,
+      // Generic on purpose: echoing the demo password here would hand an
+      // unauthenticated caller a working credential for every seeded account.
       message: seeded
-        ? "Demo accounts are present. Use Demo1234! on /login."
+        ? "Database is seeded."
         : "Database not seeded — POST /api/setup-db with SETUP_SECRET (see VERCEL_DEMO_SETUP.md).",
     });
   } catch (err) {
@@ -33,8 +52,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "SETUP_SECRET not configured on server" }, { status: 503 });
   }
 
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${secret}`) {
+  const auth = req.headers.get("authorization") ?? "";
+  if (!secretMatches(auth, `Bearer ${secret}`)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -43,11 +62,21 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { alreadySeeded } = await setupProductionDatabase();
+    const { alreadySeeded, demoPasswordsCleared } = await setupProductionDatabase();
     const { syncGlossaryFromDefaults } = await import("@/lib/content/repository");
     const glossarySync = await syncGlossaryFromDefaults();
     const { getFeedbackDemoUserStatuses } = await import("@/lib/feedback-demo-users");
     const feedbackUsers = await getFeedbackDemoUserStatuses(prisma);
+
+    await recordAdminAudit({
+      actorEmail: "setup-db",
+      action: "setup-db.run",
+      metadata: {
+        alreadySeeded,
+        demoPasswordsCleared,
+        glossaryTerms: glossarySync.termCount,
+      },
+    });
 
     return NextResponse.json({
       success: true,
@@ -57,11 +86,11 @@ export async function POST(req: NextRequest) {
       message: alreadySeeded
         ? "Database already seeded — demo accounts and glossary refreshed."
         : "Database schema applied and demo accounts seeded.",
-      demo: {
-        starterSales: { email: "starter.vendor@demo.com", password: "Demo1234!" },
-        proSales: { email: "pro.vendor@demo.com", password: "Demo1234!" },
-        eliteSales: { email: "elite.vendor@demo.com", password: "Demo1234!" },
-      },
+      // Deliberately NOT returning the demo passwords that were just written.
+      // This endpoint is reachable by anyone holding SETUP_SECRET, so echoing
+      // them turned one leaked secret into working credentials for every seeded
+      // account. In production the hashes are cleared again before we reply.
+      demoPasswordsCleared,
     });
   } catch (err) {
     console.error("[setup-db]", err);

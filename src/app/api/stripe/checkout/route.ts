@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getStripe, getStripePrices, createOrRetrieveCustomer } from "@/lib/stripe";
 import { isCheckoutConfigured } from "@/lib/payments";
+import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const schema = z.object({
@@ -13,6 +14,12 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const limit = await checkRateLimit(
+    rateLimitKey("stripe-checkout", getClientIp(req), session.user.id),
+    RATE_LIMITS.stripeCheckout
+  );
+  if (!limit.allowed) return rateLimitResponse(limit);
 
   if (!isCheckoutConfigured()) {
     return NextResponse.json(
@@ -37,8 +44,11 @@ export async function POST(req: NextRequest) {
     const customerId = await createOrRetrieveCustomer(userId, email);
     const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL;
 
-    const priceId = plan === "elite" ? prices.ELITE_MONTHLY : prices.PRO_MONTHLY;
-    const mode = "subscription";
+    // Pro is a ONE-TIME purchase (SGD 99) → Checkout must run in "payment" mode.
+    // Elite is a RECURRING monthly subscription (SGD 299/mo) → "subscription" mode.
+    const isElite = plan === "elite";
+    const priceId = isElite ? prices.ELITE_MONTHLY : prices.PRO_MONTHLY;
+    const mode: "payment" | "subscription" = isElite ? "subscription" : "payment";
 
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -47,11 +57,20 @@ export async function POST(req: NextRequest) {
       success_url: `${origin}/account?upgraded=1`,
       cancel_url: `${origin}/account?cancelled=1`,
       metadata: { userId, plan },
-      subscription_data: { metadata: { userId } },
+      // Mode-specific payloads. Both carry server-set metadata so the webhook can
+      // identify the member without trusting anything supplied by the browser.
+      ...(isElite
+        ? { subscription_data: { metadata: { userId, plan } } }
+        : { payment_intent_data: { metadata: { userId, plan } } }),
       allow_promotion_codes: true,
       billing_address_collection: "required",
       customer_update: { address: "auto", name: "auto" },
-      saved_payment_method_options: { payment_method_save: "enabled" },
+      // Saving a card only makes sense for the recurring Elite plan.
+      ...(isElite
+        ? {
+            saved_payment_method_options: { payment_method_save: "enabled" },
+          }
+        : {}),
       payment_method_types: ["card"],
     });
 

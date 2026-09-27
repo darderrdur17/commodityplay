@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { recordAdminAudit, requireSoleAdmin } from "@/lib/admin-access";
 import {
   attachUploadedAssetToModule,
   deleteContentAsset,
@@ -20,12 +20,17 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = await requireSoleAdmin();
+  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   try {
     await deleteContentAsset(id);
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "cms.asset.delete",
+      metadata: { id },
+    });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -42,8 +47,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = await requireSoleAdmin();
+  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const existing = await getContentAsset(id);
@@ -79,7 +84,7 @@ export async function PATCH(
           assetKey: existing.assetKey || file.name,
           requiredTier,
           label: (form.get("label") as string) || existing.label,
-          uploadedById: session.user.id,
+          uploadedById: admin.user.id,
         },
       });
 
@@ -87,10 +92,15 @@ export async function PATCH(
         await attachUploadedAssetToModule(
           moduleSlug as ContentSlug,
           { id: asset.id, fileName: asset.fileName, assetKey: asset.assetKey },
-          session.user.id
+          admin.user.id
         );
       }
 
+      await recordAdminAudit({
+        actorEmail: admin.user.email,
+        action: "cms.asset.replace",
+        metadata: { id: asset.id, fileName: asset.fileName },
+      });
       return NextResponse.json({
         ok: true,
         id: asset.id,
@@ -119,6 +129,11 @@ export async function PATCH(
     },
   });
 
+  await recordAdminAudit({
+    actorEmail: admin.user.email,
+    action: "cms.asset.update",
+    metadata: { id: asset.id, fields: Object.keys(parsed.data) },
+  });
   return NextResponse.json({
     ok: true,
     id: asset.id,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { hasEffectiveAccess } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notifyMentorPoolNewQuestion } from "@/lib/mentor-questions";
@@ -17,8 +18,9 @@ const schema = z.object({
     "sales-advisory",
   ]),
   question: z.string().min(20, "Question must be at least 20 characters").max(500),
+  // Only the explicit `memberShareOptIn` spelling is accepted. The legacy
+  // `isPublic` alias was removed — see `parseMemberShareOptIn`.
   memberShareOptIn: z.boolean().optional(),
-  isPublic: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -29,10 +31,18 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { tier: true, track: true },
+    select: {
+      tier: true,
+      track: true,
+      stripeStatus: true,
+      stripeCurrentPeriodEnd: true,
+      stripePriceId: true,
+    },
   });
 
-  if (!user || user.tier !== "ELITE") {
+  // Effective tier: Elite is a recurring plan, so a lapsed or past-due
+  // subscription must not keep spending mentor credits.
+  if (!user || !hasEffectiveAccess(user, "ELITE")) {
     return NextResponse.json({ error: "Elite membership required" }, { status: 403 });
   }
 

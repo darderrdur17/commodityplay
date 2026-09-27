@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { normalizeEmail } from "@/lib/admin-access";
 import { notifyOperatorLead } from "@/lib/email";
 
 const schema = z.object({
@@ -15,11 +16,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
+  // Lowercase before using the address as a key, so `Foo@X.com` and `foo@x.com`
+  // resolve to the same subscriber rather than creating a duplicate row.
+  const email = normalizeEmail(parsed.data.email);
+
   await prisma.emailSubscriber.upsert({
-    where: { email: parsed.data.email },
+    where: { email },
     update: { subscribed: true },
     create: {
-      email: parsed.data.email,
+      email,
       source: "footer-newsletter",
       subscribed: true,
     },
@@ -29,7 +34,7 @@ export async function POST(req: NextRequest) {
     kind: "operator_newsletter",
     subject: "New newsletter signup",
     lines: [
-      { label: "Email", value: parsed.data.email },
+      { label: "Email", value: email },
       { label: "Source", value: "Footer newsletter" },
     ],
   });

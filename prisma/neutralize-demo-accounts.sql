@@ -1,0 +1,18 @@
+-- ────────────────────────────────────────────────────────────────────
+-- OPTIONAL. Runtime already does this.
+--
+-- `neutralizeDemoPasswords()` in src/lib/setup-database.ts clears
+-- password hashes on every @demo.com account after seed, and
+-- POST /api/setup-db calls that function in the same request. Demo
+-- sign-in is also refused in production by src/lib/demo-guard.ts.
+--
+-- Keep this file only if an operator wants to run the same UPDATE
+-- from psql without going through the API.
+--
+--   UPDATE "User" SET "passwordHash" = NULL WHERE email LIKE '%@demo.com';
+--
+-- Verify afterwards (expect 0):
+--
+--   SELECT count(*) FROM "User"
+--   WHERE email LIKE '%@demo.com' AND "passwordHash" IS NOT NULL;
+-- ────────────────────────────────────────────────────────────────────

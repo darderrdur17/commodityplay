@@ -3,9 +3,10 @@ export const BRAND_NAME = "CommodityPlay.";
 
 export const BRAND_LEGAL_NAME = "CommodityPlay. Pte. Ltd.";
 
-export const BRAND_DOMAIN = "commodityplay.com";
+/** Apex used for public email addresses. The live site is the www host. */
+export const BRAND_DOMAIN = "commodityplay.ai";
 
-export const BRAND_SITE_URL = `https://${BRAND_DOMAIN}`;
+export const BRAND_SITE_URL = "https://www.commodityplay.ai";
 
 export const BRAND_EMAIL_HELLO = `hello@${BRAND_DOMAIN}`;
 
@@ -26,5 +27,7 @@ export function normalizeBrandReferences(text: string): string {
     .replace(/CommodityPlaybook/g, "CommodityPlay.")
     .replace(/@commodityplaybook\.com/g, `@${BRAND_DOMAIN}`)
     .replace(/https?:\/\/commodityplaybook\.com/g, BRAND_SITE_URL)
-    .replace(/commodityplaybook\.com/g, BRAND_DOMAIN);
+    .replace(/commodityplaybook\.com/g, BRAND_DOMAIN)
+    .replace(/https?:\/\/(www\.)?commodityplay\.com/g, BRAND_SITE_URL)
+    .replace(/@commodityplay\.com/g, `@${BRAND_DOMAIN}`);
 }
