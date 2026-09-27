@@ -32,7 +32,28 @@ const STARTER_SIGNUP_PATHS = ["/glossary"];
 const DENY_ONLY_PREFIXES = ["/admin", "/api/admin", "/demo"];
 
 export const proxy = auth((req) => {
-  if (isBlockedVercelAlias(req.nextUrl.hostname)) {
+  /**
+   * Send the raw `*.vercel.app` aliases to the canonical domain so the project is
+   * not reachable as a second public site.
+   *
+   * Compare the PUBLIC host, never `req.nextUrl.hostname`.
+   *
+   * On Vercel `nextUrl.hostname` is the deployment's *internal* hostname, which is
+   * always one of the blocked aliases — it is NOT the host the visitor typed. So
+   * testing it matched on every request to the real domain, redirected to
+   * `https://www.commodityplay.ai/...`, and because that URL is served by the same
+   * deployment it matched again: an infinite 308 loop that made every page on
+   * www.commodityplay.ai unreachable. Static assets were unaffected (they bypass
+   * middleware), which made it look like a domain misconfiguration rather than an
+   * application bug.
+   *
+   * Checking a client-visible host is also what guarantees termination: once the
+   * visitor is on the canonical domain the check no longer matches, so the
+   * redirect cannot repeat. `vercel.json` already performs this redirect at the
+   * edge; this remains as a guard for aliases added later.
+   */
+  const publicHost = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  if (isBlockedVercelAlias(publicHost)) {
     return NextResponse.redirect(canonicalPublicUrl(req.url), 308);
   }
 
