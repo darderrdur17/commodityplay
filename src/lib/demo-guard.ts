@@ -29,6 +29,12 @@ export function normalizeDemoEmail(email?: string | null): string {
 
 /** True when the process is running as a production build/runtime. */
 export function isProductionRuntime(): boolean {
+  // Vercel sets VERCEL_ENV="production" only for the production deployment.
+  // Preview deployments have VERCEL_ENV="preview" but NODE_ENV="production",
+  // so relying on NODE_ENV alone conflates the two.
+  if (process.env.VERCEL_ENV) {
+    return process.env.VERCEL_ENV === "production";
+  }
   return process.env.NODE_ENV === "production";
 }
 

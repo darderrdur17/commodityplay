@@ -3,6 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { recordAdminAudit } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
 import { isDatabaseSeeded, setupProductionDatabase } from "@/lib/setup-database";
+import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -53,6 +54,16 @@ export async function POST(req: NextRequest) {
   }
 
   const auth = req.headers.get("authorization") ?? "";
+  // Rate-limit setup-db attempts by IP: 5 per hour. A wrong secret still
+  // counts toward the limit so brute-force secret guessing is slowed.
+  const limit = await checkRateLimit(
+    rateLimitKey("setup-db", getClientIp(req)),
+    RATE_LIMITS.setupDb
+  );
+  if (!limit.allowed) {
+    return rateLimitResponse(limit);
+  }
+
   if (!secretMatches(auth, `Bearer ${secret}`)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

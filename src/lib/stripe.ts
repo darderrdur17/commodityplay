@@ -161,6 +161,10 @@ CREATE TABLE IF NOT EXISTS "StripeEvent" (
 const MEMORY_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const recentEvents = new Map<string, number>();
 
+/** How often (in event claims) we attempt a DB purge. */
+const PURGE_EVERY_N_CLAIMS = 50;
+let claimCount = 0;
+
 let stripeEventTableReady: Promise<boolean> | null = null;
 
 async function ensureStripeEventTable(): Promise<boolean> {
@@ -211,6 +215,17 @@ export async function claimStripeEvent(
         VALUES (${eventId}, ${eventType}, NOW())
         ON CONFLICT ("id") DO NOTHING
       `;
+      // Lazy periodic cleanup: every N successful DB claims, delete rows > 30 days old.
+      claimCount++;
+      if (claimCount % PURGE_EVERY_N_CLAIMS === 0) {
+        try {
+          await prisma.$executeRaw`
+            DELETE FROM "StripeEvent" WHERE "createdAt" < NOW() - INTERVAL '30 days'
+          `;
+        } catch (cleanupErr) {
+          console.error("[stripe] StripeEvent cleanup failed:", cleanupErr);
+        }
+      }
       return Number(inserted) > 0;
     } catch (err) {
       console.error("[stripe] event claim insert failed:", err);
