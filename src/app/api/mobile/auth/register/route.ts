@@ -23,7 +23,7 @@ const schema = z.object({
 const GENERIC_SIGNUP_FAILURE = "Could not create an account with those details.";
 
 export async function POST(req: NextRequest) {
-  const limit = checkRateLimit(
+  const limit = await checkRateLimit(
     rateLimitKey("mobile-register", getClientIp(req)),
     RATE_LIMITS.register
   );

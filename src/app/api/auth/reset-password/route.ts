@@ -26,7 +26,7 @@ import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitRespon
  * prefetcher or email scanner cannot burn the user's link.
  */
 export async function GET(req: NextRequest) {
-  const limit = checkRateLimit(
+  const limit = await checkRateLimit(
     rateLimitKey("reset-password", getClientIp(req)),
     RATE_LIMITS.resetPassword
   );
@@ -71,7 +71,7 @@ function clearResetCookie(response: NextResponse): NextResponse {
 }
 
 export async function POST(req: NextRequest) {
-  const limit = checkRateLimit(
+  const limit = await checkRateLimit(
     rateLimitKey("reset-password", getClientIp(req)),
     RATE_LIMITS.resetPassword
   );

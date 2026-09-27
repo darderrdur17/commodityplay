@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   // without this the endpoint is a free email-bombing primitive against any
   // inbox. Keyed on the submitted address, so a 429 reveals nothing about
   // whether that address has an account.
-  const limit = checkRateLimit(
+  const limit = await checkRateLimit(
     rateLimitKey("forgot-password", email),
     RATE_LIMITS.forgotPassword
   );

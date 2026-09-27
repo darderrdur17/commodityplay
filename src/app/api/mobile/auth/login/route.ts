@@ -37,7 +37,7 @@ function createToken(userId: string, tokenVersion: number) {
 }
 
 export async function POST(req: NextRequest) {
-  const limit = checkRateLimit(
+  const limit = await checkRateLimit(
     rateLimitKey("mobile-login", getClientIp(req)),
     RATE_LIMITS.login
   );

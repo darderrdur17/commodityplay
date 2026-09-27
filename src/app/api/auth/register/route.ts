@@ -36,13 +36,19 @@ export async function POST(req: NextRequest) {
     // Store the normalised form so `Foo@X.com` and `foo@x.com` are one account.
     const email = normalizeEmail(parsed.data.email);
 
-    const limit = checkRateLimit(
+    const limit = await checkRateLimit(
       rateLimitKey("register", getClientIp(req)),
       RATE_LIMITS.register
     );
     if (!limit.allowed) return rateLimitResponse(limit);
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const { ensureCoreInfrastructure } = await import("@/lib/setup-database");
+    await ensureCoreInfrastructure();
+
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
     if (existing) {
       return NextResponse.json({ error: GENERIC_SIGNUP_FAILURE }, { status: 409 });
     }
@@ -58,6 +64,7 @@ export async function POST(req: NextRequest) {
         track,
         onboardingDone: false,
       },
+      select: { id: true, email: true },
     });
 
     // Add to email subscriber list

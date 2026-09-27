@@ -3,18 +3,12 @@ import "server-only";
 import { NextResponse } from "next/server";
 
 /**
- * Coarse fixed-window rate limiting for the unauthenticated auth endpoints.
+ * Fixed-window rate limiting for unauthenticated (and a few paid) endpoints.
  *
- * ⚠️  LIMITATION — READ BEFORE RELYING ON THIS
- * The counters live in a plain in-process `Map`. On a single long-lived Node
- * process that is real enforcement. On Vercel the app runs as many independent
- * lambda instances (and instances are recycled freely), so each one keeps its
- * own counters and a caller can get roughly `limit × instanceCount` attempts.
- * This raises the cost of abuse; it does NOT hard-caps it.
- *
- * For actual enforcement this Map must be swapped for a shared durable store
- * (Upstash Redis / Vercel KV) behind the same `checkRateLimit` signature. Do not
- * describe the current behaviour as airtight.
+ * Prefer Upstash Redis when `UPSTASH_REDIS_REST_URL` and
+ * `UPSTASH_REDIS_REST_TOKEN` are set so every Vercel instance shares one
+ * counter. When those vars are absent (or Redis errors), fall back to the
+ * in-process Map so local builds and previews still run.
  */
 
 export interface RateLimitRule {
@@ -47,46 +41,72 @@ export const RATE_LIMITS = {
   resetPassword: { limit: 5, windowMs: 15 * 60 * 1000 },
   /** Account creation: 5 / 15 min per ip. */
   register: { limit: 5, windowMs: 15 * 60 * 1000 },
+  /** Stripe Checkout session creation: 8 / 15 min per member. */
+  stripeCheckout: { limit: 8, windowMs: 15 * 60 * 1000 },
+  /**
+   * Stripe webhook deliveries. Generous so legitimate retries are not dropped;
+   * still bounds a forged-flood if the signing secret were ever leaked.
+   */
+  stripeWebhook: { limit: 120, windowMs: 60 * 1000 },
 } as const satisfies Record<string, RateLimitRule>;
 
-/** hit timestamps (epoch ms) per bucket key. */
 const buckets = new Map<string, number[]>();
-
-/** Drop buckets that have gone quiet so the Map cannot grow without bound. */
 const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_TRACKED_BUCKETS = 10_000;
 let lastSweepAt = 0;
+let vercelFallbackWarned = false;
+
+type RedisIncrClient = {
+  incr: (key: string) => Promise<number>;
+  expire: (key: string, seconds: number) => Promise<unknown>;
+  ttl: (key: string) => Promise<number>;
+};
+
+let redisClient: RedisIncrClient | null | undefined;
+
+function redisConfigured(): boolean {
+  return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+}
+
+function warnVercelFallback(reason: string): void {
+  if (process.env.VERCEL !== "1" || vercelFallbackWarned) return;
+  vercelFallbackWarned = true;
+  console.warn(`[rate-limit] ${reason} Falling back to in-memory counters.`);
+}
+
+async function getRedis(): Promise<RedisIncrClient | null> {
+  if (redisClient !== undefined) return redisClient;
+  if (!redisConfigured()) {
+    warnVercelFallback("UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are unset on Vercel.");
+    redisClient = null;
+    return null;
+  }
+  try {
+    const { Redis } = await import("@upstash/redis");
+    redisClient = Redis.fromEnv();
+    return redisClient;
+  } catch (err) {
+    console.error("[rate-limit] Failed to initialise Upstash Redis.", err);
+    warnVercelFallback("Upstash client failed to load.");
+    redisClient = null;
+    return null;
+  }
+}
 
 function sweep(now: number): void {
   if (now - lastSweepAt < SWEEP_INTERVAL_MS) return;
   lastSweepAt = now;
-  const widest = Math.max(
-    RATE_LIMITS.login.windowMs,
-    RATE_LIMITS.forgotPassword.windowMs,
-    RATE_LIMITS.resetPassword.windowMs,
-    RATE_LIMITS.register.windowMs
-  );
+  const widest = Math.max(...Object.values(RATE_LIMITS).map((rule) => rule.windowMs));
   for (const [key, hits] of buckets) {
     const live = hits.filter((at) => now - at < widest);
     if (live.length === 0) buckets.delete(key);
     else buckets.set(key, live);
   }
-  // Hard ceiling as a last resort against a memory-exhaustion vector.
   if (buckets.size > MAX_TRACKED_BUCKETS) buckets.clear();
 }
 
-/**
- * Record an attempt against `key` and report whether it is allowed.
- *
- * Counts the current call, so `limit: 5` permits exactly five attempts.
- */
-export function checkRateLimit(
-  key: string,
-  rule: RateLimitRule,
-  now: number = Date.now()
-): RateLimitResult {
+function checkMemory(key: string, rule: RateLimitRule, now: number): RateLimitResult {
   sweep(now);
-
   const hits = (buckets.get(key) ?? []).filter((at) => now - at < rule.windowMs);
 
   if (hits.length >= rule.limit) {
@@ -111,14 +131,78 @@ export function checkRateLimit(
   };
 }
 
+async function checkRedis(
+  redis: RedisIncrClient,
+  key: string,
+  rule: RateLimitRule
+): Promise<RateLimitResult> {
+  const redisKey = `rl:${key}`;
+  const windowSec = Math.max(1, Math.ceil(rule.windowMs / 1000));
+  const count = await redis.incr(redisKey);
+  if (count === 1) {
+    await redis.expire(redisKey, windowSec);
+  }
+  const ttl = await redis.ttl(redisKey);
+  const retryAfterSeconds = ttl > 0 ? ttl : windowSec;
+
+  if (count > rule.limit) {
+    return {
+      allowed: false,
+      limit: rule.limit,
+      remaining: 0,
+      retryAfterSeconds: Math.max(1, retryAfterSeconds),
+    };
+  }
+
+  return {
+    allowed: true,
+    limit: rule.limit,
+    remaining: Math.max(0, rule.limit - count),
+    retryAfterSeconds: 0,
+  };
+}
+
 /**
- * Best-effort client IP.
+ * Record an attempt against `key` and report whether it is allowed.
  *
- * `x-forwarded-for` is set by the hosting platform; it is only trustworthy when
- * the app is genuinely behind that proxy (Vercel is). A caller reaching the
- * origin directly could spoof it, which is one more reason the shared-store
- * upgrade matters.
+ * Counts the current call, so `limit: 5` permits exactly five attempts.
  */
+export async function checkRateLimit(
+  key: string,
+  rule: RateLimitRule,
+  now: number = Date.now()
+): Promise<RateLimitResult> {
+  const redis = await getRedis();
+  if (redis) {
+    try {
+      return await checkRedis(redis, key, rule);
+    } catch (err) {
+      console.error("[rate-limit] Redis increment failed; using in-memory fallback.", err);
+      warnVercelFallback("Upstash increment failed.");
+    }
+  }
+  return checkMemory(key, rule, now);
+}
+
+/**
+ * Alternate shape used by some call sites / docs.
+ * `{ success, remaining, reset }` maps onto {@link checkRateLimit}.
+ */
+export async function rateLimit(
+  identifier: string,
+  opts: { limit: number; windowSec: number }
+): Promise<{ success: boolean; remaining: number; reset: number }> {
+  const result = await checkRateLimit(identifier, {
+    limit: opts.limit,
+    windowMs: opts.windowSec * 1000,
+  });
+  return {
+    success: result.allowed,
+    remaining: result.remaining,
+    reset: result.retryAfterSeconds,
+  };
+}
+
 export function getClientIp(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for");
   if (forwarded) {
@@ -128,12 +212,10 @@ export function getClientIp(req: Request): string {
   return req.headers.get("x-real-ip")?.trim() || "unknown";
 }
 
-/** Stable bucket key. `scope` separates surfaces that share an email. */
 export function rateLimitKey(scope: string, ...parts: string[]): string {
   return [scope, ...parts.map((part) => part.trim().toLowerCase())].join(":");
 }
 
-/** 429 response carrying standard `Retry-After`. */
 export function rateLimitResponse(
   result: RateLimitResult,
   message = "Too many attempts. Please try again later."

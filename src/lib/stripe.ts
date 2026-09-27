@@ -3,6 +3,29 @@ import Stripe from "stripe";
 let stripeClient: Stripe | null = null;
 
 /** Lazy Stripe client — avoids build failure when STRIPE_SECRET_KEY is unset at compile time. */
+/** True when the configured secret is a Stripe test key. */
+export function isStripeTestSecret(): boolean {
+  return (process.env.STRIPE_SECRET_KEY ?? "").includes("sk_test_");
+}
+
+/**
+ * Whether this webhook may write `User.tier` / billing columns.
+ *
+ * Refuse:
+ *  - a live event while the secret is `sk_test_` (or the reverse)
+ *  - any test-key event on Vercel Production, so a leftover test secret cannot
+ *    grant Pro/Elite on real member rows
+ */
+export function shouldApplyStripeTierWrites(livemode: boolean): boolean {
+  const key = process.env.STRIPE_SECRET_KEY ?? "";
+  const testKey = key.includes("sk_test_");
+  const liveKey = key.includes("sk_live_");
+  if (testKey && livemode) return false;
+  if (liveKey && !livemode) return false;
+  if (testKey && process.env.VERCEL_ENV === "production") return false;
+  return true;
+}
+
 export function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) {

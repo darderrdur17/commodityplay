@@ -96,6 +96,19 @@ environments** unless noted.
 | `MENTOR_NOTIFY_EMAIL` | where new mentor questions go |
 | `ADMIN_NOTIFY_EMAIL` | extra operator notifications (comma-separated, optional) |
 
+### Optional — durable rate limiting (Upstash Redis)
+
+In-process limits reset per Vercel instance. For shared counters, create a Redis
+database at [Upstash](https://console.upstash.com/) (free tier is enough) and set:
+
+| Variable | Notes |
+| --- | --- |
+| `UPSTASH_REDIS_REST_URL` | REST URL from the Upstash console |
+| `UPSTASH_REDIS_REST_TOKEN` | REST token from the Upstash console |
+
+Leave both unset to keep the in-memory fallback (local `npm run build` / `npm start`
+still work). On Vercel, a missing pair logs a warning and falls back.
+
 ### Optional
 
 | Variable | Notes |

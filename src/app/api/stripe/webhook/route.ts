@@ -7,8 +7,10 @@ import {
   releaseStripeEvent,
   resolveOneTimeTierFromAmount,
   resolveTierFromPriceId,
+  shouldApplyStripeTierWrites,
 } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
 import { sendBillingReceiptEmail } from "@/lib/email";
 import { subscriptionPlanLabel, isSubscriptionLive, maxTier, normalizeTier, type BillingTier } from "@/lib/billing";
 
@@ -114,6 +116,12 @@ function subscriptionId(sub: Stripe.Subscription | string | null | undefined): s
 }
 
 export async function POST(req: NextRequest) {
+  const flood = await checkRateLimit(
+    rateLimitKey("stripe-webhook", getClientIp(req)),
+    RATE_LIMITS.stripeWebhook
+  );
+  if (!flood.allowed) return rateLimitResponse(flood);
+
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
     return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
@@ -138,6 +146,13 @@ export async function POST(req: NextRequest) {
   if (!shouldProcess) {
     console.warn(`[webhook] duplicate event ignored: ${event.type} ${event.id}`);
     return NextResponse.json({ received: true, duplicate: true });
+  }
+
+  if (!shouldApplyStripeTierWrites(event.livemode)) {
+    console.warn(
+      `[webhook] acknowledging ${event.type} ${event.id} without mutating tiers (test secret / livemode mismatch)`
+    );
+    return NextResponse.json({ received: true, skipped: true });
   }
 
   try {

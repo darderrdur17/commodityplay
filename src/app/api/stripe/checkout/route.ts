@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getStripe, getStripePrices, createOrRetrieveCustomer } from "@/lib/stripe";
 import { isCheckoutConfigured } from "@/lib/payments";
+import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const schema = z.object({
@@ -13,6 +14,12 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const limit = await checkRateLimit(
+    rateLimitKey("stripe-checkout", getClientIp(req), session.user.id),
+    RATE_LIMITS.stripeCheckout
+  );
+  if (!limit.allowed) return rateLimitResponse(limit);
 
   if (!isCheckoutConfigured()) {
     return NextResponse.json(

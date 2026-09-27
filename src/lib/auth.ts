@@ -59,7 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // 5 attempts / 15 min per (ip + email). Refusal is reported as a generic
         // credential failure so it cannot be used to probe for accounts.
-        const limit = checkRateLimit(
+        const limit = await checkRateLimit(
           rateLimitKey("login", getClientIp(request), email),
           RATE_LIMITS.login
         );
