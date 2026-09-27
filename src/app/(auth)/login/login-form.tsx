@@ -21,6 +21,13 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
+/** Reject absolute URLs and path-traversal attempts. Only allow root-relative paths. */
+function isSafeCallbackUrl(url: string): boolean {
+  // Must start with / and not contain `//` (which would make it a scheme-relative
+  // or protocol-relative URL like //evil.example).
+  return url.startsWith("/") && !url.startsWith("//") && !url.includes("://");
+}
+
 export function LoginForm({
   heroStats,
   googleEnabled = false,
@@ -30,7 +37,8 @@ export function LoginForm({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const rawCallback = searchParams.get("callbackUrl") || "/dashboard";
+  const callbackUrl = isSafeCallbackUrl(rawCallback) ? rawCallback : "/dashboard";
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const googleAvailable = useGoogleSignInAvailable(googleEnabled);

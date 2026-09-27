@@ -48,6 +48,8 @@ export const RATE_LIMITS = {
    * still bounds a forged-flood if the signing secret were ever leaked.
    */
   stripeWebhook: { limit: 120, windowMs: 60 * 1000 },
+  /** setup-db POST: 5 per hour per IP. */
+  setupDb: { limit: 5, windowMs: 60 * 60 * 1000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 const buckets = new Map<string, number[]>();
@@ -204,10 +206,18 @@ export async function rateLimit(
 }
 
 export function getClientIp(req: Request): string {
+  // Vercel appends the real connecting IP at the end of x-forwarded-for and
+  // also exposes it directly. Prefer these over the first entry, which a
+  // client can forge.
+  const vercelIp = req.headers.get("x-vercel-ip");
+  if (vercelIp) return vercelIp.trim();
+
   const forwarded = req.headers.get("x-forwarded-for");
   if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first;
+    const parts = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+    // The last entry is the one appended by the closest proxy (Vercel edge).
+    const last = parts[parts.length - 1];
+    if (last) return last;
   }
   return req.headers.get("x-real-ip")?.trim() || "unknown";
 }
