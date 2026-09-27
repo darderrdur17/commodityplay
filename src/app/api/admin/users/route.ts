@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminEmail, recordAdminAudit, requireSoleAdmin } from "@/lib/admin-access";
+import { incrementUserTokenVersion } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { getCurrentMonthStart } from "@/lib/mentor-credits";
@@ -80,6 +81,7 @@ const updateSchema = z.object({
     .optional(),
   resumeCredits: z.number().min(0).optional(),
   onboardingDone: z.boolean().optional(),
+  signOutEverywhere: z.boolean().optional(),
 });
 
 /** Fields an operator may never write through this endpoint. */
@@ -111,7 +113,7 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
-  const { userId, email, company, profession, ...data } = parsed.data;
+  const { userId, email, company, profession, signOutEverywhere, ...data } = parsed.data;
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
@@ -161,29 +163,48 @@ export async function PATCH(req: NextRequest) {
     updateData.profession = profession?.trim() ? profession.trim() : null;
   }
 
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: updateData,
-    select: {
-      id: true,
-      email: true,
-      company: true,
-      profession: true,
-      tier: true,
-      role: true,
-      resumeCredits: true,
-      track: true,
-      persona: true,
-      onboardingDone: true,
-    },
-  });
+  const userSelect = {
+    id: true,
+    email: true,
+    company: true,
+    profession: true,
+    tier: true,
+    role: true,
+    resumeCredits: true,
+    track: true,
+    persona: true,
+    onboardingDone: true,
+  } as const;
 
-  await recordAdminAudit({
-    actorEmail: admin.user.email,
-    action: "user.update",
-    targetUserId: userId,
-    metadata: { fields: Object.keys(updateData) },
-  });
+  const user =
+    Object.keys(updateData).length > 0
+      ? await prisma.user.update({
+          where: { id: userId },
+          data: updateData,
+          select: userSelect,
+        })
+      : await prisma.user.findUniqueOrThrow({
+          where: { id: userId },
+          select: userSelect,
+        });
+
+  if (Object.keys(updateData).length > 0) {
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "user.update",
+      targetUserId: userId,
+      metadata: { fields: Object.keys(updateData) },
+    });
+  }
+
+  if (signOutEverywhere) {
+    await incrementUserTokenVersion(userId);
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "user.sign_out_everywhere",
+      targetUserId: userId,
+    });
+  }
 
   return NextResponse.json(user);
 }

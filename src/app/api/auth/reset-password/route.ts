@@ -9,6 +9,7 @@ import {
   consumePasswordResetToken,
   peekPasswordResetToken,
 } from "@/lib/password-reset";
+import { incrementUserTokenVersion } from "@/lib/mobile-auth";
 import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
 
 /**
@@ -108,10 +109,7 @@ export async function POST(req: NextRequest) {
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { passwordHash },
-  });
+  await incrementUserTokenVersion(user.id, { passwordHash });
 
   return clearResetCookie(NextResponse.json({ ok: true }));
 }

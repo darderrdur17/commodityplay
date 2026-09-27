@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSoleAdmin } from "@/lib/admin-access";
+import { recordAdminAudit, requireSoleAdmin } from "@/lib/admin-access";
 import { applyCmsSchemaSql } from "@/lib/setup-database";
 import {
   defaultDeskCategoryForSegment,
@@ -42,6 +42,12 @@ export async function POST(
   try {
     if (parsed.data.action === "reject") {
       await rejectMentorQuestionFromDeskChannel(id);
+      await recordAdminAudit({
+        actorEmail: admin.user.email,
+        action: "mentor.desk_channel.reject",
+        targetUserId: question.userId,
+        metadata: { questionId: id },
+      });
       return NextResponse.json({ ok: true, deskChannelStatus: "rejected" });
     }
 
@@ -52,6 +58,12 @@ export async function POST(
       adminUserId: admin.user.id,
       questionText: parsed.data.question,
       answerText: parsed.data.answer,
+    });
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "mentor.desk_channel.publish",
+      targetUserId: question.userId,
+      metadata: { questionId: id, deskChannelQaId: result.deskChannelQaId, category },
     });
     return NextResponse.json({
       ok: true,

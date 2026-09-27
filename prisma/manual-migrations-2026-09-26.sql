@@ -1,18 +1,25 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- CommodityPlay. — manual migration for the 2026-09-26 security pass
+-- OPTIONAL operator runbook (2026-09-26 security pass)
 --
--- WHY THIS IS MANUAL
---   No database credentials were available during the review, so nothing here
---   has been executed. Prisma's `db push` would apply the schema changes, but
---   step 1 is DESTRUCTIVE and step 4 is a RENAME, and neither should happen
---   unattended on a database with live customer rows.
+-- Runtime already applies the safe subset via CORE_MIGRATION_SQL in
+-- ensureCoreInfrastructure() / instrumentation.ts:
+--   * User.tokenVersion
+--   * MentorQuestion.memberShareOptIn (renames legacy isPublic, or adds)
+--   * KnowledgeTestResult → User FK as NOT VALID (never deletes, never fails)
+--   * KnowledgeTestResult (userId, completedAt) index
 --
--- HOW TO RUN
+-- You do NOT need to run this file to deploy. Hand-running it against Neon is
+-- not required and should only be done if you specifically want a *validated*
+-- FK or the extra indexes below.
+--
+-- WHAT THIS FILE IS STILL THE ONLY WAY TO DO
+--   The runtime FK is NOT VALID: Postgres enforces it for new rows but does
+--   not scan existing ones. To fully validate:
+--     1. Inspect / delete orphans (STEP 1 — destructive, ask before running).
+--     2. VALIDATE CONSTRAINT (STEP 2).
+--
+-- HOW TO RUN (local snapshot first — never against production without a branch)
 --   psql "$DATABASE_URL" -f prisma/manual-migrations-2026-09-26.sql
---   Take a Neon branch / snapshot first. Steps are individually commented so you
---   can run them one at a time and inspect the counts in between.
---
--- ORDER MATTERS. Run top to bottom.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -22,8 +29,7 @@
 -- ⚠️  THIS PERMANENTLY DELETES DATA.  ⚠️
 --
 -- `KnowledgeTestResult` never had a foreign key, so any row whose user has since
--- been deleted is an orphan. Step 2 adds the FK, and Postgres will refuse to
--- create it while orphans exist. So they have to go first.
+-- been deleted is an orphan. VALIDATE CONSTRAINT will refuse while orphans exist.
 --
 -- RUN THE SELECT FIRST and eyeball the count. If it is non-zero and unexpected,
 -- stop and investigate before running the DELETE.
@@ -35,28 +41,34 @@ FROM "KnowledgeTestResult" k
 LEFT JOIN "User" u ON u.id = k."userId"
 WHERE u.id IS NULL;
 
--- Then delete:
-DELETE FROM "KnowledgeTestResult" k
-WHERE NOT EXISTS (SELECT 1 FROM "User" u WHERE u.id = k."userId");
+-- Then delete (only after you have inspected the count):
+-- DELETE FROM "KnowledgeTestResult" k
+-- WHERE NOT EXISTS (SELECT 1 FROM "User" u WHERE u.id = k."userId");
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- STEP 2 — KnowledgeTestResult: add the missing FK and index.
+-- STEP 2 — Validate the FK that runtime added as NOT VALID.
+-- If the constraint is missing (empty DB that never started the app), add it
+-- validated after orphans are gone.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 ALTER TABLE "KnowledgeTestResult"
   ADD CONSTRAINT "KnowledgeTestResult_userId_fkey"
   FOREIGN KEY ("userId") REFERENCES "User"("id")
-  ON DELETE CASCADE ON UPDATE CASCADE;
+  ON DELETE CASCADE ON UPDATE CASCADE
+  NOT VALID;
+
+ALTER TABLE "KnowledgeTestResult"
+  VALIDATE CONSTRAINT "KnowledgeTestResult_userId_fkey";
 
 CREATE INDEX IF NOT EXISTS "KnowledgeTestResult_userId_completedAt_idx"
   ON "KnowledgeTestResult" ("userId", "completedAt");
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- STEP 3 — Missing indexes on hot lookup paths.
--- All of these are safe and non-destructive. CREATE INDEX takes a lock on the
--- table for writes; on a small dataset this is instant.
+-- STEP 3 — Optional extra indexes (not applied at runtime).
+-- Safe and non-destructive. CREATE INDEX takes a write lock; on a small dataset
+-- this is instant.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE INDEX IF NOT EXISTS "Account_userId_idx" ON "Account" ("userId");
@@ -70,45 +82,6 @@ CREATE INDEX IF NOT EXISTS "MentorQuestion_isAnswered_createdAt_idx"
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- STEP 4 — Rename the misleading `isPublic` consent column.
---
--- `MentorQuestion.memberShareOptIn` was stored in a column called `isPublic`.
--- Sitting next to the separate `mentorShareOptIn` (two-party consent), that name
--- invited exactly the wrong reading, and the API accepted both spellings — so a
--- question the member had NOT agreed to share could be published.
---
--- Prisma's schema no longer maps this field, so it expects the column to be
--- named "memberShareOptIn". The rename keeps existing data intact.
+-- STEPS 4–5 from the original file (tokenVersion, isPublic rename) are applied
+-- by CORE_MIGRATION_SQL at server start. Re-running them here is unnecessary.
 -- ─────────────────────────────────────────────────────────────────────────────
-
-ALTER TABLE "MentorQuestion"
-  RENAME COLUMN "isPublic" TO "memberShareOptIn";
-
-
--- ─────────────────────────────────────────────────────────────────────────────
--- STEP 5 — Mobile token revocation counter.
---
--- New column backing `User.tokenVersion`. Existing rows default to 0, which
--- matches the `?? 0` fallback in the token verifier, so tokens issued before
--- this migration stay valid until they expire (max 7 days from issue).
--- ─────────────────────────────────────────────────────────────────────────────
-
-ALTER TABLE "User"
-  ADD COLUMN IF NOT EXISTS "tokenVersion" INTEGER NOT NULL DEFAULT 0;
-
-
--- ─────────────────────────────────────────────────────────────────────────────
--- VERIFY
--- ─────────────────────────────────────────────────────────────────────────────
-
--- Expect 0 orphans:
---   SELECT count(*) FROM "KnowledgeTestResult" k
---   LEFT JOIN "User" u ON u.id = k."userId" WHERE u.id IS NULL;
---
--- Expect the column to be renamed (no "isPublic"):
---   SELECT column_name FROM information_schema.columns
---   WHERE table_name = 'MentorQuestion' ORDER BY column_name;
---
--- Expect tokenVersion present:
---   SELECT column_name FROM information_schema.columns
---   WHERE table_name = 'User' AND column_name = 'tokenVersion';

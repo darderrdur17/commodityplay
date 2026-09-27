@@ -306,10 +306,10 @@ CREATE INDEX IF NOT EXISTS "AdminAuditLog_targetUserId_idx" ON "AdminAuditLog"("
  *      where `User` does not exist yet) the statement no-ops instead of
  *      throwing and 500-ing the request.
  *
- * The companion file `prisma/manual-migrations-2026-09-26.sql` is still the
- * fully-validated path: it additionally deletes orphaned `KnowledgeTestResult`
- * rows and then adds a *validated* foreign key. This runtime version uses
- * `NOT VALID` instead so it can never fail on pre-existing orphans.
+ * The companion file `prisma/manual-migrations-2026-09-26.sql` is optional for
+ * deploy. It is still the only path to a *validated* FK: inspect/delete
+ * orphaned `KnowledgeTestResult` rows, then `VALIDATE CONSTRAINT`. This
+ * runtime version uses `NOT VALID` so it can never fail on pre-existing orphans.
  */
 export const CORE_MIGRATION_SQL = `
 -- 1. User.tokenVersion — mobile JWT revocation counter.

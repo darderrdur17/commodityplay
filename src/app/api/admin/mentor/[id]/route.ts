@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSoleAdmin } from "@/lib/admin-access";
+import { recordAdminAudit, requireSoleAdmin } from "@/lib/admin-access";
 import { z } from "zod";
 import { answerMentorQuestion } from "@/lib/mentor-questions";
 import { prisma } from "@/lib/prisma";
@@ -36,6 +36,13 @@ export async function PATCH(
     const question = await prisma.mentorQuestion.findUnique({
       where: { id },
       include: { user: { select: { name: true, email: true, tier: true } } },
+    });
+
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "mentor.answer",
+      targetUserId: question?.userId,
+      metadata: { questionId: id, mentorShareOptIn: parsed.data.mentorShareOptIn },
     });
 
     return NextResponse.json({ ...question, menteeEmail: result.email });

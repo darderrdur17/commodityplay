@@ -24,6 +24,34 @@ interface MobileTokenPayload {
   tokenVersion?: number;
 }
 
+/**
+ * Bump `User.tokenVersion` so every mobile JWT already issued for this user
+ * fails the check in {@link getMobileUser}.
+ *
+ * Call this in the same Prisma transaction as any password write. A bump that
+ * lands after the password commit (or that fails independently) leaves the
+ * 7-day tokens valid against the new credential.
+ */
+export async function incrementUserTokenVersion(
+  userId: string,
+  extra?: { passwordHash?: string }
+): Promise<number> {
+  await ensureCoreInfrastructure();
+
+  const updated = await prisma.$transaction(async (tx) => {
+    return tx.user.update({
+      where: { id: userId },
+      data: {
+        ...(extra?.passwordHash !== undefined ? { passwordHash: extra.passwordHash } : {}),
+        tokenVersion: { increment: 1 },
+      },
+      select: { tokenVersion: true },
+    });
+  });
+
+  return updated.tokenVersion;
+}
+
 export async function getMobileUser(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;

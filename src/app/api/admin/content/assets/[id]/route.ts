@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSoleAdmin } from "@/lib/admin-access";
+import { recordAdminAudit, requireSoleAdmin } from "@/lib/admin-access";
 import {
   attachUploadedAssetToModule,
   deleteContentAsset,
@@ -26,6 +26,11 @@ export async function DELETE(
   const { id } = await params;
   try {
     await deleteContentAsset(id);
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "cms.asset.delete",
+      metadata: { id },
+    });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -91,6 +96,11 @@ export async function PATCH(
         );
       }
 
+      await recordAdminAudit({
+        actorEmail: admin.user.email,
+        action: "cms.asset.replace",
+        metadata: { id: asset.id, fileName: asset.fileName },
+      });
       return NextResponse.json({
         ok: true,
         id: asset.id,
@@ -119,6 +129,11 @@ export async function PATCH(
     },
   });
 
+  await recordAdminAudit({
+    actorEmail: admin.user.email,
+    action: "cms.asset.update",
+    metadata: { id: asset.id, fields: Object.keys(parsed.data) },
+  });
   return NextResponse.json({
     ok: true,
     id: asset.id,

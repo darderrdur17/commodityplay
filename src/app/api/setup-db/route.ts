@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
+import { recordAdminAudit } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
 import { isDatabaseSeeded, setupProductionDatabase } from "@/lib/setup-database";
 
@@ -66,6 +67,16 @@ export async function POST(req: NextRequest) {
     const glossarySync = await syncGlossaryFromDefaults();
     const { getFeedbackDemoUserStatuses } = await import("@/lib/feedback-demo-users");
     const feedbackUsers = await getFeedbackDemoUserStatuses(prisma);
+
+    await recordAdminAudit({
+      actorEmail: "setup-db",
+      action: "setup-db.run",
+      metadata: {
+        alreadySeeded,
+        demoPasswordsCleared,
+        glossaryTerms: glossarySync.termCount,
+      },
+    });
 
     return NextResponse.json({
       success: true,

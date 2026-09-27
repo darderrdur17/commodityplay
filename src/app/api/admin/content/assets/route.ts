@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSoleAdmin } from "@/lib/admin-access";
+import { recordAdminAudit, requireSoleAdmin } from "@/lib/admin-access";
 import {
   buildContentAssetKey,
   resolveContentAssetMimeType,
@@ -73,6 +73,12 @@ export async function POST(req: NextRequest) {
         admin.user.id
       );
     }
+
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "cms.asset.upsert",
+      metadata: { id: asset.id, fileName: asset.fileName, assetKey: asset.assetKey, moduleSlug: asset.moduleSlug },
+    });
 
     return NextResponse.json({
       id: asset.id,

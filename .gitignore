@@ -15,6 +15,11 @@
 .env.test.local
 .env.production.local
 .env.prod.db
+.env.vercel.production
+.env.vercel.*
+
+# Local scratch (never ship)
+sales-case-study-01.html
 
 # Debug
 npm-debug.log*

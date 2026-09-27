@@ -64,6 +64,7 @@ function evalJsArray(html, constName) {
 function extractInterviewBank() {
   const html = read("Pro Pack/pro_pack_interview_question_bank.html");
   const technical = evalJsArray(html, "TECHNICAL");
+  const currentMarket = evalJsArray(html, "CURRENT_MARKET");
   const commercial = evalJsArray(html, "COMMERCIAL");
   const behavioural = evalJsArray(html, "BEHAVIOURAL");
   const elimination = evalJsArray(html, "ELIMINATION");
@@ -82,6 +83,24 @@ function extractInterviewBank() {
       modelAnswer: q.answer,
       framework: q.framework || undefined,
       interviewTip: q.framework || undefined,
+    });
+  }
+  // Current-market items keep stable iv-c-cm-* ids so they are not
+  // renumbered into the sequential COMMERCIAL series (iv-c-27+).
+  let currentMarketIndex = 0;
+  for (const q of currentMarket) {
+    currentMarketIndex++;
+    questions.push({
+      id: `iv-c-cm-${String(currentMarketIndex).padStart(2, "0")}`,
+      tab: "commercial",
+      category: "Commercial judgement",
+      currentMarket: true,
+      addedAt: q.addedAt || "2026-09-08",
+      updatedAt: q.updatedAt || "2026-09-08",
+      question: q.q,
+      modelAnswer: q.answer,
+      framework: q.framework || undefined,
+      interviewTip: q.interviewTip || q.framework || undefined,
     });
   }
   for (const q of commercial) {
@@ -123,7 +142,7 @@ function extractInterviewBank() {
     questions,
     tabs: [
       { id: "technical", label: "Technical", count: technical.length },
-      { id: "commercial", label: "Commercial judgement", count: commercial.length },
+      { id: "commercial", label: "Commercial judgement", count: commercial.length + currentMarket.length },
       { id: "behavioural", label: "Behavioural", count: behavioural.length },
       { id: "elimination", label: "Elimination questions", count: elimination.length },
     ],

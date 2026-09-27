@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
-import { requireSoleAdmin } from "@/lib/admin-access";
+import { recordAdminAudit, requireSoleAdmin } from "@/lib/admin-access";
 import {
   getContentModuleRecord,
   hasContentModuleRevision,
@@ -90,6 +90,11 @@ export async function PUT(
       revalidatePath("/mentor-connect");
       revalidatePath("/mentor-apply");
     }
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "cms.reset",
+      metadata: { slug, version: row.version },
+    });
     return NextResponse.json({ ok: true, version: row.version, canRevert: await hasContentModuleRevision(slug) });
   }
 
@@ -105,6 +110,11 @@ export async function PUT(
         revalidatePath("/mentor-connect");
         revalidatePath("/mentor-apply");
       }
+      await recordAdminAudit({
+        actorEmail: admin.user.email,
+        action: "cms.revert",
+        metadata: { slug, version: row.version, revertedTo: previousVersion - 1 },
+      });
       return NextResponse.json({
         ok: true,
         version: row.version,
@@ -281,6 +291,17 @@ export async function PUT(
   if (slug === "knowledge-test") {
     revalidatePath("/knowledge-test", "page");
   }
+
+  await recordAdminAudit({
+    actorEmail: admin.user.email,
+    action: "cms.update",
+    metadata: {
+      slug: row.slug,
+      version: row.version,
+      published: parsed.data.published,
+      fields: Object.keys(parsed.data).filter((key) => key !== "payload"),
+    },
+  });
 
   return NextResponse.json({
     ok: true,
