@@ -20,6 +20,7 @@ declare module "next-auth" {
     persona?: string | null;
     onboardingDone?: boolean;
     isMentor?: boolean;
+    tokenVersion?: number;
   }
 }
 
@@ -32,5 +33,6 @@ declare module "next-auth/jwt" {
     persona?: string | null;
     onboardingDone?: boolean;
     isMentor?: boolean;
+    tokenVersion?: number;
   }
 }
