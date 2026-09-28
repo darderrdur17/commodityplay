@@ -45,19 +45,31 @@ export type OperatorLeadKind =
   | "operator_member_signup"
   | "operator_upgrade";
 
+/**
+ * Renders a notification value, showing an explicit placeholder when it is blank.
+ *
+ * Operator emails list every field of a submission on purpose, so that a blank row
+ * reads as "the applicant left this empty" rather than "the field was not captured".
+ * An em dash is used instead of an empty string so the row stays visible in HTML.
+ */
+function displayValue(value: string | null | undefined): string {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  return trimmed.length > 0 ? trimmed : "—";
+}
+
 export async function notifyOperatorLead(params: {
   kind: OperatorLeadKind;
   subject: string;
-  lines: { label: string; value: string }[];
+  lines: { label: string; value: string | null | undefined }[];
 }): Promise<SendEmailResult> {
   const to = await getOperatorNotifyEmails();
   const toLabel = to.join(", ");
-  const textBody = params.lines.map((line) => `${line.label}: ${line.value}`).join("\n");
+  const textBody = params.lines.map((line) => `${line.label}: ${displayValue(line.value)}`).join("\n");
   const text = `${params.subject}\n\n${textBody}\n\nReview in Admin if needed.`;
   const rows = params.lines
     .map(
       (line) =>
-        `<tr><td style="padding:6px 0;color:#677184;vertical-align:top">${escapeHtml(line.label)}</td><td style="padding:6px 0;font-weight:600">${escapeHtml(line.value)}</td></tr>`
+        `<tr><td style="padding:6px 0;color:#677184;vertical-align:top">${escapeHtml(line.label)}</td><td style="padding:6px 0;font-weight:600">${escapeHtml(displayValue(line.value))}</td></tr>`
     )
     .join("");
   const html = `

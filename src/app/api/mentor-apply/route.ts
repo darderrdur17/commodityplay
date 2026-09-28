@@ -81,10 +81,15 @@ export async function POST(req: NextRequest) {
       lines: [
         { label: "Name", value: data.name },
         { label: "Email", value: data.email },
+        { label: "LinkedIn", value: data.linkedIn },
+        { label: "Location", value: data.location ?? "" },
         { label: "Company", value: data.company },
         { label: "Role", value: data.role },
+        { label: "Years of experience", value: String(data.years) },
+        { label: "Commodity desk", value: data.commodityDesk ?? "" },
         { label: "Headline", value: data.headline },
-        { label: "LinkedIn", value: data.linkedIn },
+        { label: "Bio", value: data.bio ?? "" },
+        { label: "Mentorship subjects", value: data.tags.join(", ") },
       ],
     });
 
