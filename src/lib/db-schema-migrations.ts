@@ -368,4 +368,15 @@ DO $$ BEGIN
     ON "KnowledgeTestResult" ("userId", "completedAt");
 EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
-`;
+
+-- 4. Contact Us submissions. The Prisma model existed, but this table was never
+--    in CORE/CMS/FEATURES SQL, so hosted Neon 42P01'd on prisma.contactMessage.create.
+CREATE TABLE IF NOT EXISTS "ContactMessage" (
+  "id" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "email" TEXT NOT NULL,
+  "message" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "ContactMessage_pkey" PRIMARY KEY ("id")
+);
+`
