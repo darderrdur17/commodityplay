@@ -11,7 +11,7 @@ import {
 } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
-import { sendBillingReceiptEmail } from "@/lib/email";
+import { sendBillingReceiptEmail, notifyOperatorLead } from "@/lib/email";
 import { subscriptionPlanLabel, isSubscriptionLive, maxTier, normalizeTier, type BillingTier } from "@/lib/billing";
 
 /**
@@ -34,6 +34,8 @@ const ONE_TIME_ELITE_GRACE_DAYS = 30;
 interface BillingUserRow {
   id: string;
   tier: string;
+  email: string;
+  name: string | null;
   stripeStatus: string | null;
   stripeCurrentPeriodEnd: Date | null;
 }
@@ -41,6 +43,8 @@ interface BillingUserRow {
 const BILLING_USER_SELECT = {
   id: true,
   tier: true,
+  email: true,
+  name: true,
   // Needed by the refund handler to work out whether the member still holds a
   // live Elite subscription after a one-time Pro payment is reversed.
   stripeStatus: true,
@@ -217,6 +221,21 @@ export async function POST(req: NextRequest) {
         }
 
         await prisma.user.update({ where: { id: user.id }, data });
+        // Operator lead: tell Frances about the paid upgrade so she can curate a reply.
+        if (grantedTier === "PRO" || grantedTier === "ELITE") {
+          void notifyOperatorLead({
+            kind: "operator_upgrade",
+            subject: `New ${grantedTier} upgrade — ${user.email ?? user.id}`,
+            lines: [
+              { label: "Member", value: user.name ?? "—" },
+              { label: "Email", value: user.email ?? "—" },
+              { label: "Tier", value: grantedTier },
+              { label: "Plan", value: subscriptionPlanLabel(grantedTier, undefined) },
+              { label: "Type", value: isOneTime ? "One-time (lifetime)" : "Subscription" },
+              { label: "Stripe price", value: priceId ?? "—" },
+            ],
+          });
+        }
         break;
       }
 
@@ -274,6 +293,21 @@ export async function POST(req: NextRequest) {
         if (periodEnd) data.stripeCurrentPeriodEnd = periodEnd;
 
         await prisma.user.update({ where: { id: user.id }, data });
+        // Operator lead: notify only on a Pro→Elite plan change (not renewals, and not
+        // the STARTER→ELITE purchase which checkout.session.completed already covers).
+        if (tierFromPrice === "ELITE" && normalizeTier(user.tier) === "PRO") {
+          void notifyOperatorLead({
+            kind: "operator_upgrade",
+            subject: `Upgraded to ELITE — ${user.email ?? user.id}`,
+            lines: [
+              { label: "Member", value: user.name ?? "—" },
+              { label: "Email", value: user.email ?? "—" },
+              { label: "Tier", value: "ELITE" },
+              { label: "Plan", value: subscriptionPlanLabel("ELITE", undefined) },
+              { label: "Reason", value: "Subscription plan change (Pro → Elite)" },
+            ],
+          });
+        }
         break;
       }
 

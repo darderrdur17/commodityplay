@@ -42,7 +42,8 @@ export type OperatorLeadKind =
   | "operator_newsletter"
   | "operator_contact"
   | "operator_mentor_apply"
-  | "operator_member_signup";
+  | "operator_member_signup"
+  | "operator_upgrade";
 
 export async function notifyOperatorLead(params: {
   kind: OperatorLeadKind;
