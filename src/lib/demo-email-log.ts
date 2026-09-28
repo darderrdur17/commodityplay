@@ -13,6 +13,7 @@ export type DemoEmailKind =
   | "operator_contact"
   | "operator_mentor_apply"
   | "operator_member_signup"
+  | "operator_upgrade"
   | "password_reset";
 
 const DEMO_EMAIL_KIND_LABELS: Record<DemoEmailKind, string> = {
@@ -27,6 +28,7 @@ const DEMO_EMAIL_KIND_LABELS: Record<DemoEmailKind, string> = {
   operator_contact: "Contact Us message to Frances",
   operator_mentor_apply: "Mentor application to Frances",
   operator_member_signup: "New member signup to Frances",
+  operator_upgrade: "Pro/Elite upgrade to Frances",
   password_reset: "Password reset link",
 };
 
