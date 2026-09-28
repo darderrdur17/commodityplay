@@ -77,7 +77,16 @@ export function Nav() {
   useEffect(() => {
     setMobileOpen(false);
     setUserMenuOpen(false);
-  }, [pathname]);
+  }, [pathname, activeTrackParam]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -282,6 +291,7 @@ export function Nav() {
                 <Link
                   key={link.key}
                   href={link.href}
+                  onClick={closeMenus}
                   className={cn(
                     "px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center",
                     isLinkActive(link.key, link.href)
@@ -297,12 +307,14 @@ export function Nav() {
                 <>
                   <Link
                     href="/account"
+                    onClick={closeMenus}
                     className="px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-[#f4f5f7] min-h-[44px] flex items-center"
                   >
                     My Account
                   </Link>
                   <Link
                     href={myProgressHref}
+                    onClick={closeMenus}
                     className="px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-[#f4f5f7] min-h-[44px] flex items-center"
                   >
                     My Progress
@@ -310,6 +322,7 @@ export function Nav() {
                   {isAdmin(user?.role) && (
                     <Link
                       href="/admin"
+                      onClick={closeMenus}
                       className="px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 min-h-[44px] flex items-center"
                     >
                       Admin Panel
@@ -317,7 +330,10 @@ export function Nav() {
                   )}
                   <button
                     type="button"
-                    onClick={() => signOut({ callbackUrl: "/" })}
+                    onClick={() => {
+                      closeMenus();
+                      signOut({ callbackUrl: "/" });
+                    }}
                     className="px-3 py-2.5 rounded-lg text-sm font-medium text-[#e53e3e] hover:bg-[#fff5f5] text-left min-h-[44px]"
                   >
                     Sign Out
@@ -325,12 +341,12 @@ export function Nav() {
                 </>
               ) : (
                 <div className="flex flex-col gap-2 pt-1">
-                  <Link href="/login">
+                  <Link href="/login" onClick={closeMenus}>
                     <Button variant="outline" className="w-full">
                       Sign in
                     </Button>
                   </Link>
-                  <Link href="/signup">
+                  <Link href="/signup" onClick={closeMenus}>
                     <Button className="w-full">Join Free</Button>
                   </Link>
                 </div>
