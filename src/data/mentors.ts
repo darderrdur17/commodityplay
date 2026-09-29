@@ -78,6 +78,13 @@ export interface MentorOverride {
   segmentId?: string;
   /** Review status. Defaults to `"pending"` for new self-submitted applications, `"active"` otherwise. */
   status?: MentorStatus;
+  /**
+   * Tombstone. When true this profile is hidden from every surface (admin Mentors
+   * tab, Mentor Connect, {mentorCount} stats). Set by the admin "Delete" action.
+   * Kept on the record so a seeded mentors.json profile can be suppressed without
+   * editing code, and so a delete is reversible (set back to false / remove the flag).
+   */
+  deleted?: boolean;
   createdAt?: string;
 }
 
@@ -131,4 +138,26 @@ export function generateMentorId(): string {
   const stamp = Date.now().toString(36).toUpperCase();
   const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `NEW-${stamp}-${rand}`;
+}
+
+/**
+ * Valid shape for an admin-editable anonymous mentor id.
+ *
+ * 3–40 chars: uppercase letters, digits and hyphens; must start with a letter or
+ * digit. Deliberately permissive rather than forcing a `NEW-` prefix — the operator
+ * may want a friendlier public handle, and uniqueness (checked server-side against
+ * seeded ids + other overrides) is what actually protects correctness.
+ *
+ * To enforce brand consistency instead, tighten to /^NEW-[A-Z0-9-]{2,36}$/.
+ */
+export const MENTOR_ID_REGEX = /^[A-Z0-9][A-Z0-9-]{2,39}$/;
+
+/** Trim + uppercase an operator-typed mentor id so comparisons are case-insensitive. */
+export function normalizeMentorId(raw: string): string {
+  return raw.trim().toUpperCase();
+}
+
+/** True when `raw` (after normalization) is a valid anonymous mentor id. */
+export function isValidMentorId(raw: string): boolean {
+  return MENTOR_ID_REGEX.test(normalizeMentorId(raw));
 }

@@ -1,16 +1,23 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSoleAdmin } from "@/lib/admin-access";
+import { recordAdminAudit, requireSoleAdmin } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
 import { getResolvedMentorSegments } from "@/lib/content/accessors";
 import { getContentModulePayload, updateContentModule } from "@/lib/content/repository";
-import { MENTOR_SEGMENTS, type MentorOverride, type MentorOverridesPayload } from "@/data/mentors";
+import {
+  MENTOR_SEGMENTS,
+  isValidMentorId,
+  normalizeMentorId,
+  type MentorOverride,
+  type MentorOverridesPayload,
+} from "@/data/mentors";
 import {
   getMentorLiveContactsByEmail,
   getMentorLiveContactsByProfileId,
   linkMentorUserByEmail,
   overlayMentorLiveContact,
+  renameMentorProfileId,
 } from "@/lib/mentor-profile-sync";
 import {
   computeMentorRewardProgress,
@@ -115,6 +122,13 @@ const patchSchema = z.object({
   status: z.enum(["pending", "active"]).optional(),
   /** Reassign a new application (or move it out of "Unassigned") to a real segment. */
   segmentId: z.string().min(1).max(60).optional(),
+  /** New anonymous mentor id — app-created (`isNew`) profiles only. `id` stays the lookup key. */
+  newId: z.string().min(3).max(40).optional(),
+});
+
+/** Tombstone payload for DELETE — mirrors PATCH's lookup key. */
+const deleteSchema = z.object({
+  id: z.string().min(1),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -132,15 +146,57 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
-  const { id, ...patch } = parsed.data;
+  const { id, newId: rawNewId, ...patch } = parsed.data;
 
   const existingPayload = await getContentModulePayload<Partial<MentorOverridesPayload>>("mentors");
   const overrides = existingPayload?.overrides ?? [];
 
   const idx = overrides.findIndex((o) => o.id === id);
+  const existing = idx >= 0 ? overrides[idx] : undefined;
+  const isSeededMentor = MENTOR_SEGMENTS.some((seg) => seg.mentors.some((m) => m.id === id));
+
+  const requestedNewId = rawNewId ? normalizeMentorId(rawNewId) : null;
+  const isRename = requestedNewId !== null && requestedNewId !== id;
+  let effectiveId = id;
+
+  if (isRename) {
+    if (isSeededMentor) {
+      return NextResponse.json(
+        { error: "Seeded mentor IDs cannot be changed" },
+        { status: 400 }
+      );
+    }
+    if (existing?.isNew !== true) {
+      return NextResponse.json(
+        { error: "Only app-created mentor IDs can be renamed" },
+        { status: 400 }
+      );
+    }
+    if (!isValidMentorId(requestedNewId)) {
+      return NextResponse.json({ error: "Invalid anonymous ID format" }, { status: 400 });
+    }
+
+    const seedIds = new Set(
+      MENTOR_SEGMENTS.flatMap((seg) => seg.mentors.map((m) => m.id.toUpperCase()))
+    );
+    const otherOverrideIds = new Set(
+      overrides
+        .filter((o) => o.id.toUpperCase() !== id.toUpperCase())
+        .map((o) => o.id.toUpperCase())
+    );
+    if (seedIds.has(requestedNewId) || otherOverrideIds.has(requestedNewId)) {
+      return NextResponse.json(
+        { error: "That anonymous ID is already in use" },
+        { status: 409 }
+      );
+    }
+
+    effectiveId = requestedNewId;
+  }
+
   const nextOverride: MentorOverride = {
-    ...(idx >= 0 ? overrides[idx] : { id }),
-    id,
+    ...(idx >= 0 ? overrides[idx] : { id: effectiveId }),
+    id: effectiveId,
     updatedAt: new Date().toISOString(),
   };
 
@@ -173,10 +229,8 @@ export async function PATCH(req: NextRequest) {
   if (patch.status !== undefined) nextOverride.status = patch.status;
   if (patch.segmentId !== undefined) nextOverride.segmentId = patch.segmentId;
 
-  // Keep seeded mentors live after profile edits unless admin explicitly sets pending.
-  const isSeededMentor = MENTOR_SEGMENTS.some((seg) => seg.mentors.some((m) => m.id === id));
   if (patch.status === undefined) {
-    const priorStatus = idx >= 0 ? overrides[idx].status : undefined;
+    const priorStatus = existing?.status;
     if (priorStatus === "active" || (isSeededMentor && priorStatus !== "pending")) {
       nextOverride.status = "active";
     }
@@ -194,11 +248,81 @@ export async function PATCH(req: NextRequest) {
   );
 
   if (patch.email !== undefined) {
-    await linkMentorUserByEmail(id, patch.email);
+    await linkMentorUserByEmail(effectiveId, patch.email);
+  }
+
+  if (isRename) {
+    await renameMentorProfileId(id, effectiveId, admin.user.id);
   }
 
   revalidatePath("/mentor-connect", "page");
   revalidatePath("/mentor-connect", "layout");
 
-  return NextResponse.json({ ok: true, override: nextOverride });
+  if (isRename) {
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "mentor.profile.renamed",
+      metadata: { from: id, to: effectiveId },
+    });
+  } else {
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "mentor.profile.updated",
+      metadata: { mentorProfileId: effectiveId },
+    });
+  }
+
+  return NextResponse.json({ ok: true, override: nextOverride, id: effectiveId });
+}
+
+export async function DELETE(req: NextRequest) {
+  const admin = await requireSoleAdmin();
+  if (!admin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = await req.json().catch(() => null);
+  const parsed = deleteSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
+  const { id } = parsed.data;
+
+  const existingPayload = await getContentModulePayload<Partial<MentorOverridesPayload>>("mentors");
+  const overrides = existingPayload?.overrides ?? [];
+  const idx = overrides.findIndex((o) => o.id === id);
+  const isSeeded = MENTOR_SEGMENTS.some((seg) => seg.mentors.some((m) => m.id === id));
+
+  if (!isSeeded && idx < 0) {
+    return NextResponse.json({ error: "Mentor not found" }, { status: 404 });
+  }
+
+  const tombstone: MentorOverride = {
+    ...(idx >= 0 ? overrides[idx] : { id }),
+    id,
+    deleted: true,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const nextOverrides =
+    idx >= 0
+      ? overrides.map((o, i) => (i === idx ? tombstone : o))
+      : [...overrides, tombstone];
+
+  await updateContentModule(
+    "mentors",
+    { payload: { overrides: nextOverrides }, published: true },
+    admin.user.id
+  );
+
+  revalidatePath("/mentor-connect", "page");
+  revalidatePath("/mentor-connect", "layout");
+
+  await recordAdminAudit({
+    actorEmail: admin.user.email,
+    action: "mentor.profile.deleted",
+    metadata: { mentorProfileId: id, wasSeeded: isSeeded },
+  });
+
+  return NextResponse.json({ ok: true, id });
 }

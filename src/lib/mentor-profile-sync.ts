@@ -77,6 +77,36 @@ export async function linkMentorUserByEmail(
   });
 }
 
+/**
+ * Move the `User.mentorProfileId` account link when an admin renames an app-created
+ * mentor profile id.
+ *
+ * `User.mentorProfileId` is `String?` (prisma/schema.prisma:77,
+ * `@@unique([mentorProfileId])` at :112). If it is not moved, the live-contact overlay
+ * (`getMentorLiveContactsByProfileId`) silently stops matching and falls back to email.
+ *
+ * `updatedByUserId` is kept for signature parity with the other sync helpers; it is
+ * not required for the update.
+ */
+export async function renameMentorProfileId(
+  oldId: string,
+  newId: string,
+  updatedByUserId?: string
+): Promise<void> {
+  if (oldId === newId) return;
+  void updatedByUserId;
+  try {
+    await prisma.user.updateMany({
+      where: { mentorProfileId: oldId },
+      data: { mentorProfileId: newId },
+    });
+  } catch (err) {
+    // newId may already be held by another User row (the column is unique) — non-fatal:
+    // the live-contact overlay still falls back to email matching.
+    console.error("[mentor-profile-sync] rename user link failed", err);
+  }
+}
+
 async function findOverrideIdByEmail(email: string): Promise<string | null> {
   const payload = await getContentModulePayload<Partial<MentorOverridesPayload>>("mentors");
   const match = payload?.overrides?.find(

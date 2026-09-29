@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { X, Save, CheckCircle2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { generateMentorId, isValidMentorId } from "@/data/mentors";
 
 export interface AdminMentorDetail {
   id: string;
@@ -42,6 +43,7 @@ interface Props {
 
 export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSaved }: Props) {
   const [form, setForm] = useState({
+    id: mentor.id,
     headline: mentor.headline,
     bio: mentor.bio,
     years: mentor.years,
@@ -62,6 +64,15 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
   async function save(approve = false) {
     setSaving(approve ? "approve" : "save");
     setError("");
+
+    const nextId = form.id.trim().toUpperCase();
+    const isRenaming = mentor.isNew && nextId !== mentor.id;
+    if (isRenaming && !isValidMentorId(nextId)) {
+      setError("Use 3–40 characters: letters, numbers and hyphens only.");
+      setSaving(null);
+      return;
+    }
+
     const tags = form.tagsText
       .split(",")
       .map((t) => t.trim())
@@ -72,6 +83,7 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: mentor.id,
+        ...(isRenaming && { newId: nextId }),
         headline: form.headline,
         bio: form.bio.trim(),
         years: Number(form.years) || 0,
@@ -88,13 +100,14 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
         ...(approve || mentor.status === "active" ? { status: "active" as const } : {}),
       }),
     });
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
       setError(data.error || "Update failed");
       setSaving(null);
       return;
     }
     setSaving(null);
+    const effectiveId: string = typeof data.id === "string" ? data.id : nextId;
     const trackNote =
       form.track === "both"
         ? "Visible to Career and Sales members."
@@ -103,11 +116,11 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
           : "Visible to Sales track members only (hidden on Career accounts).";
     if (approve || mentor.status === "active") {
       onSaved(
-        `${mentor.id} is live on Mentor Connect — headline, bio, years, and tags updated. ${trackNote} Name and email stay admin-only.`
+        `${effectiveId} is live on Mentor Connect — headline, bio, years, and tags updated. ${trackNote} Name and email stay admin-only.`
       );
     } else {
       onSaved(
-        `${mentor.id} saved as draft — not on Mentor Connect yet. Click Publish to Mentor Connect when ready.`
+        `${effectiveId} saved as draft — not on Mentor Connect yet. Click Publish to Mentor Connect when ready.`
       );
     }
     onClose();
@@ -160,6 +173,48 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
               <p className="text-xs text-muted-fg">
                 Self-submitted application — assign the segment this mentor best fits.
               </p>
+            </div>
+          )}
+
+          {mentor.isNew ? (
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg">
+                Anonymous mentor ID
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm font-mono uppercase"
+                  placeholder="e.g. NEW-MUL3YJMV-QK7RQ7"
+                  value={form.id}
+                  onChange={(e) => setForm((f) => ({ ...f, id: e.target.value.toUpperCase() }))}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setForm((f) => ({ ...f, id: generateMentorId() }))}
+                >
+                  Regenerate
+                </Button>
+              </div>
+              <p className="text-xs text-muted-fg">
+                Shown publicly on Mentor Connect. Letters, numbers and hyphens; must be unique.
+              </p>
+              {form.id.trim() !== "" && !isValidMentorId(form.id) && (
+                <p className="text-xs text-red-600">
+                  Use 3–40 characters: letters, numbers and hyphens only.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-fg">
+                Anonymous mentor ID
+              </label>
+              <div className="w-full border border-border rounded-lg px-3 py-2 text-sm font-mono bg-secondary text-muted-fg">
+                {mentor.id}
+              </div>
+              <p className="text-xs text-muted-fg">Seeded profile ID — cannot be changed.</p>
             </div>
           )}
 

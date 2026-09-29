@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Users, Shield, MessageSquare, Mail, Crown, TrendingUp,
-  CheckCircle, Clock, ArrowLeft, RefreshCw, FileJson, Pencil,
+  CheckCircle, Clock, ArrowLeft, RefreshCw, FileJson, Pencil, Trash2,
   BarChart2, UserCheck, CreditCard, Copy, ExternalLink, Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -186,6 +186,7 @@ export function AdminClient({
   // Mentors tab filter
   const [mentorsSegFilter, setMentorsSegFilter] = useState<string>("all");
   const [mentorSaveNotice, setMentorSaveNotice] = useState<string | null>(null);
+  const [deletingMentorId, setDeletingMentorId] = useState<string | null>(null);
 
   async function loadAll() {
     setLoading(true);
@@ -226,6 +227,32 @@ export function AdminClient({
     setMentorSaveNotice(notice);
     await loadMentorSegments();
     window.setTimeout(() => setMentorSaveNotice(null), 12000);
+  }
+
+  async function handleMentorDeleted(id: string, wasSeeded: boolean) {
+    setDeletingMentorId(id);
+    try {
+      const res = await fetch("/api/admin/mentors", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setMentorSaveNotice(data.error || `Could not delete ${id}.`);
+        window.setTimeout(() => setMentorSaveNotice(null), 12000);
+        return;
+      }
+      setMentorSaveNotice(
+        wasSeeded
+          ? `${id} hidden from Mentor Connect and the admin list. Re-adding the profile restores it.`
+          : `${id} deleted — removed from Mentor Connect and the admin list.`
+      );
+      await loadMentorSegments();
+      window.setTimeout(() => setMentorSaveNotice(null), 12000);
+    } finally {
+      setDeletingMentorId(null);
+    }
   }
 
   async function loadQAs() {
@@ -906,33 +933,48 @@ export function AdminClient({
                           />
                         </td>
                         <td className="px-4 py-2.5">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedMentor({
-                                id: m.id,
-                                headline: m.headline,
-                                bio: m.bio,
-                                years: m.years,
-                                tags: m.tags,
-                                name: m.name,
-                                email: m.email,
-                                company: m.company,
-                                linkedIn: m.linkedIn,
-                                location: m.location,
-                                role: m.role,
-                                commodityDesk: m.commodityDesk,
-                                track: m.track,
-                                segmentTitle: seg.title,
-                                status: m.status,
-                                segmentId: m.segmentId,
-                                isNew: m.isNew,
-                              })
-                            }
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-primary-800 hover:text-primary-400"
-                          >
-                            <Pencil className="w-3.5 h-3.5" /> Edit
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedMentor({
+                                  id: m.id,
+                                  headline: m.headline,
+                                  bio: m.bio,
+                                  years: m.years,
+                                  tags: m.tags,
+                                  name: m.name,
+                                  email: m.email,
+                                  company: m.company,
+                                  linkedIn: m.linkedIn,
+                                  location: m.location,
+                                  role: m.role,
+                                  commodityDesk: m.commodityDesk,
+                                  track: m.track,
+                                  segmentTitle: seg.title,
+                                  status: m.status,
+                                  segmentId: m.segmentId,
+                                  isNew: m.isNew,
+                                })
+                              }
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-primary-800 hover:text-primary-400"
+                            >
+                              <Pencil className="w-3.5 h-3.5" /> Edit
+                            </button>
+                            <button
+                              type="button"
+                              disabled={deletingMentorId === m.id}
+                              onClick={() => {
+                                const ok = window.confirm(
+                                  `Delete mentor "${m.id}"? They will be removed from Mentor Connect and the admin list. This can be undone only by re-adding them.`
+                                );
+                                if (ok) void handleMentorDeleted(m.id, !m.isNew);
+                              }}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
