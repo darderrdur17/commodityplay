@@ -1,4 +1,10 @@
 import { TRACK_SELECTION } from "@/data/track-selection";
+import {
+  PLAN_BASE_USD,
+  formatUsd,
+  monthlyRateUsd,
+  priceLabel,
+} from "@/data/pricing-shared";
 
 export interface LandingFeature {
   icon: string;
@@ -100,7 +106,7 @@ export interface FeatureComparisonItem {
   elite: boolean;
 }
 
-/** A named group of comparison rows (e.g. "Pro — SGD 59/month"). */
+/** A named group of comparison rows (e.g. "Pro — USD 19/month"). */
 export interface FeatureComparisonGroup {
   category: string;
   color: string;
@@ -266,7 +272,7 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
   },
   {
     name: "Pro",
-    price: "SGD 59",
+    price: priceLabel(PLAN_BASE_USD.CAREER_PRO),
     billing: "per month · cancel anytime",
     badge: "pro",
     highlight: true,
@@ -287,7 +293,7 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
   },
   {
     name: "Elite",
-    price: "SGD 99",
+    price: priceLabel(PLAN_BASE_USD.CAREER_ELITE),
     billing: "per month · cancel anytime",
     badge: "elite",
     highlight: false,
@@ -309,7 +315,7 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
 const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
   {
     name: "Pro",
-    price: "SGD 99",
+    price: priceLabel(PLAN_BASE_USD.SALES_PRO),
     billing: "per month",
     description: "The toolkit for selling smarter into commodity trading space.",
     features: [
@@ -325,7 +331,7 @@ const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
   },
   {
     name: "Elite",
-    price: "SGD 199",
+    price: priceLabel(PLAN_BASE_USD.SALES_ELITE),
     billing: "per month",
     description: "For sales professionals who need ongoing desk intelligence",
     features: [
@@ -465,10 +471,10 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
       title: "One Deal Pays for",
       titleAccent: "a Year of Elite.",
       description:
-        "Elite is SGD 199/month. If understanding the commodity trading desk helps you close one additional deal per year — at even a fraction of typical contract values in this sector — the return is not close. The question is whether you can afford not to know this.",
+        `Elite is ${formatUsd(monthlyRateUsd("SALES", "ELITE", "monthly"))}/month. If understanding the commodity trading desk helps you close one additional deal per year — at even a fraction of typical contract values in this sector — the return is not close. The question is whether you can afford not to know this.`,
       stats: [
         { value: "$250K–$2M+", label: "Typical ETRM / data platform ACV" },
-        { value: "SGD 2,388", label: "Full year of Elite access" },
+        { value: formatUsd(monthlyRateUsd("SALES", "ELITE", "monthly") * 12), label: "Full year of Elite access" },
         { value: "2 min", label: "How fast traders assess your credibility" },
         { value: "6 wks", label: "Reported reduction in deal cycle (user data)" },
       ],

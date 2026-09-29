@@ -289,7 +289,7 @@ function ComparisonTableEditor({
               value={group.category}
               onChange={(e) => updateGroup(gi, { category: e.target.value })}
               className={cn(inputClass, "flex-1 min-w-[160px]")}
-              placeholder="Group / plan label (e.g. Pro — SGD 59/month)"
+              placeholder="Group / plan label (e.g. Pro — USD 19/month)"
             />
             <input
               type="color"
