@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import { canonicalPublicUrl, isBlockedVercelAlias } from "@/lib/canonical-host";
+import { canonicalPublicUrl, isNonCanonicalHost } from "@/lib/canonical-host";
 
 const PROTECTED_PATHS = [
   "/dashboard",
@@ -33,8 +33,9 @@ const DENY_ONLY_PREFIXES = ["/admin", "/api/admin", "/demo"];
 
 export const proxy = auth((req) => {
   /**
-   * Send the raw `*.vercel.app` aliases to the canonical domain so the project is
-   * not reachable as a second public site.
+   * Send non-canonical hosts — the apex `commodityplay.ai` and the raw
+   * `*.vercel.app` aliases — to the canonical domain so the project is not
+   * reachable as a second public site.
    *
    * Compare the PUBLIC host, never `req.nextUrl.hostname`.
    *
@@ -49,11 +50,12 @@ export const proxy = auth((req) => {
    *
    * Checking a client-visible host is also what guarantees termination: once the
    * visitor is on the canonical domain the check no longer matches, so the
-   * redirect cannot repeat. `vercel.json` already performs this redirect at the
-   * edge; this remains as a guard for aliases added later.
+   * redirect cannot repeat. `vercel.json` already performs the alias redirect at
+   * the edge and Vercel's primary-domain setting redirects the apex; this remains
+   * as a guard for hosts that are added or reconfigured later.
    */
   const publicHost = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
-  if (isBlockedVercelAlias(publicHost)) {
+  if (isNonCanonicalHost(publicHost)) {
     return NextResponse.redirect(canonicalPublicUrl(req.url), 308);
   }
 
