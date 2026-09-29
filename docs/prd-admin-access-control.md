@@ -17,7 +17,7 @@
 
 ### Decisions already made by the business owner (not up for debate)
 
-1. **Sole admin by email allowlist.** Only `francestho@gmail.com` may reach `/admin`, `/admin/database` and every `/api/admin/*` route. Any other account — **including any other user whose `role` is `ADMIN`** — is refused. This must hold even if someone later flips another user's role to ADMIN.
+1. **Sole admin by email allowlist.** Only `frances@commodityplay.ai` may reach `/admin`, `/admin/database` and every `/api/admin/*` route. Any other account — **including any other user whose `role` is `ADMIN`** — is refused. This must hold even if someone later flips another user's role to ADMIN.
 2. **Demo accounts locked to non-production.** `admin@demo.com` and the other seeded demo accounts (all share password `Demo1234!`) stay usable for local/dev only. In production they are blocked from signing in **and** blocked from admin. `/demo` stays gated to Frances.
 
 ### Current state (as found in the working copy)
@@ -77,7 +77,7 @@ Key defect to flag: `src/lib/admin-database.ts:138` **SELECTs `passwordHash`** o
 - AC1.1 — Signed-in user with `role = "ADMIN"` and email `admin@demo.com` requesting `/admin` receives HTTP 404.
 - AC1.2 — Same user requesting `GET /api/admin/users` receives HTTP 404 and no user data.
 - AC1.3 — A `USER`-role account manually promoted to `ADMIN` in the DB still receives 404 on `/admin` and `/api/admin/*`.
-- AC1.4 — Frances (`francestho@gmail.com`) reaches `/admin`, `/admin/database` and `GET /api/admin/users` with HTTP 200.
+- AC1.4 — Frances (`frances@commodityplay.ai`) reaches `/admin`, `/admin/database` and `GET /api/admin/users` with HTTP 200.
 - AC1.5 — Direct URL navigation to `/admin` (no in-app link) is still refused for non-allowlisted users.
 - AC1.6 — Renaming Frances's DB email to a non-allowlisted value revokes her access without requiring her to sign out.
 
@@ -171,7 +171,7 @@ Key defect to flag: `src/lib/admin-database.ts:138` **SELECTs `passwordHash`** o
 **P0 — MUST**
 
 - Source of truth: **server-only env var `ADMIN_EMAILS`**, comma-separated, parsed with `split(",").map(e => e.trim().toLowerCase()).filter(Boolean)`. Server-only — never `NEXT_PUBLIC_`.
-- **Fallback default when unset:** `["francestho@gmail.com"]` (keeps the shipped product working without env setup). Log a warning when this fallback is used in production so the team notices missing config.
+- **Fallback default when unset, and only when `NODE_ENV !== "production"`:** `DEFAULT_DEV_ADMIN_EMAIL` (`frances@commodityplay.ai` in `src/lib/admin-access.ts`). In production an unset `ADMIN_EMAILS` yields `[]` and denies everybody.
 - **Fail closed when the resolved allowlist is empty** — i.e. `ADMIN_EMAILS` is set but blank or unparseable. Every admin gate denies, returns 404, and logs `[admin-access] allowlist resolved empty; all admin access denied` at error level. **Nobody gets admin**, including Frances. Recovery is a one-line env change plus redeploy; this is deliberate — a blank env var must never mean "everyone is admin".
 - Keep the existing `FRANCES_DEMO_LOGIN_EMAIL` constant in `src/lib/demo-access.ts` as the fallback source so there is one definition of Frances's email.
 
@@ -182,9 +182,9 @@ Key defect to flag: `src/lib/admin-database.ts:138` **SELECTs `passwordHash`** o
 - Adding a second operator later is an env change only — no code change, no redeploy of new logic.
 
 **Acceptance criteria**
-- AC5.1 — `ADMIN_EMAILS="francestho@gmail.com,ops@commodityplay.ai"` grants admin to both, case-insensitively, after a fresh request.
+- AC5.1 — `ADMIN_EMAILS="frances@commodityplay.ai,ops@commodityplay.ai"` grants admin to both, case-insensitively, after a fresh request.
 - AC5.2 — `ADMIN_EMAILS=""` in production denies admin to everyone, including Frances, and logs the empty-allowlist error.
-- AC5.3 — With `ADMIN_EMAILS` unset, `francestho@gmail.com` still has admin.
+- AC5.3 — With `ADMIN_EMAILS` unset outside production, `frances@commodityplay.ai` still has admin. In production, unset denies everybody.
 - AC5.4 — `ADMIN_EMAILS` is never exposed to the client bundle.
 
 ---
@@ -210,7 +210,7 @@ Key defect to flag: `src/lib/admin-database.ts:138` **SELECTs `passwordHash`** o
 
 ## 5. Open Questions
 
-1. **Frances's sign-in method.** Does she sign in with Google or a password? If Google, confirm `francestho@gmail.com` is the Google identity — the allowlist compares the DB email, and a Google account with a different primary address would silently lock her out.
+1. **Frances's sign-in method.** Does she sign in with Google or a password? If Google, confirm `frances@commodityplay.ai` is the Google identity — the allowlist compares the DB email, and a Google account with a different primary address would silently lock her out.
 2. **Second operator timeline.** Does Frances need a backup operator now? If yes, we set `ADMIN_EMAILS` at deploy time; no code change needed.
 3. **404 vs 403.** I recommend 404 for non-disclosure. Confirm the team accepts this, since it makes genuine misconfiguration harder for Frances to self-diagnose (mitigated by server logs).
 4. **Stripe dashboard handoff.** Is masked `stripeCustomerId` + copy-to-clipboard enough, or does Frances need a deep link to the Stripe customer page?

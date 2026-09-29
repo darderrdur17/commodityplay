@@ -1,13 +1,25 @@
 import { BRAND_EMAIL_SUPPORT } from "@/lib/brand";
 
-/** Frances's live login — she opens /demo with this email, then switches into Maya/Chris/etc. */
-export const FRANCES_DEMO_LOGIN_EMAIL = "francestho@gmail.com";
+/**
+ * Frances's live login — she opens /demo with this email, then switches into
+ * Maya/Chris/etc.
+ *
+ * Kept as its own constant because `scripts/verify-feedback-changes.ts` asserts
+ * on it, but it is now the same address as `BRAND_EMAIL_SUPPORT`: the previous
+ * value was her address before the move to the `commodityplay.ai` domain.
+ */
+export const FRANCES_DEMO_LOGIN_EMAIL = BRAND_EMAIL_SUPPORT;
 
-/** Extra operator inboxes that may also open the internal demo switcher. */
-export const INTERNAL_DEMO_EMAILS = [
-  FRANCES_DEMO_LOGIN_EMAIL,
-  BRAND_EMAIL_SUPPORT.toLowerCase(),
-];
+/**
+ * Operator inboxes that may open the internal demo switcher.
+ * De-duplicated — the two sources above are now the same address.
+ */
+export const INTERNAL_DEMO_EMAILS = Array.from(
+  new Set([
+    FRANCES_DEMO_LOGIN_EMAIL.toLowerCase(),
+    BRAND_EMAIL_SUPPORT.toLowerCase(),
+  ])
+);
 
 /**
  * Whether `user` may open the internal demo switcher.

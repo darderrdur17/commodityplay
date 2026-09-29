@@ -55,7 +55,7 @@ environments** unless noted.
 | --- | --- |
 | `DATABASE_URL` | Neon **pooled** URL (step 1) |
 | `AUTH_SECRET` | `openssl rand -base64 32` — must be a **fresh** value for production, not the dev one |
-| `ADMIN_EMAILS` | `francestho@gmail.com` |
+| `ADMIN_EMAILS` | `frances@commodityplay.ai` |
 
 > **`ADMIN_EMAILS` fails closed.** If it is unset in production the allowlist is empty
 > and **nobody** gets admin — not even Frances. Every admin route returns 404/403.
@@ -312,7 +312,7 @@ metadata and email links, which resolves most of it. If the mailboxes really are
 ## Quick reference — the whole thing in order
 
 1. Vercel → Settings → Environment Variables → set `DATABASE_URL` to the Neon **pooled** URL for **all 3** environments.
-2. Add `AUTH_SECRET`, `ADMIN_EMAILS=francestho@gmail.com`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_PAYMENTS_ENABLED`, the Stripe and Resend variables.
+2. Add `AUTH_SECRET`, `ADMIN_EMAILS=frances@commodityplay.ai`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_PAYMENTS_ENABLED`, the Stripe and Resend variables.
 3. Redeploy the preview **without** build cache; confirm `sync:cms` passes.
 4. PR #1 → **Ready for review** → **Merge**.
 5. Wait for the production deployment; verify `https://www.commodityplay.ai/pricing` returns 200.

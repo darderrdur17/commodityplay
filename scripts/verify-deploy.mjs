@@ -77,7 +77,7 @@ async function credentialsLogin(email, password) {
 async function main() {
   const stamp = Date.now();
   const memberEmail = `verify.member.${stamp}@example.com`;
-  const adminEmail = "francestho@gmail.com";
+  const adminEmail = "frances@commodityplay.ai";
   const memberPassword = "VerifyPass1";
   const adminPassword = "AdminPass1";
 
