@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
+import { resolveAccessTier } from "@/lib/entitlements";
 import { PrepLibraryPageClient } from "./prep-library-page-client";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export default async function PrepLibraryPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { tier: true, track: true },
+    select: { email: true, tier: true, track: true },
   });
 
   if (!user) redirect("/login");
@@ -31,7 +32,7 @@ export default async function PrepLibraryPage() {
     <div className="page-container py-8 sm:py-10">
       <Suspense fallback={<p className="text-sm text-muted-fg">Loading prep library…</p>}>
         <PrepLibraryPageClient
-          userTier={user.tier}
+          userTier={resolveAccessTier(user)}
           userTrack={userTrack}
           isAdmin={isAdmin}
         />

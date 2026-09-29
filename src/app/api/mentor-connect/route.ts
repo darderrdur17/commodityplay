@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { hasEffectiveAccess } from "@/lib/billing";
+import { hasResolvedAccess } from "@/lib/entitlements";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notifyMentorPoolNewQuestion } from "@/lib/mentor-questions";
@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
+      email: true,
       tier: true,
       track: true,
       stripeStatus: true,
@@ -41,8 +42,9 @@ export async function POST(req: NextRequest) {
   });
 
   // Effective tier: Elite is a recurring plan, so a lapsed or past-due
-  // subscription must not keep spending mentor credits.
-  if (!user || !hasEffectiveAccess(user, "ELITE")) {
+  // subscription must not keep spending mentor credits. An allowlisted admin
+  // resolves to ELITE (superadmin).
+  if (!user || !hasResolvedAccess(user, "ELITE")) {
     return NextResponse.json({ error: "Elite membership required" }, { status: 403 });
   }
 

@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { resolveAccessTier } from "@/lib/entitlements";
 import { getContentTiersMap, getMemberDashboardContent, getNavigationGuides, getStarterPackAssetUrls, getStarterPackContent } from "@/lib/content/accessors";
 import {
   applyContentStatsToMemberDashboard,
@@ -94,7 +95,9 @@ export default async function DashboardPage({
         id: user.id,
         name: user.name,
         email: user.email,
-        tier: user.tier,
+        // Authoritative access tier: an allowlisted admin resolves to ELITE
+        // (superadmin), so every card unlocks and no Starter upsell is shown.
+        tier: resolveAccessTier(user),
         track: user.track,
         persona: user.persona,
         resumePersonaDone: user.resumePersonaDone,

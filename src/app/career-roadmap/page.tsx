@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { resolveAccessTier } from "@/lib/entitlements";
 import { getCareerRoles, getContentTierForSlug } from "@/lib/content/accessors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -14,7 +15,7 @@ export default async function CareerRoadmapPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { tier: true, persona: true },
+    select: { email: true, tier: true, persona: true },
   });
 
   if (!user) redirect("/login");
@@ -25,7 +26,7 @@ export default async function CareerRoadmapPage() {
   ]);
   return (
     <CareerRoadmapClient
-      userTier={user.tier}
+      userTier={resolveAccessTier(user)}
       persona={user.persona}
       roles={careerData.roles}
       functionMatrix={careerData.functionMatrix}

@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { resolveAccessTier } from "@/lib/entitlements";
 import { getContentTierForSlug, getKnowledgeTestPageData } from "@/lib/content/accessors";
 import { latestKnowledgeTestResultsBySet, type KnowledgeTestStoredResult } from "@/lib/content/knowledge-test-results";
 import { DEFAULT_KNOWLEDGE_TEST_SET_ID } from "@/lib/content/knowledge-test-payload";
@@ -16,7 +17,7 @@ export default async function KnowledgeTestPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { tier: true },
+    select: { email: true, tier: true },
   });
 
   if (!user) redirect("/login");
@@ -39,7 +40,7 @@ export default async function KnowledgeTestPage() {
 
   return (
     <KnowledgeTestClient
-      userTier={user.tier}
+      userTier={resolveAccessTier(user)}
       questions={questions}
       activeSetLabel={activeSetLabel}
       liveSets={liveSets}

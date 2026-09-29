@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getContentTierForSlug, getPlaybookChapters, getPlaybookSections, getPlaybookAssetUrls, getPlaybookChapterAssets } from "@/lib/content/accessors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-import { effectiveTier, hasEffectiveAccess } from "@/lib/billing";
+import { hasResolvedAccess, resolveAccessTier } from "@/lib/entitlements";
 import { isPlaybookChapterReleasingSoon } from "@/lib/content/playbook-payload";
 import { memberMayAccessCareerPlaybook } from "@/lib/dashboard-module-visibility";
 import { ChapterClient } from "./chapter-client";
@@ -28,9 +28,11 @@ export default async function ChapterPage({ params }: { params: Promise<{ chapte
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    // Billing columns feed `hasEffectiveAccess` below, so a lapsed or past-due
-    // Elite subscription cannot keep reading paid chapters.
+    // `email` feeds the administrator override; the billing columns feed
+    // `hasResolvedAccess` below, so a lapsed or past-due Elite subscription cannot
+    // keep reading paid chapters.
     select: {
+      email: true,
       tier: true,
       track: true,
       role: true,
@@ -49,8 +51,8 @@ export default async function ChapterPage({ params }: { params: Promise<{ chapte
   const requiredTier = await getContentTierForSlug("playbook");
   // Effective tier, not the stored one: a cancelled Elite subscription keeps
   // `tier = 'ELITE'` on the row but must no longer unlock chapters.
-  const memberTier = effectiveTier(user);
-  const hasPlaybookAccess = hasEffectiveAccess(user, requiredTier as "PRO" | "ELITE");
+  const memberTier = resolveAccessTier(user);
+  const hasPlaybookAccess = hasResolvedAccess(user, requiredTier as "PRO" | "ELITE");
   if (!hasPlaybookAccess && !chapterData.preview) {
     redirect("/pricing?locked=playbook");
   }

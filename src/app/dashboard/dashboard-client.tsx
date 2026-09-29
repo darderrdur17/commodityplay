@@ -211,6 +211,10 @@ export function DashboardClient({
   const showCareerPrepLibrarySlot = isDashboardModuleVisible("Career", audience);
   const isStarter = effectiveTier === "STARTER";
   const isElite = hasAccess(effectiveTier, "ELITE");
+  // An allowlisted administrator is a superadmin, not a member: label her
+  // "Administrator" rather than "Starter Member". While a member preview is active
+  // the badge keeps showing the previewed tier, so the preview panel stays honest.
+  const isAdministrator = isAdminUser && !isMentorUser && !isPreviewActive;
 
   const [careerTopicCount, setCareerTopicCount] = useState(0);
   const [salesTopicCount, setSalesTopicCount] = useState(0);
@@ -410,10 +414,15 @@ export function DashboardClient({
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <Badge variant={isMentorUser ? "mentor" : (effectiveTier.toLowerCase() as any)} size="lg">
+            <Badge
+              variant={isMentorUser ? "mentor" : isAdministrator ? "elite" : (effectiveTier.toLowerCase() as any)}
+              size="lg"
+            >
               {isMentorUser
                 ? "Mentor"
-                : `${tierInfo.label} Member${isPreviewActive ? " · Preview" : ""}`}
+                : isAdministrator
+                  ? "Administrator"
+                  : `${tierInfo.label} Member${isPreviewActive ? " · Preview" : ""}`}
             </Badge>
           </div>
         </div>
@@ -438,7 +447,10 @@ export function DashboardClient({
                   Admin · member preview
                 </p>
                 <p className="text-sm text-amber-950/80 leading-relaxed">
-                  This is what members see on their dashboard. Jump back to Admin Panel anytime, or preview each track&apos;s landing page below.
+                  You are signed in as an administrator, so this account has Elite
+                  (superadmin) access to every page. The selector below previews what
+                  members on each track and tier see — jump back to Admin Panel
+                  anytime, or preview each track&apos;s landing page below.
                 </p>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { hasEffectiveAccess } from "@/lib/billing";
+import { hasResolvedAccess } from "@/lib/entitlements";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { getJobOpeningsData } from "@/lib/content/accessors";
@@ -57,8 +57,9 @@ function serializeThread(
 async function loadChatUser(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },
-    // Billing columns are required by `hasEffectiveAccess` at the call sites, so
-    // a lapsed Elite subscription cannot keep opening chat threads.
+    // `email` (already selected) feeds the administrator override; the billing
+    // columns are required by `hasResolvedAccess` at the call sites, so a lapsed
+    // Elite subscription cannot keep opening chat threads.
     select: {
       tier: true,
       role: true,
@@ -79,7 +80,7 @@ export async function GET(req: NextRequest) {
   }
 
   const user = await loadChatUser(session.user.id);
-  if (!user || !hasEffectiveAccess(user, "ELITE")) {
+  if (!user || !hasResolvedAccess(user, "ELITE")) {
     return NextResponse.json({ error: "Elite membership required" }, { status: 403 });
   }
   const isAdmin = user.role === "ADMIN";
@@ -114,7 +115,7 @@ export async function POST(req: NextRequest) {
   }
 
   const user = await loadChatUser(session.user.id);
-  if (!user || !hasEffectiveAccess(user, "ELITE")) {
+  if (!user || !hasResolvedAccess(user, "ELITE")) {
     return NextResponse.json({ error: "Elite membership required" }, { status: 403 });
   }
   const isAdmin = user.role === "ADMIN";
@@ -202,7 +203,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   const user = await loadChatUser(session.user.id);
-  if (!user || !hasEffectiveAccess(user, "ELITE")) {
+  if (!user || !hasResolvedAccess(user, "ELITE")) {
     return NextResponse.json({ error: "Elite membership required" }, { status: 403 });
   }
   if (user.role !== "ADMIN") {

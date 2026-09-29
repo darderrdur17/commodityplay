@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/animations";
 import { TIER_LABELS, formatDate } from "@/lib/utils";
+import { isAdminEmail } from "@/lib/admin-access";
 import { resolveMemberPersonaLabel } from "@/lib/persona-display";
 import { AccountBillingSection } from "@/components/account/account-billing-section";
 import { isCheckoutConfigured } from "@/lib/payments";
@@ -45,6 +46,8 @@ export default async function AccountPage() {
   if (!user) redirect("/login");
 
   const isMentorUser = isMentorAccount(user);
+  // DB-keyed, exactly like the entitlement override: never `session.user.role`.
+  const isAdminUser = isAdminEmail(user.email);
 
   const mentorCreditUsage = isMentorUser
     ? null
@@ -78,10 +81,10 @@ export default async function AccountPage() {
               <p className="text-sm text-muted-fg">{user.email}</p>
             </div>
             <Badge
-              variant={isMentorUser ? "mentor" : user.tier === "ELITE" ? "elite" : user.tier === "PRO" ? "pro" : "starter"}
+              variant={isMentorUser ? "mentor" : isAdminUser ? "elite" : user.tier === "ELITE" ? "elite" : user.tier === "PRO" ? "pro" : "starter"}
               className="ml-auto"
             >
-              {isMentorUser ? "Mentor" : tierInfo.label}
+              {isMentorUser ? "Mentor" : isAdminUser ? "Administrator" : tierInfo.label}
             </Badge>
           </div>
 

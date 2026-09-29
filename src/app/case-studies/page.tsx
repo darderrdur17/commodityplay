@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { resolveAccessTier } from "@/lib/entitlements";
 import { getCaseStudiesPageData, getContentTierForSlug } from "@/lib/content/accessors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -14,7 +15,7 @@ export default async function CaseStudiesPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { tier: true },
+    select: { email: true, tier: true },
   });
 
   if (!user) redirect("/login");
@@ -25,7 +26,7 @@ export default async function CaseStudiesPage() {
   ]);
   return (
     <CaseStudiesClient
-      userTier={user.tier}
+      userTier={resolveAccessTier(user)}
       studies={pageData.studies}
       hero={pageData.hero}
       requiredTier={requiredTier as "PRO" | "ELITE"}
