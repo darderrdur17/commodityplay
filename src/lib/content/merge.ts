@@ -441,32 +441,37 @@ export function resolveMentorSegments(
 ): MentorSegment[] {
   const overrideMap = new Map(overrides.map((o) => [o.id, o]));
   const defaultIds = new Set(defaults.flatMap((s) => s.mentors.map((m) => m.id)));
+  const deletedIds = new Set(overrides.filter((o) => o.deleted).map((o) => o.id));
 
   const resolved: MentorSegment[] = defaults.map((segment) => ({
     ...segment,
-    mentors: segment.mentors.map((mentor): MentorProfile => {
-      const override = overrideMap.get(mentor.id);
-      return {
-        ...mentor,
-        headline: override?.headline ?? mentor.headline,
-        years: override?.years ?? mentor.years,
-        bio: override?.bio ?? mentor.bio,
-        sampleReply: override?.sampleReply ?? mentor.sampleReply,
-        tags: override?.tags ?? mentor.tags,
-        name: override?.name ?? mentor.name,
-        email: override?.email ?? mentor.email,
-        company: override?.company ?? mentor.company,
-        linkedIn: override?.linkedIn ?? mentor.linkedIn,
-        location: override?.location ?? mentor.location,
-        role: override?.role ?? mentor.role,
-        commodityDesk: override?.commodityDesk ?? mentor.commodityDesk,
-        track: override?.track ?? mentor.track ?? "both",
-        status: override?.status ?? mentor.status ?? "active",
-      };
-    }),
+    mentors: segment.mentors
+      .filter((mentor) => !deletedIds.has(mentor.id))
+      .map((mentor): MentorProfile => {
+        const override = overrideMap.get(mentor.id);
+        return {
+          ...mentor,
+          headline: override?.headline ?? mentor.headline,
+          years: override?.years ?? mentor.years,
+          bio: override?.bio ?? mentor.bio,
+          sampleReply: override?.sampleReply ?? mentor.sampleReply,
+          tags: override?.tags ?? mentor.tags,
+          name: override?.name ?? mentor.name,
+          email: override?.email ?? mentor.email,
+          company: override?.company ?? mentor.company,
+          linkedIn: override?.linkedIn ?? mentor.linkedIn,
+          location: override?.location ?? mentor.location,
+          role: override?.role ?? mentor.role,
+          commodityDesk: override?.commodityDesk ?? mentor.commodityDesk,
+          track: override?.track ?? mentor.track ?? "both",
+          status: override?.status ?? mentor.status ?? "active",
+        };
+      }),
   }));
 
-  const newOverrides = overrides.filter((o) => o.isNew && !defaultIds.has(o.id));
+  const newOverrides = overrides.filter(
+    (o) => o.isNew && !defaultIds.has(o.id) && !o.deleted
+  );
   const segmentIndexById = new Map(resolved.map((s, i) => [s.id, i] as const));
   const unassigned: MentorProfile[] = [];
 
