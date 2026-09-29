@@ -15,7 +15,7 @@ import { canAccessInternalDemo, FRANCES_DEMO_LOGIN_EMAIL } from "../src/lib/demo
 import {
   CANONICAL_PUBLIC_HOST,
   canonicalPublicUrl,
-  isBlockedVercelAlias,
+  isNonCanonicalHost,
 } from "../src/lib/canonical-host";
 import { BRAND_EMAIL_SUPPORT } from "../src/lib/brand";
 import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
@@ -2586,12 +2586,18 @@ async function verifyPdfStampWrites() {
   const vercelRedirected = canonicalPublicUrl("https://commodityplay.vercel.app/?track=career");
   ok(
     "commodityplay.vercel.app is not a second public site",
-    isBlockedVercelAlias("commodityplay.vercel.app") &&
-      !isBlockedVercelAlias("www.commodityplay.ai") &&
-      !isBlockedVercelAlias("localhost") &&
+    isNonCanonicalHost("commodityplay.ai") &&
+      isNonCanonicalHost("commodityplay.ai:443") &&
+      isNonCanonicalHost("commodityplay.ai.") &&
+      isNonCanonicalHost("COMMODITYPLAY.AI") &&
+      isNonCanonicalHost("commodityplay.vercel.app") &&
+      !isNonCanonicalHost("www.commodityplay.ai") &&
+      !isNonCanonicalHost("localhost") &&
+      !isNonCanonicalHost(null) &&
+      !isNonCanonicalHost("") &&
       vercelRedirected.hostname === CANONICAL_PUBLIC_HOST &&
       vercelRedirected.search === "?track=career" &&
-      proxySrc.includes("isBlockedVercelAlias") &&
+      proxySrc.includes("isNonCanonicalHost") &&
       fs.readFileSync(path.join(process.cwd(), "vercel.json"), "utf8").includes(
         "commodityplay.vercel.app"
       )
