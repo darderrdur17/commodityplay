@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { resolveAccessTier } from "@/lib/entitlements";
 import { getContentTierForSlug, getPlaybookChapters, getPlaybookHubHero } from "@/lib/content/accessors";
 import { getContentStats } from "@/lib/content/content-stats";
 import { memberMayAccessCareerPlaybook } from "@/lib/dashboard-module-visibility";
@@ -35,7 +36,7 @@ export default async function PlaybookPage() {
   return (
     <PlaybookHubClient
       chapters={chapters}
-      userTier={user.tier}
+      userTier={resolveAccessTier(user)}
       requiredTier={requiredTier as "PRO" | "ELITE"}
       contentStats={contentStats}
       hubHero={hubHero}

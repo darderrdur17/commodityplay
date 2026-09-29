@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { resolveAccessTier } from "@/lib/entitlements";
 import { getContentTierForSlug, getJobOpeningsData } from "@/lib/content/accessors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -14,7 +15,7 @@ export default async function JobOpeningsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { tier: true },
+    select: { email: true, tier: true },
   });
   if (!user) redirect("/login");
 
@@ -24,7 +25,7 @@ export default async function JobOpeningsPage() {
   ]);
   return (
     <JobOpeningsClient
-      userTier={user.tier}
+      userTier={resolveAccessTier(user)}
       jobs={jobs.jobs}
       regions={jobs.regions}
       levels={jobs.levels}

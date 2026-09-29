@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasEffectiveAccess } from "@/lib/billing";
+import { hasResolvedAccess } from "@/lib/entitlements";
 import { getContentTierForSlug, getPlaybookChapters } from "@/lib/content/accessors";
 import { getPublishedPayload } from "@/lib/content/repository";
 import { resolvePlaybookPayload, isPlaybookChapterReleasingSoon, playbookChapterHeroColor } from "@/lib/content/playbook-payload";
@@ -17,8 +17,9 @@ export async function GET(req: NextRequest) {
 
   const requiredTier = await getContentTierForSlug("playbook");
   // Effective tier, not the stored one: a lapsed Elite subscription must not keep
-  // receiving paid playbook sections.
-  const hasPlaybookAccess = hasEffectiveAccess(user, requiredTier);
+  // receiving paid playbook sections. `getMobileUser` returns the row's `email`,
+  // so an allowlisted admin resolves to ELITE here too.
+  const hasPlaybookAccess = hasResolvedAccess(user, requiredTier);
   const [chapters, payload] = await Promise.all([
     getPlaybookChapters(),
     getPublishedPayload<unknown>("playbook"),

@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { resolveAccessTier } from "@/lib/entitlements";
 import { getContentTierForSlug, getInterviewQuestionsData } from "@/lib/content/accessors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -14,7 +15,7 @@ export default async function InterviewQuestionsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { tier: true },
+    select: { email: true, tier: true },
   });
 
   if (!user) redirect("/login");
@@ -25,7 +26,7 @@ export default async function InterviewQuestionsPage() {
   ]);
   return (
     <InterviewQuestionsClient
-      userTier={user.tier}
+      userTier={resolveAccessTier(user)}
       questions={data.questions}
       categories={data.categories}
       tabs={data.tabs}

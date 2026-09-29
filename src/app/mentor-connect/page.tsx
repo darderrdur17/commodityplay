@@ -3,6 +3,7 @@ import { MentorConnectClient } from "./mentor-connect-client";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { resolveAccessTier } from "@/lib/entitlements";
 import { isMentorAccount } from "@/lib/mentor-demo";
 import { Suspense } from "react";
 import { unstable_noStore as noStore } from "next/cache";
@@ -47,7 +48,9 @@ export default async function MentorConnectPage() {
   return (
     <Suspense fallback={<div className="page-container py-20 text-center text-muted-fg">Loading…</div>}>
       <MentorConnectClient
-        userTier={user.tier}
+        // Authoritative access tier: an allowlisted admin resolves to ELITE
+        // (superadmin), so the Elite TierGate below opens for her.
+        userTier={resolveAccessTier(user)}
         userTrack={user.track}
         mentorCreditUsage={mentorCreditUsage}
         mentorSegments={mentorSegments}

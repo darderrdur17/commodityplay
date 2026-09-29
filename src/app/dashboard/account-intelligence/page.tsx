@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { resolveAccessTier } from "@/lib/entitlements";
 import { getAccountIntelligenceContent } from "@/lib/content/accessors";
 import { AccountIntelligenceSection } from "@/components/dashboard/account-intelligence-section";
 import { Pencil } from "lucide-react";
@@ -21,7 +22,7 @@ export default async function AccountIntelligencePage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { tier: true, track: true },
+    select: { email: true, tier: true, track: true },
   });
 
   if (!user) redirect("/login");
@@ -45,7 +46,7 @@ export default async function AccountIntelligencePage() {
           <Pencil className="w-4 h-4" /> Edit page copy
         </Link>
       )}
-      <AccountIntelligenceSection userTier={user.tier} content={content} />
+      <AccountIntelligenceSection userTier={resolveAccessTier(user)} content={content} />
     </div>
   );
 }

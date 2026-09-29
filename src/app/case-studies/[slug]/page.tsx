@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { effectiveTier, hasEffectiveAccess } from "@/lib/billing";
+import { hasResolvedAccess, resolveAccessTier } from "@/lib/entitlements";
 import { getCaseStudyBySlug, getContentTierForSlug } from "@/lib/content/accessors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -24,9 +24,11 @@ export default async function CaseStudyDetailPage({ params }: { params: Promise<
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    // Billing columns feed `effectiveTier` below; without them a lapsed Elite
-    // subscription would keep unlocking case studies on the stored tier alone.
+    // `email` feeds the administrator override; the billing columns feed
+    // `hasResolvedAccess` below, so a lapsed Elite subscription cannot keep
+    // unlocking case studies on the stored tier alone.
     select: {
+      email: true,
       tier: true,
       stripeStatus: true,
       stripeCurrentPeriodEnd: true,
@@ -37,8 +39,8 @@ export default async function CaseStudyDetailPage({ params }: { params: Promise<
   if (!user) redirect("/login");
 
   const requiredTier = await getContentTierForSlug("case-studies");
-  const memberTier = effectiveTier(user);
-  if (!hasEffectiveAccess(user, requiredTier as "PRO" | "ELITE")) {
+  const memberTier = resolveAccessTier(user);
+  if (!hasResolvedAccess(user, requiredTier as "PRO" | "ELITE")) {
     redirect("/pricing?locked=case-studies");
   }
 
