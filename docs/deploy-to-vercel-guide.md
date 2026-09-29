@@ -231,9 +231,26 @@ Verified locally after the fix:
 
 1. Stripe Dashboard → **Developers** → **Webhooks** → **Add endpoint**.
 2. URL: `https://www.commodityplay.ai/api/stripe/webhook`
-3. Events to send: `checkout.session.completed`, `payment_intent.succeeded`,
-   `invoice.paid`, `customer.subscription.updated`, `customer.subscription.deleted`,
-   `charge.refunded`, `charge.dispute.created`.
+3. Events to send — **exactly these eight**. The handler in
+   `src/app/api/stripe/webhook/route.ts` switches on nothing else, and an event that is
+   not subscribed never reaches the handler at all:
+
+   `checkout.session.completed`, `customer.subscription.created`,
+   `customer.subscription.updated`, `customer.subscription.deleted`,
+   `invoice.paid`, `invoice.payment_failed`, `charge.refunded`,
+   `charge.dispute.created`.
+
+   Two of them are easy to miss:
+
+   - **`customer.subscription.created`** is what populates `stripeCurrentPeriodEnd`
+     from the first minute. `checkout.session.completed` sets the status but no period
+     end, and `isSubscriptionLive()` tolerates a null period end — so without this
+     event a cancelled Pro member's access would stay alive.
+   - **`invoice.payment_failed`** is the only dunning path: it flips the member to
+     `past_due` (which withholds PRO *and* ELITE) and sends the lapse email. Stripe
+     emits it once per retry, so the handler notifies on attempt 1 only; the final
+     retry is covered by `customer.subscription.deleted`. Without this event a failed
+     renewal produces no notification and no access change.
 4. Copy the signing secret (`whsec_...`) into the `STRIPE_WEBHOOK_SECRET` Vercel variable.
 5. **Redeploy** so the new value is picked up.
 6. Send a test event from Stripe and confirm the endpoint returns `200`.
