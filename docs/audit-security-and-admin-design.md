@@ -112,7 +112,7 @@ Publishing to Desk Channel requires **both** `memberShareOptIn` AND `mentorShare
 ## 1.8 Email normalisation is not enforced at the schema layer (HIGH — see §4)
 
 `User.email @unique` is **case-sensitive** on Postgres. `src/app/api/auth/register/route.ts:32-41` creates the user with the raw, un-lowercased email, while `forgot-password/route.ts:25` lowercases before lookup. Consequences:
-- `Frances@Gmail.com` and `francestho@gmail.com` are two distinct accounts.
+- `Frances@Gmail.com` and `frances@commodityplay.ai` are two distinct accounts.
 - A user who registered with capital letters can **never reset their password**.
 - Critically: **an `ADMIN_EMAILS` allowlist compared without normalisation is bypassable** (see §4.2).
 
@@ -297,9 +297,9 @@ No `src/middleware.ts`, no rate-limit package in `package.json`. Unthrottled:
 
 ## 4.1 Requirements (fixed, restated)
 
-1. Only `francestho@gmail.com` may reach `/admin`, `/admin/database`, and all `/api/admin/*`. **Any** other account — including one with `role === "ADMIN"` — is refused. Must survive someone flipping another user's role to `ADMIN`.
+1. Only `frances@commodityplay.ai` may reach `/admin`, `/admin/database`, and all `/api/admin/*`. **Any** other account — including one with `role === "ADMIN"` — is refused. Must survive someone flipping another user's role to `ADMIN`.
 2. Seeded demo accounts (`admin@demo.com` et al., password `Demo1234!`) work in dev/local only. In production they cannot sign in and cannot reach admin. `/demo` stays gated to Frances.
-3. Allowlist is env-driven (`ADMIN_EMAILS`), defaults to `francestho@gmail.com`, and **fails closed** if unset in production.
+3. Allowlist is env-driven (`ADMIN_EMAILS`), defaults to `frances@commodityplay.ai` when `NODE_ENV !== "production"`, and **fails closed** if unset in production.
 
 ## 4.2 The central guard — `src/lib/admin-access.ts` (NEW)
 
@@ -310,7 +310,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 /** Compile-time default. Only used when ADMIN_EMAILS is absent AND we are not in production. */
-export const DEFAULT_ADMIN_EMAIL = "francestho@gmail.com";
+export const DEFAULT_DEV_ADMIN_EMAIL = "frances@commodityplay.ai";
 
 export function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
@@ -318,7 +318,7 @@ export function normalizeEmail(value: string): string {
 
 /**
  * Fails closed: in production an unset/empty ADMIN_EMAILS yields NO admins.
- * In dev/test it falls back to DEFAULT_ADMIN_EMAIL so local work is unaffected.
+ * In dev/test it falls back to DEFAULT_DEV_ADMIN_EMAIL so local work is unaffected.
  */
 export function getAdminEmails(): string[] {
   const raw = process.env.ADMIN_EMAILS;
@@ -327,7 +327,7 @@ export function getAdminEmails(): string[] {
     .map(normalizeEmail)
     .filter(Boolean);
   if (list.length > 0) return Array.from(new Set(list));
-  return isProduction() ? [] : [normalizeEmail(DEFAULT_ADMIN_EMAIL)];
+  return isProduction() ? [] : [normalizeEmail(DEFAULT_DEV_ADMIN_EMAIL)];
 }
 
 export function isAdminEmail(email?: string | null): boolean {
@@ -418,7 +418,7 @@ sequenceDiagram
 | 11 | **`src/lib/demo-access.ts`** | `:18` `if (isAdmin(user.role)) return true;` → **delete**. `canAccessInternalDemo` becomes `isSoleAdminEmail(user.email)` (plus `isAdminEmail` for the support inbox), evaluated against a server session, never a client one. |
 | 12 | **`src/app/api/mobile/auth/login/route.ts`** | After `bcrypt.compare`, `if (isProduction() && isDemoAccountEmail(user.email)) return 401`. |
 | 13 | **`src/lib/email-normalize.ts`** or `admin-access.ts` export | `normalizeEmail()` applied in register (web + mobile), `authorize()`, forgot-password, reset-password, `/api/account/profile`. |
-| 14 | **`.env.example`** | `ADMIN_EMAILS="francestho@gmail.com"` with a comment: *"Comma-separated. Production: if unset, nobody is admin (fails closed)."* |
+| 14 | **`.env.example`** | `ADMIN_EMAILS="frances@commodityplay.ai"` with a comment: *"Comma-separated. Production: if unset, nobody is admin (fails closed)."* |
 | 15 | **`src/app/api/setup-db/route.ts`** | Generic GET message; in production, seed demo accounts with `passwordHash: null` (or gate demo seeding behind `ALLOW_DEMO_SEED === "true"`). |
 
 ## 4.5 Demo accounts in production (requirement 2)

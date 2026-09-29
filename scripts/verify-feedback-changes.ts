@@ -2604,11 +2604,11 @@ async function verifyPdfStampWrites() {
   );
   ok(
     "Internal /demo is gated to Frances admin (not public)",
-    proxySrc.includes('pathname.startsWith("/demo")') &&
-      proxySrc.includes("canAccessInternalDemo") &&
-      FRANCES_DEMO_LOGIN_EMAIL === "francestho@gmail.com" &&
-      canAccessInternalDemo({ role: "USER", email: "francestho@gmail.com" }) &&
-      canAccessInternalDemo({ role: "ADMIN", email: "anyone@example.com" }) &&
+    proxySrc.includes('"/demo"') &&
+      proxySrc.includes("src/app/demo/page.tsx") &&
+      FRANCES_DEMO_LOGIN_EMAIL === BRAND_EMAIL_SUPPORT &&
+      canAccessInternalDemo({ role: "USER", email: FRANCES_DEMO_LOGIN_EMAIL }) &&
+      !canAccessInternalDemo({ role: "ADMIN", email: "anyone@example.com" }) &&
       canAccessInternalDemo({ role: "USER", email: "frances@commodityplay.ai" }) &&
       !canAccessInternalDemo({ role: "USER", email: "member@example.com" }) &&
       !canAccessInternalDemo(null)

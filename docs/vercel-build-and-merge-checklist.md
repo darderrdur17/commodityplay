@@ -101,7 +101,7 @@ the runtime version leaves the constraint `NOT VALID` to guarantee it cannot fai
 ## 3. Still required from you
 
 ```
-ADMIN_EMAILS=francestho@gmail.com
+ADMIN_EMAILS=frances@commodityplay.ai
 ```
 
 in Vercel for **all** environments. It **fails closed** — unset in production means
