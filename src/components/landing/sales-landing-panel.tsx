@@ -27,6 +27,8 @@ import { SALES_MARKET_NOTE } from "@/data/market-notes";
 import { SALES_PRICING_HREF } from "@/lib/pricing-routes";
 import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-notes";
 import { SALES_HERO_GREEN } from "@/lib/sales-brand-colors";
+import type { PlanTerm } from "@/data/pricing-shared";
+import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
 
 const SALES_COLOR = "#0F766E";
 
@@ -109,10 +111,11 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
   const router = useRouter();
   const { data: session } = useSession();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [term, setTerm] = useState<PlanTerm>("monthly");
   const [showFeatureComparison, setShowFeatureComparison] = useState(false);
   const featureTable = content.comparison.groups;
 
-  async function handlePurchase(plan: "pro" | "elite") {
+  async function handlePurchase(plan: "pro" | "elite", term: PlanTerm = "monthly") {
     if (!isPaymentsLive()) {
       onOpenContactModal();
       return;
@@ -123,7 +126,8 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
     }
     setLoadingPlan(plan);
     try {
-      const url = await startCheckout(plan);
+      // The track is NOT sent — the server reads User.track from the DB.
+      const url = await startCheckout(plan, term);
       if (url) window.location.href = url;
       else router.push(SALES_PRICING_HREF);
     } catch {
@@ -348,16 +352,27 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
                   </ul>
                 </div>
                 <div className="p-6 sm:p-7 pt-0">
-                  <Button
-                    className={`w-full ${tier.featured ? "bg-teal-600 hover:bg-teal-500 text-white border-0" : ""}`}
-                    variant={tier.featured ? "default" : "outline"}
-                    size="lg"
-                    onClick={() => handlePurchase(tier.name.toLowerCase() as "pro" | "elite")}
-                    loading={loadingPlan === tier.name.toLowerCase()}
-                  >
-                    {tier.cta}
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
+                  <div className="space-y-3">
+                    <PlanTermSelector
+                      track="SALES"
+                      tier={tier.name === "Elite" ? "ELITE" : "PRO"}
+                      value={term}
+                      onChange={setTerm}
+                      tone={tier.featured ? "dark" : "light"}
+                    />
+                    <Button
+                      className={`w-full ${tier.featured ? "bg-teal-600 hover:bg-teal-500 text-white border-0" : ""}`}
+                      variant={tier.featured ? "default" : "outline"}
+                      size="lg"
+                      onClick={() =>
+                        handlePurchase(tier.name.toLowerCase() as "pro" | "elite", term)
+                      }
+                      loading={loadingPlan === tier.name.toLowerCase()}
+                    >
+                      {tier.cta}
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </Reveal>

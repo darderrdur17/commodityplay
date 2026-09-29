@@ -43,7 +43,8 @@ export type OperatorLeadKind =
   | "operator_contact"
   | "operator_mentor_apply"
   | "operator_member_signup"
-  | "operator_upgrade";
+  | "operator_upgrade"
+  | "operator_billing_lapse";
 
 /**
  * Renders a notification value, showing an explicit placeholder when it is blank.
