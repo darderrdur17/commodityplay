@@ -20,6 +20,8 @@ import {
 import { startBillingPortal, type BillingPortalFlow } from "@/lib/start-billing-portal";
 import { startCheckout, type CheckoutPlan } from "@/lib/start-checkout";
 import { cn, formatDate } from "@/lib/utils";
+import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
+import type { PlanTerm } from "@/data/pricing-shared";
 
 interface AccountBillingSectionProps {
   tier: BillingTier;
@@ -41,6 +43,7 @@ export function AccountBillingSection({
 }: AccountBillingSectionProps) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [term, setTerm] = useState<PlanTerm>("monthly");
 
   const statusTone = subscriptionStatusTone(stripeStatus);
   const isPastDue = stripeStatus === "past_due";
@@ -62,11 +65,12 @@ export function AccountBillingSection({
     }
   }
 
-  async function handleUpgrade(plan: CheckoutPlan) {
+  async function handleUpgrade(plan: CheckoutPlan, term: PlanTerm = "monthly") {
     setLoadingAction(`upgrade-${plan}`);
     setError(null);
     try {
-      const url = await startCheckout(plan);
+      // The track is NOT sent — the server reads User.track from the DB.
+      const url = await startCheckout(plan, term);
       if (url) window.location.href = url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start checkout.");
@@ -205,20 +209,28 @@ export function AccountBillingSection({
         )}
 
         {upgradePlan && paymentsEnabled && (
-          <Button
-            size="sm"
-            onClick={() => handleUpgrade(upgradePlan)}
-            disabled={Boolean(loadingAction)}
-          >
-            {loadingAction === `upgrade-${upgradePlan}` ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                {tier === "STARTER" ? "Upgrade to Pro" : "Upgrade to Elite"}
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </Button>
+          <div className="space-y-2">
+            <PlanTermSelector
+              track={track === "SALES" ? "SALES" : "CAREER"}
+              tier={upgradePlan === "elite" ? "ELITE" : "PRO"}
+              value={term}
+              onChange={setTerm}
+            />
+            <Button
+              size="sm"
+              onClick={() => handleUpgrade(upgradePlan, term)}
+              disabled={Boolean(loadingAction)}
+            >
+              {loadingAction === `upgrade-${upgradePlan}` ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  {tier === "STARTER" ? "Upgrade to Pro" : "Upgrade to Elite"}
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </Button>
+          </div>
         )}
 
         {tier === "STARTER" && !hasStripeCustomer && paymentsEnabled && (

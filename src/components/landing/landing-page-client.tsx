@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   ArrowRight, BookOpen, Users,
@@ -38,6 +38,10 @@ import {
 } from "@/data/landing-content";
 import { CAREER_MARKET_NOTE } from "@/data/market-notes";
 import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-notes";
+import { isPaymentsLive } from "@/lib/payments";
+import { startCheckout } from "@/lib/start-checkout";
+import { CAREER_PRICING_HREF } from "@/lib/pricing-routes";
+import type { PlanTerm } from "@/data/pricing-shared";
 
 type Track = "career" | "sales";
 
@@ -62,6 +66,8 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [showFeatureComparison, setShowFeatureComparison] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const track = searchParams.get("track");
@@ -80,6 +86,36 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
     }, 350);
     return () => window.clearTimeout(timer);
   }, [activeTrack]);
+
+  /**
+   * 🔴 REVENUE FIX. This component used to render <PricingTierGrid> WITHOUT onPurchase,
+   * so pricing-tier-grid fell through to <Link href={CAREER_PLAN_HREF(...)}>
+   * = /?track=career#plan-pro — an anchor to the card the visitor had just clicked.
+   * No career-track visitor could start a checkout from the pricing section.
+   *
+   * Mirrors sales-landing-panel: payments-live gate → signup redirect → startCheckout.
+   * The track is NOT sent — the server reads User.track.
+   */
+  async function handlePurchase(plan: "pro" | "elite", term: PlanTerm) {
+    if (!isPaymentsLive()) {
+      setContactOpen(true);
+      return;
+    }
+    if (!session?.user) {
+      router.push(`/signup?plan=${plan}&track=career&callbackUrl=${encodeURIComponent(CAREER_PRICING_HREF)}`);
+      return;
+    }
+    setLoadingPlan(plan);
+    try {
+      const url = await startCheckout(plan, term);
+      if (url) window.location.href = url;
+      else router.push(CAREER_PRICING_HREF);
+    } catch {
+      router.push(CAREER_PRICING_HREF);
+    } finally {
+      setLoadingPlan(null);
+    }
+  }
 
   // getLandingContent() already merges CMS edits with repo defaults on the server.
   const career = content.career;
@@ -265,6 +301,8 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
                 tiers={pricing.tiers}
                 variant="landing"
                 onStarterModal={() => setModalOpen(true)}
+                onPurchase={handlePurchase}
+                loadingPlan={loadingPlan}
               />
               <Reveal className="text-center mt-8">
                 <button

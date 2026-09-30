@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,12 +9,14 @@ import { Reveal } from "@/components/animations";
 import { PRICING_CONTENT_FOOTNOTE } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 import type { LandingTier } from "@/data/landing-content";
+import type { PlanTerm } from "@/data/pricing-shared";
+import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
 
 interface Props {
   tiers: LandingTier[];
   variant: "landing" | "page";
   onStarterModal?: () => void;
-  onPurchase?: (plan: "pro" | "elite") => void;
+  onPurchase?: (plan: "pro" | "elite", term: PlanTerm) => void;
   loadingPlan?: string | null;
 }
 
@@ -23,12 +26,16 @@ function TierCard({
   onStarterModal,
   onPurchase,
   loadingPlan,
+  term,
+  onTermChange,
 }: {
   tier: LandingTier;
   variant: "landing" | "page";
   onStarterModal?: () => void;
-  onPurchase?: (plan: "pro" | "elite") => void;
+  onPurchase?: (plan: "pro" | "elite", term: PlanTerm) => void;
   loadingPlan?: string | null;
+  term: PlanTerm;
+  onTermChange: (term: PlanTerm) => void;
 }) {
   const isLanding = variant === "landing";
   const planId = tier.name === "Pro" ? "plan-pro" : tier.name === "Elite" ? "plan-elite" : undefined;
@@ -158,16 +165,25 @@ function TierCard({
             {tier.cta}
           </Button>
         ) : isPaid && onPurchase ? (
-          <Button
-            className={`w-full ${!isLanding && tier.name === "Elite" ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
-            variant={tier.highlight ? (isLanding ? "default" : "primary-dark") : "primary-dark"}
-            size="lg"
-            onClick={() => onPurchase(tier.name.toLowerCase() as "pro" | "elite")}
-            loading={loadingPlan === tier.name.toLowerCase()}
-          >
-            {tier.cta}
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+          <div className="space-y-3">
+            <PlanTermSelector
+              track="CAREER"
+              tier={tier.name === "Elite" ? "ELITE" : "PRO"}
+              value={term}
+              onChange={onTermChange}
+              tone={isLanding ? "dark" : "light"}
+            />
+            <Button
+              className={`w-full ${!isLanding && tier.name === "Elite" ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
+              variant={tier.highlight ? (isLanding ? "default" : "primary-dark") : "primary-dark"}
+              size="lg"
+              onClick={() => onPurchase(tier.name.toLowerCase() as "pro" | "elite", term)}
+              loading={loadingPlan === tier.name.toLowerCase()}
+            >
+              {tier.cta}
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
         ) : isPaid ? (
           <Link href={CAREER_PLAN_HREF(tier.name.toLowerCase() as "pro" | "elite")} className="block">
             <Button
@@ -238,6 +254,10 @@ export function PricingTierGrid({
   onPurchase,
   loadingPlan,
 }: Props) {
+  // One term for the whole grid: a member comparing Pro and Elite keeps the term they
+  // picked when they move between cards.
+  const [term, setTerm] = useState<PlanTerm>("monthly");
+
   const grid = (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
       {tiers.map((tier, i) =>
@@ -249,6 +269,8 @@ export function PricingTierGrid({
               onStarterModal={onStarterModal}
               onPurchase={onPurchase}
               loadingPlan={loadingPlan}
+              term={term}
+              onTermChange={setTerm}
             />
           </Reveal>
         ) : (
@@ -259,6 +281,8 @@ export function PricingTierGrid({
               onStarterModal={onStarterModal}
               onPurchase={onPurchase}
               loadingPlan={loadingPlan}
+              term={term}
+              onTermChange={setTerm}
             />
           </Reveal>
         )

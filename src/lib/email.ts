@@ -43,7 +43,8 @@ export type OperatorLeadKind =
   | "operator_contact"
   | "operator_mentor_apply"
   | "operator_member_signup"
-  | "operator_upgrade";
+  | "operator_upgrade"
+  | "operator_billing_lapse";
 
 /**
  * Renders a notification value, showing an explicit placeholder when it is blank.
@@ -406,8 +407,14 @@ export async function sendJobInterviewOfferEmails(params: {
 function formatStripeAmount(amountCents: number, currency: string): string {
   const amount = amountCents / 100;
   const code = currency.toUpperCase();
+  // Explicit branches for the currencies the site actually prices in, so receipts read
+  // exactly like the pricing page ("USD 19.00"). The Intl fallback below stays for any
+  // other code — the en-SG locale renders USD as "US$19.00", not "USD 19.00".
   if (code === "SGD") {
     return `SGD ${amount.toFixed(2)}`;
+  }
+  if (code === "USD") {
+    return `USD ${amount.toFixed(2)}`;
   }
   return new Intl.NumberFormat("en-SG", {
     style: "currency",

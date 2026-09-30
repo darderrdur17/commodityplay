@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import type { PlanTerm, PlanTier, PlanTrack } from "@/data/pricing-shared";
 
 let stripeClient: Stripe | null = null;
 
@@ -42,21 +43,54 @@ export function getStripe(): Stripe {
   return stripeClient;
 }
 
+/**
+ * All four prices are RECURRING monthly subscriptions (no one-time product remains).
+ * Career Pro USD 19 · Career Elite USD 39 · Sales Pro USD 39 · Sales Elite USD 59.
+ */
 export function getStripePrices() {
-  const pro = process.env.STRIPE_PRO_PRICE_ID;
-  const elite = process.env.STRIPE_ELITE_PRICE_ID;
+  const careerPro = process.env.STRIPE_PRICE_CAREER_PRO;
+  const careerElite = process.env.STRIPE_PRICE_CAREER_ELITE;
+  const salesPro = process.env.STRIPE_PRICE_SALES_PRO;
+  const salesElite = process.env.STRIPE_PRICE_SALES_ELITE;
 
-  if (!pro || !elite) {
-    throw new Error("STRIPE_PRO_PRICE_ID and STRIPE_ELITE_PRICE_ID must be configured");
+  if (!careerPro || !careerElite || !salesPro || !salesElite) {
+    throw new Error(
+      "STRIPE_PRICE_CAREER_PRO, STRIPE_PRICE_CAREER_ELITE, STRIPE_PRICE_SALES_PRO and STRIPE_PRICE_SALES_ELITE must be configured"
+    );
   }
 
-  // NOTE: PRO_MONTHLY is the ONE-TIME Pro price (SGD 99). The key name is kept for
-  // backwards compatibility; checkout must use mode "payment" for it.
-  // ELITE_MONTHLY is the recurring Elite price (SGD 299/mo) — mode "subscription".
   return {
-    PRO_MONTHLY: pro,
-    ELITE_MONTHLY: elite,
+    CAREER_PRO: careerPro,
+    CAREER_ELITE: careerElite,
+    SALES_PRO: salesPro,
+    SALES_ELITE: salesElite,
   } as const;
+}
+
+/** Track + tier → price id. Written as a switch so the const object stays indexable. */
+export function resolveStripePriceId(track: PlanTrack, tier: PlanTier): string {
+  const prices = getStripePrices();
+  if (track === "SALES") return tier === "ELITE" ? prices.SALES_ELITE : prices.SALES_PRO;
+  return tier === "ELITE" ? prices.CAREER_ELITE : prices.CAREER_PRO;
+}
+
+/**
+ * Term coupon for a (track, tier, term) combination.
+ *
+ * `null` means "monthly" or "not configured" — the CALLER decides whether that is
+ * fatal (checkout returns 503 for that plan only; see the checkout route). Do NOT add
+ * these to isCheckoutConfigured(): that gate is all-or-nothing and one typo would 503
+ * the monthly plan too.
+ *
+ * TERM6 and TERM12 are deliberately separate env vars even though they currently hold
+ * identical amount_off values — that is what makes "give the 12-month plan a deeper
+ * discount" a Dashboard edit rather than a PR.
+ */
+export function getStripeCoupon(track: PlanTrack, tier: PlanTier, term: PlanTerm): string | null {
+  if (term === "monthly") return null;
+  // PlanTerm's long values are "6" | "12"; the env vars are _TERM6 | _TERM12.
+  const key = `STRIPE_COUPON_${track}_${tier}_TERM${term}`;
+  return process.env[key] || null;
 }
 
 export async function createOrRetrieveCustomer(userId: string, email: string) {
@@ -98,8 +132,11 @@ export function resolveTierFromPriceId(
 
   try {
     const prices = getStripePrices();
-    if (priceId === prices.ELITE_MONTHLY) return "ELITE";
-    if (priceId === prices.PRO_MONTHLY) return "PRO";
+    // Sales Pro (USD 39) === Career Elite (USD 39): tier can NEVER be guessed from an
+    // amount, only from the price id. Track is not derivable from a price either, and
+    // is not needed for tier resolution.
+    if (priceId === prices.CAREER_ELITE || priceId === prices.SALES_ELITE) return "ELITE";
+    if (priceId === prices.CAREER_PRO || priceId === prices.SALES_PRO) return "PRO";
   } catch {
     // Stripe price env vars are not configured — treat as unknown rather than throwing.
     return null;
@@ -114,29 +151,6 @@ export function resolveTierFromPriceId(
  */
 export function getTierFromPriceId(priceId: string): "STARTER" | "PRO" | "ELITE" {
   return resolveTierFromPriceId(priceId) ?? "STARTER";
-}
-
-/**
- * Resolve the tier for a one-time payment by matching the amount charged against
- * the configured one-time Pro price. Used as a safety net for
- * `payment_intent.succeeded`, which carries no line items.
- */
-export async function resolveOneTimeTierFromAmount(
-  amountCents: number | null | undefined,
-  currency: string | null | undefined
-): Promise<"PRO" | null> {
-  if (!amountCents) return null;
-  if (currency && currency.toLowerCase() !== "sgd") return null;
-
-  try {
-    const prices = getStripePrices();
-    const price = await getStripe().prices.retrieve(prices.PRO_MONTHLY);
-    if (price.unit_amount === amountCents) return "PRO";
-  } catch (err) {
-    console.error("[stripe] could not resolve one-time price amount:", err);
-  }
-
-  return null;
 }
 
 /* ────────────────────────────────────────────────────────────────────────────

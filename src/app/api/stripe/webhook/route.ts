@@ -5,7 +5,6 @@ import {
   claimStripeEvent,
   getStripe,
   releaseStripeEvent,
-  resolveOneTimeTierFromAmount,
   resolveTierFromPriceId,
   shouldApplyStripeTierWrites,
 } from "@/lib/stripe";
@@ -24,12 +23,6 @@ import { subscriptionPlanLabel, isSubscriptionLive, maxTier, normalizeTier, type
  * maps source paths to built function names.
  */
 export const maxDuration = 60;
-
-/**
- * Grace window used only if an Elite-priced line item is somehow bought one-time.
- * Pro (the real one-time product) is lifetime and deliberately gets no expiry.
- */
-const ONE_TIME_ELITE_GRACE_DAYS = 30;
 
 interface BillingUserRow {
   id: string;
@@ -119,6 +112,66 @@ function subscriptionId(sub: Stripe.Subscription | string | null | undefined): s
   return typeof sub === "string" ? sub : sub.id;
 }
 
+/**
+ * Emails Frances about a billing lapse.
+ *
+ * `operator_billing_lapse` is added to BOTH OperatorLeadKind (src/lib/email.ts) and
+ * DemoEmailKind + DEMO_EMAIL_KIND_LABELS (src/lib/demo-email-log.ts).
+ */
+async function notifyBillingLapse(
+  user: { id: string; email: string; name: string | null },
+  subject: string,
+  lines: { label: string; value: string | null | undefined }[]
+): Promise<void> {
+  await notifyOperatorLead({ kind: "operator_billing_lapse", subject, lines });
+}
+
+/**
+ * Writes the subscription state onto the User row. Shared by
+ * `customer.subscription.created` and `customer.subscription.updated` so the two can
+ * never drift.
+ */
+async function applySubscriptionState(
+  sub: Stripe.Subscription,
+  user: BillingUserRow,
+  opts: { notifyPlanChange: boolean }
+): Promise<void> {
+  const priceId = sub.items?.data?.[0]?.price?.id ?? null;
+  const tierFromPrice = resolveTierFromPriceId(priceId);
+  const periodEnd = subscriptionPeriodEnd(sub);
+
+  const data: Prisma.UserUpdateInput = {
+    stripeSubscriptionId: sub.id,
+    stripeStatus: sub.status,
+    // Unknown price: keep the existing tier (never silently downgrade).
+    tier: tierFromPrice ?? normalizeTier(user.tier),
+  };
+  if (priceId) data.stripePriceId = priceId;
+  if (periodEnd) data.stripeCurrentPeriodEnd = periodEnd;
+
+  await prisma.user.update({ where: { id: user.id }, data });
+
+  // Operator lead: notify only on a Pro→Elite plan change (not renewals, and not the
+  // STARTER→ELITE purchase which checkout.session.completed already covers).
+  if (
+    opts.notifyPlanChange &&
+    tierFromPrice === "ELITE" &&
+    normalizeTier(user.tier) === "PRO"
+  ) {
+    void notifyOperatorLead({
+      kind: "operator_upgrade",
+      subject: `Upgraded to ELITE — ${user.email ?? user.id}`,
+      lines: [
+        { label: "Member", value: user.name ?? "—" },
+        { label: "Email", value: user.email ?? "—" },
+        { label: "Tier", value: "ELITE" },
+        { label: "Plan", value: subscriptionPlanLabel("ELITE", undefined) },
+        { label: "Reason", value: "Subscription plan change (Pro → Elite)" },
+      ],
+    });
+  }
+}
+
 export async function POST(req: NextRequest) {
   const flood = await checkRateLimit(
     rateLimitKey("stripe-webhook", getClientIp(req)),
@@ -195,8 +248,6 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        const isOneTime = session.mode === "payment";
-
         // A completed purchase must never downgrade an existing entitlement.
         const grantedTier: BillingTier = maxTier(user.tier, tierFromPrice);
 
@@ -208,17 +259,11 @@ export async function POST(req: NextRequest) {
         // Only record the price id when we recognised it, so later events can resolve it.
         if (priceId) data.stripePriceId = priceId;
 
-        if (isOneTime) {
-          // One-time Pro: no subscription, and no expiry — it is a lifetime purchase.
-          data.stripeSubscriptionId = null;
-          data.stripeCurrentPeriodEnd =
-            grantedTier === "ELITE"
-              ? new Date(Date.now() + ONE_TIME_ELITE_GRACE_DAYS * 24 * 60 * 60 * 1000)
-              : null;
-        } else {
-          const subId = subscriptionId(session.subscription);
-          if (subId) data.stripeSubscriptionId = subId;
-        }
+        // Every plan is a subscription now: always record the subscription id and NEVER
+        // null out the period end. `customer.subscription.created` (below) supplies the
+        // actual period end from the first minute.
+        const subId = subscriptionId(session.subscription);
+        if (subId) data.stripeSubscriptionId = subId;
 
         await prisma.user.update({ where: { id: user.id }, data });
         // Operator lead: tell Frances about the paid upgrade so she can curate a reply.
@@ -231,7 +276,8 @@ export async function POST(req: NextRequest) {
               { label: "Email", value: user.email ?? "—" },
               { label: "Tier", value: grantedTier },
               { label: "Plan", value: subscriptionPlanLabel(grantedTier, undefined) },
-              { label: "Type", value: isOneTime ? "One-time (lifetime)" : "Subscription" },
+              { label: "Type", value: "Subscription" },
+              { label: "Term", value: session.metadata?.term ?? "monthly" },
               { label: "Stripe price", value: priceId ?? "—" },
             ],
           });
@@ -240,33 +286,20 @@ export async function POST(req: NextRequest) {
       }
 
       /**
-       * Safety net for one-time payments: if checkout.session.completed was missed or
-       * failed, grant Pro from the charged amount (matched against the Pro price).
-       * Never downgrades — an unmatched amount leaves the tier untouched.
+       * A brand-new subscription. Handling it here (not only in checkout.session.completed)
+       * is what guarantees `stripeCurrentPeriodEnd` is populated from the first minute.
+       * checkout.session.completed sets stripeStatus:"active" but no period end, and
+       * isSubscriptionLive() tolerates a null period end — tolerance that was fine for a
+       * one-time purchase and would now keep a cancelled Pro member's access alive.
        */
-      case "payment_intent.succeeded": {
-        const intent = event.data.object as Stripe.PaymentIntent;
-        // Subscription invoices are handled by the invoice.* events.
-        if (intent.invoice) break;
-
-        const user = await findBillingUser(intent.metadata?.userId ?? null, intent.customer);
-        if (!user) break;
-
-        const tier = await resolveOneTimeTierFromAmount(
-          intent.amount_received,
-          intent.currency
-        );
-        if (!tier) break;
-
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            tier: maxTier(user.tier, tier),
-            stripeStatus: "active",
-            stripeSubscriptionId: null,
-            stripeCurrentPeriodEnd: null,
-          },
-        });
+      case "customer.subscription.created": {
+        const sub = event.data.object as Stripe.Subscription;
+        const user = await findBillingUser(sub.metadata?.userId, sub.customer);
+        if (!user) {
+          console.warn("[webhook] customer.subscription.created with no matching user");
+          break;
+        }
+        await applySubscriptionState(sub, user, { notifyPlanChange: false });
         break;
       }
 
@@ -279,35 +312,7 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        const priceId = sub.items?.data?.[0]?.price?.id ?? null;
-        const tierFromPrice = resolveTierFromPriceId(priceId);
-        const periodEnd = subscriptionPeriodEnd(sub);
-
-        const data: Prisma.UserUpdateInput = {
-          stripeSubscriptionId: sub.id,
-          stripeStatus: sub.status,
-          // Unknown price: keep the existing tier (never silently downgrade).
-          tier: tierFromPrice ?? normalizeTier(user.tier),
-        };
-        if (priceId) data.stripePriceId = priceId;
-        if (periodEnd) data.stripeCurrentPeriodEnd = periodEnd;
-
-        await prisma.user.update({ where: { id: user.id }, data });
-        // Operator lead: notify only on a Pro→Elite plan change (not renewals, and not
-        // the STARTER→ELITE purchase which checkout.session.completed already covers).
-        if (tierFromPrice === "ELITE" && normalizeTier(user.tier) === "PRO") {
-          void notifyOperatorLead({
-            kind: "operator_upgrade",
-            subject: `Upgraded to ELITE — ${user.email ?? user.id}`,
-            lines: [
-              { label: "Member", value: user.name ?? "—" },
-              { label: "Email", value: user.email ?? "—" },
-              { label: "Tier", value: "ELITE" },
-              { label: "Plan", value: subscriptionPlanLabel("ELITE", undefined) },
-              { label: "Reason", value: "Subscription plan change (Pro → Elite)" },
-            ],
-          });
-        }
+        await applySubscriptionState(sub, user, { notifyPlanChange: true });
         break;
       }
 
@@ -330,15 +335,24 @@ export async function POST(req: NextRequest) {
             stripeStatus: "cancelled",
           },
         });
+
+        // The actual lapse — always notify.
+        await notifyBillingLapse(user, `Access lapsed — ${user.email ?? user.id}`, [
+          { label: "Member", value: user.name ?? "—" },
+          { label: "Email", value: user.email ?? "—" },
+          { label: "Tier before lapse", value: normalizeTier(user.tier) },
+          { label: "Stripe subscription", value: sub.id },
+        ]);
         break;
       }
 
       /**
-       * Refund or dispute on a ONE-TIME payment (Pro, SGD 99).
+       * Refund or dispute on a charge that is NOT attached to an invoice.
        *
-       * Pro is a lifetime purchase, so nothing else in this file ever revokes it —
-       * without this handler a member who buys Pro and is then refunded keeps Pro
-       * permanently.
+       * With no one-time product left, every real payment carries `charge.invoice`, so
+       * this handler now always early-returns below. The guard is kept deliberately:
+       * it is cheap, and removing it would silently revoke a paying member's tier the
+       * day a non-invoice charge appears (a future one-off product, an adjustment).
        *
        * Deliberately narrow: a refund of a *subscription* payment is NOT revoked
        * here, because Stripe drives that through `customer.subscription.*` and
@@ -391,7 +405,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Invoice payment failed — status flips to past_due; effectiveTier() then
-      // withholds ELITE access without destroying the stored tier.
+      // withholds PRO *and* ELITE access without destroying the stored tier.
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
@@ -402,6 +416,35 @@ export async function POST(req: NextRequest) {
             data: { stripeStatus: "past_due" },
           });
         }
+
+        // 🔴 Dunning dedupe. Stripe emits a DISTINCT invoice.payment_failed event for
+        // each retry (up to 4), and claimStripeEvent() dedupes on event.id — which does
+        // NOT help here, because these are four different event ids.
+        //
+        // Notify on attempt 1 ONLY. Retries 2-4 are silent, and the FINAL attempt is
+        // NOT notified either: it is always followed by customer.subscription.deleted,
+        // which does notify. Notifying on both is how one dead card becomes 3-4 emails
+        // instead of 2.
+        if ((invoice.attempt_count ?? 0) !== 1) break;
+
+        if (!customerId) break;
+        const user = await prisma.user.findFirst({
+          where: { stripeCustomerId: customerId },
+          select: { id: true, name: true, email: true, tier: true },
+        });
+        if (!user) break;
+
+        await notifyBillingLapse(
+          user,
+          `Payment failed — ${user.email ?? user.id}`,
+          [
+            { label: "Member", value: user.name ?? "—" },
+            { label: "Email", value: user.email ?? "—" },
+            { label: "Tier", value: normalizeTier(user.tier) },
+            { label: "Attempt", value: String(invoice.attempt_count ?? 0) },
+            { label: "Invoice", value: invoice.id ?? "—" },
+          ]
+        );
         break;
       }
 

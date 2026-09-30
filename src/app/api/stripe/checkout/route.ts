@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getStripe, getStripePrices, createOrRetrieveCustomer } from "@/lib/stripe";
+import {
+  getStripe,
+  resolveStripePriceId,
+  getStripeCoupon,
+  createOrRetrieveCustomer,
+} from "@/lib/stripe";
 import { isCheckoutConfigured } from "@/lib/payments";
 import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import type { PlanTier, PlanTrack } from "@/data/pricing-shared";
 
 const schema = z.object({
   plan: z.enum(["pro", "elite"]),
+  term: z.enum(["monthly", "6", "12"]).default("monthly"),
 });
 
 export async function POST(req: NextRequest) {
@@ -35,42 +43,78 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { plan } = parsed.data;
+    const { plan, term } = parsed.data;
     const userId = session.user.id;
     const email = session.user.email!;
+    const tier: PlanTier = plan === "elite" ? "ELITE" : "PRO";
+
+    // 🔴 Track is NEVER taken from the browser — it decides the price. A CAREER member
+    // browsing /?track=sales must be charged the CAREER price, not the SALES price.
+    const row = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { track: true },
+    });
+    const track: PlanTrack = row?.track === "SALES" ? "SALES" : "CAREER";
 
     const stripe = getStripe();
-    const prices = getStripePrices();
+    const priceId = resolveStripePriceId(track, tier);
     const customerId = await createOrRetrieveCustomer(userId, email);
     const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL;
 
-    // Pro is a ONE-TIME purchase (SGD 99) → Checkout must run in "payment" mode.
-    // Elite is a RECURRING monthly subscription (SGD 299/mo) → "subscription" mode.
-    const isElite = plan === "elite";
-    const priceId = isElite ? prices.ELITE_MONTHLY : prices.PRO_MONTHLY;
-    const mode: "payment" | "subscription" = isElite ? "subscription" : "payment";
+    // Per-plan 503: a missing TERM coupon disables ONLY that term. Monthly stays live.
+    const couponId = getStripeCoupon(track, tier, term);
+    if (term !== "monthly" && !couponId) {
+      console.error("[stripe/checkout] term requested but coupon not configured", {
+        track,
+        tier,
+        term,
+      });
+      return NextResponse.json(
+        { error: "This plan is not available yet. Please choose monthly." },
+        { status: 503 }
+      );
+    }
+
+    // 🔴 First-commitment gate. The discount is an acquisition incentive: a member whose
+    // subscription has already ended must NOT regain it by resubscribing.
+    // status:"all" + an explicit filter is deliberate — Stripe's status:"ended" filter is
+    // inconsistent across API versions, the explicit set cannot drift.
+    //
+    // Failure-tolerant on purpose: if this extra Stripe call errors we degrade to "no
+    // discount" rather than 500-ing a checkout the member is otherwise entitled to.
+    let discount: { coupon: string } | null = null;
+    if (couponId) {
+      try {
+        const prior = await stripe.subscriptions.list({
+          customer: customerId,
+          status: "all",
+          limit: 100,
+        });
+        const ENDED = new Set(["canceled", "unpaid", "incomplete_expired"]);
+        if (!prior.data.some((s) => ENDED.has(s.status))) discount = { coupon: couponId };
+      } catch (err) {
+        console.error("[stripe/checkout] prior-subscription lookup failed; no discount", err);
+      }
+    }
 
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
-      mode,
+      // 🔴 Every plan is a subscription now — there is no one-time product left.
+      mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/account?upgraded=1`,
       cancel_url: `${origin}/account?cancelled=1`,
-      metadata: { userId, plan },
-      // Mode-specific payloads. Both carry server-set metadata so the webhook can
-      // identify the member without trusting anything supplied by the browser.
-      ...(isElite
-        ? { subscription_data: { metadata: { userId, plan } } }
-        : { payment_intent_data: { metadata: { userId, plan } } }),
-      allow_promotion_codes: true,
+      metadata: { userId, plan: tier, term, track },
+      subscription_data: { metadata: { userId, plan: tier, term, track } },
+      // The coupon's `duration` is deliberately NEVER read here — whether the discount
+      // persists forever or only for the first term is a Stripe Dashboard setting.
+      ...(discount ? { discounts: [discount] } : {}),
+      // Do not let a customer stack a promo code on an already-discounted term.
+      allow_promotion_codes: discount ? false : true,
       billing_address_collection: "required",
       customer_update: { address: "auto", name: "auto" },
-      // Saving a card only makes sense for the recurring Elite plan.
-      ...(isElite
-        ? {
-            saved_payment_method_options: { payment_method_save: "enabled" },
-          }
-        : {}),
+      // Now for every plan, not just Elite: every plan is recurring.
+      saved_payment_method_options: { payment_method_save: "enabled" },
       payment_method_types: ["card"],
     });
 

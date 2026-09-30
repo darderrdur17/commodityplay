@@ -78,11 +78,12 @@ export function isSubscriptionLive(
 /**
  * Single source of truth for "what is this member actually entitled to right now".
  *
- * - PRO is a ONE-TIME purchase (SGD 99). Once bought it never expires, so there is
- *   no recurring status to validate.
- * - ELITE is a recurring monthly subscription, so it only counts while the Stripe
- *   subscription is `active`/`trialing` and the paid-through period is in the future.
- * - Anything else falls back to STARTER.
+ * - PRO and ELITE are BOTH recurring monthly subscriptions. Both expire identically:
+ *   the Stripe subscription must be `active`/`trialing` AND the paid-through period
+ *   must be in the future. (PRO used to be a one-time lifetime purchase — that is no
+ *   longer true, and leaving the old short-circuit in place would hand a cancelled Pro
+ *   member paid access forever.)
+ * - Any other stored value falls back to STARTER.
  *
  * Use this for every authorisation decision. Never use `session.user.tier` (the JWT
  * can be up to 30 days stale after a downgrade, refund, or lapsed card).
@@ -91,11 +92,10 @@ export function effectiveTier(user: EntitlementFields | null | undefined): Billi
   const stored = normalizeTier(user?.tier);
 
   if (stored === "STARTER") return "STARTER";
-  if (stored === "PRO") return "PRO";
 
-  // ELITE
+  // 🔴 PRO is now a SUBSCRIPTION — it expires exactly like ELITE.
   return isSubscriptionLive(user?.stripeStatus, user?.stripeCurrentPeriodEnd)
-    ? "ELITE"
+    ? stored
     : "STARTER";
 }
 
