@@ -102,6 +102,9 @@ export function MentorAskPanel({
                       {mentor.headline}
                     </h3>
                     <p className="text-xs text-muted-fg mt-0.5">{mentor.segmentTitle}</p>
+                    {mentor.bio && (
+                      <p className="text-xs text-gray-600 mt-2 leading-relaxed">{mentor.bio}</p>
+                    )}
                   </div>
                 </div>
                 <button
