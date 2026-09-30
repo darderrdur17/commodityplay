@@ -52,8 +52,11 @@ commodity-playbook-app/
 | Tier | Price | Access |
 |---|---|---|
 | **Starter** | Free | 5 infographics, Chapter A preview, Desk Glossary, Weekly Digest |
-| **Pro** | SGD 99 one-time | Full Playbook (5ch), Resume Templates, Career Roadmap, Interview Qs, Knowledge Test |
-| **Elite** | SGD 299/month | Everything in Pro + Case Studies, Desk Channel, Mentor Connect, Job Openings |
+| **Pro** | USD 19/month | Full Playbook (5ch), Resume Templates, Career Roadmap, Interview Qs, Knowledge Test |
+| **Elite** | USD 39/month | Everything in Pro + Case Studies, Desk Channel, Mentor Connect, Job Openings |
+
+> Sales track: **Sales Pro** USD 39/month, **Sales Elite** USD 59/month. All plans are monthly
+> subscriptions; the 6-month and 12-month terms bill 6 for 7 and 12 for 14 months respectively.
 
 ## Personas
 
@@ -197,15 +200,30 @@ eas submit                 # Submit to App Store + Google Play
 
 ## Stripe Products Setup
 
+All four plans are **monthly recurring subscriptions in USD**. Pro is no longer a one-time
+purchase.
+
 1. Go to [dashboard.stripe.com/products](https://dashboard.stripe.com/products)
-2. Create **Pro** product:
-   - Name: "CommodityPlay. Pro"
-   - Pricing: One-time, SGD 99.00
-   - Copy Price ID → `STRIPE_PRO_PRICE_ID`
-3. Create **Elite** product:
-   - Name: "CommodityPlay. Elite"
-   - Pricing: Recurring, SGD 299.00/month
-   - Copy Price ID → `STRIPE_ELITE_PRICE_ID`
+2. Create four products, each with a **recurring, monthly** price:
+
+   | Product | Name | Amount |
+   | --- | --- | --- |
+   | Career Pro | "CommodityPlay. Career Pro" | USD 19.00/month |
+   | Career Elite | "CommodityPlay. Career Elite" | USD 39.00/month |
+   | Sales Pro | "CommodityPlay. Sales Pro" | USD 39.00/month |
+   | Sales Elite | "CommodityPlay. Sales Elite" | USD 59.00/month |
+
+3. Copy each **Price** ID — it starts with `price_`, not the `prod_...` product ID:
+
+   | Price | Environment variable |
+   | --- | --- |
+   | Career Pro | `STRIPE_PRICE_CAREER_PRO` |
+   | Career Elite | `STRIPE_PRICE_CAREER_ELITE` |
+   | Sales Pro | `STRIPE_PRICE_SALES_PRO` |
+   | Sales Elite | `STRIPE_PRICE_SALES_ELITE` |
+
+> ⚠️ A Price's **currency is locked at creation**. Confirm USD before creating these — you cannot
+> change it afterwards; you delete and rebuild the price.
 
 ---
 
