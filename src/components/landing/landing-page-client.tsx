@@ -41,7 +41,7 @@ import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-
 import { isPaymentsLive } from "@/lib/payments";
 import { startCheckout } from "@/lib/start-checkout";
 import { CAREER_PRICING_HREF } from "@/lib/pricing-routes";
-import type { PlanTerm } from "@/data/pricing-shared";
+import type { BillingCadence, PlanTerm } from "@/data/pricing-shared";
 
 type Track = "career" | "sales";
 
@@ -96,7 +96,7 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
    * Mirrors sales-landing-panel: payments-live gate → signup redirect → startCheckout.
    * The track is NOT sent — the server reads User.track.
    */
-  async function handlePurchase(plan: "pro" | "elite", term: PlanTerm) {
+  async function handlePurchase(plan: "pro" | "elite", term: PlanTerm, cadence: BillingCadence = "monthly") {
     if (!isPaymentsLive()) {
       setContactOpen(true);
       return;
@@ -107,7 +107,7 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
     }
     setLoadingPlan(plan);
     try {
-      const url = await startCheckout(plan, term);
+      const url = await startCheckout(plan, term, cadence);
       if (url) window.location.href = url;
       else router.push(CAREER_PRICING_HREF);
     } catch {

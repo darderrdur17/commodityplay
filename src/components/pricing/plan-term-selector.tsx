@@ -5,6 +5,7 @@ import {
   PLAN_TERM_ORDER,
   monthlyRateUsd,
   priceLabel,
+  type BillingCadence,
   type PlanTerm,
   type PlanTier,
   type PlanTrack,
@@ -16,6 +17,8 @@ interface PlanTermSelectorProps {
   tier: PlanTier;
   value: PlanTerm;
   onChange: (term: PlanTerm) => void;
+  cadence?: BillingCadence;
+  onCadenceChange?: (c: BillingCadence) => void;
   /** "dark" for the translucent landing cards; "light" for white cards and /account. */
   tone?: "light" | "dark";
 }
@@ -26,12 +29,15 @@ interface PlanTermSelectorProps {
  * The rate printed underneath is the NORMALISED monthly rate for the selected term
  * (USD 16.29 for Career Pro term6/term12), so the member sees exactly what the
  * invoice will charge — the same number monthlyRateUsd() feeds to Stripe's coupon.
+ * On the 12-month term, billed-annually uses a yearly Stripe Price and a 2-month trial.
  */
 export function PlanTermSelector({
   track,
   tier,
   value,
   onChange,
+  cadence = "monthly",
+  onCadenceChange,
   tone = "light",
 }: PlanTermSelectorProps) {
   return (
@@ -67,8 +73,34 @@ export function PlanTermSelector({
           );
         })}
       </div>
+      {value === "12" && (
+        <div className="flex gap-2 mt-2">
+          <button
+            type="button"
+            onClick={() => onCadenceChange?.("monthly")}
+            className={cn(
+              "text-xs px-2 py-1 rounded",
+              cadence === "monthly" ? "bg-white text-gray-900" : tone === "dark" ? "text-white/70" : "text-muted-fg"
+            )}
+          >
+            Billed monthly
+          </button>
+          <button
+            type="button"
+            onClick={() => onCadenceChange?.("annual")}
+            className={cn(
+              "text-xs px-2 py-1 rounded",
+              cadence === "annual" ? "bg-white text-gray-900" : tone === "dark" ? "text-white/70" : "text-muted-fg"
+            )}
+          >
+            Billed annually
+          </button>
+        </div>
+      )}
       <p className={cn("text-xs", tone === "dark" ? "text-white/60" : "text-muted-fg")}>
-        {priceLabel(monthlyRateUsd(track, tier, value))} / month · {PLAN_TERMS[value].label}
+        {cadence === "annual" && value === "12"
+          ? "Billed once a year · 2-month trial"
+          : `${priceLabel(monthlyRateUsd(track, tier, value))} / month · ${PLAN_TERMS[value].label}`}
       </p>
     </div>
   );

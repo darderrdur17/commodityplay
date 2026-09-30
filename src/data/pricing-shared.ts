@@ -29,6 +29,7 @@ export const CURRENCY = "USD" as const;
 export type PlanTrack = "CAREER" | "SALES";
 export type PlanTier = "PRO" | "ELITE";
 export type PlanTerm = "monthly" | "6" | "12";
+export type BillingCadence = "monthly" | "annual";
 
 /** `CAREER_PRO`, `SALES_ELITE`, … */
 export type PlanKey = `${PlanTrack}_${PlanTier}`;
