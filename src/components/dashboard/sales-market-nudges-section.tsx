@@ -25,12 +25,21 @@ import { useBookmarkHighlight } from "@/hooks/use-bookmark-highlight";
 import {
   MEMBER_NUDGE_STATUS_LABELS,
   MEMBER_NUDGE_STATUSES,
-  statusKey,
-  type MarketNudgeKind,
   type MemberNudgeStatus,
 } from "@/lib/sales-nudge-member-status";
+import type { NudgeLifecycleStatus } from "@/data/sales-market-nudges";
 const ROYAL = "#1a4fd6";
 const CTA_BLUE = "#3280ff";
+
+function matchesMemberStatusFilter(
+  status: NudgeLifecycleStatus | undefined,
+  filter: MemberNudgeStatus
+): boolean {
+  const value = status ?? "active";
+  if (filter === "ACTIVE") return value === "active";
+  if (filter === "EXPIRED") return value === "expired";
+  return value === "archive";
+}
 
 function MonthYearFilterBar({
   groups,
@@ -87,34 +96,6 @@ function MonthYearFilterBar({
   );
 }
 
-function NudgeText({ nudge }: { nudge: MarketNudgeItem }) {
-  const { text, accountNames } = nudge;
-  if (accountNames.length === 0) {
-    return <span>{text}</span>;
-  }
-
-  const trimmed = text.trimEnd();
-  const endsWithOpenParen = trimmed.endsWith("(");
-  const endsWithTo = /\bto$/.test(trimmed);
-
-  return (
-    <span>
-      {text}
-      {!endsWithOpenParen && !endsWithTo && " ("}
-      {endsWithTo && " "}
-      {accountNames.map((name, i) => (
-        <React.Fragment key={name}>
-          {i > 0 && ", "}
-          <strong className="font-semibold text-white">{name}</strong>
-        </React.Fragment>
-      ))}
-      {endsWithOpenParen && ")"}
-      {!endsWithOpenParen && !endsWithTo && ")"}
-      {!trimmed.endsWith(".") && "."}
-    </span>
-  );
-}
-
 function ChipFilterBar({
   label,
   options,
@@ -152,50 +133,14 @@ function ChipFilterBar({
   );
 }
 
-function MemberStatusSelect({
-  value,
-  onChange,
-  tone = "light",
-}: {
-  value: MemberNudgeStatus;
-  onChange: (status: MemberNudgeStatus) => void;
-  tone?: "light" | "on-green";
-}) {
-  return (
-    <label className="shrink-0">
-      <span className="sr-only">Talking point status</span>
-      <select
-        className={cn(
-          "rounded-md border text-[11px] font-medium px-2 py-1.5",
-          tone === "on-green"
-            ? "border-white/20 bg-white/10 text-white"
-            : "border-border bg-white text-gray-800"
-        )}
-        value={value}
-        onChange={(e) => onChange(e.target.value as MemberNudgeStatus)}
-      >
-        {MEMBER_NUDGE_STATUSES.map((status) => (
-          <option key={status} value={status}>
-            {MEMBER_NUDGE_STATUS_LABELS[status]}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 function IntelligenceBriefCard({
   brief,
   showLinkToAccount = false,
   highlighted = false,
-  memberStatus,
-  onStatusChange,
 }: {
   brief: IntelligenceBrief;
   showLinkToAccount?: boolean;
   highlighted?: boolean;
-  memberStatus: MemberNudgeStatus;
-  onStatusChange: (status: MemberNudgeStatus) => void;
 }) {
   const updated = formatBriefCardDate(brief);
   return (
@@ -215,7 +160,6 @@ function IntelligenceBriefCard({
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           {updated && <span className="text-[11px] text-muted-fg">{updated}</span>}
-          <MemberStatusSelect value={memberStatus} onChange={onStatusChange} />
         </div>
       </div>
       <p className="text-sm text-muted-fg leading-relaxed mb-4 flex-1">{brief.description}</p>
@@ -247,7 +191,7 @@ function IntelligenceBriefCard({
 }
 
 function getNudgeBookmarkTitle(nudge: MarketNudgeItem) {
-  const trimmed = nudge.text.trim();
+  const trimmed = nudge.title.trim() || nudge.whyNow.trim();
   const dashSplit = trimmed.split(" — ")[0]?.trim();
   return dashSplit || trimmed;
 }
@@ -299,50 +243,6 @@ export function SalesMarketNudgesSection({
   const { highlightId, isHighlighted } = useBookmarkHighlight(true);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<MemberNudgeStatus>("ACTIVE");
-  const [memberStatuses, setMemberStatuses] = useState<Record<string, MemberNudgeStatus>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/sales-market-nudges/status")
-      .then((res) => (res.ok ? res.json() : { statuses: {} }))
-      .then((data: { statuses?: Record<string, string> }) => {
-        if (cancelled) return;
-        const next: Record<string, MemberNudgeStatus> = {};
-        for (const [key, value] of Object.entries(data.statuses ?? {})) {
-          if (value === "ACTIVE" || value === "EXPIRED" || value === "ARCHIVED") {
-            next[key] = value;
-          }
-        }
-        setMemberStatuses(next);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  function itemStatus(kind: MarketNudgeKind, sourceId: string): MemberNudgeStatus {
-    return memberStatuses[statusKey(kind, sourceId)] ?? "ACTIVE";
-  }
-
-  async function setItemStatus(kind: MarketNudgeKind, sourceId: string, status: MemberNudgeStatus) {
-    const key = statusKey(kind, sourceId);
-    const previous = memberStatuses[key];
-    setMemberStatuses((curr) => ({ ...curr, [key]: status }));
-    const res = await fetch("/api/sales-market-nudges/status", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind, sourceId, status }),
-    });
-    if (!res.ok) {
-      setMemberStatuses((curr) => {
-        const next = { ...curr };
-        if (previous) next[key] = previous;
-        else delete next[key];
-        return next;
-      });
-    }
-  }
 
   const categories = content.briefCategories?.length
     ? content.briefCategories
@@ -350,7 +250,7 @@ export function SalesMarketNudgesSection({
 
   const briefsForFilters = content.intelligenceBriefs.filter(
     (brief) =>
-      itemStatus("INTELLIGENCE_BRIEF", brief.id) === statusFilter &&
+      matchesMemberStatusFilter(brief.status, statusFilter) &&
       (categoryFilter === "all" || brief.category === categoryFilter)
   );
   const briefGroups = useMemo(
@@ -382,8 +282,8 @@ export function SalesMarketNudgesSection({
     briefGroups[0]?.briefs ??
     [];
 
-  const visibleWeeklyNudges = content.weeklyNudges.filter(
-    (nudge) => itemStatus("WEEKLY_NUDGE", nudge.id) === statusFilter
+  const visibleWeeklyNudges = content.weeklyNudges.filter((nudge) =>
+    matchesMemberStatusFilter(nudge.status, statusFilter)
   );
 
   if (!unlocked) {
@@ -395,16 +295,11 @@ export function SalesMarketNudgesSection({
               <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">
                 This Week — Talking Points
               </p>
-              <p className="text-sm">{content.weeklyNudges[0]?.text}</p>
+              <p className="text-sm">{content.weeklyNudges[0]?.title}</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {content.intelligenceBriefs.slice(0, 2).map((brief) => (
-                <IntelligenceBriefCard
-                  key={brief.id}
-                  brief={brief}
-                  memberStatus="ACTIVE"
-                  onStatusChange={() => undefined}
-                />
+                <IntelligenceBriefCard key={brief.id} brief={brief} />
               ))}
             </div>
           </div>
@@ -439,6 +334,7 @@ export function SalesMarketNudgesSection({
         />
       </header>
 
+      {statusFilter === "ACTIVE" && (
       <section
         className="rounded-xl p-5 sm:p-6 space-y-4 bg-[#065F46]"
         aria-labelledby="weekly-nudges-heading"
@@ -458,19 +354,20 @@ export function SalesMarketNudgesSection({
               key={nudge.id}
               id={marketNudgeElementId(nudge.id)}
               className={cn(
-                "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg bg-white/10 px-4 py-3 scroll-mt-28",
+                "flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 rounded-lg bg-white/10 px-4 py-3 scroll-mt-28",
                 isHighlighted(marketNudgeElementId(nudge.id)) && BOOKMARK_HIGHLIGHT_RING
               )}
             >
-              <p className="text-sm text-white/95 leading-relaxed flex-1">
-                <NudgeText nudge={nudge} />
-              </p>
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-white/90 mb-1">{nudge.title}</p>
+                <p className="text-sm text-white/95 leading-relaxed">
+                  <span className="font-medium">Why now:</span> {nudge.whyNow}
+                </p>
+                <p className="text-sm text-white/95 leading-relaxed mt-1">
+                  <span className="font-medium">Account action:</span> {nudge.accountAction}
+                </p>
+              </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0">
-                <MemberStatusSelect
-                  value={itemStatus("WEEKLY_NUDGE", nudge.id)}
-                  onChange={(status) => void setItemStatus("WEEKLY_NUDGE", nudge.id, status)}
-                  tone="on-green"
-                />
                 {hasElite && (
                   <LinkToAccountDropdown
                     sourceType="MARKET_NUDGE"
@@ -486,6 +383,7 @@ export function SalesMarketNudgesSection({
           )}
         </ul>
       </section>
+      )}
 
       <section
         className="rounded-xl border border-border bg-white p-5 sm:p-6"
@@ -539,10 +437,6 @@ export function SalesMarketNudgesSection({
                       brief={brief}
                       showLinkToAccount={hasElite}
                       highlighted={isHighlighted(marketNudgeElementId(brief.id))}
-                      memberStatus={itemStatus("INTELLIGENCE_BRIEF", brief.id)}
-                      onStatusChange={(status) =>
-                        void setItemStatus("INTELLIGENCE_BRIEF", brief.id, status)
-                      }
                     />
                   </Reveal>
                 ))}
