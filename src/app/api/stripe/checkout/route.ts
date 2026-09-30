@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import {
   getStripe,
   resolveStripePriceId,
+  resolveStripeAnnualPriceId,
   getStripeCoupon,
   createOrRetrieveCustomer,
 } from "@/lib/stripe";
@@ -15,6 +16,7 @@ import type { PlanTier, PlanTrack } from "@/data/pricing-shared";
 const schema = z.object({
   plan: z.enum(["pro", "elite"]),
   term: z.enum(["monthly", "6", "12"]).default("monthly"),
+  cadence: z.enum(["monthly", "annual"]).default("monthly"),
 });
 
 export async function POST(req: NextRequest) {
@@ -43,13 +45,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { plan, term } = parsed.data;
+    const { plan, term, cadence } = parsed.data;
     const userId = session.user.id;
     const email = session.user.email!;
     const tier: PlanTier = plan === "elite" ? "ELITE" : "PRO";
 
-    // 🔴 Track is NEVER taken from the browser — it decides the price. A CAREER member
-    // browsing /?track=sales must be charged the CAREER price, not the SALES price.
+    // Track is NEVER taken from the browser — it decides the price.
     const row = await prisma.user.findUnique({
       where: { id: userId },
       select: { track: true },
@@ -57,13 +58,22 @@ export async function POST(req: NextRequest) {
     const track: PlanTrack = row?.track === "SALES" ? "SALES" : "CAREER";
 
     const stripe = getStripe();
-    const priceId = resolveStripePriceId(track, tier);
+    const isAnnual = term === "12" && cadence === "annual";
+    let priceId: string;
+    try {
+      priceId = isAnnual ? resolveStripeAnnualPriceId(track, tier) : resolveStripePriceId(track, tier);
+    } catch (err) {
+      console.error("[stripe/checkout] price not configured", { track, tier, term, cadence, err });
+      return NextResponse.json(
+        { error: isAnnual ? "Annual billing is not available yet. Please choose billed monthly." : "Checkout failed" },
+        { status: 503 }
+      );
+    }
     const customerId = await createOrRetrieveCustomer(userId, email);
     const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL;
 
-    // Per-plan 503: a missing TERM coupon disables ONLY that term. Monthly stays live.
-    const couponId = getStripeCoupon(track, tier, term);
-    if (term !== "monthly" && !couponId) {
+    const couponId = isAnnual ? null : getStripeCoupon(track, tier, term);
+    if (!isAnnual && term !== "monthly" && !couponId) {
       console.error("[stripe/checkout] term requested but coupon not configured", {
         track,
         tier,
@@ -104,15 +114,16 @@ export async function POST(req: NextRequest) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/account?upgraded=1`,
       cancel_url: `${origin}/account?cancelled=1`,
-      metadata: { userId, plan: tier, term, track },
-      subscription_data: { metadata: { userId, plan: tier, term, track } },
-      // The coupon's `duration` is deliberately NEVER read here — whether the discount
-      // persists forever or only for the first term is a Stripe Dashboard setting.
-      // 🔴 Stripe rejects `discounts` and `allow_promotion_codes` in the SAME request —
-      // "You may only specify one of these parameters" — even when the latter is `false`.
-      // So when a term coupon is attached the promo-code field must be omitted entirely.
-      // Monthly (no coupon) still allows a promo code.
-      ...(discount ? { discounts: [discount] } : { allow_promotion_codes: true }),
+      metadata: { userId, plan: tier, term, cadence, track },
+      subscription_data: {
+        metadata: { userId, plan: tier, term, cadence, track },
+        ...(isAnnual ? { trial_period_days: 60 } : {}),
+      },
+      ...(isAnnual
+        ? {}
+        : discount
+          ? { discounts: [discount] }
+          : { allow_promotion_codes: true }),
       billing_address_collection: "required",
       customer_update: { address: "auto", name: "auto" },
       // Now for every plan, not just Elite: every plan is recurring.

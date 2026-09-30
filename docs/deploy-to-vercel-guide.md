@@ -85,6 +85,10 @@ one-time purchase.
 | `STRIPE_PRICE_CAREER_ELITE` | `price_...` — Career Elite, USD 39.00/month recurring |
 | `STRIPE_PRICE_SALES_PRO` | `price_...` — Sales Pro, USD 39.00/month recurring |
 | `STRIPE_PRICE_SALES_ELITE` | `price_...` — Sales Elite, USD 59.00/month recurring |
+| `STRIPE_PRICE_CAREER_PRO_ANNUAL` | `price_...` — Career Pro, yearly recurring (12-month billed annually) |
+| `STRIPE_PRICE_CAREER_ELITE_ANNUAL` | `price_...` — Career Elite, yearly recurring |
+| `STRIPE_PRICE_SALES_PRO_ANNUAL` | `price_...` — Sales Pro, yearly recurring |
+| `STRIPE_PRICE_SALES_ELITE_ANNUAL` | `price_...` — Sales Elite, yearly recurring |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` (from step 7) |
 | `STRIPE_BILLING_PORTAL_CONFIGURATION_ID` | `bpc_...` (optional — enables the branded portal) |
 

@@ -27,7 +27,7 @@ import { SALES_MARKET_NOTE } from "@/data/market-notes";
 import { SALES_PRICING_HREF } from "@/lib/pricing-routes";
 import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-notes";
 import { SALES_HERO_GREEN } from "@/lib/sales-brand-colors";
-import type { PlanTerm } from "@/data/pricing-shared";
+import type { BillingCadence, PlanTerm } from "@/data/pricing-shared";
 import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
 
 const SALES_COLOR = "#0F766E";
@@ -112,10 +112,15 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
   const { data: session } = useSession();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [term, setTerm] = useState<PlanTerm>("monthly");
+  const [cadence, setCadence] = useState<BillingCadence>("monthly");
   const [showFeatureComparison, setShowFeatureComparison] = useState(false);
   const featureTable = content.comparison.groups;
 
-  async function handlePurchase(plan: "pro" | "elite", term: PlanTerm = "monthly") {
+  async function handlePurchase(
+    plan: "pro" | "elite",
+    term: PlanTerm = "monthly",
+    cadence: BillingCadence = "monthly"
+  ) {
     if (!isPaymentsLive()) {
       onOpenContactModal();
       return;
@@ -127,7 +132,7 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
     setLoadingPlan(plan);
     try {
       // The track is NOT sent — the server reads User.track from the DB.
-      const url = await startCheckout(plan, term);
+      const url = await startCheckout(plan, term, cadence);
       if (url) window.location.href = url;
       else router.push(SALES_PRICING_HREF);
     } catch {
@@ -358,6 +363,8 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
                       tier={tier.name === "Elite" ? "ELITE" : "PRO"}
                       value={term}
                       onChange={setTerm}
+                      cadence={cadence}
+                      onCadenceChange={setCadence}
                       tone={tier.featured ? "dark" : "light"}
                     />
                     <Button
@@ -365,7 +372,7 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
                       variant={tier.featured ? "default" : "outline"}
                       size="lg"
                       onClick={() =>
-                        handlePurchase(tier.name.toLowerCase() as "pro" | "elite", term)
+                        handlePurchase(tier.name.toLowerCase() as "pro" | "elite", term, cadence)
                       }
                       loading={loadingPlan === tier.name.toLowerCase()}
                     >

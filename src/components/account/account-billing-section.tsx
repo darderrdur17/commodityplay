@@ -21,7 +21,7 @@ import { startBillingPortal, type BillingPortalFlow } from "@/lib/start-billing-
 import { startCheckout, type CheckoutPlan } from "@/lib/start-checkout";
 import { cn, formatDate } from "@/lib/utils";
 import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
-import type { PlanTerm } from "@/data/pricing-shared";
+import type { BillingCadence, PlanTerm } from "@/data/pricing-shared";
 
 interface AccountBillingSectionProps {
   tier: BillingTier;
@@ -44,6 +44,7 @@ export function AccountBillingSection({
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [term, setTerm] = useState<PlanTerm>("monthly");
+  const [cadence, setCadence] = useState<BillingCadence>("monthly");
 
   const statusTone = subscriptionStatusTone(stripeStatus);
   const isPastDue = stripeStatus === "past_due";
@@ -65,12 +66,16 @@ export function AccountBillingSection({
     }
   }
 
-  async function handleUpgrade(plan: CheckoutPlan, term: PlanTerm = "monthly") {
+  async function handleUpgrade(
+    plan: CheckoutPlan,
+    term: PlanTerm = "monthly",
+    cadence: BillingCadence = "monthly"
+  ) {
     setLoadingAction(`upgrade-${plan}`);
     setError(null);
     try {
       // The track is NOT sent — the server reads User.track from the DB.
-      const url = await startCheckout(plan, term);
+      const url = await startCheckout(plan, term, cadence);
       if (url) window.location.href = url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start checkout.");
@@ -215,10 +220,12 @@ export function AccountBillingSection({
               tier={upgradePlan === "elite" ? "ELITE" : "PRO"}
               value={term}
               onChange={setTerm}
+              cadence={cadence}
+              onCadenceChange={setCadence}
             />
             <Button
               size="sm"
-              onClick={() => handleUpgrade(upgradePlan, term)}
+              onClick={() => handleUpgrade(upgradePlan, term, cadence)}
               disabled={Boolean(loadingAction)}
             >
               {loadingAction === `upgrade-${upgradePlan}` ? (

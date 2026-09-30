@@ -9,14 +9,14 @@ import { Reveal } from "@/components/animations";
 import { PRICING_CONTENT_FOOTNOTE } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
 import type { LandingTier } from "@/data/landing-content";
-import type { PlanTerm } from "@/data/pricing-shared";
+import type { BillingCadence, PlanTerm } from "@/data/pricing-shared";
 import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
 
 interface Props {
   tiers: LandingTier[];
   variant: "landing" | "page";
   onStarterModal?: () => void;
-  onPurchase?: (plan: "pro" | "elite", term: PlanTerm) => void;
+  onPurchase?: (plan: "pro" | "elite", term: PlanTerm, cadence: BillingCadence) => void;
   loadingPlan?: string | null;
 }
 
@@ -28,14 +28,18 @@ function TierCard({
   loadingPlan,
   term,
   onTermChange,
+  cadence,
+  onCadenceChange,
 }: {
   tier: LandingTier;
   variant: "landing" | "page";
   onStarterModal?: () => void;
-  onPurchase?: (plan: "pro" | "elite", term: PlanTerm) => void;
+  onPurchase?: (plan: "pro" | "elite", term: PlanTerm, cadence: BillingCadence) => void;
   loadingPlan?: string | null;
   term: PlanTerm;
   onTermChange: (term: PlanTerm) => void;
+  cadence: BillingCadence;
+  onCadenceChange: (cadence: BillingCadence) => void;
 }) {
   const isLanding = variant === "landing";
   const planId = tier.name === "Pro" ? "plan-pro" : tier.name === "Elite" ? "plan-elite" : undefined;
@@ -171,13 +175,15 @@ function TierCard({
               tier={tier.name === "Elite" ? "ELITE" : "PRO"}
               value={term}
               onChange={onTermChange}
+              cadence={cadence}
+              onCadenceChange={onCadenceChange}
               tone={isLanding ? "dark" : "light"}
             />
             <Button
               className={`w-full ${!isLanding && tier.name === "Elite" ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
               variant={tier.highlight ? (isLanding ? "default" : "primary-dark") : "primary-dark"}
               size="lg"
-              onClick={() => onPurchase(tier.name.toLowerCase() as "pro" | "elite", term)}
+              onClick={() => onPurchase(tier.name.toLowerCase() as "pro" | "elite", term, cadence)}
               loading={loadingPlan === tier.name.toLowerCase()}
             >
               {tier.cta}
@@ -257,6 +263,7 @@ export function PricingTierGrid({
   // One term for the whole grid: a member comparing Pro and Elite keeps the term they
   // picked when they move between cards.
   const [term, setTerm] = useState<PlanTerm>("monthly");
+  const [cadence, setCadence] = useState<BillingCadence>("monthly");
 
   const grid = (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
@@ -271,6 +278,8 @@ export function PricingTierGrid({
               loadingPlan={loadingPlan}
               term={term}
               onTermChange={setTerm}
+              cadence={cadence}
+              onCadenceChange={setCadence}
             />
           </Reveal>
         ) : (
@@ -283,6 +292,8 @@ export function PricingTierGrid({
               loadingPlan={loadingPlan}
               term={term}
               onTermChange={setTerm}
+              cadence={cadence}
+              onCadenceChange={setCadence}
             />
           </Reveal>
         )

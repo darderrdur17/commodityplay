@@ -67,6 +67,23 @@ export function getStripePrices() {
   } as const;
 }
 
+export function getStripeAnnualPrices() {
+  const careerPro = process.env.STRIPE_PRICE_CAREER_PRO_ANNUAL;
+  const careerElite = process.env.STRIPE_PRICE_CAREER_ELITE_ANNUAL;
+  const salesPro = process.env.STRIPE_PRICE_SALES_PRO_ANNUAL;
+  const salesElite = process.env.STRIPE_PRICE_SALES_ELITE_ANNUAL;
+  if (!careerPro || !careerElite || !salesPro || !salesElite) {
+    throw new Error("Annual price env vars not configured");
+  }
+  return { CAREER_PRO: careerPro, CAREER_ELITE: careerElite, SALES_PRO: salesPro, SALES_ELITE: salesElite } as const;
+}
+
+export function resolveStripeAnnualPriceId(track: PlanTrack, tier: PlanTier): string {
+  const prices = getStripeAnnualPrices();
+  if (track === "SALES") return tier === "ELITE" ? prices.SALES_ELITE : prices.SALES_PRO;
+  return tier === "ELITE" ? prices.CAREER_ELITE : prices.CAREER_PRO;
+}
+
 /** Track + tier → price id. Written as a switch so the const object stays indexable. */
 export function resolveStripePriceId(track: PlanTrack, tier: PlanTier): string {
   const prices = getStripePrices();
@@ -139,6 +156,13 @@ export function resolveTierFromPriceId(
     if (priceId === prices.CAREER_PRO || priceId === prices.SALES_PRO) return "PRO";
   } catch {
     // Stripe price env vars are not configured — treat as unknown rather than throwing.
+  }
+
+  try {
+    const annual = getStripeAnnualPrices();
+    if (priceId === annual.CAREER_ELITE || priceId === annual.SALES_ELITE) return "ELITE";
+    if (priceId === annual.CAREER_PRO || priceId === annual.SALES_PRO) return "PRO";
+  } catch {
     return null;
   }
 
