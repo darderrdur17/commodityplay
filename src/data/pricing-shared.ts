@@ -1,34 +1,28 @@
 /**
  * Pricing — the SINGLE SOURCE OF TRUTH for every price the app displays.
  *
- * Four tiers x three terms. All amounts are USD, and every other price string in
- * the app is DERIVED from this file, so changing a price happens in exactly one
- * place. Before this, four independent constants advertised four different
- * numbers (SGD 59 / 99 / 99 / 199) while the checkout code charged a fifth —
- * a member could be billed a different amount than the page they clicked.
+ * Four tiers x two terms (monthly and 12-month). All amounts are USD, and every
+ * other price string in the app is DERIVED from this file, so changing a price
+ * happens in exactly one place. Before this, four independent constants advertised
+ * four different numbers (SGD 59 / 99 / 99 / 199) while the checkout code charged
+ * a fifth — a member could be billed a different amount than the page they clicked.
  *
  * ---------------------------------------------------------------------------
- * TERM ARITHMETIC — why both long plans land on the SAME monthly rate
+ * TERM ARITHMETIC
  * ---------------------------------------------------------------------------
  *   monthly   pay 1  month,  get 1   month  -> full base rate
- *   6-month   pay 6  months, get 7   months -> 6/7   of base, per month
  *   12-month  pay 12 months, get 14  months -> 12/14 of base, per month
  *
- * `6/7 === 12/14`, so the discount is ALWAYS exactly 1/7 (14.29%) and the two
- * long plans have an identical normalised monthly rate. They differ ONLY in how
- * long the discount nominally lasts (7 cycles vs 14).
- *
- * Consequence worth knowing: because the rates are equal, the 12-month plan
- * strictly dominates the 6-month plan unless the discount is time-limited to the
- * stated term. See `PLAN_TERMS` — the term length is data here, not logic, so the
- * product decision can be revisited without touching this arithmetic.
+ * The 12-month discount is exactly 1/7 (14.29%). See `PLAN_TERMS` — the term
+ * length is data here, not logic, so the product decision can be revisited
+ * without touching this arithmetic.
  */
 
 export const CURRENCY = "USD" as const;
 
 export type PlanTrack = "CAREER" | "SALES";
 export type PlanTier = "PRO" | "ELITE";
-export type PlanTerm = "monthly" | "6" | "12";
+export type PlanTerm = "monthly" | "12";
 
 /** `CAREER_PRO`, `SALES_ELITE`, … */
 export type PlanKey = `${PlanTrack}_${PlanTier}`;
@@ -48,7 +42,7 @@ export const PLAN_BASE_USD: Record<PlanKey, number> = {
 };
 
 /**
- * The three purchasable terms. `accessMonths` is how long the member gets access;
+ * The two purchasable terms. `accessMonths` is how long the member gets access;
  * `paidMonths` is how many months they are actually billed for. The free months
  * are the difference.
  */
@@ -62,12 +56,6 @@ export const PLAN_TERMS: Record<
     paidMonths: 1,
     accessMonths: 1,
   },
-  "6": {
-    label: "6 months + 1 free",
-    shortLabel: "6 + 1 free",
-    paidMonths: 6,
-    accessMonths: 7,
-  },
   "12": {
     label: "12 months + 2 free",
     shortLabel: "12 + 2 free",
@@ -76,7 +64,7 @@ export const PLAN_TERMS: Record<
   },
 };
 
-export const PLAN_TERM_ORDER: PlanTerm[] = ["monthly", "6", "12"];
+export const PLAN_TERM_ORDER: PlanTerm[] = ["monthly", "12"];
 
 /** Normalised monthly rate in USD, rounded to whole cents. */
 export function monthlyRateUsd(

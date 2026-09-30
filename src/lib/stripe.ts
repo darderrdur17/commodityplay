@@ -82,13 +82,13 @@ export function resolveStripePriceId(track: PlanTrack, tier: PlanTier): string {
  * these to isCheckoutConfigured(): that gate is all-or-nothing and one typo would 503
  * the monthly plan too.
  *
- * TERM6 and TERM12 are deliberately separate env vars even though they currently hold
- * identical amount_off values — that is what makes "give the 12-month plan a deeper
- * discount" a Dashboard edit rather than a PR.
+ * The 12-month term's discount lives in a Stripe coupon env var
+ * (`STRIPE_COUPON_*_TERM12`). The coupon's `duration` is a Dashboard concern, so
+ * "give the 12-month plan a deeper discount" stays a Dashboard edit rather than a PR.
  */
 export function getStripeCoupon(track: PlanTrack, tier: PlanTier, term: PlanTerm): string | null {
   if (term === "monthly") return null;
-  // PlanTerm's long values are "6" | "12"; the env vars are _TERM6 | _TERM12.
+  // PlanTerm's only long value is "12"; the env var is _TERM12.
   const key = `STRIPE_COUPON_${track}_${tier}_TERM${term}`;
   return process.env[key] || null;
 }

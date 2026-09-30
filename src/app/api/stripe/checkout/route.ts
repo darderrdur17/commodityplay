@@ -14,7 +14,7 @@ import type { PlanTier, PlanTrack } from "@/data/pricing-shared";
 
 const schema = z.object({
   plan: z.enum(["pro", "elite"]),
-  term: z.enum(["monthly", "6", "12"]).default("monthly"),
+  term: z.enum(["monthly", "12"]).default("monthly"),
 });
 
 export async function POST(req: NextRequest) {

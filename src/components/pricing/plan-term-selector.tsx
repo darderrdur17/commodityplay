@@ -21,10 +21,10 @@ interface PlanTermSelectorProps {
 }
 
 /**
- * 3-way segmented control: Monthly / 6 months + 1 free / 12 months + 2 free.
+ * 2-way segmented control: Monthly / 12 months + 2 free.
  *
  * The rate printed underneath is the NORMALISED monthly rate for the selected term
- * (USD 16.29 for Career Pro term6/term12), so the member sees exactly what the
+ * (USD 16.29 for Career Pro term12), so the member sees exactly what the
  * invoice will charge — the same number monthlyRateUsd() feeds to Stripe's coupon.
  */
 export function PlanTermSelector({
@@ -40,7 +40,7 @@ export function PlanTermSelector({
         role="radiogroup"
         aria-label="Billing term"
         className={cn(
-          "grid grid-cols-3 gap-1 rounded-lg p-1",
+          "grid grid-cols-2 gap-1 rounded-lg p-1",
           tone === "dark" ? "bg-white/10" : "bg-secondary"
         )}
       >
