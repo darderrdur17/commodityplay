@@ -75,17 +75,32 @@ environments** unless noted.
 
 ### Required for payments
 
+**All four plans are monthly recurring subscriptions, priced in USD.** Pro is no longer a
+one-time purchase.
+
 | Variable | Value |
 | --- | --- |
 | `STRIPE_SECRET_KEY` | `sk_live_...` |
-| `STRIPE_PRO_PRICE_ID` | `price_...` — the **one-time** SGD 99 product |
-| `STRIPE_ELITE_PRICE_ID` | `price_...` — the **monthly recurring** product |
+| `STRIPE_PRICE_CAREER_PRO` | `price_...` — Career Pro, USD 19.00/month recurring |
+| `STRIPE_PRICE_CAREER_ELITE` | `price_...` — Career Elite, USD 39.00/month recurring |
+| `STRIPE_PRICE_SALES_PRO` | `price_...` — Sales Pro, USD 39.00/month recurring |
+| `STRIPE_PRICE_SALES_ELITE` | `price_...` — Sales Elite, USD 59.00/month recurring |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` (from step 7) |
 | `STRIPE_BILLING_PORTAL_CONFIGURATION_ID` | `bpc_...` (optional — enables the branded portal) |
 
-> The Pro plan **must** be a one-time price. A previous bug created it as a recurring
-> subscription and rebilled members monthly on a one-time product; the code now forces
-> `mode: "payment"` for Pro, but make sure the Stripe product itself is a one-time price.
+Plus the **eight** term-discount coupons (6-month bills 6 months for 7; 12-month bills 12 for 14):
+
+| Variable | Coupon |
+| --- | --- |
+| `STRIPE_COUPON_CAREER_PRO_TERM6` / `_TERM12` | USD 2.71 off |
+| `STRIPE_COUPON_CAREER_ELITE_TERM6` / `_TERM12` | USD 5.57 off |
+| `STRIPE_COUPON_SALES_PRO_TERM6` / `_TERM12` | USD 2.71 off |
+| `STRIPE_COUPON_SALES_ELITE_TERM6` / `_TERM12` | USD 5.57 off |
+
+> 🔴 **The old `STRIPE_PRO_PRICE_ID` / `STRIPE_ELITE_PRICE_ID` names no longer exist.** Anything
+> still setting them is a no-op — checkout returns 503 because the code cannot find a price.
+> 🔴 **Do not skip `STRIPE_WEBHOOK_SECRET`.** Without it the webhook handler returns 503 and no
+> subscription state is ever applied — a member can pay and never get access.
 
 ### Required for email
 
