@@ -1,10 +1,43 @@
+/**
+ * Lifecycle status of a nudge or brief. Set in the admin editor only — members
+ * cannot change it. Drives the member page's Active / Expired / Archive tabs.
+ */
+export const NUDGE_STATUSES = ["ACTIVE", "EXPIRED", "ARCHIVED"] as const;
+export type NudgeStatus = (typeof NUDGE_STATUSES)[number];
+
+export const NUDGE_STATUS_LABELS: Record<NudgeStatus, string> = {
+  ACTIVE: "Active",
+  EXPIRED: "Expired",
+  ARCHIVED: "Archive",
+};
+
+export function isNudgeStatus(value: unknown): value is NudgeStatus {
+  return typeof value === "string" && (NUDGE_STATUSES as readonly string[]).includes(value);
+}
+
+/** Resolves the stored status, falling back to the legacy `archived` flag. */
+export function resolveNudgeStatus(item: {
+  status?: unknown;
+  archived?: boolean;
+}): NudgeStatus {
+  if (isNudgeStatus(item.status)) return item.status;
+  return item.archived ? "ARCHIVED" : "ACTIVE";
+}
+
 export interface MarketNudgeItem {
   id: string;
-  /** Plain text; account names listed separately for bold rendering. */
-  text: string;
+  /** Headline — rendered on its own line above the body. */
+  title: string;
+  /** Rendered as `Why now: …`. */
+  whyNow: string;
+  /** Rendered as `Account action: …` on its own line; account names are appended in bold. */
+  accountAction: string;
   accountNames: string[];
-  /** Hidden from member page when true; still editable in admin. */
+  status?: NudgeStatus;
+  /** Legacy hide flag, superseded by `status: "ARCHIVED"`. Read-only; never written back. */
   archived?: boolean;
+  /** Legacy single-line body. Migrated into `whyNow` on normalize, then dropped. */
+  text?: string;
 }
 
 export interface IntelligenceBrief {
@@ -19,7 +52,8 @@ export interface IntelligenceBrief {
   updatedAt?: string;
   /** Legacy free-text label; ignored on member cards when `updatedAt` is missing. */
   updatedLabel?: string;
-  /** Hidden from member page when true; still editable in admin. */
+  status?: NudgeStatus;
+  /** Legacy hide flag, superseded by `status: "ARCHIVED"`. Read-only; never written back. */
   archived?: boolean;
 }
 
@@ -48,13 +82,20 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
   weeklyNudges: [
     {
       id: "jkm-ttf-spread",
-      text: "JKM—TTF spread compressed sharply this week — affects 2 of your tracked accounts",
+      title: "JKM–TTF spread compressed sharply this week",
+      whyNow:
+        "European storage filled and Asian spot buying slowed, tightening the front-month spread.",
+      accountAction: "Re-run hedge coverage and flag the spread move in your next check-in",
       accountNames: ["Meridian Energy", "Northbridge Gas"],
+      status: "ACTIVE",
     },
     {
       id: "vlcc-rates-spike",
-      text: "Gulf Coast VLCC rates spiked on an unplanned outage — relevant to",
+      title: "Gulf Coast VLCC rates spiked on an unplanned outage",
+      whyNow: "An unplanned outage pulled available tonnage forward and rates repriced within days.",
+      accountAction: "Confirm whether freight cost is now in their cargo economics",
       accountNames: ["Solace Trade Finance"],
+      status: "ACTIVE",
     },
   ],
   intelligenceBriefs: [

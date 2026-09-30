@@ -1,18 +1,21 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Archive, ArchiveRestore, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import {
   DEFAULT_SALES_MARKET_NUDGES_CONTENT,
   defaultBriefUpdatedAt,
   formatBriefPeriodLabel,
+  NUDGE_STATUS_LABELS,
+  NUDGE_STATUSES,
+  resolveNudgeStatus,
   type IntelligenceBrief,
   type MarketNudgeItem,
+  type NudgeStatus,
 } from "@/data/sales-market-nudges";
 import { normalizeSalesMarketNudgesPayload } from "@/lib/content/sales-market-nudges-schema";
 import { EditorField, EditorSection, inputClass, textareaClass } from "./shared";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const MONTHS = [
@@ -38,21 +41,78 @@ function newBriefId() {
   return `brief-${Date.now()}`;
 }
 
-type ArchiveFilter = "active" | "archived" | "all";
+/** Admin list filter: one tab per lifecycle status, plus "All". */
+type StatusFilter = NudgeStatus | "ALL";
 
-function ArchiveFilterBar({
+function countByStatus(
+  items: { status?: NudgeStatus; archived?: boolean }[]
+): Record<StatusFilter, number> {
+  const counts: Record<StatusFilter, number> = {
+    ACTIVE: 0,
+    EXPIRED: 0,
+    ARCHIVED: 0,
+    ALL: items.length,
+  };
+  for (const item of items) counts[resolveNudgeStatus(item)] += 1;
+  return counts;
+}
+
+function matchesStatusFilter(status: NudgeStatus, filter: StatusFilter) {
+  return filter === "ALL" || status === filter;
+}
+
+function statusSelectClass(status: NudgeStatus) {
+  return cn(
+    "rounded-md border text-[11px] font-medium px-2 py-1.5 bg-white",
+    status === "ACTIVE" && "border-green-200 text-green-700",
+    status === "EXPIRED" && "border-amber-200 text-amber-700",
+    status === "ARCHIVED" && "border-border text-muted-fg"
+  );
+}
+
+function StatusSelect({
+  value,
+  onChange,
+  label,
+}: {
+  value: NudgeStatus;
+  onChange: (status: NudgeStatus) => void;
+  label: string;
+}) {
+  return (
+    <label className="shrink-0">
+      <span className="sr-only">{label}</span>
+      <select
+        className={statusSelectClass(value)}
+        value={value}
+        onChange={(e) => onChange(e.target.value as NudgeStatus)}
+      >
+        {NUDGE_STATUSES.map((status) => (
+          <option key={status} value={status}>
+            {NUDGE_STATUS_LABELS[status]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function StatusFilterBar({
   value,
   onChange,
   counts,
 }: {
-  value: ArchiveFilter;
-  onChange: (value: ArchiveFilter) => void;
-  counts: { active: number; archived: number; all: number };
+  value: StatusFilter;
+  onChange: (value: StatusFilter) => void;
+  counts: Record<StatusFilter, number>;
 }) {
-  const options: { id: ArchiveFilter; label: string; count: number }[] = [
-    { id: "active", label: "Active", count: counts.active },
-    { id: "archived", label: "Archived", count: counts.archived },
-    { id: "all", label: "All", count: counts.all },
+  const options: { id: StatusFilter; label: string; count: number }[] = [
+    ...NUDGE_STATUSES.map((status) => ({
+      id: status as StatusFilter,
+      label: NUDGE_STATUS_LABELS[status],
+      count: counts[status],
+    })),
+    { id: "ALL", label: "All", count: counts.ALL },
   ];
 
   return (
@@ -77,12 +137,6 @@ function ArchiveFilterBar({
   );
 }
 
-function matchesArchiveFilter(archived: boolean | undefined, filter: ArchiveFilter) {
-  if (filter === "all") return true;
-  if (filter === "archived") return Boolean(archived);
-  return !archived;
-}
-
 export function SalesMarketNudgesEditor({
   payload,
   onChange,
@@ -95,34 +149,23 @@ export function SalesMarketNudgesEditor({
   const content = normalizeSalesMarketNudgesPayload(
     payload ?? DEFAULT_SALES_MARKET_NUDGES_CONTENT
   );
-  const [nudgeFilter, setNudgeFilter] = useState<ArchiveFilter>("active");
-  const [briefFilter, setBriefFilter] = useState<ArchiveFilter>("active");
+  const [nudgeFilter, setNudgeFilter] = useState<StatusFilter>("ACTIVE");
+  const [briefFilter, setBriefFilter] = useState<StatusFilter>("ACTIVE");
 
-  const nudgeCounts = useMemo(
-    () => ({
-      active: content.weeklyNudges.filter((n) => !n.archived).length,
-      archived: content.weeklyNudges.filter((n) => n.archived).length,
-      all: content.weeklyNudges.length,
-    }),
-    [content.weeklyNudges]
-  );
+  const nudgeCounts = useMemo(() => countByStatus(content.weeklyNudges), [content.weeklyNudges]);
 
   const briefCounts = useMemo(
-    () => ({
-      active: content.intelligenceBriefs.filter((b) => !b.archived).length,
-      archived: content.intelligenceBriefs.filter((b) => b.archived).length,
-      all: content.intelligenceBriefs.length,
-    }),
+    () => countByStatus(content.intelligenceBriefs),
     [content.intelligenceBriefs]
   );
 
   const visibleNudges = content.weeklyNudges
     .map((nudge, index) => ({ nudge, index }))
-    .filter(({ nudge }) => matchesArchiveFilter(nudge.archived, nudgeFilter));
+    .filter(({ nudge }) => matchesStatusFilter(resolveNudgeStatus(nudge), nudgeFilter));
 
   const visibleBriefs = content.intelligenceBriefs
     .map((brief, index) => ({ brief, index }))
-    .filter(({ brief }) => matchesArchiveFilter(brief.archived, briefFilter));
+    .filter(({ brief }) => matchesStatusFilter(resolveNudgeStatus(brief), briefFilter));
 
   function patch(next: typeof content) {
     onChange(next);
@@ -139,7 +182,14 @@ export function SalesMarketNudgesEditor({
       ...content,
       weeklyNudges: [
         ...content.weeklyNudges,
-        { id: newNudgeId(), text: "", accountNames: [] },
+        {
+          id: newNudgeId(),
+          title: "",
+          whyNow: "",
+          accountAction: "",
+          accountNames: [],
+          status: "ACTIVE",
+        },
       ],
     });
   }
@@ -257,10 +307,10 @@ export function SalesMarketNudgesEditor({
 
       <EditorSection
         title="This Week — Talking Points"
-        description="Shown in the dark green card at the top of the page. Archive old nudges when drafting a new weekly set."
+        description="Shown in the dark green card at the top of the page — Active nudges only. Set status to Expired or Archive when drafting a new weekly set."
         defaultOpen
       >
-        <ArchiveFilterBar value={nudgeFilter} onChange={setNudgeFilter} counts={nudgeCounts} />
+        <StatusFilterBar value={nudgeFilter} onChange={setNudgeFilter} counts={nudgeCounts} />
         <div className="space-y-4">
           {visibleNudges.length === 0 ? (
             <p className="text-sm text-muted-fg">No nudges in this view.</p>
@@ -270,32 +320,19 @@ export function SalesMarketNudgesEditor({
               key={nudge.id}
               className={cn(
                 "rounded-lg border p-4 space-y-3",
-                nudge.archived ? "border-amber-200 bg-amber-50/40" : "border-border"
+                resolveNudgeStatus(nudge) === "ACTIVE" ? "border-border" : "border-amber-200 bg-amber-50/40"
               )}
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <p className="text-sm font-semibold text-gray-900">Nudge {i + 1}</p>
-                  {nudge.archived && (
-                    <Badge size="sm" variant="secondary">
-                      Archived
-                    </Badge>
-                  )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => updateNudge(i, { archived: !nudge.archived })}
-                    className="p-1 rounded hover:bg-secondary text-muted-fg hover:text-gray-900"
-                    aria-label={nudge.archived ? "Restore nudge" : "Archive nudge"}
-                    title={nudge.archived ? "Restore to active" : "Archive (hide from members)"}
-                  >
-                    {nudge.archived ? (
-                      <ArchiveRestore className="w-4 h-4" />
-                    ) : (
-                      <Archive className="w-4 h-4" />
-                    )}
-                  </button>
+                  <StatusSelect
+                    value={resolveNudgeStatus(nudge)}
+                    onChange={(status) => updateNudge(i, { status })}
+                    label={`Status for nudge ${i + 1}`}
+                  />
                   <button
                     type="button"
                     onClick={() => removeNudge(i)}
@@ -306,12 +343,27 @@ export function SalesMarketNudgesEditor({
                   </button>
                 </div>
               </div>
-              <EditorField label="Text (account names added separately)">
+              <EditorField label="Title">
+                <input
+                  className={inputClass}
+                  value={nudge.title}
+                  onChange={(e) => updateNudge(i, { title: e.target.value })}
+                />
+              </EditorField>
+              <EditorField label="Why now">
                 <textarea
                   className={textareaClass}
                   rows={2}
-                  value={nudge.text}
-                  onChange={(e) => updateNudge(i, { text: e.target.value })}
+                  value={nudge.whyNow}
+                  onChange={(e) => updateNudge(i, { whyNow: e.target.value })}
+                />
+              </EditorField>
+              <EditorField label="Account action">
+                <textarea
+                  className={textareaClass}
+                  rows={2}
+                  value={nudge.accountAction}
+                  onChange={(e) => updateNudge(i, { accountAction: e.target.value })}
                 />
               </EditorField>
               <EditorField label="Account names (comma-separated, rendered bold)">
@@ -339,10 +391,10 @@ export function SalesMarketNudgesEditor({
 
       <EditorSection
         title="Talking Points"
-        description="Grouped by month/year on the member page sidebar. Archive past briefs when publishing new weekly content."
+        description="Grouped by month/year on the member page sidebar. Set past briefs to Expired or Archive when publishing new content."
         defaultOpen
       >
-        <ArchiveFilterBar value={briefFilter} onChange={setBriefFilter} counts={briefCounts} />
+        <StatusFilterBar value={briefFilter} onChange={setBriefFilter} counts={briefCounts} />
         <div className="space-y-4">
           {visibleBriefs.length === 0 ? (
             <p className="text-sm text-muted-fg">No briefs in this view.</p>
@@ -352,7 +404,7 @@ export function SalesMarketNudgesEditor({
               key={brief.id}
               className={cn(
                 "rounded-lg border p-4 space-y-3",
-                brief.archived ? "border-amber-200 bg-amber-50/40" : "border-border"
+                resolveNudgeStatus(brief) === "ACTIVE" ? "border-border" : "border-amber-200 bg-amber-50/40"
               )}
             >
               <div className="flex items-center justify-between gap-2">
@@ -360,26 +412,13 @@ export function SalesMarketNudgesEditor({
                   <p className="text-sm font-semibold text-gray-900">
                     {brief.title} · {formatBriefPeriodLabel(brief.month, brief.year)}
                   </p>
-                  {brief.archived && (
-                    <Badge size="sm" variant="secondary">
-                      Archived
-                    </Badge>
-                  )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => updateBrief(i, { archived: !brief.archived })}
-                    className="p-1 rounded hover:bg-secondary text-muted-fg hover:text-gray-900"
-                    aria-label={brief.archived ? "Restore brief" : "Archive brief"}
-                    title={brief.archived ? "Restore to active" : "Archive (hide from members)"}
-                  >
-                    {brief.archived ? (
-                      <ArchiveRestore className="w-4 h-4" />
-                    ) : (
-                      <Archive className="w-4 h-4" />
-                    )}
-                  </button>
+                  <StatusSelect
+                    value={resolveNudgeStatus(brief)}
+                    onChange={(status) => updateBrief(i, { status })}
+                    label={`Status for brief ${brief.title}`}
+                  />
                   <button
                     type="button"
                     onClick={() => removeBrief(i)}

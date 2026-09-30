@@ -11,8 +11,12 @@ import { SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   formatBriefCardDate,
   groupBriefsByMonthYear,
+  NUDGE_STATUS_LABELS,
+  NUDGE_STATUSES,
+  resolveNudgeStatus,
   type IntelligenceBrief,
   type MarketNudgeItem,
+  type NudgeStatus,
   type SalesMarketNudgesContent,
 } from "@/data/sales-market-nudges";
 import { LinkToAccountDropdown } from "@/components/dashboard/link-to-account-dropdown";
@@ -22,13 +26,6 @@ import {
   marketNudgeElementId,
 } from "@/lib/bookmark-navigation";
 import { useBookmarkHighlight } from "@/hooks/use-bookmark-highlight";
-import {
-  MEMBER_NUDGE_STATUS_LABELS,
-  MEMBER_NUDGE_STATUSES,
-  statusKey,
-  type MarketNudgeKind,
-  type MemberNudgeStatus,
-} from "@/lib/sales-nudge-member-status";
 const ROYAL = "#1a4fd6";
 const CTA_BLUE = "#3280ff";
 
@@ -87,31 +84,42 @@ function MonthYearFilterBar({
   );
 }
 
-function NudgeText({ nudge }: { nudge: MarketNudgeItem }) {
-  const { text, accountNames } = nudge;
-  if (accountNames.length === 0) {
-    return <span>{text}</span>;
-  }
-
-  const trimmed = text.trimEnd();
-  const endsWithOpenParen = trimmed.endsWith("(");
-  const endsWithTo = /\bto$/.test(trimmed);
-
+/** Tracked account names, rendered in bold inside the "Account action" line. */
+function NudgeAccountNames({ accountNames }: { accountNames: string[] }) {
+  if (accountNames.length === 0) return null;
   return (
-    <span>
-      {text}
-      {!endsWithOpenParen && !endsWithTo && " ("}
-      {endsWithTo && " "}
+    <>
       {accountNames.map((name, i) => (
         <React.Fragment key={name}>
           {i > 0 && ", "}
           <strong className="font-semibold text-white">{name}</strong>
         </React.Fragment>
       ))}
-      {endsWithOpenParen && ")"}
-      {!endsWithOpenParen && !endsWithTo && ")"}
-      {!trimmed.endsWith(".") && "."}
-    </span>
+    </>
+  );
+}
+
+function NudgeBody({ nudge }: { nudge: MarketNudgeItem }) {
+  const hasAccounts = nudge.accountNames.length > 0;
+  return (
+    <div className="space-y-1">
+      {nudge.title && <p className="font-semibold">{nudge.title}</p>}
+      {nudge.whyNow && (
+        <p>
+          <span className="font-semibold">Why now: </span>
+          {nudge.whyNow}
+        </p>
+      )}
+      {nudge.accountAction && (
+        <p>
+          <span className="font-semibold">Account action: </span>
+          {nudge.accountAction}
+          {hasAccounts && " ("}
+          <NudgeAccountNames accountNames={nudge.accountNames} />
+          {hasAccounts && ")"}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -152,35 +160,16 @@ function ChipFilterBar({
   );
 }
 
-function MemberStatusSelect({
-  value,
-  onChange,
-  tone = "light",
-}: {
-  value: MemberNudgeStatus;
-  onChange: (status: MemberNudgeStatus) => void;
-  tone?: "light" | "on-green";
-}) {
+function StatusBadge({ status, tone = "light" }: { status: NudgeStatus; tone?: "light" | "dark" }) {
   return (
-    <label className="shrink-0">
-      <span className="sr-only">Talking point status</span>
-      <select
-        className={cn(
-          "rounded-md border text-[11px] font-medium px-2 py-1.5",
-          tone === "on-green"
-            ? "border-white/20 bg-white/10 text-white"
-            : "border-border bg-white text-gray-800"
-        )}
-        value={value}
-        onChange={(e) => onChange(e.target.value as MemberNudgeStatus)}
-      >
-        {MEMBER_NUDGE_STATUSES.map((status) => (
-          <option key={status} value={status}>
-            {MEMBER_NUDGE_STATUS_LABELS[status]}
-          </option>
-        ))}
-      </select>
-    </label>
+    <span
+      className={cn(
+        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+        tone === "dark" ? "bg-white/15 text-white" : "bg-secondary text-muted-fg"
+      )}
+    >
+      {NUDGE_STATUS_LABELS[status]}
+    </span>
   );
 }
 
@@ -188,14 +177,10 @@ function IntelligenceBriefCard({
   brief,
   showLinkToAccount = false,
   highlighted = false,
-  memberStatus,
-  onStatusChange,
 }: {
   brief: IntelligenceBrief;
   showLinkToAccount?: boolean;
   highlighted?: boolean;
-  memberStatus: MemberNudgeStatus;
-  onStatusChange: (status: MemberNudgeStatus) => void;
 }) {
   const updated = formatBriefCardDate(brief);
   return (
@@ -215,7 +200,7 @@ function IntelligenceBriefCard({
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           {updated && <span className="text-[11px] text-muted-fg">{updated}</span>}
-          <MemberStatusSelect value={memberStatus} onChange={onStatusChange} />
+          <StatusBadge status={resolveNudgeStatus(brief)} />
         </div>
       </div>
       <p className="text-sm text-muted-fg leading-relaxed mb-4 flex-1">{brief.description}</p>
@@ -247,9 +232,7 @@ function IntelligenceBriefCard({
 }
 
 function getNudgeBookmarkTitle(nudge: MarketNudgeItem) {
-  const trimmed = nudge.text.trim();
-  const dashSplit = trimmed.split(" — ")[0]?.trim();
-  return dashSplit || trimmed;
+  return nudge.title.trim() || nudge.whyNow.trim() || nudge.id;
 }
 
 function AccountIntelligenceBanner({ userTier }: { userTier: string }) {
@@ -298,51 +281,7 @@ export function SalesMarketNudgesSection({
   const [monthYearFilter, setMonthYearFilter] = useState("");
   const { highlightId, isHighlighted } = useBookmarkHighlight(true);
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<MemberNudgeStatus>("ACTIVE");
-  const [memberStatuses, setMemberStatuses] = useState<Record<string, MemberNudgeStatus>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/sales-market-nudges/status")
-      .then((res) => (res.ok ? res.json() : { statuses: {} }))
-      .then((data: { statuses?: Record<string, string> }) => {
-        if (cancelled) return;
-        const next: Record<string, MemberNudgeStatus> = {};
-        for (const [key, value] of Object.entries(data.statuses ?? {})) {
-          if (value === "ACTIVE" || value === "EXPIRED" || value === "ARCHIVED") {
-            next[key] = value;
-          }
-        }
-        setMemberStatuses(next);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  function itemStatus(kind: MarketNudgeKind, sourceId: string): MemberNudgeStatus {
-    return memberStatuses[statusKey(kind, sourceId)] ?? "ACTIVE";
-  }
-
-  async function setItemStatus(kind: MarketNudgeKind, sourceId: string, status: MemberNudgeStatus) {
-    const key = statusKey(kind, sourceId);
-    const previous = memberStatuses[key];
-    setMemberStatuses((curr) => ({ ...curr, [key]: status }));
-    const res = await fetch("/api/sales-market-nudges/status", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind, sourceId, status }),
-    });
-    if (!res.ok) {
-      setMemberStatuses((curr) => {
-        const next = { ...curr };
-        if (previous) next[key] = previous;
-        else delete next[key];
-        return next;
-      });
-    }
-  }
+  const [statusFilter, setStatusFilter] = useState<NudgeStatus>("ACTIVE");
 
   const categories = content.briefCategories?.length
     ? content.briefCategories
@@ -350,7 +289,7 @@ export function SalesMarketNudgesSection({
 
   const briefsForFilters = content.intelligenceBriefs.filter(
     (brief) =>
-      itemStatus("INTELLIGENCE_BRIEF", brief.id) === statusFilter &&
+      resolveNudgeStatus(brief) === statusFilter &&
       (categoryFilter === "all" || brief.category === categoryFilter)
   );
   const briefGroups = useMemo(
@@ -383,7 +322,7 @@ export function SalesMarketNudgesSection({
     [];
 
   const visibleWeeklyNudges = content.weeklyNudges.filter(
-    (nudge) => itemStatus("WEEKLY_NUDGE", nudge.id) === statusFilter
+    (nudge) => resolveNudgeStatus(nudge) === statusFilter
   );
 
   if (!unlocked) {
@@ -395,16 +334,13 @@ export function SalesMarketNudgesSection({
               <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">
                 This Week — Talking Points
               </p>
-              <p className="text-sm">{content.weeklyNudges[0]?.text}</p>
+              <p className="text-sm">
+                {content.weeklyNudges[0]?.title || content.weeklyNudges[0]?.whyNow}
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {content.intelligenceBriefs.slice(0, 2).map((brief) => (
-                <IntelligenceBriefCard
-                  key={brief.id}
-                  brief={brief}
-                  memberStatus="ACTIVE"
-                  onStatusChange={() => undefined}
-                />
+                <IntelligenceBriefCard key={brief.id} brief={brief} />
               ))}
             </div>
           </div>
@@ -431,14 +367,16 @@ export function SalesMarketNudgesSection({
         <ChipFilterBar
           label="Filter talking points by status"
           value={statusFilter}
-          onChange={(value) => setStatusFilter(value as MemberNudgeStatus)}
-          options={MEMBER_NUDGE_STATUSES.map((status) => ({
+          onChange={(value) => setStatusFilter(value as NudgeStatus)}
+          options={NUDGE_STATUSES.map((status) => ({
             id: status,
-            label: MEMBER_NUDGE_STATUS_LABELS[status],
+            label: NUDGE_STATUS_LABELS[status],
           }))}
         />
       </header>
 
+      {/* The green "this week" card is current-week content only — hidden on Expired / Archive. */}
+      {statusFilter === "ACTIVE" && (
       <section
         className="rounded-xl p-5 sm:p-6 space-y-4 bg-[#065F46]"
         aria-labelledby="weekly-nudges-heading"
@@ -451,26 +389,22 @@ export function SalesMarketNudgesSection({
         </h2>
         <ul className="space-y-4">
           {visibleWeeklyNudges.length === 0 ? (
-            <li className="text-sm text-white/80">No {MEMBER_NUDGE_STATUS_LABELS[statusFilter].toLowerCase()} nudges.</li>
+            <li className="text-sm text-white/80">No active nudges.</li>
           ) : (
             visibleWeeklyNudges.map((nudge) => (
             <li
               key={nudge.id}
               id={marketNudgeElementId(nudge.id)}
               className={cn(
-                "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg bg-white/10 px-4 py-3 scroll-mt-28",
+                "flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 rounded-lg bg-white/10 px-4 py-3 scroll-mt-28",
                 isHighlighted(marketNudgeElementId(nudge.id)) && BOOKMARK_HIGHLIGHT_RING
               )}
             >
-              <p className="text-sm text-white/95 leading-relaxed flex-1">
-                <NudgeText nudge={nudge} />
-              </p>
+              <div className="text-sm text-white/95 leading-relaxed flex-1">
+                <NudgeBody nudge={nudge} />
+              </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0">
-                <MemberStatusSelect
-                  value={itemStatus("WEEKLY_NUDGE", nudge.id)}
-                  onChange={(status) => void setItemStatus("WEEKLY_NUDGE", nudge.id, status)}
-                  tone="on-green"
-                />
+                <StatusBadge status={resolveNudgeStatus(nudge)} tone="dark" />
                 {hasElite && (
                   <LinkToAccountDropdown
                     sourceType="MARKET_NUDGE"
@@ -486,6 +420,7 @@ export function SalesMarketNudgesSection({
           )}
         </ul>
       </section>
+      )}
 
       <section
         className="rounded-xl border border-border bg-white p-5 sm:p-6"
@@ -539,10 +474,6 @@ export function SalesMarketNudgesSection({
                       brief={brief}
                       showLinkToAccount={hasElite}
                       highlighted={isHighlighted(marketNudgeElementId(brief.id))}
-                      memberStatus={itemStatus("INTELLIGENCE_BRIEF", brief.id)}
-                      onStatusChange={(status) =>
-                        void setItemStatus("INTELLIGENCE_BRIEF", brief.id, status)
-                      }
                     />
                   </Reveal>
                 ))}

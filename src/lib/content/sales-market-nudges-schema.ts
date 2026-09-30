@@ -1,7 +1,9 @@
 import { z } from "zod";
 import {
   DEFAULT_SALES_MARKET_NUDGES_CONTENT,
+  NUDGE_STATUSES,
   resolveBriefCategories,
+  resolveNudgeStatus,
   type IntelligenceBrief,
   type MarketNudgeItem,
   type SalesMarketNudgesContent,
@@ -9,9 +11,15 @@ import {
 
 const marketNudgeSchema = z.object({
   id: z.string().min(1).max(80),
-  text: z.string().min(1).max(500),
+  title: z.string().max(200).optional().default(""),
+  whyNow: z.string().max(500).optional().default(""),
+  accountAction: z.string().max(500).optional().default(""),
   accountNames: z.array(z.string().min(1).max(120)).default([]),
-  archived: z.boolean().optional().default(false),
+  status: z.enum(NUDGE_STATUSES).optional(),
+  /** Legacy single-line body, migrated into `whyNow` below and then dropped. */
+  text: z.string().max(500).optional(),
+  /** Legacy hide flag. Read for status resolution, never written back. */
+  archived: z.boolean().optional(),
 });
 
 const intelligenceBriefSchema = z.object({
@@ -27,7 +35,9 @@ const intelligenceBriefSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
     .optional(),
   updatedLabel: z.string().max(40).optional(),
-  archived: z.boolean().optional().default(false),
+  status: z.enum(NUDGE_STATUSES).optional(),
+  /** Legacy hide flag. Read for status resolution, never written back. */
+  archived: z.boolean().optional(),
 });
 
 export const salesMarketNudgesSchema = z.object({
@@ -55,18 +65,26 @@ export function formatSalesMarketNudgesValidationErrors(
     .join("; ");
 }
 
-function mergeNudges(cms?: MarketNudgeItem[]): MarketNudgeItem[] {
-  if (!cms?.length) return DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyNudges;
-  return cms;
+/**
+ * Falls back to the shipped defaults when CMS has no nudges, resolves each
+ * item's status, and migrates the legacy single-line `text` into `whyNow`.
+ * The legacy `text` / `archived` fields are not written back.
+ */
+function normalizeNudges(cms?: MarketNudgeItem[]): MarketNudgeItem[] {
+  const source = cms?.length ? cms : DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyNudges;
+  return source.map((nudge) => ({
+    id: nudge.id,
+    title: nudge.title?.trim() ?? "",
+    whyNow: nudge.whyNow?.trim() || nudge.text?.trim() || "",
+    accountAction: nudge.accountAction?.trim() ?? "",
+    accountNames: nudge.accountNames ?? [],
+    status: resolveNudgeStatus(nudge),
+  }));
 }
 
-function mergeBriefs(cms?: IntelligenceBrief[]): IntelligenceBrief[] {
-  if (!cms?.length) return DEFAULT_SALES_MARKET_NUDGES_CONTENT.intelligenceBriefs;
-  return cms;
-}
-
-function withArchivedDefaults<T extends { archived?: boolean }>(items: T[]): T[] {
-  return items.map((item) => ({ ...item, archived: item.archived ?? false }));
+function normalizeBriefs(cms?: IntelligenceBrief[]): IntelligenceBrief[] {
+  const source = cms?.length ? cms : DEFAULT_SALES_MARKET_NUDGES_CONTENT.intelligenceBriefs;
+  return source.map((brief) => ({ ...brief, status: resolveNudgeStatus(brief) }));
 }
 
 export function normalizeSalesMarketNudgesPayload(payload: unknown): SalesMarketNudgesContent {
@@ -80,8 +98,8 @@ export function normalizeSalesMarketNudgesPayload(payload: unknown): SalesMarket
         parsed.data.weeklyHeading?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyHeading,
       briefsHeading:
         parsed.data.briefsHeading?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.briefsHeading,
-      weeklyNudges: withArchivedDefaults(mergeNudges(parsed.data.weeklyNudges)),
-      intelligenceBriefs: withArchivedDefaults(mergeBriefs(parsed.data.intelligenceBriefs)),
+      weeklyNudges: normalizeNudges(parsed.data.weeklyNudges),
+      intelligenceBriefs: normalizeBriefs(parsed.data.intelligenceBriefs),
       briefCategories: resolveBriefCategories(
         parsed.data.briefCategories,
         parsed.data.intelligenceBriefs
@@ -96,19 +114,8 @@ export function normalizeSalesMarketNudgesPayload(payload: unknown): SalesMarket
     description: partial.description?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.description,
     weeklyHeading: partial.weeklyHeading?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyHeading,
     briefsHeading: partial.briefsHeading?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.briefsHeading,
-    weeklyNudges: withArchivedDefaults(mergeNudges(partial.weeklyNudges)),
-    intelligenceBriefs: withArchivedDefaults(mergeBriefs(partial.intelligenceBriefs)),
+    weeklyNudges: normalizeNudges(partial.weeklyNudges),
+    intelligenceBriefs: normalizeBriefs(partial.intelligenceBriefs),
     briefCategories: resolveBriefCategories(partial.briefCategories, partial.intelligenceBriefs),
-  };
-}
-
-/** Member-facing content — excludes archived nudges and briefs. */
-export function filterActiveSalesMarketNudgesContent(
-  content: SalesMarketNudgesContent
-): SalesMarketNudgesContent {
-  return {
-    ...content,
-    weeklyNudges: content.weeklyNudges.filter((nudge) => !nudge.archived),
-    intelligenceBriefs: content.intelligenceBriefs.filter((brief) => !brief.archived),
   };
 }

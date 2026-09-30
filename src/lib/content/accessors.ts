@@ -48,10 +48,7 @@ import {
   DEFAULT_SALES_MARKET_NUDGES_CONTENT,
   type SalesMarketNudgesContent,
 } from "@/data/sales-market-nudges";
-import {
-  filterActiveSalesMarketNudgesContent,
-  normalizeSalesMarketNudgesPayload,
-} from "@/lib/content/sales-market-nudges-schema";
+import { normalizeSalesMarketNudgesPayload } from "@/lib/content/sales-market-nudges-schema";
 import {
   DEFAULT_ACCOUNT_INTELLIGENCE_CONTENT,
   type AccountIntelligenceContent,
@@ -191,9 +188,9 @@ export async function getMemberDashboardContent(): Promise<MemberDashboardConten
 export async function getSalesMarketNudgesContent(): Promise<SalesMarketNudgesContent> {
   const cms = await tryReadPublishedPayload<Partial<SalesMarketNudgesContent>>("sales-market-nudges");
   if (cms === null) {
-    return filterActiveSalesMarketNudgesContent(DEFAULT_SALES_MARKET_NUDGES_CONTENT);
+    return normalizeSalesMarketNudgesPayload(DEFAULT_SALES_MARKET_NUDGES_CONTENT);
   }
-  return filterActiveSalesMarketNudgesContent(normalizeSalesMarketNudgesPayload(cms));
+  return normalizeSalesMarketNudgesPayload(cms);
 }
 
 export async function getAccountIntelligenceContent(): Promise<AccountIntelligenceContent> {
