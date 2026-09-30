@@ -1,10 +1,12 @@
+export type NudgeLifecycleStatus = "active" | "expired" | "archive";
+
 export interface MarketNudgeItem {
   id: string;
-  /** Plain text; account names listed separately for bold rendering. */
-  text: string;
+  title: string;
+  whyNow: string;
+  accountAction: string;
   accountNames: string[];
-  /** Hidden from member page when true; still editable in admin. */
-  archived?: boolean;
+  status: NudgeLifecycleStatus;
 }
 
 export interface IntelligenceBrief {
@@ -19,8 +21,7 @@ export interface IntelligenceBrief {
   updatedAt?: string;
   /** Legacy free-text label; ignored on member cards when `updatedAt` is missing. */
   updatedLabel?: string;
-  /** Hidden from member page when true; still editable in admin. */
-  archived?: boolean;
+  status: NudgeLifecycleStatus;
 }
 
 export interface SalesMarketNudgesContent {
@@ -48,13 +49,19 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
   weeklyNudges: [
     {
       id: "jkm-ttf-spread",
-      text: "JKM—TTF spread compressed sharply this week — affects 2 of your tracked accounts",
+      title: "JKM—TTF spread compressed",
+      whyNow: "JKM—TTF spread compressed sharply this week — affects 2 of your tracked accounts.",
+      accountAction: "Reach Meridian Energy and Northbridge Gas with a framed talking point this week.",
       accountNames: ["Meridian Energy", "Northbridge Gas"],
+      status: "active",
     },
     {
       id: "vlcc-rates-spike",
-      text: "Gulf Coast VLCC rates spiked on an unplanned outage — relevant to",
+      title: "Gulf Coast VLCC rates spiked",
+      whyNow: "Gulf Coast VLCC rates spiked on an unplanned outage.",
+      accountAction: "Brief Solace Trade Finance on freight-adjusted economics.",
       accountNames: ["Solace Trade Finance"],
+      status: "active",
     },
   ],
   intelligenceBriefs: [
@@ -71,6 +78,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
         "How is your desk adjusting hedge ratios with Brent at these levels?",
         "Are you seeing any cargo diversion risk on Atlantic–Asia routes?",
       ],
+      status: "active",
     },
     {
       id: "gasoline-aug-2026",
@@ -85,6 +93,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
         "Where are you seeing the biggest margin pressure — flat price or crack?",
         "How are you positioning ahead of the seasonal demand peak?",
       ],
+      status: "active",
     },
     {
       id: "copper-aug-2026",
@@ -99,6 +108,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
         "Are you watching warrant queues or focusing on flat-price exposure?",
         "How is your coverage team framing the China demand narrative this week?",
       ],
+      status: "active",
     },
     {
       id: "lng-aug-2026",
@@ -113,6 +123,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
         "How are LNG-exposed accounts adjusting their hedge coverage?",
         "Is freight cost showing up in their cargo economics conversations yet?",
       ],
+      status: "active",
     },
     {
       id: "crude-jul-2026",
@@ -127,6 +138,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
         "Are your accounts leaning into export-driven spread trades this month?",
         "How are they framing OPEC+ compliance in client conversations?",
       ],
+      status: "active",
     },
     {
       id: "lng-jul-2026",
@@ -141,6 +153,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
         "Which accounts are most exposed to the JKM–TTF gap this week?",
         "Are they asking about freight-adjusted economics yet?",
       ],
+      status: "active",
     },
   ],
 };
