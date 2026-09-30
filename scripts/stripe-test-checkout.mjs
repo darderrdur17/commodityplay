@@ -70,9 +70,14 @@ try {
           cancel_url: `${origin}/account?cancelled=1`,
           metadata: { plan: tier, term, track },
           subscription_data: { metadata: { plan: tier, term, track } },
-          ...(coupon ? { discounts: [{ coupon }] } : {}),
-          // Mirrors the route: promo codes are disabled whenever a term coupon is attached.
-          allow_promotion_codes: coupon ? false : true,
+          // Mirrors the route: `discounts` and `allow_promotion_codes` are mutually
+          // exclusive in Stripe, so the promo-code field is omitted when a coupon is attached.
+          ...(coupon ? { discounts: [{ coupon }] } : { allow_promotion_codes: true }),
+        }, {
+          // Managed Payments requires API version 2025-03-31.basil or later for Checkout
+          // Session creation. Per-request on purpose — the app's shared Stripe client
+          // stays on Acacia so webhook invoice-line reads keep working.
+          apiVersion: "2025-03-31.basil",
         });
 
         const ok =

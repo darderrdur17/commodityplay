@@ -108,14 +108,22 @@ export async function POST(req: NextRequest) {
       subscription_data: { metadata: { userId, plan: tier, term, track } },
       // The coupon's `duration` is deliberately NEVER read here — whether the discount
       // persists forever or only for the first term is a Stripe Dashboard setting.
-      ...(discount ? { discounts: [discount] } : {}),
-      // Do not let a customer stack a promo code on an already-discounted term.
-      allow_promotion_codes: discount ? false : true,
+      // 🔴 Stripe rejects `discounts` and `allow_promotion_codes` in the SAME request —
+      // "You may only specify one of these parameters" — even when the latter is `false`.
+      // So when a term coupon is attached the promo-code field must be omitted entirely.
+      // Monthly (no coupon) still allows a promo code.
+      ...(discount ? { discounts: [discount] } : { allow_promotion_codes: true }),
       billing_address_collection: "required",
       customer_update: { address: "auto", name: "auto" },
       // Now for every plan, not just Elite: every plan is recurring.
       saved_payment_method_options: { payment_method_save: "enabled" },
       payment_method_types: ["card"],
+    }, {
+      // Managed Payments requires API version 2025-03-31.basil or later for Checkout
+      // Session creation. Deliberately a PER-REQUEST option: the shared getStripe()
+      // client and the webhook client stay on Acacia, because Basil removes
+      // invoice.lines[].price, which the webhook's receipt handler reads.
+      apiVersion: "2025-03-31.basil",
     });
 
     return NextResponse.json({ url: checkoutSession.url });
