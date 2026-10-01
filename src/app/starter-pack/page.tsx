@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: `Starter Pack — ${BRAND_NAME}`,
-  description: "Free starter pack — 5 infographics, weekly community email, Chapter A preview, and Desk Glossary.",
+  description: "Free starter pack — desk infographics, weekly community email, Chapter A preview, and Desk Glossary.",
 };
 
 export default async function StarterPackPage() {

@@ -9,6 +9,7 @@ const PROTECTED_PATHS = [
   "/career-roadmap",
   "/interview-questions",
   "/knowledge-test",
+  "/library",
   "/case-studies",
   "/desk-channel",
   "/mentor-connect",
