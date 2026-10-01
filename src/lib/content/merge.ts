@@ -442,11 +442,19 @@ export function resolveMentorSegments(
   const overrideMap = new Map(overrides.map((o) => [o.id, o]));
   const defaultIds = new Set(defaults.flatMap((s) => s.mentors.map((m) => m.id)));
   const deletedIds = new Set(overrides.filter((o) => o.deleted).map((o) => o.id));
+  // An `isNew` override may reclaim a *seeded* id once that seed was deleted from the CMS (an
+  // admin reuses the released id, e.g. PT-03). It then both replaces the seed row and renders as
+  // a brand-new profile. Without this the reused id collides with the static mentors.json entry
+  // and the new mentor silently vanishes from every surface.
+  const reclaimedSeedIds = new Set(
+    overrides.filter((o) => o.isNew && !o.deleted && defaultIds.has(o.id)).map((o) => o.id)
+  );
+  const suppressedIds = new Set([...deletedIds, ...reclaimedSeedIds]);
 
   const resolved: MentorSegment[] = defaults.map((segment) => ({
     ...segment,
     mentors: segment.mentors
-      .filter((mentor) => !deletedIds.has(mentor.id))
+      .filter((mentor) => !suppressedIds.has(mentor.id))
       .map((mentor): MentorProfile => {
         const override = overrideMap.get(mentor.id);
         return {
@@ -469,9 +477,7 @@ export function resolveMentorSegments(
       }),
   }));
 
-  const newOverrides = overrides.filter(
-    (o) => o.isNew && !defaultIds.has(o.id) && !o.deleted
-  );
+  const newOverrides = overrides.filter((o) => o.isNew && !o.deleted);
   const segmentIndexById = new Map(resolved.map((s, i) => [s.id, i] as const));
   const unassigned: MentorProfile[] = [];
 

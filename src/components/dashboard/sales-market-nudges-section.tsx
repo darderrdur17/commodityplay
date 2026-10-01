@@ -358,14 +358,24 @@ export function SalesMarketNudgesSection({
                 isHighlighted(marketNudgeElementId(nudge.id)) && BOOKMARK_HIGHLIGHT_RING
               )}
             >
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-white/90 mb-1">{nudge.title}</p>
-                <p className="text-sm text-white/95 leading-relaxed">
-                  <span className="font-medium">Why now:</span> {nudge.whyNow}
-                </p>
-                <p className="text-sm text-white/95 leading-relaxed mt-1">
-                  <span className="font-medium">Account action:</span> {nudge.accountAction}
-                </p>
+              <div className="flex-1 space-y-2">
+                {nudge.title.trim() !== "" && (
+                  <div className="inline-block rounded-lg bg-emerald-50 px-3 py-1.5 ring-1 ring-emerald-300">
+                    <p className="text-xs font-bold uppercase tracking-wide text-emerald-900">
+                      {nudge.title}
+                    </p>
+                  </div>
+                )}
+                <div className="rounded-lg bg-emerald-50 px-3 py-2 ring-1 ring-emerald-300">
+                  <p className="text-sm leading-relaxed text-emerald-950">
+                    <span className="font-semibold">What&apos;s now:</span> {nudge.whyNow}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-emerald-50 px-3 py-2 ring-1 ring-emerald-300">
+                  <p className="text-sm leading-relaxed text-emerald-950">
+                    <span className="font-semibold">Account action:</span> {nudge.accountAction}
+                  </p>
+                </div>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0">
                 {hasElite && (

@@ -308,7 +308,7 @@ export function SalesMarketNudgesEditor({
                   onChange={(e) => updateNudge(i, { title: e.target.value })}
                 />
               </EditorField>
-              <EditorField label="Why now">
+              <EditorField label="What's now">
                 <textarea
                   className={textareaClass}
                   rows={2}
