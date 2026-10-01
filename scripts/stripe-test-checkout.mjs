@@ -2,7 +2,7 @@
  * Optional Stripe test-mode smoke check.
  *
  * Requires STRIPE_SECRET_KEY=sk_test_..., the four STRIPE_PRICE_* ids and (for the term
- * sessions) the eight STRIPE_COUPON_* ids.
+ * sessions) the four STRIPE_COUPON_*_TERM12 ids.
  * Creates Checkout Sessions only — it does not complete a payment.
  */
 import Stripe from "stripe";
@@ -16,10 +16,9 @@ if (!key.includes("sk_test_")) {
   console.log("  export STRIPE_PRICE_CAREER_ELITE=price_...");
   console.log("  export STRIPE_PRICE_SALES_PRO=price_...");
   console.log("  export STRIPE_PRICE_SALES_ELITE=price_...");
-  console.log("  export STRIPE_COUPON_CAREER_PRO_TERM6=...");
   console.log("  export STRIPE_COUPON_CAREER_PRO_TERM12=...");
   console.log("  node scripts/stripe-test-checkout.mjs");
-  console.log("Expected: 12 checkout.session objects, all mode=subscription.");
+  console.log("Expected: 8 checkout.session objects, all mode=subscription.");
   console.log("Then pay with 4242… in Checkout and confirm User.tier is PRO / ELITE.");
   process.exit(0);
 }
@@ -29,7 +28,7 @@ const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
 const TRACKS = ["CAREER", "SALES"];
 const TIERS = ["PRO", "ELITE"];
-const TERMS = ["monthly", "term6", "term12"];
+const TERMS = ["monthly", "term12"];
 
 const prices = {
   CAREER_PRO: process.env.STRIPE_PRICE_CAREER_PRO,
@@ -108,7 +107,7 @@ try {
     console.log("A STRIPE_SECRET_KEY is set but Stripe rejected it (placeholder or expired).");
     console.log("Set a real sk_test_ key, the four price ids and the coupon ids, then:");
     console.log("  node --env-file=.env scripts/stripe-test-checkout.mjs");
-    console.log("Expected: 12 sessions, all mode=subscription, discount > 0 for term6/term12.");
+    console.log("Expected: 8 sessions, all mode=subscription, discount > 0 for term12.");
     console.log("Pay with 4242… and confirm User.tier becomes PRO / ELITE via the webhook.");
     process.exit(0);
   }
