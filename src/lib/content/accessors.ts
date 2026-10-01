@@ -320,6 +320,7 @@ export async function getStarterPackContent() {
     marketNote?: Partial<StarterEmailDigest> & { subscribed?: string };
     chapterPreview?: typeof import("@/data/starter-pack").STARTER_CHAPTER_PREVIEW;
     upgradeCta?: Partial<StarterUpgradeCta>;
+    popupHeadline?: string;
   }>("starter-pack");
 
   const { STARTER_CHAPTER_PREVIEW } = await import("@/data/starter-pack");
@@ -330,6 +331,7 @@ export async function getStarterPackContent() {
     emailDigest: mergeStarterEmailDigest(normalizeStarterDigestCms(data)),
     chapterPreview: data.chapterPreview ?? STARTER_CHAPTER_PREVIEW,
     upgradeCta: mergeStarterUpgradeCta(data.upgradeCta),
+    popupHeadline: data.popupHeadline?.trim() ?? "",
   };
 }
 

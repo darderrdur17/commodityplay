@@ -21,6 +21,7 @@ const STARTER_PACK_HREF = "/starter-pack";
 export function StarterPackClient({
   hero,
   infographics,
+  popupHeadline,
   marketNote,
   chapterPreview,
   assetUrls = {},
@@ -31,6 +32,7 @@ export function StarterPackClient({
 }: {
   hero: StarterPackHero;
   infographics: StarterInfographic[];
+  popupHeadline?: string;
   marketNote: typeof import("@/data/starter-pack").STARTER_MARKET_NOTE;
   chapterPreview: typeof import("@/data/starter-pack").STARTER_CHAPTER_PREVIEW;
   assetUrls?: Record<string, string>;
@@ -275,6 +277,7 @@ export function StarterPackClient({
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         items={infographics.map((info) => info.title)}
+        headline={popupHeadline || undefined}
       />
     </div>
   );

@@ -30,6 +30,7 @@ export default async function StarterPackPage() {
     <StarterPackClient
       hero={content.hero}
       infographics={content.infographics}
+      popupHeadline={content.popupHeadline}
       marketNote={marketNote}
       chapterPreview={content.chapterPreview}
       assetUrls={assetUrls}

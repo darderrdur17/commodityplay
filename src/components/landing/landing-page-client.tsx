@@ -58,9 +58,11 @@ interface Props {
   };
   /** Starter Pack infographic titles from getStarterPackContent() — drives the free-pack modal. */
   starterPackItems?: string[];
+  /** CMS popup headline. Blank falls back to the auto-count in StarterPackModal. */
+  starterPackHeadline?: string;
 }
 
-export function LandingPageClient({ content, edgeNotes, starterPackItems }: Props) {
+export function LandingPageClient({ content, edgeNotes, starterPackItems, starterPackHeadline }: Props) {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
@@ -445,6 +447,7 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems }: Prop
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         items={starterPackItems}
+        headline={starterPackHeadline || undefined}
       />
       <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
     </>
