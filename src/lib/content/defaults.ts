@@ -110,7 +110,7 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
     case "account-intelligence":
       return DEFAULT_ACCOUNT_INTELLIGENCE_CONTENT;
     case "mentors":
-      return { overrides: [] };
+      return { overrides: [], order: [] };
     default:
       return {};
   }

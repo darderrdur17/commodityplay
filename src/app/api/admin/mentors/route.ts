@@ -7,11 +7,13 @@ import { getResolvedMentorSegments } from "@/lib/content/accessors";
 import { getContentModulePayload, updateContentModule } from "@/lib/content/repository";
 import {
   MENTOR_SEGMENTS,
+  buildMentorOverridesPayload,
   isValidMentorId,
   normalizeMentorId,
   type MentorOverride,
   type MentorOverridesPayload,
 } from "@/data/mentors";
+import { resolveMentorSegments } from "@/lib/content/merge";
 import {
   getMentorLiveContactsByEmail,
   getMentorLiveContactsByProfileId,
@@ -49,20 +51,15 @@ export async function GET() {
   const mentorConnectCms = await getContentModulePayload("mentor-connect");
   const rewardRungs = normalizeMentorConnectPayload(mentorConnectCms ?? {}).rewardLadder.rungs;
 
-  // Surface pending applications first within each segment so admins spot them at a glance.
+  // Surface in CMS `order` (then seed order). Do not re-sort pending-first — that would
+  // undo admin ↑/↓ reordering on the Mentors tab.
   const segments = resolvedSegments.map((seg) => ({
     id: seg.id,
     num: seg.num,
     title: seg.title,
     blurb: seg.blurb,
     questionCount: countBySegment[seg.id] ?? 0,
-    mentors: [...seg.mentors]
-      .sort((a, b) => {
-        const aPending = (a.status ?? "active") === "pending" ? 0 : 1;
-        const bPending = (b.status ?? "active") === "pending" ? 0 : 1;
-        return aPending - bPending;
-      })
-      .map((m) => {
+    mentors: seg.mentors.map((m) => {
         const live = overlayMentorLiveContact(
           { id: m.id, email: m.email ?? null, company: m.company ?? null },
           liveByProfileId,
@@ -101,6 +98,12 @@ export async function GET() {
   return NextResponse.json({ segments, pendingCount });
 }
 
+const reorderSchema = z.object({
+  id: z.string().min(1),
+  segmentId: z.string().min(1),
+  direction: z.enum(["up", "down"]),
+});
+
 const patchSchema = z.object({
   id: z.string().min(1),
   headline: z.string().min(1).max(200).optional(),
@@ -138,6 +141,59 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
+  if (body && typeof body === "object" && "direction" in body) {
+    const reorderParsed = reorderSchema.safeParse(body);
+    if (!reorderParsed.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: reorderParsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const { id, segmentId, direction } = reorderParsed.data;
+    const existingPayload = await getContentModulePayload<Partial<MentorOverridesPayload>>("mentors");
+    const overrides = existingPayload?.overrides ?? [];
+    const resolved = resolveMentorSegments(MENTOR_SEGMENTS, overrides, existingPayload?.order);
+    const segment = resolved.find((seg) => seg.id === segmentId);
+    if (!segment) {
+      return NextResponse.json({ error: "Segment not found" }, { status: 404 });
+    }
+    const idx = segment.mentors.findIndex((m) => m.id === id);
+    if (idx < 0) {
+      return NextResponse.json({ error: "Mentor not found in that segment" }, { status: 404 });
+    }
+    const swapWith = direction === "up" ? idx - 1 : idx + 1;
+    let nextMentors = segment.mentors;
+    if (swapWith >= 0 && swapWith < segment.mentors.length) {
+      nextMentors = [...segment.mentors];
+      const current = nextMentors[idx];
+      const neighbor = nextMentors[swapWith];
+      if (current && neighbor) {
+        nextMentors[idx] = neighbor;
+        nextMentors[swapWith] = current;
+      }
+    }
+    const nextOrder = resolved.flatMap((seg) =>
+      (seg.id === segmentId ? nextMentors : seg.mentors).map((m) => m.id)
+    );
+
+    await updateContentModule(
+      "mentors",
+      { payload: buildMentorOverridesPayload(overrides, nextOrder), published: true },
+      admin.user.id
+    );
+
+    revalidatePath("/mentor-connect", "page");
+    revalidatePath("/mentor-connect", "layout");
+
+    await recordAdminAudit({
+      actorEmail: admin.user.email,
+      action: "mentor.profile.reordered",
+      metadata: { mentorProfileId: id, segmentId, direction },
+    });
+
+    return NextResponse.json({ ok: true, order: nextOrder });
+  }
+
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -258,9 +314,14 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
+  let persistedOrder = existingPayload?.order;
+  if (isRename) {
+    persistedOrder = (existingPayload?.order ?? []).map((oid) => (oid === id ? effectiveId : oid));
+  }
+
   await updateContentModule(
     "mentors",
-    { payload: { overrides: nextOverrides }, published: true },
+    { payload: buildMentorOverridesPayload(nextOverrides, persistedOrder), published: true },
     admin.user.id
   );
 
@@ -328,7 +389,7 @@ export async function DELETE(req: NextRequest) {
 
   await updateContentModule(
     "mentors",
-    { payload: { overrides: nextOverrides }, published: true },
+    { payload: buildMentorOverridesPayload(nextOverrides, existingPayload?.order), published: true },
     admin.user.id
   );
 

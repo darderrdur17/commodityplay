@@ -172,6 +172,20 @@ export const landingContentSchema = z.object({
           .min(1),
       })
       .default(() => DEFAULT_LANDING_CONTENT.sales.trackTools),
+    starterCard: z
+      .object({
+        title: z.string().min(1),
+        description: z.string().min(1),
+        items: z.array(z.string().min(1)).min(1),
+      })
+      .default(() => DEFAULT_LANDING_CONTENT.sales.starterCard),
+    teamLicences: z
+      .object({
+        label: z.string().min(1),
+        heading: z.string().min(1),
+        body: z.string().min(1),
+      })
+      .default(() => DEFAULT_LANDING_CONTENT.sales.teamLicences),
   }),
   stats: z.array(salesStatSchema),
   groundLevelView: z.object({

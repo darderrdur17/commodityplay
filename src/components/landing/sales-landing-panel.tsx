@@ -104,9 +104,18 @@ interface Props {
   edgeNote: WeeklyEdgeNote;
   onOpenModal: () => void;
   onOpenContactModal: () => void;
+  /** Live Starter Pack titles — one list with /starter-pack and the free-pack popup. */
+  starterPackItems?: string[];
 }
 
-export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNote, onOpenContactModal }: Props) {
+export function SalesLandingPanel({
+  content,
+  testimonials,
+  membersStrip,
+  edgeNote,
+  onOpenContactModal,
+  starterPackItems,
+}: Props) {
   const learnRef = useRef<HTMLElement>(null);
   const router = useRouter();
   const { data: session } = useSession();
@@ -459,16 +468,22 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
             <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-15 blur-3xl" style={{ background: SALES_COLOR }} />
             <div className="relative z-10">
               <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white mb-3 leading-tight">
-                Get 5 desk infographics.
-                <br />
-                Download instantly, free.
+                {content.starterCard.title.split("\n").map((line, i) => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <br />}
+                    {line}
+                  </React.Fragment>
+                ))}
               </h2>
               <p className="text-teal-100/75 text-sm sm:text-base leading-relaxed mb-5 max-w-md">
-                Five A4 reference sheets that show how commodity desks actually operate — before you walk into your next account meeting.
+                {content.starterCard.description}
               </p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                {["Ecosystem Map", "LNG Cargo Flow", "Crack Spread Guide", "Price Benchmarks 101", "Trade Finance Flow"].map((item) => (
-                  <p key={item} className="flex items-center gap-1.5 text-sm text-teal-100/85">
+                {(starterPackItems && starterPackItems.length > 0
+                  ? starterPackItems
+                  : content.starterCard.items
+                ).map((item, i) => (
+                  <p key={`${item}-${i}`} className="flex items-center gap-1.5 text-sm text-teal-100/85">
                     <Check className="w-3.5 h-3.5 text-teal-300 flex-shrink-0" /> {item}
                   </p>
                 ))}
@@ -528,12 +543,12 @@ export function SalesLandingPanel({ content, testimonials, membersStrip, edgeNot
       <section className="py-10 sm:py-12 bg-[#ecfdf5] border-t border-teal-100">
         <div className="page-container max-w-3xl text-center">
           <Reveal>
-            <SectionCategoryLabel colorClass="text-teal-700">Team Licences</SectionCategoryLabel>
+            <SectionCategoryLabel colorClass="text-teal-700">{content.teamLicences.label}</SectionCategoryLabel>
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-teal-900 mb-3">
-              Start Speaking the Desk&apos;s Language.
+              {content.teamLicences.heading}
             </h2>
             <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
-              If you want to upskill your entire sales team on commodity trading before a major campaign or account push, contact us for team pricing. Available for 5+ seats with a custom onboarding session.
+              {content.teamLicences.body}
             </p>
             <Button
               variant="outline"

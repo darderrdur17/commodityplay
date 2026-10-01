@@ -1485,6 +1485,84 @@ export function AdminLandingEditor({
 
       {afterSalesTrackTools}
 
+      <Section
+        title="Sales — Starter Pack card"
+        description="Dark-green signup card on the sales landing. Item names on the public page follow the Starter Pack CMS when that list is non-empty."
+      >
+        <Field label="Title" hint="Use a line break for the second heading line.">
+          <TextInput
+            value={content.sales.starterCard.title}
+            onChange={(v) =>
+              patch("sales", { ...content.sales, starterCard: { ...content.sales.starterCard, title: v } })
+            }
+            multiline
+            rows={2}
+          />
+        </Field>
+        <Field label="Description">
+          <TextInput
+            value={content.sales.starterCard.description}
+            onChange={(v) =>
+              patch("sales", {
+                ...content.sales,
+                starterCard: { ...content.sales.starterCard, description: v },
+              })
+            }
+            multiline
+          />
+        </Field>
+        <Field label="Items" hint="One per line. Public landing prefers live Starter Pack titles when available.">
+          <TextInput
+            value={content.sales.starterCard.items.join("\n")}
+            onChange={(v) =>
+              patch("sales", {
+                ...content.sales,
+                starterCard: {
+                  ...content.sales.starterCard,
+                  items: v
+                    .split("\n")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                },
+              })
+            }
+            multiline
+            rows={6}
+          />
+        </Field>
+      </Section>
+
+      <Section title="Sales — Team Licences" description="Light-green strip below testimonials on the sales landing">
+        <Field label="Eyebrow">
+          <TextInput
+            value={content.sales.teamLicences.label}
+            onChange={(v) =>
+              patch("sales", { ...content.sales, teamLicences: { ...content.sales.teamLicences, label: v } })
+            }
+          />
+        </Field>
+        <Field label="Heading">
+          <TextInput
+            value={content.sales.teamLicences.heading}
+            onChange={(v) =>
+              patch("sales", {
+                ...content.sales,
+                teamLicences: { ...content.sales.teamLicences, heading: v },
+              })
+            }
+          />
+        </Field>
+        <Field label="Body">
+          <TextInput
+            value={content.sales.teamLicences.body}
+            onChange={(v) =>
+              patch("sales", { ...content.sales, teamLicences: { ...content.sales.teamLicences, body: v } })
+            }
+            multiline
+          />
+        </Field>
+      </Section>
+
       <Section title="Sales — Commercial Case (ROI)" description="Dark ROI section on sales track">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Eyebrow">

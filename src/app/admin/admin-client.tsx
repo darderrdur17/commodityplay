@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Users, Shield, MessageSquare, Mail, Crown, TrendingUp,
   CheckCircle, Clock, ArrowLeft, RefreshCw, FileJson, Pencil, Trash2,
+  ChevronUp, ChevronDown,
   BarChart2, UserCheck, CreditCard, Copy, ExternalLink, Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -187,6 +188,7 @@ export function AdminClient({
   const [mentorsSegFilter, setMentorsSegFilter] = useState<string>("all");
   const [mentorSaveNotice, setMentorSaveNotice] = useState<string | null>(null);
   const [deletingMentorId, setDeletingMentorId] = useState<string | null>(null);
+  const [reorderingMentorId, setReorderingMentorId] = useState<string | null>(null);
 
   async function loadAll() {
     setLoading(true);
@@ -227,6 +229,26 @@ export function AdminClient({
     setMentorSaveNotice(notice);
     await loadMentorSegments();
     window.setTimeout(() => setMentorSaveNotice(null), 12000);
+  }
+
+  async function handleMentorMove(id: string, segmentId: string, direction: "up" | "down") {
+    setReorderingMentorId(id);
+    try {
+      const res = await fetch("/api/admin/mentors", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, segmentId, direction }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setMentorSaveNotice(data.error || `Could not move ${id}.`);
+        window.setTimeout(() => setMentorSaveNotice(null), 12000);
+        return;
+      }
+      await loadMentorSegments();
+    } finally {
+      setReorderingMentorId(null);
+    }
   }
 
   async function handleMentorDeleted(id: string, wasSeeded: boolean) {
@@ -854,6 +876,7 @@ export function AdminClient({
                     <thead>
                       <tr className="border-b border-border text-left">
                         <th className="px-4 py-2 font-semibold text-muted-fg">Mentor ID</th>
+                      <th className="px-4 py-2 font-semibold text-muted-fg">Order</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Status</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Name</th>
                       <th className="px-4 py-2 font-semibold text-muted-fg">Email</th>
@@ -869,7 +892,7 @@ export function AdminClient({
                     </tr>
                   </thead>
                   <tbody>
-                    {seg.mentors.map((m) => (
+                    {seg.mentors.map((m, mentorIndex) => (
                       <tr
                         key={m.id}
                         className={cn(
@@ -878,6 +901,30 @@ export function AdminClient({
                         )}
                       >
                         <td className="px-4 py-2.5 font-mono text-xs text-muted-fg">{m.id}</td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              aria-label={`Move ${m.id} up`}
+                              disabled={mentorIndex === 0 || reorderingMentorId === m.id}
+                              onClick={() => void handleMentorMove(m.id, seg.id, "up")}
+                              className="inline-flex items-center rounded border border-border p-1 text-muted-fg hover:text-primary-800 disabled:opacity-40"
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Move ${m.id} down`}
+                              disabled={
+                                mentorIndex === seg.mentors.length - 1 || reorderingMentorId === m.id
+                              }
+                              onClick={() => void handleMentorMove(m.id, seg.id, "down")}
+                              className="inline-flex items-center rounded border border-border p-1 text-muted-fg hover:text-primary-800 disabled:opacity-40"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
                         <td className="px-4 py-2.5">
                           {m.status === "pending" ? (
                             <Badge variant="warning" size="sm"><Clock className="w-3 h-3" /> Pending</Badge>

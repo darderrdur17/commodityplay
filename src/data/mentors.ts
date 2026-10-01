@@ -90,6 +90,20 @@ export interface MentorOverride {
 
 export interface MentorOverridesPayload {
   overrides: MentorOverride[];
+  /** Mentor ids in display order. Unknown / omitted ids keep their natural (stable) position. */
+  order?: string[];
+}
+
+/** Persist overrides without dropping `order`, and never keep tombstoned ids in the order list. */
+export function buildMentorOverridesPayload(
+  overrides: MentorOverride[],
+  order?: string[]
+): MentorOverridesPayload {
+  const deleted = new Set(overrides.filter((o) => o.deleted).map((o) => o.id));
+  return {
+    overrides,
+    order: (order ?? []).filter((id) => !deleted.has(id)),
+  };
 }
 
 /** Public-safe mentor profile — strips admin-only identity/review fields before Mentor Connect. */

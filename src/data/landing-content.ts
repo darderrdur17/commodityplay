@@ -197,6 +197,18 @@ export interface LandingContent {
     };
     /** Sales Track Only tools list on the landing Market Nudges / tools strip. */
     trackTools: SalesTrackToolsSection;
+    /** Dark-green Starter Pack signup card on the sales landing. */
+    starterCard: {
+      title: string;
+      description: string;
+      items: string[];
+    };
+    /** Light-green team licences strip on the sales landing. */
+    teamLicences: {
+      label: string;
+      heading: string;
+      body: string;
+    };
   };
   stats: { value: number; suffix: string; label: string }[];
   groundLevelView: {
@@ -553,6 +565,23 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
           desc: "Track which firms are growing and hiring — your next target accounts, before your competitors notice.",
         },
       ],
+    },
+    starterCard: {
+      title: "Get 5 desk infographics.\nDownload instantly, free.",
+      description:
+        "Five A4 reference sheets that show how commodity desks actually operate — before you walk into your next account meeting.",
+      items: [
+        "Ecosystem Map",
+        "LNG Cargo Flow",
+        "Crack Spread Guide",
+        "Price Benchmarks 101",
+        "Trade Finance Flow",
+      ],
+    },
+    teamLicences: {
+      label: "Team Licences",
+      heading: "Start Speaking the Desk's Language.",
+      body: "If you want to upskill your entire sales team on commodity trading before a major campaign or account push, contact us for team pricing. Available for 5+ seats with a custom onboarding session.",
     },
   },
   stats: [
