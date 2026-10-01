@@ -148,6 +148,7 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems }: Prop
           edgeNote={edgeNotes.sales}
           onOpenModal={() => setModalOpen(true)}
           onOpenContactModal={() => setContactOpen(true)}
+          starterPackItems={starterPackItems}
         />
       ) : (
         <>

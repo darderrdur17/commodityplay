@@ -378,6 +378,16 @@ export function resolveSalesContent(
         cms?.trackTools?.features
       ),
     },
+    starterCard: {
+      title: cmsString(cms?.starterCard?.title, defaults.sales.starterCard.title),
+      description: cmsString(cms?.starterCard?.description, defaults.sales.starterCard.description),
+      items: resolveEditableList(defaults.sales.starterCard.items, cms?.starterCard?.items),
+    },
+    teamLicences: {
+      label: cmsString(cms?.teamLicences?.label, defaults.sales.teamLicences.label),
+      heading: cmsString(cms?.teamLicences?.heading, defaults.sales.teamLicences.heading),
+      body: cmsString(cms?.teamLicences?.body, defaults.sales.teamLicences.body),
+    },
   };
 }
 
@@ -434,10 +444,15 @@ function synthesizeMentorProfile(override: MentorOverride): MentorProfile {
  * end — this pseudo-segment exists only in the resolved output (admin Mentors tab),
  * never in the static defaults, so it's invisible to any public-facing consumer that
  * reads `MENTOR_SEGMENTS` directly.
+ *
+ * `order` is an optional list of mentor ids. Each segment's mentors are sorted by
+ * `order.indexOf(id)`; missing ids (`-1`) sort as Infinity and keep their natural
+ * (stable) position. Tombstoned ids are already excluded before this sort.
  */
 export function resolveMentorSegments(
   defaults: MentorSegment[],
-  overrides: MentorOverride[]
+  overrides: MentorOverride[],
+  order?: string[]
 ): MentorSegment[] {
   const overrideMap = new Map(overrides.map((o) => [o.id, o]));
   const defaultIds = new Set(defaults.flatMap((s) => s.mentors.map((m) => m.id)));
@@ -508,7 +523,21 @@ export function resolveMentorSegments(
     });
   }
 
-  return resolved;
+  return resolved.map((segment) => ({
+    ...segment,
+    mentors: sortMentorsByOrder(segment.mentors, order),
+  }));
+}
+
+function sortMentorsByOrder(mentors: MentorProfile[], order?: string[]): MentorProfile[] {
+  if (!order?.length) return mentors;
+  return [...mentors].sort((a, b) => {
+    const ia = order.indexOf(a.id);
+    const ib = order.indexOf(b.id);
+    const ra = ia === -1 ? Number.POSITIVE_INFINITY : ia;
+    const rb = ib === -1 ? Number.POSITIVE_INFINITY : ib;
+    return ra - rb;
+  });
 }
 
 /** Merge CMS landing copy over code defaults without losing new chapters/tiers from deploys. */

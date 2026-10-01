@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getContentModulePayload, updateContentModule } from "@/lib/content/repository";
 import type { MentorOverride, MentorOverridesPayload } from "@/data/mentors";
+import { buildMentorOverridesPayload } from "@/data/mentors";
 
 export type MentorLiveContact = {
   email: string;
@@ -166,7 +167,7 @@ export async function syncMentorOverrideContact(
 
   await updateContentModule(
     "mentors",
-    { payload: { overrides: nextOverrides }, published: true },
+    { payload: buildMentorOverridesPayload(nextOverrides, existingPayload?.order), published: true },
     updatedByUserId
   );
 

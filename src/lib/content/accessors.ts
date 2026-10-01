@@ -459,7 +459,7 @@ export async function getLibraryContent(): Promise<{
  */
 export async function getResolvedMentorSegments() {
   const data = await getContentModulePayload<Partial<MentorOverridesPayload>>("mentors");
-  return resolveMentorSegments(MENTOR_SEGMENTS, data?.overrides ?? []);
+  return resolveMentorSegments(MENTOR_SEGMENTS, data?.overrides ?? [], data?.order);
 }
 
 /**
@@ -479,7 +479,7 @@ export async function getPublishedMentorSegments(): Promise<PublishedMentorSegme
   const normalized = normalizeMentorConnectPayload(mentorConnectCms ?? {});
   const copyById = new Map(normalized.segments.map((s) => [s.id, s]));
   const rewardRungs = normalized.rewardLadder.rungs;
-  const resolved = resolveMentorSegments(MENTOR_SEGMENTS, mentorsCms?.overrides ?? []);
+  const resolved = resolveMentorSegments(MENTOR_SEGMENTS, mentorsCms?.overrides ?? [], mentorsCms?.order);
   return resolved
     .filter((seg) => seg.id !== UNASSIGNED_SEGMENT_ID)
     .map((seg) => {
