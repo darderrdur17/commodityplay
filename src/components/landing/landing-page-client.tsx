@@ -56,9 +56,11 @@ interface Props {
     career: WeeklyEdgeNote;
     sales: WeeklyEdgeNote;
   };
+  /** Starter Pack infographic titles from getStarterPackContent() — drives the free-pack modal. */
+  starterPackItems?: string[];
 }
 
-export function LandingPageClient({ content, edgeNotes }: Props) {
+export function LandingPageClient({ content, edgeNotes, starterPackItems }: Props) {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
@@ -438,7 +440,11 @@ export function LandingPageClient({ content, edgeNotes }: Props) {
         </>
       )}
 
-      <StarterPackModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <StarterPackModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        items={starterPackItems}
+      />
       <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
     </>
   );

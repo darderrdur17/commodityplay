@@ -376,6 +376,23 @@ export function SalesMarketNudgesSection({
                     <span className="font-semibold">Account action:</span> {nudge.accountAction}
                   </p>
                 </div>
+                {nudge.accountNames.length > 0 && (
+                  <div className="rounded-lg bg-emerald-50 px-3 py-2 ring-1 ring-emerald-300">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-900 mb-1.5">
+                      Target account type
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {nudge.accountNames.map((name, i) => (
+                        <span
+                          key={`${name}-${i}`}
+                          className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-200"
+                        >
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0">
                 {hasElite && (
