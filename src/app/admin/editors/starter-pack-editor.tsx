@@ -34,6 +34,7 @@ interface StarterPayload {
   /** Legacy CMS key — read-only migration source */
   marketNote?: Partial<EmailDigest> & { subscribed?: string };
   upgradeCta?: Partial<StarterUpgradeCta>;
+  popupHeadline?: string;
   [key: string]: unknown;
 }
 
@@ -332,6 +333,15 @@ function HeroTab({ data, onChange }: { data: StarterPayload; onChange: (d: Start
       </EditorField>
       <EditorField label="CTA button label">
         <input className={inputClass} value={hero.ctaLabel} onChange={(e) => patch({ ctaLabel: e.target.value })} />
+      </EditorField>
+      <EditorField label="Free pack popup headline" hint="Leave blank to auto-generate: Get N Infographics Free">
+        <input
+          className={inputClass}
+          maxLength={80}
+          placeholder="Get 7 Infographics Free"
+          value={data.popupHeadline ?? ""}
+          onChange={(e) => onChange({ ...data, popupHeadline: e.target.value })}
+        />
       </EditorField>
     </div>
   );

@@ -22,6 +22,7 @@ export default async function HomePage() {
         content={content}
         edgeNotes={edgeNotes}
         starterPackItems={starterPackItems}
+        starterPackHeadline={starterPack.popupHeadline}
       />
     </Suspense>
   );
