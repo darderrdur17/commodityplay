@@ -64,7 +64,6 @@ const TABLE_DEFS: {
   { model: "TrackedAccount", label: "Tracked accounts", group: "Activity", count: () => prisma.trackedAccount.count() },
   { model: "AccountBookmark", label: "Bookmarks", group: "Activity", count: () => prisma.accountBookmark.count() },
   { model: "JobChatThread", label: "Job chat threads", group: "Activity", count: () => prisma.jobChatThread.count() },
-  { model: "UserMarketNudgeStatus", label: "Nudge status", group: "Activity", count: () => prisma.userMarketNudgeStatus.count() },
 ];
 
 export async function prepareAdminDatabase(): Promise<void> {
