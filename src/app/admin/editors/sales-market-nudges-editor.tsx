@@ -326,7 +326,7 @@ export function SalesMarketNudgesEditor({
                   onChange={(e) => updateNudge(i, { accountAction: e.target.value })}
                 />
               </EditorField>
-              <EditorField label="Account names (comma-separated)">
+              <EditorField label="Target account type (comma-separated)">
                 <input
                   className={inputClass}
                   value={nudge.accountNames.join(", ")}

@@ -21,13 +21,18 @@ type Track = "CAREER" | "SALES";
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** CMS-driven list of what's in the free pack. Falls back to the hardcoded list. */
+  items?: string[];
+  /** CMS-driven headline. Falls back to a count derived from `items`. */
+  headline?: string;
 }
 
-export function StarterPackModal({ open, onClose }: Props) {
+export function StarterPackModal({ open, onClose, items, headline }: Props) {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [track, setTrack] = useState<Track | null>(null);
+  const packItems = items && items.length > 0 ? items : PACK_ITEMS;
 
   function resetForm() {
     setSubmitted(false);
@@ -108,15 +113,15 @@ export function StarterPackModal({ open, onClose }: Props) {
                   Free Starter Pack
                 </p>
                 <h2 className="font-serif text-2xl font-bold text-gray-900 mb-2">
-                  Get 5 Infographics Free
+                  {headline?.trim() ? headline : `Get ${packItems.length} Infographics Free`}
                 </h2>
                 <p className="text-sm text-muted-fg mb-5">
                   Download instantly. No credit card. Plus the biweekly email digest to your inbox.
                 </p>
 
                 <ul className="grid grid-cols-2 gap-x-3 gap-y-2 mb-6">
-                  {PACK_ITEMS.map((item) => (
-                    <li key={item} className="flex items-center gap-1.5 text-xs text-gray-700">
+                  {packItems.map((item, i) => (
+                    <li key={`${item}-${i}`} className="flex items-center gap-1.5 text-xs text-gray-700">
                       <Check className="w-3 h-3 text-primary-400 flex-shrink-0" />
                       {item}
                     </li>

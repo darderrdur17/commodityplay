@@ -269,7 +269,7 @@ function mergeStarterInfographics(
 ): StarterInfographic[] {
   if (!cms?.length) return defaults;
   const byId = new Map(cms.map((item) => [item.id, item]));
-  return defaults.map((def) => {
+  const merged = defaults.map((def) => {
     const edited = byId.get(def.id);
     if (!edited) return def;
     return {
@@ -279,6 +279,12 @@ function mergeStarterInfographics(
       thumbKey: edited.thumbKey || def.thumbKey,
     };
   });
+  // Rows the admin added in the editor carry a generated id (`sp-<timestamp>`) that is absent
+  // from the seeded defaults. Append them in CMS order — iterating only over `defaults`
+  // silently dropped them, so newly added infographics never appeared on the public page.
+  const defaultIds = new Set(defaults.map((def) => def.id));
+  const added = cms.filter((item) => !defaultIds.has(item.id));
+  return [...merged, ...added];
 }
 
 function normalizeStarterDigestCms(data: {

@@ -109,7 +109,7 @@ export function StarterPackClient({
       {/* Infographics grid */}
       <section className="py-16 sm:py-24 page-container">
         <Reveal className="mb-12">
-          <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">5 Infographics</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-primary-800 mb-2">{infographics.length} Infographics</p>
           <h2 className="font-serif text-3xl font-bold text-gray-900">Download and keep.</h2>
         </Reveal>
         <StaggerChildren className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -271,7 +271,11 @@ export function StarterPackClient({
         </div>
       </section>
 
-      <StarterPackModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <StarterPackModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        items={infographics.map((info) => info.title)}
+      />
     </div>
   );
 }
