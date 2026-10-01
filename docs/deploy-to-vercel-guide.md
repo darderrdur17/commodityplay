@@ -92,14 +92,14 @@ one-time purchase.
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` (from step 7) |
 | `STRIPE_BILLING_PORTAL_CONFIGURATION_ID` | `bpc_...` (optional — enables the branded portal) |
 
-Plus the **eight** term-discount coupons (6-month bills 6 months for 7; 12-month bills 12 for 14):
+Plus the **four** term-discount coupons (the 12-month plan bills 12 months for 14):
 
 | Variable | Coupon |
 | --- | --- |
-| `STRIPE_COUPON_CAREER_PRO_TERM6` / `_TERM12` | USD 2.71 off |
-| `STRIPE_COUPON_CAREER_ELITE_TERM6` / `_TERM12` | USD 5.57 off |
-| `STRIPE_COUPON_SALES_PRO_TERM6` / `_TERM12` | USD 2.71 off |
-| `STRIPE_COUPON_SALES_ELITE_TERM6` / `_TERM12` | USD 5.57 off |
+| `STRIPE_COUPON_CAREER_PRO_TERM12` | USD 2.71 off |
+| `STRIPE_COUPON_CAREER_ELITE_TERM12` | USD 5.57 off |
+| `STRIPE_COUPON_SALES_PRO_TERM12` | USD 5.57 off |
+| `STRIPE_COUPON_SALES_ELITE_TERM12` | USD 8.43 off |
 
 > 🔴 **The old `STRIPE_PRO_PRICE_ID` / `STRIPE_ELITE_PRICE_ID` names no longer exist.** Anything
 > still setting them is a no-op — checkout returns 503 because the code cannot find a price.
