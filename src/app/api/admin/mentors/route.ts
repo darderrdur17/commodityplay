@@ -154,6 +154,9 @@ export async function PATCH(req: NextRequest) {
   const idx = overrides.findIndex((o) => o.id === id);
   const existing = idx >= 0 ? overrides[idx] : undefined;
   const isSeededMentor = MENTOR_SEGMENTS.some((seg) => seg.mentors.some((m) => m.id === id));
+  const tombstonedIds = new Set(
+    overrides.filter((o) => o.deleted).map((o) => o.id.toUpperCase())
+  );
 
   const requestedNewId = rawNewId ? normalizeMentorId(rawNewId) : null;
   const isRename = requestedNewId !== null && requestedNewId !== id;
@@ -176,12 +179,17 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Invalid anonymous ID format" }, { status: 400 });
     }
 
+    // Deleting a mentor tombstones its override but leaves the seed row in mentors.json, so a
+    // released id must be dropped from both uniqueness sets — otherwise an admin who removes a
+    // seeded mentor (e.g. PT-03) can never reuse that id and is pushed onto a near-miss (PT-3).
     const seedIds = new Set(
-      MENTOR_SEGMENTS.flatMap((seg) => seg.mentors.map((m) => m.id.toUpperCase()))
+      MENTOR_SEGMENTS.flatMap((seg) => seg.mentors.map((m) => m.id.toUpperCase())).filter(
+        (seedId) => !tombstonedIds.has(seedId)
+      )
     );
     const otherOverrideIds = new Set(
       overrides
-        .filter((o) => o.id.toUpperCase() !== id.toUpperCase())
+        .filter((o) => o.id.toUpperCase() !== id.toUpperCase() && !o.deleted)
         .map((o) => o.id.toUpperCase())
     );
     if (seedIds.has(requestedNewId) || otherOverrideIds.has(requestedNewId)) {
@@ -236,10 +244,19 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  const nextOverrides =
+  let nextOverrides =
     idx >= 0
       ? overrides.map((o, i) => (i === idx ? nextOverride : o))
       : [...overrides, nextOverride];
+
+  if (isRename) {
+    // Claiming a released id must consume its tombstone: leaving both entries in place would
+    // keep the id suppressed, and `overrides.findIndex((o) => o.id === id)` would then resolve
+    // the stale deleted record on the next edit.
+    nextOverrides = nextOverrides.filter(
+      (o) => o === nextOverride || o.id.toUpperCase() !== effectiveId.toUpperCase()
+    );
+  }
 
   await updateContentModule(
     "mentors",
