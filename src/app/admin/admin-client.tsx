@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Users, Shield, MessageSquare, Mail, Crown, TrendingUp,
   CheckCircle, Clock, ArrowLeft, RefreshCw, FileJson, Pencil, Trash2,
-  ChevronUp, ChevronDown,
+  ChevronUp, ChevronDown, RotateCcw,
   BarChart2, UserCheck, CreditCard, Copy, ExternalLink, Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { PERSONA_LABELS, formatDate, cn } from "@/lib/utils";
 import { AdminContentTab } from "./admin-content-tab";
 import { AdminUserDetailPanel, type AdminUserDetail } from "./admin-user-detail";
 import { AdminMentorDetailPanel, type AdminMentorDetail, type MentorSegmentOption } from "./admin-mentor-detail";
-import { MENTOR_COUNT, MENTOR_SEGMENTS, UNASSIGNED_SEGMENT_ID } from "@/data/mentors";
+import { MENTOR_COUNT, MENTOR_SEGMENTS, UNASSIGNED_SEGMENT_ID, type MentorStatus } from "@/data/mentors";
 import { formatMentorCreditsUsedLabel, getMentorCreditUsage } from "@/lib/mentor-credits";
 import {
   isDeskChannelQueueItem,
@@ -28,6 +28,7 @@ import {
 } from "./admin-table-filters";
 import { MentorRewardProgressDisplay } from "@/components/mentor-connect/mentor-reward-progress";
 import type { MentorRewardProgress } from "@/lib/mentor-reward-ladder";
+import type { MentorAccessState } from "@/lib/mentor-profile-sync";
 
 function formatAdminMentorCreditsCell(user: AdminUserDetail): string {
   if (user.tier !== "ELITE") return "M: —";
@@ -103,6 +104,7 @@ interface MentorSegmentRow {
     status: "pending" | "active";
     isNew: boolean;
     segmentId: string;
+    mentorAccess: MentorAccessState;
     answeredCount: number;
     rewardProgress: MentorRewardProgress;
   }[];
@@ -118,6 +120,20 @@ interface DemoEmail {
   delivered: boolean;
   createdAt: string;
   hirerReplyUrl?: string | null;
+}
+
+/** A soft-deleted ("hidden") mentor profile — tombstoned, dropped from `segments`,
+ * surfaced separately by the admin GET so the operator can restore it. */
+interface HiddenMentorRow {
+  id: string;
+  name: string | null;
+  email: string | null;
+  status: MentorStatus;
+  isNew: boolean;
+  wasSeeded: boolean;
+  deletedAt: string | null;
+  segmentTitle: string | null;
+  mentorAccess: MentorAccessState;
 }
 
 const CHAPTERS = ["a", "b", "c", "d", "e"];
@@ -189,6 +205,9 @@ export function AdminClient({
   const [mentorSaveNotice, setMentorSaveNotice] = useState<string | null>(null);
   const [deletingMentorId, setDeletingMentorId] = useState<string | null>(null);
   const [reorderingMentorId, setReorderingMentorId] = useState<string | null>(null);
+  const [restoringMentorId, setRestoringMentorId] = useState<string | null>(null);
+  const [hiddenMentors, setHiddenMentors] = useState<HiddenMentorRow[]>([]);
+  const [showHiddenMentors, setShowHiddenMentors] = useState(false);
 
   async function loadAll() {
     setLoading(true);
@@ -210,6 +229,7 @@ export function AdminClient({
         const data = await mentorSegRes.json();
         setMentorSegments(data.segments ?? []);
         setPendingMentorApps(data.pendingCount ?? 0);
+        setHiddenMentors(data.hidden ?? []);
       }
     } finally {
       setLoading(false);
@@ -222,6 +242,7 @@ export function AdminClient({
       const data = await res.json();
       setMentorSegments(data.segments ?? []);
       setPendingMentorApps(data.pendingCount ?? 0);
+      setHiddenMentors(data.hidden ?? []);
     }
   }
 
@@ -274,6 +295,34 @@ export function AdminClient({
       window.setTimeout(() => setMentorSaveNotice(null), 12000);
     } finally {
       setDeletingMentorId(null);
+    }
+  }
+
+  async function handleMentorRestored(id: string, status: MentorStatus) {
+    setRestoringMentorId(id);
+    try {
+      const res = await fetch("/api/admin/mentors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setMentorSaveNotice(data.error || `Could not restore ${id}.`);
+        window.setTimeout(() => setMentorSaveNotice(null), 12000);
+        return;
+      }
+      // A restored profile only reaches Mentor Connect once it is published — a
+      // still-pending application returns to the admin list but stays hidden publicly.
+      setMentorSaveNotice(
+        status === "active"
+          ? `${id} restored — back on Mentor Connect and the admin list.`
+          : `${id} restored to the admin list — still pending, so it will not appear on Mentor Connect until it is published.`
+      );
+      await loadMentorSegments();
+      window.setTimeout(() => setMentorSaveNotice(null), 12000);
+    } finally {
+      setRestoringMentorId(null);
     }
   }
 
@@ -859,6 +908,21 @@ export function AdminClient({
                   {seg.num} {seg.title}
                 </button>
               ))}
+              {hiddenMentors.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowHiddenMentors((v) => !v)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1.5",
+                    showHiddenMentors
+                      ? "bg-primary-400 text-white"
+                      : "bg-white text-muted-fg border border-border hover:border-primary-line"
+                  )}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  {showHiddenMentors ? "Hide hidden" : `Show hidden (${hiddenMentors.length})`}
+                </button>
+              )}
             </div>
             {filteredMentorSegs.map((seg) => (
               <div key={seg.id} className="bg-white rounded-xl border border-border overflow-hidden">
@@ -1002,6 +1066,7 @@ export function AdminClient({
                                   status: m.status,
                                   segmentId: m.segmentId,
                                   isNew: m.isNew,
+                                  mentorAccess: m.mentorAccess,
                                 })
                               }
                               className="inline-flex items-center gap-1 text-xs font-semibold text-primary-800 hover:text-primary-400"
@@ -1030,6 +1095,72 @@ export function AdminClient({
               </div>
               </div>
             ))}
+            {showHiddenMentors && hiddenMentors.length > 0 && (
+              <div className="bg-white rounded-xl border border-border overflow-hidden opacity-70">
+                <div className="px-4 py-3 border-b border-border bg-secondary flex items-center justify-between">
+                  <div>
+                    <span className="font-semibold text-gray-900">Hidden profiles</span>
+                    <span className="text-xs text-muted-fg ml-2">
+                      Soft-deleted — restore to bring them back to Mentor Connect and the admin list.
+                    </span>
+                  </div>
+                  <Badge variant="secondary" size="sm">
+                    {hiddenMentors.length} hidden
+                  </Badge>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[900px]">
+                    <thead>
+                      <tr className="border-b border-border text-left">
+                        <th className="px-4 py-2 font-semibold text-muted-fg">Mentor ID</th>
+                        <th className="px-4 py-2 font-semibold text-muted-fg">Status</th>
+                        <th className="px-4 py-2 font-semibold text-muted-fg">Name</th>
+                        <th className="px-4 py-2 font-semibold text-muted-fg">Email</th>
+                        <th className="px-4 py-2 font-semibold text-muted-fg">Segment</th>
+                        <th className="px-4 py-2 font-semibold text-muted-fg">Deleted</th>
+                        <th className="px-4 py-2 font-semibold text-muted-fg" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hiddenMentors.map((m) => (
+                        <tr key={m.id} className="border-b border-border last:border-0 text-muted-fg">
+                          <td className="px-4 py-2.5 font-mono text-xs">{m.id}</td>
+                          <td className="px-4 py-2.5">
+                            <Badge variant="secondary" size="sm">Hidden</Badge>
+                            {m.mentorAccess !== "none" && (
+                              <span className="block text-[10px] text-muted-fg mt-1">
+                                {m.mentorAccess === "revoked" ? "access revoked" : "access active"}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5 text-xs">{m.name || "—"}</td>
+                          <td className="px-4 py-2.5 text-xs">{m.email || "—"}</td>
+                          <td className="px-4 py-2.5 text-xs">{m.segmentTitle || "—"}</td>
+                          <td className="px-4 py-2.5 text-xs">
+                            {m.deletedAt ? formatDate(m.deletedAt) : "—"}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <button
+                              type="button"
+                              disabled={restoringMentorId === m.id}
+                              onClick={() => {
+                                const ok = window.confirm(
+                                  `Restore mentor "${m.id}"? They will reappear on Mentor Connect and in the admin list.`
+                                );
+                                if (ok) void handleMentorRestored(m.id, m.status);
+                              }}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-primary-800 hover:text-primary-400 disabled:opacity-50"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" /> Restore
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -106,6 +106,22 @@ export function buildMentorOverridesPayload(
   };
 }
 
+/**
+ * Keys a tombstone may carry that hold **no profile content**.
+ *
+ * A tombstone whose keys are all in this set was minted purely to suppress a
+ * profile (e.g. a seeded `mentors.json` row) and is **stripped** on restore, so the
+ * underlying profile cleanly falls back to its defaults and leaves no phantom
+ * override row. A tombstone carrying any *other* key (an app-created mentor, or a
+ * seeded one the admin had edited before deleting) is instead un-flagged so the
+ * earlier edits survive the round trip.
+ *
+ * Register any new tombstone metadata key here. An unregistered key would make a
+ * pure-suppression tombstone look like an edited profile and silently flip restore
+ * from "strip" to "unflag".
+ */
+export const TOMBSTONE_METADATA_KEYS = ["id", "deleted", "updatedAt"] as const;
+
 /** Public-safe mentor profile — strips admin-only identity/review fields before Mentor Connect. */
 export type PublicMentorProfile = Pick<
   MentorProfile,

@@ -318,6 +318,16 @@ DO $$ BEGIN
 EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
 
+-- 1b. User.mentorRevokedAt — mentor access revocation marker (set on profile delete or
+--     an explicit admin revoke; cleared on restore). This lives in CORE, not the CMS
+--     block: ensureCoreInfrastructure() runs this on every cold start / request path,
+--     whereas the CMS block only executes at CMS bootstrap, so a column added there
+--     after the first deploy would never be created on a live database.
+DO $$ BEGIN
+  ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "mentorRevokedAt" TIMESTAMP(3);
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+
 -- 2. MentorQuestion.memberShareOptIn — member consent for desk-channel publication.
 --    This field was historically mapped onto a column literally named "isPublic".
 --    If the legacy column is still present we RENAME it, which preserves consent

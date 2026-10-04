@@ -4,6 +4,7 @@
 -- Runtime already applies the safe subset via CORE_MIGRATION_SQL in
 -- ensureCoreInfrastructure() / instrumentation.ts:
 --   * User.tokenVersion
+--   * User.mentorRevokedAt
 --   * MentorQuestion.memberShareOptIn (renames legacy isPublic, or adds)
 --   * KnowledgeTestResult → User FK as NOT VALID (never deletes, never fails)
 --   * KnowledgeTestResult (userId, completedAt) index

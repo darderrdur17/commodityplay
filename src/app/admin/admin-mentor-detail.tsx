@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Save, CheckCircle2, Clock } from "lucide-react";
+import { X, Save, CheckCircle2, Clock, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { generateMentorId, isValidMentorId } from "@/data/mentors";
+import type { MentorAccessState } from "@/lib/mentor-profile-sync";
 
 export interface AdminMentorDetail {
   id: string;
@@ -26,6 +27,8 @@ export interface AdminMentorDetail {
   segmentId: string;
   /** True for brand-new (self-submitted or admin-added) entries — enables the segment-reassignment dropdown. */
   isNew: boolean;
+  /** Whether a linked login account can currently act as a mentor for this profile. */
+  mentorAccess: MentorAccessState;
 }
 
 /** Segment options for reassigning a new/pending mentor entry out of "Unassigned" (or between segments). */
@@ -60,6 +63,42 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
   });
   const [saving, setSaving] = useState<"save" | "approve" | null>(null);
   const [error, setError] = useState("");
+  // Mentor access is its own concern with its own request — kept local so a profile
+  // Save never touches it, and so the block reflects a change without closing.
+  const [accessState, setAccessState] = useState<MentorAccessState>(mentor.mentorAccess);
+  const [accessBusy, setAccessBusy] = useState(false);
+  const [accessError, setAccessError] = useState("");
+
+  async function changeAccess(action: "grant" | "revoke") {
+    if (action === "revoke") {
+      const ok = window.confirm(
+        `Revoke mentor access for "${mentor.id}"? Their account will lose access to the mentor inbox immediately.`
+      );
+      if (!ok) return;
+    }
+    setAccessBusy(true);
+    setAccessError("");
+    try {
+      const res = await fetch("/api/admin/mentors", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: mentor.id, access: action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAccessError(data.error || "Could not update mentor access.");
+        return;
+      }
+      setAccessState(action === "grant" ? "active" : "revoked");
+      onSaved(
+        action === "grant"
+          ? `Mentor access granted for ${mentor.id}.`
+          : `Mentor access revoked for ${mentor.id}.`
+      );
+    } finally {
+      setAccessBusy(false);
+    }
+  }
 
   async function save(approve = false) {
     setSaving(approve ? "approve" : "save");
@@ -157,6 +196,60 @@ export function AdminMentorDetailPanel({ mentor, segmentOptions, onClose, onSave
               <strong>Publish to Mentor Connect</strong> when the profile is ready.
             </div>
           )}
+
+          <div className="rounded-lg border border-border bg-secondary/40 px-3 py-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-fg">Mentor access</span>
+              {accessState === "active" ? (
+                <Badge variant="success" size="sm">
+                  <CheckCircle2 className="w-3 h-3" /> Active
+                </Badge>
+              ) : accessState === "revoked" ? (
+                <Badge variant="danger" size="sm">
+                  <Ban className="w-3 h-3" /> Revoked
+                </Badge>
+              ) : (
+                <Badge variant="outline" size="sm">Not granted</Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-fg">
+              {accessState === "none" ? (
+                "No account linked to this email."
+              ) : (
+                <>
+                  Linked account: <span className="font-mono">{mentor.email || "—"}</span>
+                </>
+              )}
+            </p>
+            <p className="text-xs text-muted-fg">
+              Access follows the profile — deleting a mentor revokes it, and restoring the profile re-grants it.
+            </p>
+            {accessError && <p className="text-xs text-red-600">{accessError}</p>}
+            <div>
+              {accessState === "active" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => changeAccess("revoke")}
+                  loading={accessBusy}
+                >
+                  Revoke access
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => changeAccess("grant")}
+                  loading={accessBusy}
+                  disabled={!mentor.email}
+                >
+                  Grant access
+                </Button>
+              )}
+            </div>
+          </div>
 
           {mentor.isNew && (
             <div className="space-y-1.5">
