@@ -19,9 +19,17 @@ import { BRAND_NAME, BRAND_SITE_URL } from "@/lib/brand";
 // straight through. Self-hosting removes the build-time Google fetch entirely.
 //
 // One variable file per family replaces the previous nine per-weight files:
-// 89 KB total instead of 409 KB, with identical glyph coverage. The latin subset
-// omits U+2192 (->) and U+2264/U+2265 (<=/>=), but nothing in `src/` renders those
-// characters, and this is the same subset `next/font/google` was already serving.
+// 89 KB total instead of 409 KB. All latin text is unchanged — these ARE Google's
+// `latin` subsets, the same ones `next/font/google` was already serving.
+//
+// Coverage note (measured, not assumed). Google's build-time delivery also pulled in
+// non-latin subsets, so nine symbol codepoints that previously rendered in Roboto now
+// fall back to system-ui: U+2190/U+2192 (arrows), U+25B4/U+25B8/U+25BE (triangles),
+// U+2713/U+2715 (check/cross), U+2248, U+2208 — about 315 occurrences, concentrated in
+// the Pro/Elite Pack content pages. They still render, just in the system font. Box
+// drawing (U+2500-257F, ~2,600 occurrences) and emoji were ALREADY falling back before
+// this change, so those are unaffected. Measured by scanning every rendered content
+// tree for non-ASCII codepoints and diffing coverage against the old production CSS.
 //
 // `weight: "100 900"` is REQUIRED, not decorative: next/font/local only emits a
 // `font-weight` descriptor when `weight` is set, so omitting it would pin every
