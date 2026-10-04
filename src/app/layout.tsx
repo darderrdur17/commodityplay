@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
-import { Roboto } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Nav } from "@/components/nav";
 import { FooterWrapper } from "@/components/footer-wrapper";
@@ -9,18 +8,46 @@ import { SessionProvider } from "@/components/session-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { BRAND_NAME, BRAND_SITE_URL } from "@/lib/brand";
 
-const inter = Inter({
-  subsets: ["latin"],
+// Inter and Roboto are self-hosted as latin-subset *variable* fonts (wght 100-900).
+//
+// Why not `next/font/google`: that fetches the CSS + font files from Google at build
+// time, and Google intermittently responds 200 with extensionless `/l/font?kit=...`
+// URLs. Next's loader then runs `/\.(woff|woff2|eot|ttf|otf)$/.exec(url)![1]` on those
+// URLs and throws `TypeError: Cannot read properties of null (reading '1')`, failing
+// the whole build (vercel/next.js#99114, roughly 1 in 60 responses). Next's internal
+// `retry()` only covers transport errors and non-200s, so a 200 with bad URLs passes
+// straight through. Self-hosting removes the build-time Google fetch entirely.
+//
+// One variable file per family replaces the previous nine per-weight files:
+// 89 KB total instead of 409 KB. All latin text is unchanged — these ARE Google's
+// `latin` subsets, the same ones `next/font/google` was already serving.
+//
+// Coverage note (measured, not assumed). Google's build-time delivery also pulled in
+// non-latin subsets, so nine symbol codepoints that previously rendered in Roboto now
+// fall back to system-ui: U+2190/U+2192 (arrows), U+25B4/U+25B8/U+25BE (triangles),
+// U+2713/U+2715 (check/cross), U+2248, U+2208 — about 315 occurrences, concentrated in
+// the Pro/Elite Pack content pages. They still render, just in the system font. Box
+// drawing (U+2500-257F, ~2,600 occurrences) and emoji were ALREADY falling back before
+// this change, so those are unaffected. Measured by scanning every rendered content
+// tree for non-ASCII codepoints and diffing coverage against the old production CSS.
+//
+// `weight: "100 900"` is REQUIRED, not decorative: next/font/local only emits a
+// `font-weight` descriptor when `weight` is set, so omitting it would pin every
+// weight to `normal` (400) and silently flatten all bold text.
+const inter = localFont({
+  src: "./fonts/inter-variable.woff2",
   variable: "--font-inter",
   display: "swap",
-  weight: ["400", "500", "600", "700", "800", "900"],
+  weight: "100 900",
+  fallback: ["system-ui", "sans-serif"],
 });
 
-const roboto = Roboto({
-  subsets: ["latin"],
+const roboto = localFont({
+  src: "./fonts/roboto-variable.woff2",
   variable: "--font-roboto",
   display: "swap",
-  weight: ["400", "500", "700"],
+  weight: "100 900",
+  fallback: ["system-ui", "sans-serif"],
 });
 
 export const metadata: Metadata = {
