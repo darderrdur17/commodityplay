@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getContentModulePayload, updateContentModule } from "@/lib/content/repository";
+import { incrementUserTokenVersion } from "@/lib/mobile-auth";
 import type { MentorOverride, MentorOverridesPayload } from "@/data/mentors";
 import { buildMentorOverridesPayload } from "@/data/mentors";
 
@@ -8,6 +9,155 @@ export type MentorLiveContact = {
   email: string;
   company: string | null;
 };
+
+/**
+ * Admin-facing mentor access state for a profile.
+ *
+ * - `"active"` — a linked login account currently has `isMentor: true`.
+ * - `"revoked"` — a linked account had access but it was revoked (`mentorRevokedAt` set).
+ * - `"none"` — no account is linked to this profile id.
+ */
+export type MentorAccessState = "active" | "revoked" | "none";
+
+/**
+ * Access state keyed by mentor profile id, for the admin mentor list.
+ *
+ * Deliberately does NOT filter on `isMentor: true` (unlike
+ * {@link getMentorLiveContactsByProfileId}): a revoked mentor has `isMentor: false`
+ * but must still surface as `"revoked"` rather than `"none"`. `mentorProfileId` is
+ * the durable display link and is intentionally NOT cleared on revoke, so it is the
+ * right key here.
+ */
+export async function getMentorAccessByProfileId(): Promise<Map<string, MentorAccessState>> {
+  const users = await prisma.user.findMany({
+    where: { mentorProfileId: { not: null } },
+    select: { mentorProfileId: true, isMentor: true, mentorRevokedAt: true },
+  });
+
+  const map = new Map<string, MentorAccessState>();
+  for (const user of users) {
+    if (!user.mentorProfileId) continue;
+    map.set(
+      user.mentorProfileId,
+      user.isMentor ? "active" : user.mentorRevokedAt ? "revoked" : "none"
+    );
+  }
+  return map;
+}
+
+/** Outcome of {@link grantMentorAccess} so the route can map "no account" to a 404. */
+export type GrantMentorAccessResult =
+  | { ok: true; userId: string }
+  | { ok: false; reason: "no-account" };
+
+/**
+ * Grant a mentor login account the ability to act as a mentor for `profileId`.
+ *
+ * This is the ONLY place `isMentor` is set outside the seed. It resolves the account
+ * by email *without* requiring `isMentor` — that is the whole point: an existing
+ * member account is promoted to mentor here. Grant is always a deliberate admin
+ * action, never a side effect of saving an email (a typo would otherwise hand a
+ * member access to every mentee's question).
+ *
+ * `User.mentorProfileId` is `@unique`; any *other* account still holding this profile
+ * id is cleared first so the update cannot throw on the constraint.
+ *
+ * Bumps `tokenVersion` so a promoted account's already-issued 7-day session picks up
+ * the new `isMentor` flag on its next request — the JWT refreshes `isMentor` only on
+ * sign-in or `trigger === "update"`, so without the bump a live session would not see
+ * the grant.
+ */
+export async function grantMentorAccess(
+  profileId: string,
+  email: string,
+  updatedByUserId?: string
+): Promise<GrantMentorAccessResult> {
+  void updatedByUserId;
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return { ok: false, reason: "no-account" };
+
+  const user = await prisma.user.findFirst({
+    where: { email: { equals: normalized, mode: "insensitive" } },
+    select: { id: true },
+  });
+  if (!user) return { ok: false, reason: "no-account" };
+
+  // Release the profile id from any other account first — the column is unique.
+  await prisma.user.updateMany({
+    where: { mentorProfileId: profileId, id: { not: user.id } },
+    data: { mentorProfileId: null },
+  });
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { isMentor: true, mentorProfileId: profileId, mentorRevokedAt: null },
+  });
+
+  await incrementUserTokenVersion(user.id);
+  return { ok: true, userId: user.id };
+}
+
+/**
+ * Revoke mentor access for every account linked to `profileId`.
+ *
+ * Sets `isMentor: false` and stamps `mentorRevokedAt`, then bumps `tokenVersion` so
+ * any live session is invalidated immediately (revoke is otherwise a no-op for up to
+ * 7 days). `mentorProfileId` is deliberately NOT cleared: it is a display link, no
+ * authorisation reads it, and keeping it is what makes a later restore a one-field
+ * flip. Returns whether an account was affected, for the audit trail.
+ */
+export async function revokeMentorAccess(
+  profileId: string,
+  updatedByUserId?: string
+): Promise<{ revoked: boolean }> {
+  void updatedByUserId;
+  const users = await prisma.user.findMany({
+    where: { mentorProfileId: profileId },
+    select: { id: true },
+  });
+  if (users.length === 0) return { revoked: false };
+
+  await prisma.user.updateMany({
+    where: { mentorProfileId: profileId },
+    data: { isMentor: false, mentorRevokedAt: new Date() },
+  });
+
+  for (const user of users) {
+    await incrementUserTokenVersion(user.id);
+  }
+  return { revoked: true };
+}
+
+/**
+ * Re-grant mentor access after a soft-deleted profile is restored.
+ *
+ * Only acts when the linked account was actually revoked (`mentorRevokedAt` set) —
+ * restoring a profile that never had a login, or whose access was never revoked,
+ * must not silently create mentor access. Re-runs {@link linkMentorUserByEmail} so
+ * the display link is fresh, and bumps `tokenVersion` so the re-granted flag takes
+ * effect on the account's next request. Returns whether access was re-granted, for
+ * the audit trail.
+ */
+export async function restoreMentorAccess(
+  profileId: string,
+  email: string | null | undefined,
+  updatedByUserId?: string
+): Promise<boolean> {
+  void updatedByUserId;
+  const user = await prisma.user.findFirst({
+    where: { mentorProfileId: profileId },
+    select: { id: true, mentorRevokedAt: true },
+  });
+  if (!user || !user.mentorRevokedAt) return false;
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { isMentor: true, mentorRevokedAt: null },
+  });
+  await linkMentorUserByEmail(profileId, email);
+  await incrementUserTokenVersion(user.id);
+  return true;
+}
 
 /** Mentor users keyed for admin list overlay (live email/company from login accounts). */
 export async function getMentorLiveContactsByProfileId(): Promise<Map<string, MentorLiveContact>> {

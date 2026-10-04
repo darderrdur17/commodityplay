@@ -75,6 +75,11 @@ model User {
   isMentor       Boolean   @default(false)
   /// Links a mentor login account to an anonymous Mentor Connect profile id (e.g. PT-01).
   mentorProfileId String?
+  /// Set when an admin revokes a mentor's access — on profile delete, or via the
+  /// explicit "Revoke access" action. `isMentor` remains the authority; this records
+  /// *why* a mentor account is dormant so a restore can re-grant without guessing.
+  /// Null means "never revoked".
+  mentorRevokedAt DateTime?
 
   // Stripe billing
   stripeCustomerId       String?   @unique
