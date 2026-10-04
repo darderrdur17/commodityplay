@@ -11,6 +11,18 @@ export const metadata = { title: "Mentor Inbox" };
 
 export const dynamic = "force-dynamic";
 
+/**
+ * How much *answered* history the inbox loads, in months.
+ *
+ * The client renders the request list, the month-archive sidebar and the stat
+ * cards from whatever this query returns, so an unbounded fetch grows with
+ * total platform volume rather than with this mentor's own workload.
+ *
+ * Unanswered questions are always loaded regardless of age — a pending question
+ * must never drop out of the inbox just because it is old.
+ */
+const MENTOR_HISTORY_MONTHS = 12;
+
 export default async function MentorInboxPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/mentor-connect/inbox");
@@ -35,8 +47,15 @@ export default async function MentorInboxPage() {
   const rewardRungs = normalizeMentorConnectPayload(mentorConnectCms ?? {}).rewardLadder.rungs;
   const rewardProgress = computeMentorRewardProgress(answeredCount, rewardRungs);
 
+  const answeredSince = new Date();
+  answeredSince.setMonth(answeredSince.getMonth() - MENTOR_HISTORY_MONTHS);
+
   const questions = await prisma.mentorQuestion.findMany({
-    where: { userId: { not: mentorUser.id } },
+    where: {
+      userId: { not: mentorUser.id },
+      // Everything pending (any age) plus the recent answered history.
+      OR: [{ createdAt: { gte: answeredSince } }, { isAnswered: false }],
+    },
     orderBy: [{ isAnswered: "asc" }, { createdAt: "desc" }],
     include: {
       user: {

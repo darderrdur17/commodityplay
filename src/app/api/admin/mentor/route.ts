@@ -28,6 +28,10 @@ export async function GET(req: NextRequest) {
   const questions = await prisma.mentorQuestion.findMany({
     where,
     orderBy: { createdAt: "desc" },
+    // Safety cap. The response is a bare array consumed directly by the admin
+    // client, so the shape must not change; this only bounds the pathological
+    // case of loading the entire question table into the admin panel.
+    take: 500,
     include: {
       user: { select: { name: true, email: true, tier: true } },
     },

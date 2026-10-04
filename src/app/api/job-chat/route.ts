@@ -103,6 +103,9 @@ export async function GET(req: NextRequest) {
   const threads = await prisma.jobChatThread.findMany({
     where: { userId: session.user.id },
     orderBy: { updatedAt: "desc" },
+    // Safety cap. Threads are per-user and nothing derives counts from this
+    // array, so a cap cannot skew any displayed total.
+    take: 100,
   });
   return NextResponse.json({ threads: threads.map((t) => serializeThread(t, isAdmin)) });
 }
