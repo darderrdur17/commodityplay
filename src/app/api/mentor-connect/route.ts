@@ -7,6 +7,7 @@ import { notifyMentorPoolNewQuestion } from "@/lib/mentor-questions";
 import { assertMentorCreditAvailable } from "@/lib/mentor-credits-server";
 import { apiSegmentAllowedForTrack } from "@/lib/mentor-segments";
 import { parseMemberShareOptIn } from "@/lib/mentor-share-consent";
+import { getPublishedMentorSegments } from "@/lib/content/accessors";
 
 const schema = z.object({
   segment: z.enum([
@@ -21,6 +22,9 @@ const schema = z.object({
   // Only the explicit `memberShareOptIn` spelling is accepted. The legacy
   // `isPublic` alias was removed — see `parseMemberShareOptIn`.
   memberShareOptIn: z.boolean().optional(),
+  // Anonymous Mentor Connect profile id the member addressed (e.g. "PT-01").
+  // Optional for back-compat; when present it is validated against the roster.
+  mentorId: z.string().min(1).max(64).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -66,12 +70,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: creditCheck.error }, { status: creditCheck.status });
   }
 
+  // Per-mentor targeting: the member picks a specific mentor on Mentor Connect.
+  // Validate the id against the published roster so a question can never be
+  // addressed to a mentor who does not exist (which would orphan it, since
+  // mentor inboxes filter on this column).
+  const requestedMentorId = parsed.data.mentorId?.trim();
+  let mentorProfileId: string | null = null;
+  if (requestedMentorId) {
+    const segments = await getPublishedMentorSegments();
+    const known = new Set(segments.flatMap((seg) => seg.mentors.map((m) => m.id)));
+    if (!known.has(requestedMentorId)) {
+      return NextResponse.json({ error: "Unknown mentor" }, { status: 400 });
+    }
+    mentorProfileId = requestedMentorId;
+  }
+
   const question = await prisma.mentorQuestion.create({
     data: {
       userId: session.user.id,
       segment: parsed.data.segment,
       question: parsed.data.question,
       memberShareOptIn: parseMemberShareOptIn(parsed.data),
+      mentorProfileId,
     },
   });
 

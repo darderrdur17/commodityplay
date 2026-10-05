@@ -21,7 +21,7 @@ export default async function MentorInboxPage() {
 
   const mentorUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, mentorProfileId: true },
   });
   if (!mentorUser) redirect("/login");
 
@@ -35,15 +35,20 @@ export default async function MentorInboxPage() {
   const rewardRungs = normalizeMentorConnectPayload(mentorConnectCms ?? {}).rewardLadder.rungs;
   const rewardProgress = computeMentorRewardProgress(answeredCount, rewardRungs);
 
-  const questions = await prisma.mentorQuestion.findMany({
-    where: { userId: { not: mentorUser.id } },
-    orderBy: [{ isAnswered: "asc" }, { createdAt: "desc" }],
-    include: {
-      user: {
-        select: { id: true, track: true, persona: true },
-      },
-    },
-  });
+  // Per-mentor targeting: a mentor only sees questions addressed to their
+  // anonymous profile. Questions with no recorded target (sent before this
+  // change) are hidden from mentors — admins still see them.
+  const questions = mentorUser.mentorProfileId
+    ? await prisma.mentorQuestion.findMany({
+        where: { mentorProfileId: mentorUser.mentorProfileId },
+        orderBy: [{ isAnswered: "asc" }, { createdAt: "desc" }],
+        include: {
+          user: {
+            select: { id: true, track: true, persona: true },
+          },
+        },
+      })
+    : [];
 
   const pending = questions.filter((q) => !q.isAnswered).length;
   const answered = questions.filter((q) => q.isAnswered).length;

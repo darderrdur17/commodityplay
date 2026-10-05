@@ -142,7 +142,7 @@ export function MentorConnectClient({
       const res = await fetch("/api/mentor-connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ segment, question, memberShareOptIn }),
+        body: JSON.stringify({ segment, question, memberShareOptIn, mentorId: selectedMentor.id }),
       });
       if (!res.ok) {
         const data = await res.json();

@@ -35,6 +35,7 @@ export default async function AccountPage() {
       company: true,
       profession: true,
       isMentor: true,
+      mentorProfileId: true,
       mentorCredits: true,
       resumeCredits: true,
       stripeCurrentPeriodEnd: true,
@@ -55,10 +56,14 @@ export default async function AccountPage() {
 
   let mentorStats: { total: number; answered: number; pending: number } | null = null;
   if (isMentorUser) {
-    const [total, answered] = await Promise.all([
-      prisma.mentorQuestion.count({ where: { userId: { not: user.id } } }),
-      prisma.mentorQuestion.count({ where: { userId: { not: user.id }, isAnswered: true } }),
-    ]);
+    // Per-mentor targeting: only questions addressed to this mentor's profile.
+    const mentorProfileId = user.mentorProfileId;
+    const [total, answered] = mentorProfileId
+      ? await Promise.all([
+          prisma.mentorQuestion.count({ where: { mentorProfileId } }),
+          prisma.mentorQuestion.count({ where: { mentorProfileId, isAnswered: true } }),
+        ])
+      : [0, 0];
     mentorStats = { total, answered, pending: total - answered };
   }
 

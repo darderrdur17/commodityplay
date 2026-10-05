@@ -198,10 +198,15 @@ model MentorQuestion {
   answeredByEmail      String?
   mentorReminderSentAt DateTime?
   menteeNotifiedAt     DateTime?
+  /// Anonymous Mentor Connect profile id the member addressed (e.g. "PT-01").
+  /// Mentor inboxes filter on this. Null means the question predates per-mentor
+  /// targeting and is therefore hidden from mentors (admins still see it).
+  mentorProfileId String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([mentorProfileId])
   @@index([isAnswered, createdAt])
 }
 

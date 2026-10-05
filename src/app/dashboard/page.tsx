@@ -53,12 +53,15 @@ export default async function DashboardPage({
   } | null = null;
 
   if (isMentorUser) {
-    // Mirrors the query used in mentor-connect/inbox/page.tsx: all member
-    // questions not asked by the mentor themselves.
-    const [totalRequests, answered] = await Promise.all([
-      prisma.mentorQuestion.count({ where: { userId: { not: user.id } } }),
-      prisma.mentorQuestion.count({ where: { userId: { not: user.id }, isAnswered: true } }),
-    ]);
+    // Per-mentor targeting: only questions addressed to this mentor's anonymous
+    // profile. Unaddressed (pre-change) questions are hidden from mentors.
+    const mentorProfileId = user.mentorProfileId;
+    const [totalRequests, answered] = mentorProfileId
+      ? await Promise.all([
+          prisma.mentorQuestion.count({ where: { mentorProfileId } }),
+          prisma.mentorQuestion.count({ where: { mentorProfileId, isAnswered: true } }),
+        ])
+      : [0, 0];
     mentorStats = {
       dateJoined: user.createdAt.toISOString(),
       totalRequests,

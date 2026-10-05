@@ -328,6 +328,15 @@ DO $$ BEGIN
 EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
 
+-- 1c. MentorQuestion.mentorProfileId — the anonymous Mentor Connect profile the
+--     member addressed (e.g. "PT-01"). Mentor inboxes filter on this column.
+--     Null means the question predates per-mentor targeting, so it is hidden
+--     from mentors (admins still see it). CORE, not CMS, for the same reason as 1b.
+DO $$ BEGIN
+  ALTER TABLE "MentorQuestion" ADD COLUMN IF NOT EXISTS "mentorProfileId" TEXT;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+
 -- 2. MentorQuestion.memberShareOptIn — member consent for desk-channel publication.
 --    This field was historically mapped onto a column literally named "isPublic".
 --    If the legacy column is still present we RENAME it, which preserves consent
