@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Inbox, Clock, CheckCircle, Send, User, Filter, Eye, EyeOff, Archive,
 } from "lucide-react";
@@ -35,6 +36,19 @@ interface MentorRequest {
   member: MemberInfo;
 }
 
+/** A mentor profile an admin can preview. */
+interface MentorPreviewOption {
+  mentorProfileId: string;
+  name: string;
+  email: string;
+}
+
+/** Present only when an admin is previewing another mentor's inbox. */
+interface PreviewState {
+  mentors: MentorPreviewOption[];
+  selectedMentorProfileId: string | null;
+}
+
 interface Props {
   mentorName: string;
   rewardProgress: MentorRewardProgress;
@@ -47,6 +61,12 @@ interface Props {
    * tells the truth instead of silently reporting the page size.
    */
   allTimeTotal: number;
+  /**
+   * Admin-only preview of another mentor's inbox. When set, the whole view is
+   * rendered read-only: the answer form is disabled so an admin can never submit
+   * an answer as the mentor they are previewing.
+   */
+  preview?: PreviewState | null;
 }
 
 const ALL_TIME_KEY = "all";
@@ -64,6 +84,8 @@ interface RequestDetailPanelProps {
   error: string;
   successMsg: string;
   selectedId: string | null;
+  /** Admin preview — renders the real form but disables every control. */
+  readOnly: boolean;
   onAnswerChange: (value: string) => void;
   onMentorShareOptInChange: (value: boolean) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -77,6 +99,7 @@ function RequestDetailPanel({
   error,
   successMsg,
   selectedId,
+  readOnly,
   onAnswerChange,
   onMentorShareOptInChange,
   onSubmit,
@@ -159,11 +182,18 @@ function RequestDetailPanel({
           <p className="text-xs font-bold uppercase tracking-widest text-muted-fg mb-2 flex items-center gap-1.5">
             <Send className="w-3.5 h-3.5" /> Write your response
           </p>
+          {readOnly && (
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+              Preview only — this is the form a mentor would use. Sending is disabled, so nothing can
+              be submitted from here.
+            </p>
+          )}
           <textarea
             value={answer}
             onChange={(e) => onAnswerChange(e.target.value)}
+            disabled={readOnly}
             placeholder="Give a direct, practitioner answer — specific enough that they can act on it this week."
-            className="w-full h-36 px-3 py-2.5 rounded-lg border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-400 mb-3"
+            className="w-full h-36 px-3 py-2.5 rounded-lg border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-400 mb-3 disabled:bg-secondary/60 disabled:text-gray-500"
           />
           <p className={`text-xs mb-3 ${answer.length >= 10 ? "text-green-600" : "text-muted-fg"}`}>
             {answer.length}/2000 characters
@@ -173,6 +203,7 @@ function RequestDetailPanel({
               type="checkbox"
               checked={mentorShareOptIn}
               onChange={(e) => onMentorShareOptInChange(e.target.checked)}
+              disabled={readOnly}
               className="rounded accent-primary-400 mt-0.5"
             />
             <span className="text-sm text-gray-700">
@@ -197,7 +228,7 @@ function RequestDetailPanel({
               {successMsg}
             </p>
           )}
-          <Button type="submit" loading={submitting} disabled={answer.length < 10 || selectedId !== req.id}>
+          <Button type="submit" loading={submitting} disabled={answer.length < 10 || selectedId !== req.id || readOnly}>
             <Send className="w-4 h-4" /> Send answer to member
           </Button>
         </form>
@@ -206,7 +237,15 @@ function RequestDetailPanel({
   );
 }
 
-export function MentorInboxClient({ mentorName, rewardProgress, initialRequests, allTimeTotal }: Props) {
+export function MentorInboxClient({
+  mentorName,
+  rewardProgress,
+  initialRequests,
+  allTimeTotal,
+  preview = null,
+}: Props) {
+  const router = useRouter();
+  const readOnly = preview !== null;
   const [requests, setRequests] = useState(initialRequests);
   const [filter, setFilter] = useState<FilterTab>("pending");
   const [selectedMonth, setSelectedMonth] = useState<string>(ALL_TIME_KEY);
@@ -274,7 +313,9 @@ export function MentorInboxClient({ mentorName, rewardProgress, initialRequests,
 
   async function handleAnswer(e: React.FormEvent) {
     e.preventDefault();
-    if (!selected || answer.length < 10) return;
+    // Belt-and-braces: every control is disabled in preview, but an admin must
+    // never be able to submit an answer as the mentor they are previewing.
+    if (readOnly || !selected || answer.length < 10) return;
     setSubmitting(true);
     setError("");
     setSuccessMsg("");
@@ -339,6 +380,48 @@ export function MentorInboxClient({ mentorName, rewardProgress, initialRequests,
 
   return (
     <div className="page-container py-8 sm:py-10">
+      {preview && (
+        <section
+          aria-label="Mentor inbox preview"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        >
+          <div className="flex items-start gap-2.5">
+            <Eye className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-900">Admin preview — read only</p>
+              <p className="text-xs text-amber-800 mt-0.5">
+                This is {mentorName}&rsquo;s real inbox. Answers cannot be sent from here.
+              </p>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800">
+              Mentor
+            </span>
+            <select
+              value={preview.selectedMentorProfileId ?? ""}
+              onChange={(e) =>
+                router.push(
+                  `/mentor-connect/inbox?previewAs=mentor&mentorId=${encodeURIComponent(e.target.value)}`
+                )
+              }
+              disabled={preview.mentors.length === 0}
+              className="px-3 py-2 rounded-lg border border-amber-200 bg-white text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-60"
+            >
+              {preview.mentors.length === 0 ? (
+                <option value="">No mentor profiles yet</option>
+              ) : (
+                preview.mentors.map((option) => (
+                  <option key={option.mentorProfileId} value={option.mentorProfileId}>
+                    {option.mentorProfileId} — {option.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+        </section>
+      )}
+
       <section className="rounded-2xl bg-primary-800 px-6 sm:px-8 py-10 sm:py-12 mb-8 relative overflow-hidden">
         <div
           className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-10"
@@ -534,6 +617,7 @@ export function MentorInboxClient({ mentorName, rewardProgress, initialRequests,
                       error={error}
                       successMsg={successMsg}
                       selectedId={selectedId}
+                      readOnly={readOnly}
                       onAnswerChange={setAnswer}
                       onMentorShareOptInChange={setMentorShareOptIn}
                       onSubmit={handleAnswer}

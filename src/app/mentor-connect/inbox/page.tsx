@@ -2,7 +2,8 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isMentorAccount, memberDisplayId } from "@/lib/mentor-demo";
-import { mentorInboxWhere } from "@/lib/mentor-inbox-scope";
+import { listMentorPreviewOptions, mentorInboxWhere } from "@/lib/mentor-inbox-scope";
+import { isAdminEmail } from "@/lib/admin-access";
 import { MentorInboxClient } from "./mentor-inbox-client";
 import { computeMentorRewardProgress } from "@/lib/mentor-reward-ladder";
 import { normalizeMentorConnectPayload } from "@/lib/content/mentor-connect-schema";
@@ -26,33 +27,59 @@ export const dynamic = "force-dynamic";
  */
 const MENTOR_INBOX_MAX_ROWS = 500;
 
-export default async function MentorInboxPage() {
+/** Whose inbox is being rendered — the signed-in mentor, or a previewed one. */
+interface InboxSubject {
+  name: string | null;
+  email: string | null;
+  mentorProfileId: string | null;
+}
+
+export default async function MentorInboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ previewAs?: string; mentorId?: string }>;
+}) {
+  const { previewAs, mentorId } = await searchParams;
+
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/mentor-connect/inbox");
 
-  if (!isMentorAccount(session.user)) {
+  const viewer = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, name: true, email: true, mentorProfileId: true, isMentor: true },
+  });
+  if (!viewer) redirect("/login");
+
+  // Admin-only preview of another mentor's inbox. Authority is the DB email
+  // allowlist — `User.role` is writable data, not authority (see admin-access).
+  const previewMode = isAdminEmail(viewer.email) && previewAs === "mentor";
+
+  if (!previewMode && !isMentorAccount(viewer)) {
     redirect("/mentor-connect");
   }
 
-  const mentorUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, name: true, email: true, mentorProfileId: true },
-  });
-  if (!mentorUser) redirect("/login");
+  // In preview the subject is another mentor; otherwise the viewer themselves.
+  const mentorOptions = previewMode ? await listMentorPreviewOptions() : [];
+  const subject: InboxSubject | null = previewMode
+    ? mentorOptions.find((option) => option.mentorProfileId === mentorId) ?? mentorOptions[0] ?? null
+    : viewer;
 
-  const answeredCount = await prisma.mentorQuestion.count({
-    where: {
-      isAnswered: true,
-      answeredByEmail: { equals: mentorUser.email, mode: "insensitive" },
-    },
-  });
+  const answeredCount = subject?.email
+    ? await prisma.mentorQuestion.count({
+        where: {
+          isAnswered: true,
+          answeredByEmail: { equals: subject.email, mode: "insensitive" },
+        },
+      })
+    : 0;
+
   const mentorConnectCms = await tryReadPublishedPayload("mentor-connect");
   const rewardRungs = normalizeMentorConnectPayload(mentorConnectCms ?? {}).rewardLadder.rungs;
   const rewardProgress = computeMentorRewardProgress(answeredCount, rewardRungs);
 
   // Questions addressed to this mentor's anonymous profile, plus anything they
   // answered before per-mentor targeting existed — see `mentorInboxWhere`.
-  const inboxWhere = mentorInboxWhere(mentorUser);
+  const inboxWhere = mentorInboxWhere(subject ?? {});
 
   const questions = await prisma.mentorQuestion.findMany({
     where: inboxWhere,
@@ -74,9 +101,17 @@ export default async function MentorInboxPage() {
 
   return (
     <MentorInboxClient
-      mentorName={mentorUser.name ?? "Mentor"}
+      mentorName={subject?.name ?? "Mentor"}
       rewardProgress={rewardProgress}
       allTimeTotal={allTimeTotal}
+      preview={
+        previewMode
+          ? {
+              mentors: mentorOptions,
+              selectedMentorProfileId: subject?.mentorProfileId ?? null,
+            }
+          : null
+      }
       initialRequests={questions.map((q) => ({
         id: q.id,
         segment: q.segment,

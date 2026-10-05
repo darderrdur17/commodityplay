@@ -874,8 +874,17 @@ export function AdminClient({
                 <ExternalLink className="w-3.5 h-3.5" />
                 Preview mentor view
               </Link>
+              <Link
+                href="/mentor-connect/inbox?previewAs=mentor"
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-primary-400 hover:border-primary-line transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Preview mentor inbox
+              </Link>
               <span className="text-xs text-muted-fg">
-                Opens the dashboard exactly as a mentor sees it after login (My Account · My Progress · Settings).
+                The first opens the dashboard exactly as a mentor sees it after login (My Account · My
+                Progress · Settings). The second opens a mentor&rsquo;s request inbox — pick which mentor
+                from the dropdown, and answering is disabled.
               </span>
             </div>
             {mentorSaveNotice && (

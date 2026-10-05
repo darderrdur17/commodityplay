@@ -1,4 +1,39 @@
 import type { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+
+/** A mentor profile an admin can preview. */
+export interface MentorPreviewOption {
+  mentorProfileId: string;
+  name: string;
+  email: string;
+}
+
+/**
+ * Mentor profiles an admin can preview — every account actually linked to a
+ * Mentor Connect profile.
+ *
+ * A profile with no linked account has no inbox to render, so it is excluded
+ * rather than listed as an empty option.
+ */
+export async function listMentorPreviewOptions(): Promise<MentorPreviewOption[]> {
+  const rows = await prisma.user.findMany({
+    where: { isMentor: true, mentorProfileId: { not: null } },
+    select: { name: true, email: true, mentorProfileId: true },
+    orderBy: { mentorProfileId: "asc" },
+  });
+
+  return rows.flatMap((row) =>
+    row.mentorProfileId
+      ? [
+          {
+            mentorProfileId: row.mentorProfileId,
+            name: row.name ?? row.email ?? row.mentorProfileId,
+            email: row.email ?? "",
+          },
+        ]
+      : []
+  );
+}
 
 /**
  * The questions a mentor is allowed to see in their own inbox.
