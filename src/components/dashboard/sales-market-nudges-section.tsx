@@ -336,75 +336,64 @@ export function SalesMarketNudgesSection({
 
       {statusFilter === "ACTIVE" && (
       <section
-        className="rounded-xl p-5 sm:p-6 space-y-4 bg-[#065F46]"
+        className="rounded-xl border border-border bg-white p-5 sm:p-6 space-y-4"
         aria-labelledby="weekly-nudges-heading"
       >
         <h2
           id="weekly-nudges-heading"
-          className="text-xs font-bold uppercase tracking-widest text-white/90"
+          className="text-xs font-bold uppercase tracking-widest text-[#065F46]"
         >
           ⚡ {content.weeklyHeading}
         </h2>
         <ul className="space-y-4">
           {visibleWeeklyNudges.length === 0 ? (
-            <li className="text-sm text-white/80">No {MEMBER_NUDGE_STATUS_LABELS[statusFilter].toLowerCase()} nudges.</li>
+            <li className="text-sm text-muted-fg">
+              No {MEMBER_NUDGE_STATUS_LABELS[statusFilter].toLowerCase()} nudges.
+            </li>
           ) : (
             visibleWeeklyNudges.map((nudge) => (
             <li
               key={nudge.id}
               id={marketNudgeElementId(nudge.id)}
               className={cn(
-                "flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 rounded-lg bg-white/10 px-4 py-3 scroll-mt-28",
+                "rounded-lg border border-border bg-white p-4 space-y-3 scroll-mt-28",
                 isHighlighted(marketNudgeElementId(nudge.id)) && BOOKMARK_HIGHLIGHT_RING
               )}
             >
-              <div className="flex-1 space-y-2">
-                {nudge.title.trim() !== "" && (
-                  <div className="inline-block rounded-lg bg-emerald-50 px-3 py-1.5 ring-1 ring-emerald-300">
-                    <p className="text-xs font-bold uppercase tracking-wide text-emerald-900">
-                      {nudge.title}
-                    </p>
-                  </div>
+              {nudge.title.trim() !== "" && (
+                <p className="text-sm font-semibold text-gray-900">{nudge.title}</p>
+              )}
+              <ul className="space-y-2">
+                {nudge.whyNow.trim() !== "" && (
+                  <li className="flex gap-2 text-sm leading-relaxed">
+                    <span className="font-semibold text-[#065F46] shrink-0">Now</span>
+                    <span className="text-gray-600">— {nudge.whyNow}</span>
+                  </li>
                 )}
-                <div className="rounded-lg bg-emerald-50 px-3 py-2 ring-1 ring-emerald-300">
-                  <p className="text-sm leading-relaxed text-emerald-950">
-                    <span className="font-semibold">What&apos;s now:</span> {nudge.whyNow}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-emerald-50 px-3 py-2 ring-1 ring-emerald-300">
-                  <p className="text-sm leading-relaxed text-emerald-950">
-                    <span className="font-semibold">Account action:</span> {nudge.accountAction}
-                  </p>
-                </div>
+                {nudge.accountAction.trim() !== "" && (
+                  <li className="flex gap-2 text-sm leading-relaxed">
+                    <span className="font-semibold text-[#065F46] shrink-0">Action</span>
+                    <span className="text-gray-600">— {nudge.accountAction}</span>
+                  </li>
+                )}
                 {nudge.accountNames.length > 0 && (
-                  <div className="rounded-lg bg-emerald-50 px-3 py-2 ring-1 ring-emerald-300">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-900 mb-1.5">
-                      Target account type
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {nudge.accountNames.map((name, i) => (
-                        <span
-                          key={`${name}-${i}`}
-                          className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-200"
-                        >
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                  <li className="flex gap-2 text-sm leading-relaxed">
+                    <span className="font-semibold text-[#065F46] shrink-0">Target</span>
+                    <span className="text-gray-600">— {nudge.accountNames.join(", ")}</span>
+                  </li>
                 )}
-              </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0">
-                {hasElite && (
+              </ul>
+              {hasElite && (
+                <div className="pt-1">
                   <LinkToAccountDropdown
                     sourceType="MARKET_NUDGE"
                     sourceId={nudge.id}
                     sourceTitle={getNudgeBookmarkTitle(nudge)}
-                    variant="on-green"
+                    variant="default"
                     className="shrink-0 sm:min-w-[200px]"
                   />
-                )}
-              </div>
+                </div>
+              )}
             </li>
             ))
           )}
