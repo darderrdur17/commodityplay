@@ -574,6 +574,10 @@ async function main() {
           isAnswered: sample.isAnswered,
           memberShareOptIn: sample.memberShareOptIn,
           mentorShareOptIn: sample.mentorShareOptIn,
+          // Address every sample to the demo mentor (elite.mentor@demo.com is
+          // linked to profile PT-01) so the inbox is populated under per-mentor
+          // targeting. Real questions are addressed to the mentor the member picked.
+          mentorProfileId: "PT-01",
           ...(sample.isAnswered && { answeredAt: new Date() }),
         },
       });

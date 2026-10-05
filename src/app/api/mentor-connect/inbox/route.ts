@@ -11,26 +11,30 @@ export async function GET() {
 
   const mentorUser = await prisma.user.findUnique({
     where: { email: session.user.email! },
-    select: { id: true },
+    select: { id: true, mentorProfileId: true },
   });
   if (!mentorUser) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const questions = await prisma.mentorQuestion.findMany({
-    where: { userId: { not: mentorUser.id } },
-    orderBy: [{ isAnswered: "asc" }, { createdAt: "desc" }],
-    include: {
-      user: {
-        select: {
-          id: true,
-          tier: true,
-          track: true,
-          persona: true,
+  // Per-mentor targeting: only questions addressed to this mentor's anonymous
+  // profile. Unaddressed (pre-change) questions are hidden from mentors.
+  const questions = mentorUser.mentorProfileId
+    ? await prisma.mentorQuestion.findMany({
+        where: { mentorProfileId: mentorUser.mentorProfileId },
+        orderBy: [{ isAnswered: "asc" }, { createdAt: "desc" }],
+        include: {
+          user: {
+            select: {
+              id: true,
+              tier: true,
+              track: true,
+              persona: true,
+            },
+          },
         },
-      },
-    },
-  });
+      })
+    : [];
 
   const pending = questions.filter((q) => !q.isAnswered).length;
   const answered = questions.filter((q) => q.isAnswered).length;

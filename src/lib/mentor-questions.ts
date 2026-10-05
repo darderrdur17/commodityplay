@@ -165,7 +165,11 @@ export async function notifyMentorPoolNewQuestion(questionId: string): Promise<v
   if (!question) return;
 
   const segmentLabel = MENTOR_SEGMENT_LABELS[question.segment] ?? question.segment;
-  const recipients = await mentorNotifyEmails();
+  // Targeted questions notify only the mentor they were addressed to. Legacy
+  // (unaddressed) rows keep the old behaviour and notify the whole pool.
+  const recipients = question.mentorProfileId
+    ? await mentorEmailsForProfile(question.mentorProfileId)
+    : await mentorNotifyEmails();
   for (const to of recipients) {
     await sendNewQuestionToMentorPoolEmail({
       to,
@@ -174,4 +178,13 @@ export async function notifyMentorPoolNewQuestion(questionId: string): Promise<v
       memberLabel: memberDisplayId(question.user.id),
     });
   }
+}
+
+/** Emails of the mentor account(s) linked to an anonymous Mentor Connect profile. */
+async function mentorEmailsForProfile(mentorProfileId: string): Promise<string[]> {
+  const mentors = await prisma.user.findMany({
+    where: { isMentor: true, mentorProfileId },
+    select: { email: true },
+  });
+  return mentors.map((m) => m.email).filter((e): e is string => Boolean(e));
 }
