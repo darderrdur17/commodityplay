@@ -20,7 +20,8 @@ export type ContentSlug =
   | "site-footer"
   | "member-dashboard"
   | "sales-market-nudges"
-  | "account-intelligence";
+  | "account-intelligence"
+  | "email-templates";
 
 export interface ContentModuleMeta {
   slug: ContentSlug;
@@ -149,6 +150,13 @@ export const CONTENT_MODULE_META: ContentModuleMeta[] = [
     slug: "mentors",
     title: "Mentor Profiles (Admin Overrides)",
     description: "Internal-only mentor profile overrides — headline, years, tags, track, and admin reference name. Never shown publicly.",
+    requiredTier: "STARTER",
+  },
+  {
+    slug: "email-templates",
+    title: "Email Templates",
+    description:
+      "Subject line and wording for the system-generated emails sent to members, mentors and hirers. Layout and branding stay fixed.",
     requiredTier: "STARTER",
   },
 ];

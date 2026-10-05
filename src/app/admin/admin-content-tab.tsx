@@ -27,6 +27,7 @@ import { SalesNavigationGuideEditor } from "./editors/sales-navigation-guide-edi
 import { SalesMarketNudgesEditor } from "./editors/sales-market-nudges-editor";
 import { AccountIntelligenceEditor } from "./editors/account-intelligence-editor";
 import { TrackSelectionCaptionsEditor } from "./editors/track-selection-captions-editor";
+import { EmailTemplatesEditor } from "./editors/email-templates-editor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -133,6 +134,13 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { slug: "job-openings", label: "Market Role Openings", track: "Both", tier: "ELITE" },
       { slug: "library", label: "Library Resources", track: "Both", tier: "ELITE" },
       { slug: "account-intelligence", label: "Account Intelligence", track: "Sales", tier: "ELITE" },
+    ],
+  },
+  {
+    label: "System Emails",
+    tier: "STARTER",
+    items: [
+      { slug: "email-templates", label: "Email Templates", track: "Both", tier: "STARTER" },
     ],
   },
 ];
@@ -286,6 +294,8 @@ function ModuleEditor({
         return <SalesMarketNudgesEditor {...editorProps} />;
       case "account-intelligence":
         return <AccountIntelligenceEditor payload={payload} onChange={setPayload} />;
+      case "email-templates":
+        return <EmailTemplatesEditor payload={payload} onChange={setPayload} />;
       default:
         return (
           <div className="p-6 text-center text-muted-fg text-sm">

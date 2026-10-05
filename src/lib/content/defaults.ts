@@ -35,6 +35,7 @@ import {
   STARTER_CHAPTER_PREVIEW,
 } from "@/data/starter-pack";
 import { DEFAULT_SITE_FOOTER } from "@/data/footer-content";
+import { DEFAULT_EMAIL_TEMPLATES } from "@/data/email-templates-content";
 import { DEFAULT_LIBRARY_HERO, DEFAULT_LIBRARY_FREE_SECTION, DEFAULT_LIBRARY_ELITE_SECTION } from "./library-schema";
 import type { ContentSlug } from "./modules";
 
@@ -111,6 +112,8 @@ export function getDefaultPayload(slug: ContentSlug): unknown {
       return DEFAULT_ACCOUNT_INTELLIGENCE_CONTENT;
     case "mentors":
       return { overrides: [], order: [] };
+    case "email-templates":
+      return DEFAULT_EMAIL_TEMPLATES;
     default:
       return {};
   }
@@ -138,5 +141,6 @@ export function getAllDefaultPayloads(): Record<ContentSlug, unknown> {
     "sales-market-nudges": getDefaultPayload("sales-market-nudges"),
     "account-intelligence": getDefaultPayload("account-intelligence"),
     mentors: getDefaultPayload("mentors"),
+    "email-templates": getDefaultPayload("email-templates"),
   };
 }
