@@ -119,11 +119,18 @@ export async function POST(req: NextRequest) {
         metadata: { userId, plan: tier, term, cadence, track },
         ...(isAnnual ? { trial_period_days: 60 } : {}),
       },
-      ...(isAnnual
-        ? {}
-        : discount
-          ? { discounts: [discount] }
-          : { allow_promotion_codes: true }),
+      // Promo-code entry is offered on every plan that is not already carrying an
+      // auto-applied coupon.
+      //
+      // The two are mutually exclusive by construction, not by luck: Stripe rejects
+      // `allow_promotion_codes` combined with `discounts`, and `discount` is only ever
+      // set when `couponId` resolved. `couponId` is null for the annual plan (the
+      // annual price carries its own 60-day trial instead of a coupon), so annual now
+      // falls through to `allow_promotion_codes`.
+      //
+      // Annual previously passed `{}` here, which silently left the highest-value plan
+      // with no way to enter a seasonal promotion code at all.
+      ...(discount ? { discounts: [discount] } : { allow_promotion_codes: true }),
       billing_address_collection: "required",
       customer_update: { address: "auto", name: "auto" },
       // Now for every plan, not just Elite: every plan is recurring.
