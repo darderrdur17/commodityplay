@@ -9,6 +9,7 @@ import {
 } from "@/lib/content/content-stats";
 import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
 import { isMentorAccount } from "@/lib/mentor-demo";
+import { mentorInboxWhere } from "@/lib/mentor-inbox-scope";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { DashboardClient } from "./dashboard-client";
@@ -55,15 +56,14 @@ export default async function DashboardPage({
   } | null = null;
 
   if (isMentorUser) {
-    // Per-mentor targeting: only questions addressed to this mentor's anonymous
-    // profile. Unaddressed (pre-change) questions are hidden from mentors.
-    const mentorProfileId = user.mentorProfileId;
-    const [totalRequests, answered] = mentorProfileId
-      ? await Promise.all([
-          prisma.mentorQuestion.count({ where: { mentorProfileId } }),
-          prisma.mentorQuestion.count({ where: { mentorProfileId, isAnswered: true } }),
-        ])
-      : [0, 0];
+    // Exactly the mentor inbox scope, so the card here cannot disagree with the
+    // inbox: questions addressed to this mentor, plus anything they answered
+    // before per-mentor targeting existed.
+    const inboxWhere = mentorInboxWhere(user);
+    const [totalRequests, answered] = await Promise.all([
+      prisma.mentorQuestion.count({ where: inboxWhere }),
+      prisma.mentorQuestion.count({ where: { ...inboxWhere, isAnswered: true } }),
+    ]);
     mentorStats = {
       dateJoined: user.createdAt.toISOString(),
       totalRequests,

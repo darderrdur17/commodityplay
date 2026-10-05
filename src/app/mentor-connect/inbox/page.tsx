@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isMentorAccount, memberDisplayId } from "@/lib/mentor-demo";
+import { mentorInboxWhere } from "@/lib/mentor-inbox-scope";
 import { MentorInboxClient } from "./mentor-inbox-client";
 import { computeMentorRewardProgress } from "@/lib/mentor-reward-ladder";
 import { normalizeMentorConnectPayload } from "@/lib/content/mentor-connect-schema";
@@ -49,32 +50,27 @@ export default async function MentorInboxPage() {
   const rewardRungs = normalizeMentorConnectPayload(mentorConnectCms ?? {}).rewardLadder.rungs;
   const rewardProgress = computeMentorRewardProgress(answeredCount, rewardRungs);
 
-  // Per-mentor targeting: a mentor only sees questions addressed to their
-  // anonymous profile. Questions with no recorded target (sent before this
-  // change) are hidden from mentors — admins still see them.
-  const mentorProfileId = mentorUser.mentorProfileId;
+  // Questions addressed to this mentor's anonymous profile, plus anything they
+  // answered before per-mentor targeting existed — see `mentorInboxWhere`.
+  const inboxWhere = mentorInboxWhere(mentorUser);
 
-  const questions = mentorProfileId
-    ? await prisma.mentorQuestion.findMany({
-        where: { mentorProfileId },
-        orderBy: [{ isAnswered: "asc" }, { createdAt: "desc" }],
-        take: MENTOR_INBOX_MAX_ROWS,
-        include: {
-          user: {
-            select: { id: true, track: true, persona: true },
-          },
-        },
-      })
-    : [];
+  const questions = await prisma.mentorQuestion.findMany({
+    where: inboxWhere,
+    orderBy: [{ isAnswered: "asc" }, { createdAt: "desc" }],
+    take: MENTOR_INBOX_MAX_ROWS,
+    include: {
+      user: {
+        select: { id: true, track: true, persona: true },
+      },
+    },
+  });
 
   // The all-time total is counted in the database rather than read off the
   // (now capped) array, so the archive's "All time" figure stays true even if
   // the cap is ever reached. The per-month stat cards remain derived on the
   // client, because they are scoped to the selected month rather than to all
   // time.
-  const allTimeTotal = mentorProfileId
-    ? await prisma.mentorQuestion.count({ where: { mentorProfileId } })
-    : 0;
+  const allTimeTotal = await prisma.mentorQuestion.count({ where: inboxWhere });
 
   return (
     <MentorInboxClient
