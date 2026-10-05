@@ -35,17 +35,18 @@ interface MentorRequest {
   member: MemberInfo;
 }
 
-interface InboxStats {
-  pending: number;
-  answered: number;
-  total: number;
-}
-
 interface Props {
   mentorName: string;
   rewardProgress: MentorRewardProgress;
   initialRequests: MentorRequest[];
-  initialStats: InboxStats;
+  /**
+   * The mentor's true all-time question count, counted in the database.
+   *
+   * The archive labels use this rather than `requests.length` so that if the
+   * server-side cap ever trims the loaded list, the "All time" figure still
+   * tells the truth instead of silently reporting the page size.
+   */
+  allTimeTotal: number;
 }
 
 const ALL_TIME_KEY = "all";
@@ -205,7 +206,7 @@ function RequestDetailPanel({
   );
 }
 
-export function MentorInboxClient({ mentorName, rewardProgress, initialRequests }: Props) {
+export function MentorInboxClient({ mentorName, rewardProgress, initialRequests, allTimeTotal }: Props) {
   const [requests, setRequests] = useState(initialRequests);
   const [filter, setFilter] = useState<FilterTab>("pending");
   const [selectedMonth, setSelectedMonth] = useState<string>(ALL_TIME_KEY);
@@ -397,7 +398,7 @@ export function MentorInboxClient({ mentorName, rewardProgress, initialRequests 
           onChange={(e) => setSelectedMonth(e.target.value)}
           className="w-full px-3 py-2.5 rounded-lg border border-border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-400"
         >
-          <option value={ALL_TIME_KEY}>All time ({requests.length})</option>
+          <option value={ALL_TIME_KEY}>All time ({allTimeTotal})</option>
           {monthOptions.map((m) => (
             <option key={m.key} value={m.key}>
               {m.label} ({m.count})
@@ -449,7 +450,7 @@ export function MentorInboxClient({ mentorName, rewardProgress, initialRequests 
                 }`}
               >
                 All time
-                <span className="opacity-70">{requests.length}</span>
+                <span className="opacity-70">{allTimeTotal}</span>
               </button>
               {monthOptions.map((m) => (
                 <button

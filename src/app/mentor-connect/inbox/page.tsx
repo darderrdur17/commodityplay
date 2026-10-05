@@ -11,6 +11,20 @@ export const metadata = { title: "Mentor Inbox" };
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Safety cap on the mentor's own question list.
+ *
+ * The inbox client renders its month-archive sidebar and its per-month stat
+ * cards from whatever this query returns, so the query must not grow with
+ * platform-wide volume. It is already scoped to a single mentor profile, so a
+ * few hundred rows sits far above realistic lifetime volume for one mentor —
+ * this is a guard against the pathological case, not a real bound.
+ *
+ * `orderBy` puts unanswered first, so the cap can never drop a question that
+ * still needs an answer; only the oldest *answered* history would be trimmed.
+ */
+const MENTOR_INBOX_MAX_ROWS = 500;
+
 export default async function MentorInboxPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/mentor-connect/inbox");
@@ -38,10 +52,13 @@ export default async function MentorInboxPage() {
   // Per-mentor targeting: a mentor only sees questions addressed to their
   // anonymous profile. Questions with no recorded target (sent before this
   // change) are hidden from mentors — admins still see them.
-  const questions = mentorUser.mentorProfileId
+  const mentorProfileId = mentorUser.mentorProfileId;
+
+  const questions = mentorProfileId
     ? await prisma.mentorQuestion.findMany({
-        where: { mentorProfileId: mentorUser.mentorProfileId },
+        where: { mentorProfileId },
         orderBy: [{ isAnswered: "asc" }, { createdAt: "desc" }],
+        take: MENTOR_INBOX_MAX_ROWS,
         include: {
           user: {
             select: { id: true, track: true, persona: true },
@@ -50,14 +67,20 @@ export default async function MentorInboxPage() {
       })
     : [];
 
-  const pending = questions.filter((q) => !q.isAnswered).length;
-  const answered = questions.filter((q) => q.isAnswered).length;
+  // The all-time total is counted in the database rather than read off the
+  // (now capped) array, so the archive's "All time" figure stays true even if
+  // the cap is ever reached. The per-month stat cards remain derived on the
+  // client, because they are scoped to the selected month rather than to all
+  // time.
+  const allTimeTotal = mentorProfileId
+    ? await prisma.mentorQuestion.count({ where: { mentorProfileId } })
+    : 0;
 
   return (
     <MentorInboxClient
       mentorName={mentorUser.name ?? "Mentor"}
       rewardProgress={rewardProgress}
-      initialStats={{ pending, answered, total: questions.length }}
+      allTimeTotal={allTimeTotal}
       initialRequests={questions.map((q) => ({
         id: q.id,
         segment: q.segment,
