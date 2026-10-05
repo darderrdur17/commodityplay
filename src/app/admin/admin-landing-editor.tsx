@@ -1511,7 +1511,7 @@ export function AdminLandingEditor({
             multiline
           />
         </Field>
-        <Field label="Items" hint="One per line. Public landing prefers live Starter Pack titles when available.">
+        <Field label="Fallback items" hint="One per line. Only used when the Starter Pack is empty — the public landing always prefers the live Starter Pack titles, so edits here usually have no visible effect.">
           <TextInput
             value={content.sales.starterCard.items.join("\n")}
             onChange={(v) =>
