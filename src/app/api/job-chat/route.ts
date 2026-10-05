@@ -103,6 +103,12 @@ export async function GET(req: NextRequest) {
   const threads = await prisma.jobChatThread.findMany({
     where: { userId: session.user.id },
     orderBy: { updatedAt: "desc" },
+    // Safety cap. Threads are per-member and nothing derives a count, a facet or
+    // a client-side search from this list — the live-chat panel only ever loads
+    // a single thread at a time via `?jobId=`. 100 is far above any realistic
+    // per-member volume, so this guards the pathological case rather than acting
+    // as a real bound.
+    take: 100,
   });
   return NextResponse.json({ threads: threads.map((t) => serializeThread(t, isAdmin)) });
 }
