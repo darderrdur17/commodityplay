@@ -32,6 +32,10 @@ import {
   prepareSiteFooterForSave,
   formatSiteFooterValidationErrors,
 } from "@/lib/content/footer-schema";
+import {
+  prepareEmailTemplatesForSave,
+  formatEmailTemplatesValidationErrors,
+} from "@/lib/content/email-templates-schema";
 import { z } from "zod";
 import type { Tier } from "@prisma/client";
 
@@ -234,6 +238,20 @@ export async function PUT(
         );
       }
       parsed.data.payload = footerValidation.data;
+    }
+
+    if (slug === "email-templates") {
+      const emailValidation = prepareEmailTemplatesForSave(parsed.data.payload);
+      if (!emailValidation.success) {
+        return NextResponse.json(
+          {
+            error: "Invalid email template content",
+            details: formatEmailTemplatesValidationErrors(emailValidation),
+          },
+          { status: 400 }
+        );
+      }
+      parsed.data.payload = emailValidation.data;
     }
   }
 
