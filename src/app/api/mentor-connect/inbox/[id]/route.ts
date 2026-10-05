@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isMentorAccount } from "@/lib/mentor-demo";
+import { findAnswerableMentorQuestion } from "@/lib/mentor-inbox-scope";
 import { answerMentorQuestion } from "@/lib/mentor-questions";
 
 const schema = z.object({
@@ -28,14 +29,30 @@ export async function PATCH(
 
   const mentorUser = await prisma.user.findUnique({
     where: { email: session.user.email! },
-    select: { id: true },
+    select: { id: true, email: true, mentorProfileId: true },
   });
   if (!mentorUser) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const existing = await prisma.mentorQuestion.findUnique({ where: { id } });
-  if (!existing || existing.userId === mentorUser.id) {
+  // Scoped lookup — never `findUnique({ where: { id } })`.
+  //
+  // The write must be confined to the caller's own inbox, exactly as the read
+  // is. A bare id lookup let a mentor answer a question addressed to a
+  // *different* mentor (attributed to their own email, so the write landed
+  // outside that mentor's inbox and their queue looked untouched), and let an
+  // admin write straight through the read-only inbox preview — a disabled
+  // button is not an authorization control.
+  //
+  // The scope lives in `findAnswerableMentorQuestion` so this route cannot
+  // forget it: it is the same predicate the inbox and the dashboard stat counts
+  // use, so read and write cannot disagree.
+  //
+  // Admins who legitimately need to answer a question outside any mentor's
+  // inbox — the untargeted pool — go through /api/admin/mentor/[id], which is
+  // gated on the admin allowlist and writes an audit record.
+  const existing = await findAnswerableMentorQuestion(mentorUser, id);
+  if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
