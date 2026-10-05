@@ -77,6 +77,8 @@ interface Props {
   salesDeliverables?: SalesDashboardDeliverables;
   isAdmin?: boolean;
   isMentorUser?: boolean;
+  /** Admin-only: render the mentor dashboard variant without a mentor session. */
+  mentorPreview?: boolean;
   previewTrack?: string;
   previewTier?: string;
   mentorStats?: {
@@ -163,6 +165,7 @@ export function DashboardClient({
   salesDeliverables = DEFAULT_MEMBER_DASHBOARD_CONTENT.salesDeliverables,
   isAdmin: isAdminUser = false,
   isMentorUser = false,
+  mentorPreview = false,
   previewTrack,
   previewTier,
   mentorStats = null,
@@ -177,6 +180,10 @@ export function DashboardClient({
     !isMentorUser &&
     previewTrackValue !== null &&
     previewTierValue !== null;
+
+  // Admins can preview the mentor dashboard (Mentor badge + mentor stat cards)
+  // without signing in as a mentor: /dashboard?previewAs=mentor.
+  const showMentorView = isMentorUser || (isAdminUser && mentorPreview);
 
   const effectiveTier = isPreviewActive ? previewTierValue : user.tier;
   const effectiveTrack = isPreviewActive ? previewTrackValue : user.track;
@@ -415,14 +422,16 @@ export function DashboardClient({
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <Badge
-              variant={isMentorUser ? "mentor" : isAdministrator ? "elite" : (effectiveTier.toLowerCase() as any)}
+              variant={showMentorView ? "mentor" : isAdministrator ? "elite" : (effectiveTier.toLowerCase() as any)}
               size="lg"
             >
               {isMentorUser
                 ? "Mentor"
-                : isAdministrator
-                  ? "Administrator"
-                  : `${tierInfo.label} Member${isPreviewActive ? " · Preview" : ""}`}
+                : showMentorView
+                  ? "Mentor · Preview"
+                  : isAdministrator
+                    ? "Administrator"
+                    : `${tierInfo.label} Member${isPreviewActive ? " · Preview" : ""}`}
             </Badge>
           </div>
         </div>
@@ -456,17 +465,23 @@ export function DashboardClient({
             </div>
             <div className="flex flex-wrap items-center gap-2 pl-8">
               <label className="inline-flex items-center gap-2 text-sm text-amber-950/90">
-                <span className="font-semibold whitespace-nowrap">Member view:</span>
+                <span className="font-semibold whitespace-nowrap">Preview view:</span>
                 <select
                   value={
-                    isPreviewActive
-                      ? `${previewTrackValue.toLowerCase()}:${previewTierValue.toLowerCase()}`
-                      : ""
+                    mentorPreview
+                      ? "mentor"
+                      : isPreviewActive
+                        ? `${previewTrackValue.toLowerCase()}:${previewTierValue.toLowerCase()}`
+                        : ""
                   }
                   onChange={(e) => {
                     const value = e.target.value;
                     if (!value) {
                       router.push("/dashboard");
+                      return;
+                    }
+                    if (value === "mentor") {
+                      router.push("/dashboard?previewAs=mentor");
                       return;
                     }
                     const [track, tier] = value.split(":");
@@ -475,6 +490,7 @@ export function DashboardClient({
                   className="h-9 min-w-[200px] rounded-lg border border-amber-200 bg-white px-3 text-sm text-gray-900"
                 >
                   <option value="">All tracks (admin view)</option>
+                  <option value="mentor">Mentor view</option>
                   <optgroup label="Career">
                     {MEMBER_PREVIEW_OPTIONS.filter((option) => option.track === "career").map((option) => (
                       <option key={option.label} value={`${option.track}:${option.tier}`}>
@@ -513,7 +529,7 @@ export function DashboardClient({
 
       {/* ── STAT CARDS ── */}
       <StaggerChildren className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        {(isMentorUser
+        {(showMentorView
           ? [
               {
                 label: "Date Joined",
@@ -618,7 +634,7 @@ export function DashboardClient({
         ))}
       </StaggerChildren>
 
-      {!isMentorUser && (
+      {!showMentorView && (
       <>
       {/* ── STARTER PACK DOWNLOADS ── */}
       {effectiveTier === "STARTER" && (

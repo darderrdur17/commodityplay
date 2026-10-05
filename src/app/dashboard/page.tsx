@@ -20,15 +20,17 @@ export const metadata = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ previewTrack?: string; previewTier?: string }>;
+  searchParams: Promise<{ previewTrack?: string; previewTier?: string; previewAs?: string }>;
 }) {
-  const { previewTrack, previewTier } = await searchParams;
+  const { previewTrack, previewTier, previewAs } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login?callbackUrl=/dashboard");
   }
 
   const isAdmin = session.user.role === "ADMIN";
+  // Admin-only: preview the mentor dashboard variant without a mentor session.
+  const mentorPreview = isAdmin && previewAs === "mentor";
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -117,6 +119,7 @@ export default async function DashboardPage({
       salesDeliverables={dashboardContent.salesDeliverables}
       isAdmin={isAdmin}
       isMentorUser={isMentorUser}
+      mentorPreview={mentorPreview}
       previewTrack={isAdmin ? previewTrack : undefined}
       previewTier={isAdmin ? previewTier : undefined}
       mentorStats={mentorStats}

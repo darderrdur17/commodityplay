@@ -866,6 +866,18 @@ export function AdminClient({
               Name, email, and company stay admin-only (never shown publicly). New applications stay hidden until you click{" "}
               <strong className="text-gray-800">Publish to Mentor Connect</strong>.
             </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/dashboard?previewAs=mentor"
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-primary-400 hover:border-primary-line transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Preview mentor view
+              </Link>
+              <span className="text-xs text-muted-fg">
+                Opens the dashboard exactly as a mentor sees it after login (My Account · My Progress · Settings).
+              </span>
+            </div>
             {mentorSaveNotice && (
               <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900 flex items-start gap-2.5">
                 <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />

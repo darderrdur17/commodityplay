@@ -308,7 +308,7 @@ export function SalesMarketNudgesEditor({
                   onChange={(e) => updateNudge(i, { title: e.target.value })}
                 />
               </EditorField>
-              <EditorField label="What's now">
+              <EditorField label="Now">
                 <textarea
                   className={textareaClass}
                   rows={2}
@@ -326,7 +326,7 @@ export function SalesMarketNudgesEditor({
                   onChange={(e) => updateNudge(i, { accountAction: e.target.value })}
                 />
               </EditorField>
-              <EditorField label="Target account type (comma-separated)">
+              <EditorField label="Target">
                 <input
                   className={inputClass}
                   value={nudge.accountNames.join(", ")}
