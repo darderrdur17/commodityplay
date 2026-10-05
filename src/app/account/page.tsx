@@ -12,6 +12,7 @@ import { isCheckoutConfigured } from "@/lib/payments";
 import { getMentorCreditUsageForUser } from "@/lib/mentor-credits-server";
 import { formatMentorCreditsUsedLabel } from "@/lib/mentor-credits";
 import { isMentorAccount } from "@/lib/mentor-demo";
+import { mentorInboxWhere } from "@/lib/mentor-inbox-scope";
 import { User, Mail, CreditCard, Sparkles, Inbox, CheckCircle, Clock } from "lucide-react";
 import { MentorAccountSettings } from "@/components/account/mentor-account-settings";
 import { MemberAccountSettings } from "@/components/account/member-account-settings";
@@ -56,14 +57,14 @@ export default async function AccountPage() {
 
   let mentorStats: { total: number; answered: number; pending: number } | null = null;
   if (isMentorUser) {
-    // Per-mentor targeting: only questions addressed to this mentor's profile.
-    const mentorProfileId = user.mentorProfileId;
-    const [total, answered] = mentorProfileId
-      ? await Promise.all([
-          prisma.mentorQuestion.count({ where: { mentorProfileId } }),
-          prisma.mentorQuestion.count({ where: { mentorProfileId, isAnswered: true } }),
-        ])
-      : [0, 0];
+    // Exactly the mentor inbox scope, so these numbers cannot disagree with it:
+    // questions addressed to this mentor, plus anything they answered before
+    // per-mentor targeting existed.
+    const inboxWhere = mentorInboxWhere(user);
+    const [total, answered] = await Promise.all([
+      prisma.mentorQuestion.count({ where: inboxWhere }),
+      prisma.mentorQuestion.count({ where: { ...inboxWhere, isAnswered: true } }),
+    ]);
     mentorStats = { total, answered, pending: total - answered };
   }
 

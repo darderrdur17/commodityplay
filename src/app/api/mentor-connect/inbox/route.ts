@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isMentorAccount, memberDisplayId } from "@/lib/mentor-demo";
+import { mentorInboxWhere } from "@/lib/mentor-inbox-scope";
 
 /**
  * How much *answered* history this endpoint returns, in months.
@@ -27,44 +28,44 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Per-mentor targeting: only questions addressed to this mentor's anonymous
-  // profile. Unaddressed (pre-change) questions are hidden from mentors.
-  const mentorProfileId = mentorUser.mentorProfileId;
+  // Questions addressed to this mentor's anonymous profile, plus anything they
+  // answered before per-mentor targeting existed — see `mentorInboxWhere`.
+  const inboxWhere = mentorInboxWhere(mentorUser);
 
   const historySince = new Date();
   historySince.setMonth(historySince.getMonth() - MENTOR_HISTORY_MONTHS);
 
-  const questions = mentorProfileId
-    ? await prisma.mentorQuestion.findMany({
-        where: {
-          mentorProfileId,
-          // Everything still unanswered (any age) plus the recent settled
-          // history. A pending question must never age out of the inbox.
-          OR: [{ createdAt: { gte: historySince } }, { isAnswered: false }],
+  const questions = await prisma.mentorQuestion.findMany({
+    where: {
+      // `AND`, not a spread: `mentorInboxWhere` already returns an `OR`, and
+      // spreading would let the window's `OR` silently overwrite it.
+      AND: [
+        inboxWhere,
+        // Everything still unanswered (any age) plus the recent settled
+        // history. A pending question must never age out of the inbox.
+        { OR: [{ createdAt: { gte: historySince } }, { isAnswered: false }] },
+      ],
+    },
+    orderBy: [{ isAnswered: "asc" }, { createdAt: "desc" }],
+    include: {
+      user: {
+        select: {
+          id: true,
+          tier: true,
+          track: true,
+          persona: true,
         },
-        orderBy: [{ isAnswered: "asc" }, { createdAt: "desc" }],
-        include: {
-          user: {
-            select: {
-              id: true,
-              tier: true,
-              track: true,
-              persona: true,
-            },
-          },
-        },
-      })
-    : [];
+      },
+    },
+  });
 
   // Counted in the database rather than derived from the (now windowed) array,
   // so the stats stay true even when the history window trims the list.
-  const [pending, answered, total] = mentorProfileId
-    ? await Promise.all([
-        prisma.mentorQuestion.count({ where: { mentorProfileId, isAnswered: false } }),
-        prisma.mentorQuestion.count({ where: { mentorProfileId, isAnswered: true } }),
-        prisma.mentorQuestion.count({ where: { mentorProfileId } }),
-      ])
-    : [0, 0, 0];
+  const [pending, answered, total] = await Promise.all([
+    prisma.mentorQuestion.count({ where: { ...inboxWhere, isAnswered: false } }),
+    prisma.mentorQuestion.count({ where: { ...inboxWhere, isAnswered: true } }),
+    prisma.mentorQuestion.count({ where: inboxWhere }),
+  ]);
 
   return NextResponse.json({
     stats: { pending, answered, total },

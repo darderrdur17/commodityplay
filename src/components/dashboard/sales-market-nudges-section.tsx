@@ -378,7 +378,9 @@ export function SalesMarketNudgesSection({
                 )}
                 {nudge.accountNames.length > 0 && (
                   <li className="flex gap-2 text-sm leading-relaxed">
-                    <span className="font-semibold text-[#065F46] shrink-0">Target</span>
+                    {/* Blue, unlike the green Now/Action labels — the account
+                        list is the part a seller acts on. */}
+                    <span className="font-semibold text-primary-600 shrink-0">Target</span>
                     <span className="text-gray-600">— {nudge.accountNames.join(", ")}</span>
                   </li>
                 )}
