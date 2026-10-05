@@ -80,3 +80,48 @@ export function mentorInboxWhere(mentor: {
 
   return { OR: arms };
 }
+
+/** The minimum a caller must know about a mentor to act on their behalf. */
+export interface MentorInboxSubject {
+  id: string;
+  email?: string | null;
+  mentorProfileId?: string | null;
+}
+
+/**
+ * Load a question **only if it sits inside this mentor's inbox** — the single
+ * sanctioned way for a write path to reach a question.
+ *
+ * `PATCH /api/mentor-connect/inbox/[id]` previously looked the row up by id
+ * alone, and that was exploitable two ways:
+ *
+ *  - a mentor could answer a question addressed to a *different* mentor. The
+ *    answer was attributed to their own email, which is not in the other
+ *    mentor's scope, so the write landed outside that mentor's inbox: the row
+ *    changed while their queue looked untouched;
+ *  - it let an admin write straight through the read-only inbox preview. A
+ *    disabled button is not an authorization control.
+ *
+ * Applying the scope at the call site fixed both, but left the invariant
+ * opt-in — the next person to add a write path could reach for `findUnique`
+ * again. Funnelling the lookup through here removes that choice: there is no
+ * unscoped lookup left to reach for.
+ *
+ * Returns `null` when the question is missing, outside the mentor's inbox, or
+ * was asked by this mentor themselves as a member.
+ */
+export async function findAnswerableMentorQuestion(
+  mentor: MentorInboxSubject,
+  questionId: string
+): Promise<{ id: string; userId: string } | null> {
+  const question = await prisma.mentorQuestion.findFirst({
+    where: { AND: [{ id: questionId }, mentorInboxWhere(mentor)] },
+    select: { id: true, userId: true },
+  });
+  if (!question) return null;
+
+  // A mentor must not answer a question they asked themselves as a member.
+  if (question.userId === mentor.id) return null;
+
+  return question;
+}
