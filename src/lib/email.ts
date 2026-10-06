@@ -8,6 +8,7 @@ import { jobChatRespondUrl } from "@/lib/job-chat";
 import type { JobChatMessage } from "@/lib/job-chat";
 import {
   DEFAULT_EMAIL_TEMPLATES,
+  type EmailCopy,
   type EmailTemplatesContent,
 } from "@/data/email-templates-content";
 import { mergeEmailTemplates } from "@/lib/content/email-templates-schema";
@@ -40,7 +41,7 @@ function appUrl() {
  * email must not fail to send because the CMS did — a member locked out of a
  * password reset is a far worse outcome than unstyled copy.
  */
-async function readEmailCopy(): Promise<EmailTemplatesContent> {
+export async function readEmailCopy(): Promise<EmailTemplatesContent> {
   try {
     const data = await tryReadPublishedPayload<Partial<EmailTemplatesContent>>("email-templates");
     return mergeEmailTemplates(data);
@@ -155,7 +156,23 @@ export type SendEmailResult =
   | { ok: false; skipped: true; reason: string }
   | { ok: false; error: string };
 
-async function sendAndLog(params: {
+/**
+ * The three parts of a rendered email, as produced by a pure builder.
+ *
+ * Splitting the *rendering* (`build*Email`, pure) from the *sending* (`send*`,
+ * which reads the CMS and talks to Resend) is what lets the admin preview and
+ * the live send share one code path: both call the same builder, one passes the
+ * saved copy and the other passes the editor's unsaved copy. A second,
+ * parallel HTML implementation for the preview would drift from the real email
+ * and give the owner false confidence — worse than no preview at all.
+ */
+export interface RenderedEmail {
+  subject: string;
+  text: string;
+  html: string;
+}
+
+export async function sendAndLog(params: {
   kind: DemoEmailKind;
   to: string | string[];
   subject: string;
@@ -210,16 +227,19 @@ export function menteeMentorConnectUrl() {
   return `${appUrl()}/mentor-connect`;
 }
 
-export async function sendMenteeAnswerEmail(params: {
-  to: string;
+export interface MenteeAnswerEmailParams {
   memberName: string | null;
   segmentLabel: string;
   question: string;
   answer: string;
-}) {
+}
+
+export function buildMenteeAnswerEmail(
+  copy: EmailCopy,
+  params: MenteeAnswerEmailParams
+): RenderedEmail {
   const name = params.memberName?.split(" ")[0] || "there";
   const link = menteeMentorConnectUrl();
-  const copy = (await readEmailCopy()).emails.mentee_answer;
   const vars = { segmentLabel: params.segmentLabel };
   const text = joinTextBlocks(
     `Hi ${name},`,
@@ -247,24 +267,36 @@ export async function sendMenteeAnswerEmail(params: {
       </div>
     `;
 
+  return { subject: renderCopyText(copy.subject, vars), text, html };
+}
+
+export async function sendMenteeAnswerEmail(params: {
+  to: string;
+  memberName: string | null;
+  segmentLabel: string;
+  question: string;
+  answer: string;
+}) {
+  const copy = (await readEmailCopy()).emails.mentee_answer;
   return sendAndLog({
     kind: "mentee_answer",
     to: params.to,
-    subject: renderCopyText(copy.subject, vars),
-    text,
-    html,
+    ...buildMenteeAnswerEmail(copy, params),
   });
 }
 
-export async function sendMentorReminderEmail(params: {
-  to: string;
+export interface MentorReminderEmailParams {
   segmentLabel: string;
   question: string;
   memberLabel: string;
   submittedAt: string;
-}) {
+}
+
+export function buildMentorReminderEmail(
+  copy: EmailCopy,
+  params: MentorReminderEmailParams
+): RenderedEmail {
   const link = mentorInboxUrl();
-  const copy = (await readEmailCopy()).emails.mentor_reminder;
   const vars = { segmentLabel: params.segmentLabel };
   const text = joinTextBlocks(
     renderCopyText(copy.intro, vars),
@@ -290,23 +322,35 @@ export async function sendMentorReminderEmail(params: {
       </div>
     `;
 
-  return sendAndLog({
-    kind: "mentor_reminder",
-    to: params.to,
-    subject: renderCopyText(copy.subject, vars),
-    text,
-    html,
-  });
+  return { subject: renderCopyText(copy.subject, vars), text, html };
 }
 
-export async function sendNewQuestionToMentorPoolEmail(params: {
+export async function sendMentorReminderEmail(params: {
   to: string;
   segmentLabel: string;
   question: string;
   memberLabel: string;
+  submittedAt: string;
 }) {
+  const copy = (await readEmailCopy()).emails.mentor_reminder;
+  return sendAndLog({
+    kind: "mentor_reminder",
+    to: params.to,
+    ...buildMentorReminderEmail(copy, params),
+  });
+}
+
+export interface NewQuestionEmailParams {
+  segmentLabel: string;
+  question: string;
+  memberLabel: string;
+}
+
+export function buildNewQuestionEmail(
+  copy: EmailCopy,
+  params: NewQuestionEmailParams
+): RenderedEmail {
   const link = mentorInboxUrl();
-  const copy = (await readEmailCopy()).emails.new_question;
   const vars = { segmentLabel: params.segmentLabel, memberLabel: params.memberLabel };
   const text = joinTextBlocks(
     renderCopyText(copy.intro, vars),
@@ -324,12 +368,20 @@ export async function sendNewQuestionToMentorPoolEmail(params: {
       </div>
     `;
 
+  return { subject: renderCopyText(copy.subject, vars), text, html };
+}
+
+export async function sendNewQuestionToMentorPoolEmail(params: {
+  to: string;
+  segmentLabel: string;
+  question: string;
+  memberLabel: string;
+}) {
+  const copy = (await readEmailCopy()).emails.new_question;
   return sendAndLog({
     kind: "new_question",
     to: params.to,
-    subject: renderCopyText(copy.subject, vars),
-    text,
-    html,
+    ...buildNewQuestionEmail(copy, params),
   });
 }
 
@@ -341,8 +393,7 @@ function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export async function sendJobChatQuestionToHirer(params: {
-  to: string;
+export interface JobChatQuestionEmailParams {
   hirerName: string | null;
   jobTitle: string;
   company: string;
@@ -350,10 +401,14 @@ export async function sendJobChatQuestionToHirer(params: {
   message: string;
   respondToken: string;
   exchangeNumber: number;
-}) {
+}
+
+export function buildJobChatQuestionEmail(
+  copy: EmailCopy,
+  params: JobChatQuestionEmailParams
+): RenderedEmail {
   const link = jobChatRespondUrl(params.respondToken);
   const greeting = params.hirerName?.split(" ")[0] || "there";
-  const copy = (await readEmailCopy()).emails.job_chat_question;
   const vars = { jobTitle: params.jobTitle, company: params.company };
   const text = joinTextBlocks(
     `Hi ${greeting},`,
@@ -377,26 +432,41 @@ export async function sendJobChatQuestionToHirer(params: {
       </div>
     `;
 
+  return { subject: renderCopyText(copy.subject, vars), text, html };
+}
+
+export async function sendJobChatQuestionToHirer(params: {
+  to: string;
+  hirerName: string | null;
+  jobTitle: string;
+  company: string;
+  candidateLabel: string;
+  message: string;
+  respondToken: string;
+  exchangeNumber: number;
+}) {
+  const copy = (await readEmailCopy()).emails.job_chat_question;
   return sendAndLog({
     kind: "job_chat_question",
     to: params.to,
-    subject: renderCopyText(copy.subject, vars),
-    text,
-    html,
+    ...buildJobChatQuestionEmail(copy, params),
   });
 }
 
-export async function sendJobChatAnswerToCandidate(params: {
-  to: string;
+export interface JobChatAnswerEmailParams {
   candidateName: string | null;
   jobTitle: string;
   company: string;
   answer: string;
   exchangeCount: number;
-}) {
+}
+
+export function buildJobChatAnswerEmail(
+  copy: EmailCopy,
+  params: JobChatAnswerEmailParams
+): RenderedEmail {
   const name = params.candidateName?.split(" ")[0] || "there";
   const link = `${appUrl()}/job-openings`;
-  const copy = (await readEmailCopy()).emails.job_chat_answer;
   const vars = {
     jobTitle: params.jobTitle,
     company: params.company,
@@ -421,35 +491,58 @@ export async function sendJobChatAnswerToCandidate(params: {
       </div>
     `;
 
+  return { subject: renderCopyText(copy.subject, vars), text, html };
+}
+
+export async function sendJobChatAnswerToCandidate(params: {
+  to: string;
+  candidateName: string | null;
+  jobTitle: string;
+  company: string;
+  answer: string;
+  exchangeCount: number;
+}) {
+  const copy = (await readEmailCopy()).emails.job_chat_answer;
   return sendAndLog({
     kind: "job_chat_answer",
     to: params.to,
-    subject: renderCopyText(copy.subject, vars),
-    text,
-    html,
+    ...buildJobChatAnswerEmail(copy, params),
   });
 }
 
-export async function sendJobInterviewOfferEmails(params: {
+export interface JobInterviewOfferEmailParams {
   candidateEmail: string;
   candidateName: string | null;
-  hirerEmail: string;
   hirerName: string | null;
   jobTitle: string;
   company: string;
   messages: JobChatMessage[];
-}) {
+}
+
+/** Both halves of the interview-offer pair, rendered together from one call. */
+export interface JobInterviewOfferEmails {
+  candidate: RenderedEmail;
+  hirer: RenderedEmail;
+}
+
+/**
+ * Builds both interview-offer emails from one parameter set.
+ *
+ * The pair shares one builder on purpose: the candidate's copy and the hirer's
+ * copy describe the same event, so the preview for either key must render
+ * through this function rather than a hand-written stand-in.
+ */
+export function buildJobInterviewOfferEmails(
+  candidateCopy: EmailCopy,
+  hirerCopy: EmailCopy,
+  params: JobInterviewOfferEmailParams
+): JobInterviewOfferEmails {
   const candidateFirst = params.candidateName?.split(" ")[0] || "there";
   const hirerFirst = params.hirerName?.split(" ")[0] || "there";
   const transcript = params.messages
     .map((m) => `${m.role === "candidate" ? "Candidate" : "Hirer"}: ${m.text}`)
     .join("\n\n");
 
-  // One CMS read serves both recipients — this sender mails the candidate and the
-  // hirer in the same call, and the copy lives under two separate keys.
-  const templates = (await readEmailCopy()).emails;
-  const candidateCopy = templates.job_interview_offer_candidate;
-  const hirerCopy = templates.job_interview_offer_hirer;
   const candidateVars = { jobTitle: params.jobTitle, company: params.company };
   const hirerVars = { jobTitle: params.jobTitle, candidateEmail: params.candidateEmail };
 
@@ -479,20 +572,40 @@ export async function sendJobInterviewOfferEmails(params: {
       </div>
     `;
 
+  return {
+    candidate: { subject: renderCopyText(candidateCopy.subject, candidateVars), text: candidateText, html: candidateHtml },
+    hirer: { subject: renderCopyText(hirerCopy.subject, hirerVars), text: hirerText, html: hirerHtml },
+  };
+}
+
+export async function sendJobInterviewOfferEmails(params: {
+  candidateEmail: string;
+  candidateName: string | null;
+  hirerEmail: string;
+  hirerName: string | null;
+  jobTitle: string;
+  company: string;
+  messages: JobChatMessage[];
+}) {
+  // One CMS read serves both recipients — this sender mails the candidate and the
+  // hirer in the same call, and the copy lives under two separate keys.
+  const templates = (await readEmailCopy()).emails;
+  const { candidate, hirer } = buildJobInterviewOfferEmails(
+    templates.job_interview_offer_candidate,
+    templates.job_interview_offer_hirer,
+    params
+  );
+
   const [candidateResult, hirerResult] = await Promise.all([
     sendAndLog({
       kind: "job_interview_offer",
       to: params.candidateEmail,
-      subject: renderCopyText(candidateCopy.subject, candidateVars),
-      text: candidateText,
-      html: candidateHtml,
+      ...candidate,
     }),
     sendAndLog({
       kind: "job_interview_offer",
       to: params.hirerEmail,
-      subject: renderCopyText(hirerCopy.subject, hirerVars),
-      text: hirerText,
-      html: hirerHtml,
+      ...hirer,
     }),
   ]);
 
@@ -517,8 +630,7 @@ function formatStripeAmount(amountCents: number, currency: string): string {
   }).format(amount);
 }
 
-export async function sendBillingReceiptEmail(params: {
-  to: string;
+export interface BillingReceiptEmailParams {
   memberName: string | null;
   invoiceNumber: string;
   amountCents: number;
@@ -528,7 +640,12 @@ export async function sendBillingReceiptEmail(params: {
   periodEnd?: Date | null;
   invoicePdfUrl?: string | null;
   hostedInvoiceUrl?: string | null;
-}) {
+}
+
+export function buildBillingReceiptEmail(
+  copy: EmailCopy,
+  params: BillingReceiptEmailParams
+): RenderedEmail {
   const name = params.memberName?.split(" ")[0] || "there";
   const amount = formatStripeAmount(params.amountCents, params.currency);
   const invoiceRef = params.invoiceNumber.startsWith("#")
@@ -539,7 +656,6 @@ export async function sendBillingReceiptEmail(params: {
       ? `\nBilling period: ${params.periodStart.toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" })} – ${params.periodEnd.toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" })}`
       : "";
   const receiptLink = params.hostedInvoiceUrl || params.invoicePdfUrl || `${appUrl()}/account`;
-  const copy = (await readEmailCopy()).emails.billing_receipt;
   const vars = {
     brandName: BRAND_NAME,
     invoiceNumber: invoiceRef,
@@ -578,11 +694,25 @@ export async function sendBillingReceiptEmail(params: {
       </div>
     `;
 
+  return { subject: renderCopyText(copy.subject, vars), text, html };
+}
+
+export async function sendBillingReceiptEmail(params: {
+  to: string;
+  memberName: string | null;
+  invoiceNumber: string;
+  amountCents: number;
+  currency: string;
+  planLabel: string;
+  periodStart?: Date | null;
+  periodEnd?: Date | null;
+  invoicePdfUrl?: string | null;
+  hostedInvoiceUrl?: string | null;
+}) {
+  const copy = (await readEmailCopy()).emails.billing_receipt;
   return sendAndLog({
     kind: "billing_receipt",
     to: params.to,
-    subject: renderCopyText(copy.subject, vars),
-    text,
-    html,
+    ...buildBillingReceiptEmail(copy, params),
   });
 }
