@@ -5,6 +5,7 @@ import {
   PLAN_TERM_ORDER,
   monthlyRateUsd,
   priceLabel,
+  termTotalUsd,
   type BillingCadence,
   type PlanTerm,
   type PlanTier,
@@ -29,7 +30,13 @@ interface PlanTermSelectorProps {
  * The rate printed underneath is the NORMALISED monthly rate for the selected term
  * (USD 16.29 for Career Pro term12), so the member sees exactly what the
  * invoice will charge — the same number monthlyRateUsd() feeds to Stripe's coupon.
- * On the 12-month term, billed-annually uses a yearly Stripe Price and a 2-month trial.
+ *
+ * On the 12-month term, billed-annually uses a yearly Stripe Price, and the two free
+ * months arrive as a 60-day trial on the subscription. That is an implementation
+ * detail of how the discount is delivered, NOT something the member is told: the
+ * owner asked us to drop the word "trial" because it implies a price rise afterwards,
+ * which is not true here. Keep the wording member-facing copy — never surface
+ * "trial" in this file again.
  */
 export function PlanTermSelector({
   track,
@@ -99,7 +106,7 @@ export function PlanTermSelector({
       )}
       <p className={cn("text-xs", tone === "dark" ? "text-white/60" : "text-muted-fg")}>
         {cadence === "annual" && value === "12"
-          ? "Billed once a year · 2-month trial"
+          ? `${priceLabel(termTotalUsd(track, tier, value))} / year · annual subscription + 2 free months`
           : `${priceLabel(monthlyRateUsd(track, tier, value))} / month · ${PLAN_TERMS[value].label}`}
       </p>
     </div>
