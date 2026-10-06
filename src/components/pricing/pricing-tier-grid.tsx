@@ -45,6 +45,18 @@ function TierCard({
   const planId = tier.name === "Pro" ? "plan-pro" : tier.name === "Elite" ? "plan-elite" : undefined;
   const isPaid = tier.name === "Pro" || tier.name === "Elite";
 
+  /**
+   * The featured card INVERTS between the two layouts — see the three return branches
+   * below. On the landing page the featured card is the LIGHT one (bg-white) and the
+   * others are dark; in the in-app grid the featured card is the DARK one (bg-primary-800).
+   *
+   * PlanTermSelector paints its own track and label from this `tone`, so deriving it from
+   * `isLanding` alone gave the LIGHT featured card the DARK palette: its unselected
+   * "12 + 2 free" label rendered `text-white/70` on white and was invisible. Verified on
+   * the live site — the label computed to rgba(255,255,255,0.7).
+   */
+  const cardIsLight = isLanding === Boolean(tier.highlight);
+
   const cardInner = (
     <>
       {tier.highlight && (
@@ -177,7 +189,7 @@ function TierCard({
               onChange={onTermChange}
               cadence={cadence}
               onCadenceChange={onCadenceChange}
-              tone={isLanding ? "dark" : "light"}
+              tone={cardIsLight ? "light" : "dark"}
             />
             <Button
               className={`w-full ${!isLanding && tier.name === "Elite" ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
