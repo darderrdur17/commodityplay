@@ -13,13 +13,29 @@ import {
  * saved payload over the bundled defaults so a partially-filled row is always safe.
  */
 
+/**
+ * Length caps for the editable copy fields.
+ *
+ * Generous caps: these are copy fields, not free-form documents. They exist to
+ * stop a paste accident from producing a 200KB email, not to police length.
+ *
+ * Exported so the editor can apply the *same* limits as `maxLength` attributes
+ * and show them to the owner. Without that, a preview would render an over-long
+ * subject happily and Save would then refuse it — a confusing dead end for a
+ * non-technical user. One constant keeps the schema and the UI from drifting.
+ */
+export const EMAIL_COPY_LIMITS = {
+  subject: 200,
+  heading: 200,
+  intro: 1200,
+  buttonLabel: 60,
+} as const;
+
 const emailCopySchema = z.object({
-  // Generous caps: these are copy fields, not free-form documents. They exist to
-  // stop a paste accident from producing a 200KB email, not to police length.
-  subject: z.string().max(200),
-  heading: z.string().max(200),
-  intro: z.string().max(1200),
-  buttonLabel: z.string().max(60),
+  subject: z.string().max(EMAIL_COPY_LIMITS.subject),
+  heading: z.string().max(EMAIL_COPY_LIMITS.heading),
+  intro: z.string().max(EMAIL_COPY_LIMITS.intro),
+  buttonLabel: z.string().max(EMAIL_COPY_LIMITS.buttonLabel),
 });
 
 export type EmailCopyInput = z.infer<typeof emailCopySchema>;

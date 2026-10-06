@@ -462,6 +462,36 @@ ok(
   SEND_ROUTE_SOURCE.includes('kind: "email_template_test"')
 );
 
+// ── Editor caps mirror the save-time schema ───────────────────────────────────
+
+// Preview renders `mergeEmailTemplates(payload)`, which does NOT apply the
+// save-time caps; Save goes through `prepareEmailTemplatesForSave`. So if the
+// editor and the schema disagreed on a limit, an over-long value would preview
+// fine and then be refused on Save — a dead end for a non-technical owner. The
+// caps must come from one constant, and the editor must use it as `maxLength`.
+const SCHEMA_SOURCE = fs.readFileSync(
+  path.join(process.cwd(), "src/lib/content/email-templates-schema.ts"),
+  "utf8"
+);
+const EDITOR_SOURCE = fs.readFileSync(
+  path.join(process.cwd(), "src/app/admin/editors/email-templates-editor.tsx"),
+  "utf8"
+);
+const CAPPED_FIELDS = ["subject", "heading", "intro", "buttonLabel"] as const;
+
+ok(
+  "the copy caps live in one exported constant used by the zod schema",
+  SCHEMA_SOURCE.includes("export const EMAIL_COPY_LIMITS") &&
+    CAPPED_FIELDS.every((field) => SCHEMA_SOURCE.includes(`EMAIL_COPY_LIMITS.${field}`))
+);
+ok(
+  "the editor applies the same caps as maxLength, so preview cannot outrun Save",
+  EDITOR_SOURCE.includes("EMAIL_COPY_LIMITS") &&
+    CAPPED_FIELDS.every((field) =>
+      EDITOR_SOURCE.includes(`maxLength={EMAIL_COPY_LIMITS.${field}}`)
+    )
+);
+
 console.log(
   failed === 0 ? "\n✅ All email-copy checks passed." : `\n❌ ${failed} check(s) failed.`
 );

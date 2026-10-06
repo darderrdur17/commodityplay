@@ -8,7 +8,7 @@ import {
   type EmailTemplateKey,
   type EmailTemplatesContent,
 } from "@/data/email-templates-content";
-import { mergeEmailTemplates } from "@/lib/content/email-templates-schema";
+import { mergeEmailTemplates, EMAIL_COPY_LIMITS } from "@/lib/content/email-templates-schema";
 import { Button } from "@/components/ui/button";
 import { EditorField, EditorSection, inputClass, textareaClass } from "./shared";
 
@@ -208,17 +208,22 @@ function CopyFields({
         </span>
       </div>
 
-      <EditorField label="Subject line">
+      <EditorField label="Subject line" hint={`Max ${EMAIL_COPY_LIMITS.subject} characters.`}>
         <input
           className={inputClass}
+          maxLength={EMAIL_COPY_LIMITS.subject}
           value={copy.subject}
           onChange={(e) => onChange({ subject: e.target.value })}
         />
       </EditorField>
 
-      <EditorField label="Heading" hint="The large title inside the email body.">
+      <EditorField
+        label="Heading"
+        hint={`The large title inside the email body. Max ${EMAIL_COPY_LIMITS.heading} characters.`}
+      >
         <input
           className={inputClass}
+          maxLength={EMAIL_COPY_LIMITS.heading}
           value={copy.heading}
           onChange={(e) => onChange({ heading: e.target.value })}
         />
@@ -226,18 +231,23 @@ function CopyFields({
 
       <EditorField
         label="Intro paragraph"
-        hint="Leave blank to remove the paragraph. Start a new paragraph with a blank line."
+        hint={`Leave blank to remove the paragraph. Start a new paragraph with a blank line. Max ${EMAIL_COPY_LIMITS.intro} characters.`}
       >
         <textarea
           className={`${textareaClass} min-h-[88px]`}
+          maxLength={EMAIL_COPY_LIMITS.intro}
           value={copy.intro}
           onChange={(e) => onChange({ intro: e.target.value })}
         />
       </EditorField>
 
-      <EditorField label="Button label" hint="Leave blank to remove the button from the email.">
+      <EditorField
+        label="Button label"
+        hint={`Leave blank to remove the button from the email. Max ${EMAIL_COPY_LIMITS.buttonLabel} characters.`}
+      >
         <input
           className={inputClass}
+          maxLength={EMAIL_COPY_LIMITS.buttonLabel}
           value={copy.buttonLabel}
           onChange={(e) => onChange({ buttonLabel: e.target.value })}
         />
