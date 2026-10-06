@@ -15,7 +15,8 @@ export type DemoEmailKind =
   | "operator_member_signup"
   | "operator_upgrade"
   | "operator_billing_lapse"
-  | "password_reset";
+  | "password_reset"
+  | "email_template_test";
 
 const DEMO_EMAIL_KIND_LABELS: Record<DemoEmailKind, string> = {
   mentee_answer: "Answer sent to member",
@@ -32,6 +33,7 @@ const DEMO_EMAIL_KIND_LABELS: Record<DemoEmailKind, string> = {
   operator_upgrade: "Pro/Elite upgrade to Frances",
   operator_billing_lapse: "Billing lapse to Frances",
   password_reset: "Password reset link",
+  email_template_test: "Test send from Email Templates",
 };
 
 export function demoEmailKindLabel(kind: string): string {
@@ -48,6 +50,17 @@ const PRIVATE_LIVE_CHAT_KINDS = new Set<DemoEmailKind>([
   "job_chat_answer",
   "job_interview_offer",
 ]);
+
+/**
+ * Kinds that must always land in the Email Log, even when delivered to a real
+ * (non-demo) address.
+ *
+ * A template test send is the one place the owner checks "is Resend actually
+ * working?" — the `delivered` flag on that row is the evidence, so the row has
+ * to be written. It is deliberately NOT added to the private set above: a test
+ * send's body is the owner's own copy and stays visible in the log.
+ */
+const ALWAYS_LOG_KINDS = new Set<DemoEmailKind>(["email_template_test"]);
 
 /** Job Live Chat bodies are private — admin log keeps metadata (+ hirer link for demo testing only). */
 function redactPrivateLiveChatLog(
@@ -83,6 +96,7 @@ export async function logDemoEmail(params: {
     isLiveChatLog ||
     !params.delivered ||
     isDemoRecipient(params.to) ||
+    ALWAYS_LOG_KINDS.has(params.kind) ||
     process.env.DEMO_EMAIL_LOG === "true";
   if (!shouldLog) return;
 

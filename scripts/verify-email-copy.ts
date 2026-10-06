@@ -32,6 +32,9 @@ import {
 } from "../src/lib/content/email-copy";
 import { CONTENT_MODULE_META, getModuleMeta } from "../src/lib/content/modules";
 import { getAllDefaultPayloads, getDefaultPayload } from "../src/lib/content/defaults";
+import { buildEmailPreview } from "../src/lib/email-preview";
+import { EMAIL_TEMPLATE_SAMPLES } from "../src/data/email-template-samples";
+import { demoEmailKindLabel } from "../src/lib/demo-email-log";
 
 let failed = 0;
 function ok(name: string, pass: boolean, detail?: string) {
@@ -305,6 +308,188 @@ ok(
 ok(
   "getAllDefaultPayloads seeds the module on a fresh database",
   Boolean(getAllDefaultPayloads()["email-templates"])
+);
+
+// ── Preview: every template renders, with no leftover placeholders ────────────
+
+const previews = {} as Record<EmailTemplateKey, { subject: string; text: string; html: string }>;
+for (const key of DECLARED_KEYS) {
+  previews[key] = buildEmailPreview(key, DEFAULT_EMAIL_TEMPLATES);
+}
+
+ok(
+  "every declared key has a sample",
+  DECLARED_KEYS.every((key) => key in EMAIL_TEMPLATE_SAMPLES),
+  DECLARED_KEYS.filter((key) => !(key in EMAIL_TEMPLATE_SAMPLES)).join(", ") || undefined
+);
+
+const emptyPreviews = DECLARED_KEYS.filter((key) => {
+  const p = previews[key];
+  return (
+    p.subject.trim().length === 0 || p.text.trim().length === 0 || p.html.trim().length === 0
+  );
+});
+ok(
+  "every rendered preview has a non-empty subject, text and html",
+  emptyPreviews.length === 0,
+  emptyPreviews.join(", ") || undefined
+);
+
+// The load-bearing preview check: a placeholder the sample does not supply, or
+// one mistyped so the renderer's regex cannot see it, survives into the output
+// as literal braces. That is silent in a real email and invisible to `tsc`.
+const leftoverBraces = DECLARED_KEYS.filter((key) => {
+  const p = previews[key];
+  return /\{\{/.test(p.subject + p.text + p.html);
+});
+ok(
+  "no rendered preview leaves a {{placeholder}} behind",
+  leftoverBraces.length === 0,
+  leftoverBraces.join(", ") || undefined
+);
+
+ok(
+  "**bold** in the default copy renders as <strong> in the preview",
+  previews.mentee_answer.html.includes("<strong>") &&
+    !previews.mentee_answer.text.includes("**")
+);
+
+// The "unsaved edits" property: the preview renders whatever copy it is handed,
+// not the last-saved copy. This is what makes "I typed a new subject, show me"
+// work — the editor passes its in-memory payload straight through.
+const editedPreview = buildEmailPreview(
+  "mentee_answer",
+  mergeEmailTemplates({ emails: { mentee_answer: { subject: "Edited — {{segmentLabel}}" } } })
+);
+ok(
+  "the preview renders the copy it is given, so unsaved edits show up",
+  editedPreview.subject === "Edited — Sample Segment" &&
+    editedPreview.subject !== previews.mentee_answer.subject
+);
+
+// ── Preview ↔ sender: one builder, two callers ────────────────────────────────
+
+/** Text of a top-level function, from its declaration to the next `export`. */
+function functionBody(source: string, name: string): string {
+  const start = source.indexOf(`function ${name}(`);
+  if (start === -1) return "";
+  const rest = source.slice(start + 1);
+  const nextExport = rest.indexOf("\nexport ");
+  return nextExport === -1 ? rest : rest.slice(0, nextExport);
+}
+
+const builderDelegations: [string, string][] = [
+  ["sendMenteeAnswerEmail", "buildMenteeAnswerEmail("],
+  ["sendMentorReminderEmail", "buildMentorReminderEmail("],
+  ["sendNewQuestionToMentorPoolEmail", "buildNewQuestionEmail("],
+  ["sendJobChatQuestionToHirer", "buildJobChatQuestionEmail("],
+  ["sendJobChatAnswerToCandidate", "buildJobChatAnswerEmail("],
+  ["sendJobInterviewOfferEmails", "buildJobInterviewOfferEmails("],
+  ["sendBillingReceiptEmail", "buildBillingReceiptEmail("],
+];
+const missingDelegation = builderDelegations.filter(
+  ([sender, builder]) => !functionBody(EMAIL_SOURCE, sender).includes(builder)
+);
+ok(
+  "each live sender delegates to its pure builder (preview and send share one path)",
+  missingDelegation.length === 0,
+  missingDelegation.map(([sender, builder]) => `${sender} → ${builder}`).join(", ") || undefined
+);
+
+// ── Email Log stays private-safe, and test sends stay visible ─────────────────
+
+const EMAILS_ROUTE_SOURCE = fs.readFileSync(
+  path.join(process.cwd(), "src/app/api/admin/emails/route.ts"),
+  "utf8"
+);
+ok(
+  "the Email Log endpoint still returns bodyText and never bodyHtml",
+  EMAILS_ROUTE_SOURCE.includes("bodyText") && !/bodyHtml\s*:/.test(EMAILS_ROUTE_SOURCE)
+);
+
+const DEMO_LOG_SOURCE = fs.readFileSync(
+  path.join(process.cwd(), "src/lib/demo-email-log.ts"),
+  "utf8"
+);
+ok(
+  "the test-send kind has a friendly label, not the raw kind string",
+  demoEmailKindLabel("email_template_test") === "Test send from Email Templates"
+);
+
+const privateSetMatch = DEMO_LOG_SOURCE.match(
+  /PRIVATE_LIVE_CHAT_KINDS = new Set<DemoEmailKind>\(\[([\s\S]*?)\]\)/
+);
+ok(
+  "a test send's body is not redacted like a Live Chat notification",
+  Boolean(privateSetMatch) && !privateSetMatch![1].includes("email_template_test")
+);
+
+const alwaysLogMatch = DEMO_LOG_SOURCE.match(
+  /ALWAYS_LOG_KINDS = new Set<DemoEmailKind>\(\[([\s\S]*?)\]\)/
+);
+ok(
+  "a test send is always written to the Email Log, even when delivered",
+  Boolean(alwaysLogMatch) && alwaysLogMatch![1].includes("email_template_test")
+);
+
+// ── Admin routes: guarded, and the send route cannot become a relay ───────────
+
+const PREVIEW_ROUTE_SOURCE = fs.readFileSync(
+  path.join(process.cwd(), "src/app/api/admin/email-preview/route.ts"),
+  "utf8"
+);
+const SEND_ROUTE_SOURCE = fs.readFileSync(
+  path.join(process.cwd(), "src/app/api/admin/email-preview/send/route.ts"),
+  "utf8"
+);
+
+ok(
+  "the preview route is guarded by assertSoleAdmin",
+  PREVIEW_ROUTE_SOURCE.includes("assertSoleAdmin")
+);
+ok(
+  "the test-send route is guarded by assertSoleAdmin",
+  SEND_ROUTE_SOURCE.includes("assertSoleAdmin")
+);
+ok(
+  "the test-send route accepts a single email address only, never an array",
+  SEND_ROUTE_SOURCE.includes("z.string()") &&
+    SEND_ROUTE_SOURCE.includes(".email()") &&
+    !/to:\s*z\.array/.test(SEND_ROUTE_SOURCE)
+);
+ok(
+  "the test-send route logs under the dedicated test-send kind",
+  SEND_ROUTE_SOURCE.includes('kind: "email_template_test"')
+);
+
+// ── Editor caps mirror the save-time schema ───────────────────────────────────
+
+// Preview renders `mergeEmailTemplates(payload)`, which does NOT apply the
+// save-time caps; Save goes through `prepareEmailTemplatesForSave`. So if the
+// editor and the schema disagreed on a limit, an over-long value would preview
+// fine and then be refused on Save — a dead end for a non-technical owner. The
+// caps must come from one constant, and the editor must use it as `maxLength`.
+const SCHEMA_SOURCE = fs.readFileSync(
+  path.join(process.cwd(), "src/lib/content/email-templates-schema.ts"),
+  "utf8"
+);
+const EDITOR_SOURCE = fs.readFileSync(
+  path.join(process.cwd(), "src/app/admin/editors/email-templates-editor.tsx"),
+  "utf8"
+);
+const CAPPED_FIELDS = ["subject", "heading", "intro", "buttonLabel"] as const;
+
+ok(
+  "the copy caps live in one exported constant used by the zod schema",
+  SCHEMA_SOURCE.includes("export const EMAIL_COPY_LIMITS") &&
+    CAPPED_FIELDS.every((field) => SCHEMA_SOURCE.includes(`EMAIL_COPY_LIMITS.${field}`))
+);
+ok(
+  "the editor applies the same caps as maxLength, so preview cannot outrun Save",
+  EDITOR_SOURCE.includes("EMAIL_COPY_LIMITS") &&
+    CAPPED_FIELDS.every((field) =>
+      EDITOR_SOURCE.includes(`maxLength={EMAIL_COPY_LIMITS.${field}}`)
+    )
 );
 
 console.log(
