@@ -254,8 +254,8 @@ export function Nav() {
                     Sign in
                   </Button>
                 </Link>
-                <Link href="/signup">
-                  <Button size="sm">Join Free</Button>
+                <Link href="/pricing">
+                  <Button size="sm">Get Started</Button>
                 </Link>
               </div>
             )}
@@ -346,8 +346,8 @@ export function Nav() {
                       Sign in
                     </Button>
                   </Link>
-                  <Link href="/signup" onClick={closeMenus}>
-                    <Button className="w-full">Join Free</Button>
+                  <Link href="/pricing" onClick={closeMenus}>
+                    <Button className="w-full">Get Started</Button>
                   </Link>
                 </div>
               )}

@@ -12,6 +12,7 @@ import { SectionCategoryLabel } from "@/components/landing/section-category-labe
 import { MembersStrip } from "@/components/landing/members-strip";
 import { MarketNoteStrip } from "@/components/landing/market-note-strip";
 import { LandingPlaceholderSection } from "@/components/landing/landing-placeholder-section";
+import { PricingCtaBand } from "@/components/landing/pricing-cta-band";
 import { cn } from "@/lib/utils";
 import {
   LANDING_HERO_TOP,
@@ -292,6 +293,9 @@ export function SalesLandingPanel({
           /pricing?track=sales. A clearly-marked placeholder stands in until the
           next real landing section lands. */}
       <LandingPlaceholderSection id="coming-soon" />
+
+      {/* Centered "choose a plan" band, mounted where pricing used to sit. */}
+      <PricingCtaBand />
 
       {/* Free Starter Pack signup */}
       <section className="py-16 sm:py-20 page-container">
