@@ -26,6 +26,7 @@ import { ChapterAccordion } from "@/components/landing/chapter-accordion";
 import { CaseStudiesSection } from "@/components/landing/case-studies-section";
 import { MarketNoteStrip } from "@/components/landing/market-note-strip";
 import { LandingPlaceholderSection } from "@/components/landing/landing-placeholder-section";
+import { PricingCtaBand } from "@/components/landing/pricing-cta-band";
 import {
   LANDING_HERO_TOP,
   LANDING_HERO_BOTTOM,
@@ -254,6 +255,9 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
               section lands. The in-page #pricing anchor and its consumers all
               point at /pricing now (see src/lib/pricing-routes.ts). */}
           <LandingPlaceholderSection id="coming-soon" />
+
+          {/* Centered "choose a plan" band, mounted where pricing used to sit. */}
+          <PricingCtaBand />
 
           {/* Testimonials */}
           <section className="py-16 sm:py-24 page-container">
