@@ -1,4 +1,5 @@
 import { TRACK_SELECTION } from "@/data/track-selection";
+import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   PLAN_BASE_USD,
   formatUsd,
@@ -301,7 +302,7 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
       "Career Navigation Guide — move across the industry with confidence",
     ],
     cta: "Get Pro",
-    href: "/?track=career#plan-pro",
+    href: CAREER_PLAN_HREF("pro"),
   },
   {
     name: "Elite",
@@ -319,7 +320,7 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
       "Market Job Openings Tracker (tailored to persona)",
     ],
     cta: "Get Elite",
-    href: "/?track=career#plan-elite",
+    href: CAREER_PLAN_HREF("elite"),
   },
 ];
 
@@ -338,7 +339,7 @@ const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
       "Weekly Sales Edge Note - highlight interesting market happenings to note from sales perspectives",
     ],
     cta: "Get Pro",
-    href: "/signup?plan=pro",
+    href: SALES_PLAN_HREF("pro"),
     featured: false,
   },
   {
@@ -354,7 +355,7 @@ const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
       "Market Role Openings - track which firms are growing and hiring (your next target accounts)",
     ],
     cta: "Get Elite",
-    href: "/signup?plan=elite",
+    href: SALES_PLAN_HREF("elite"),
     featured: true,
   },
 ];

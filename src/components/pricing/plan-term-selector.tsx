@@ -14,14 +14,26 @@ import {
 import { cn } from "@/lib/utils";
 
 interface PlanTermSelectorProps {
-  track: PlanTrack;
-  tier: PlanTier;
+  /**
+   * The track/tier the printed rate belongs to. Required only when `showRate` is
+   * not `false` — the shared toggle above the /pricing table passes `showRate={false}`
+   * and therefore omits both.
+   */
+  track?: PlanTrack;
+  tier?: PlanTier;
   value: PlanTerm;
   onChange: (term: PlanTerm) => void;
   cadence?: BillingCadence;
   onCadenceChange?: (c: BillingCadence) => void;
   /** "dark" for the translucent landing cards; "light" for white cards and /account. */
   tone?: "light" | "dark";
+  /**
+   * When `false`, render only the `Monthly | 12 + 2 free` segmented control (and
+   * the billed-monthly/annually sub-toggle) and skip the per-tier rate line. Used
+   * for the SHARED toggle above the /pricing table, where each column prints its
+   * own derived price instead.
+   */
+  showRate?: boolean;
 }
 
 /**
@@ -46,6 +58,7 @@ export function PlanTermSelector({
   cadence = "monthly",
   onCadenceChange,
   tone = "light",
+  showRate = true,
 }: PlanTermSelectorProps) {
   return (
     <div className="space-y-1.5">
@@ -104,11 +117,13 @@ export function PlanTermSelector({
           </button>
         </div>
       )}
-      <p className={cn("text-xs", tone === "dark" ? "text-white/60" : "text-muted-fg")}>
-        {cadence === "annual" && value === "12"
-          ? `${priceLabel(termTotalUsd(track, tier, value))} / year · annual subscription + 2 free months`
-          : `${priceLabel(monthlyRateUsd(track, tier, value))} / month · ${PLAN_TERMS[value].label}`}
-      </p>
+      {showRate && track && tier && (
+        <p className={cn("text-xs", tone === "dark" ? "text-white/60" : "text-muted-fg")}>
+          {cadence === "annual" && value === "12"
+            ? `${priceLabel(termTotalUsd(track, tier, value))} / year · annual subscription + 2 free months`
+            : `${priceLabel(monthlyRateUsd(track, tier, value))} / month · ${PLAN_TERMS[value].label}`}
+        </p>
+      )}
     </div>
   );
 }
