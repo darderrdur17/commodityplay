@@ -81,6 +81,14 @@ model User {
   /// Null means "never revoked".
   mentorRevokedAt DateTime?
 
+  // Consent (PR3)
+  /// Member opted in to the Email Digest / onboarding & marketing emails.
+  marketingConsent   Boolean   @default(false)
+  /// When marketing consent was last set (audit / compliance).
+  marketingConsentAt DateTime?
+  /// When the member accepted the Terms of Service + Privacy Policy.
+  termsAcceptedAt    DateTime?
+
   // Stripe billing
   stripeCustomerId       String?   @unique
   stripeSubscriptionId   String?

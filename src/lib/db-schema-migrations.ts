@@ -398,4 +398,22 @@ CREATE TABLE IF NOT EXISTS "ContactMessage" (
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "ContactMessage_pkey" PRIMARY KEY ("id")
 );
+
+-- 5. Marketing + terms consent on User (PR3). Additive, idempotent, tolerant of an
+--    empty database where "User" does not exist yet. CORE, not CMS, for the same
+--    reason as tokenVersion: ensureCoreInfrastructure() runs on every cold start /
+--    request path, so a column added here after the first deploy is created on a
+--    live database; the CMS block only runs at CMS bootstrap.
+DO $$ BEGIN
+  ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "marketingConsent" BOOLEAN NOT NULL DEFAULT false;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "marketingConsentAt" TIMESTAMP(3);
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "termsAcceptedAt" TIMESTAMP(3);
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
 `
