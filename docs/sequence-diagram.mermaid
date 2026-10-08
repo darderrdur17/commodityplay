@@ -1,0 +1,90 @@
+sequenceDiagram
+    autonumber
+    actor U as Visitor
+    participant SRV as /pricing (server page)
+    participant PC as PricingPageClient
+    participant TS as TrackSwitcher
+    participant PS as PlanTermSelector (shared)
+    participant GR as PricingTierGrid
+    participant CT as PricingComparisonTable
+    participant SC as startCheckout()
+    participant API as POST /api/stripe/checkout
+    participant REG as POST /api/auth/register
+    participant MC as POST /api/account/marketing-consent
+    participant DB as Postgres
+
+    Note over U,DB: 1) Initial load — no page reload afterwards
+    SRV->>SRV: getLandingContent() + getStarterPackContent()
+    SRV-->>PC: content, starterPackItems
+    PC->>PC: read ?track (default CAREER), ?plan, ?locked, ?cancelled
+    PC->>PC: scroll to #plan-{plan} or #pricing if present
+    PC->>TS: render(value = track)
+    PC->>PS: render(value = term, showRate = false)
+    PC->>GR: render(tiers = toLandingTiers(track), track, term, cadence)
+    PC->>CT: render(groups, columns for track)
+    Note over GR,CT: Prices derived: monthlyRateUsd / termTotalUsd / priceLabel
+
+    Note over U,CT: 2) Track switch (Career <-> Sales)
+    alt signed out (userTrack = null)
+        U->>TS: click "Sales"
+        TS->>PC: onChange("SALES")
+        PC->>PC: setTrack("SALES")
+        PC->>GR: re-render Sales tiers (Pro / Elite)
+        PC->>CT: re-render Sales columns
+    else signed in (userTrack set, R-1)
+        Note over TS: switcher PINNED to userTrack; other segment disabled + lockedNote
+        U->>TS: click other track
+        TS-->>U: no-op ("Your account is on the Career track")
+    end
+
+    Note over U,CT: 3) Term toggle (Monthly <-> 12 + 2 free)
+    U->>PS: click "12 + 2 free"
+    PS->>PC: onChange("12")
+    PC->>PC: setTerm("12")
+    PC->>GR: paid cards show USD 16.29 (Career Pro) + "Save 14%"
+    PC->>CT: header prices refresh
+
+    Note over U,API: 4) Purchase CTA -> startCheckout()
+    U->>GR: click "Get Started" (paid column)
+    GR->>PC: onPurchase(plan, term, cadence)
+    alt payments not live
+        PC->>U: open ContactModal
+    else signed out
+        PC->>U: router.push(/signup?plan=&track=&callbackUrl=/pricing?track=)
+    else signed in
+        PC->>SC: startCheckout(plan, term, cadence)
+        SC->>API: POST { plan, term, cadence }
+        API->>DB: read User.track (server-authoritative)
+        DB-->>API: track
+        API-->>SC: { url }
+        SC-->>PC: url
+        PC->>U: window.location.href = url (Stripe Checkout)
+    end
+
+    Note over U,CT: 5) Starter (Career only)
+    U->>GR: click "Join Free" (Starter column)
+    GR->>PC: onStarterModal()
+    PC->>U: open StarterPackModal
+
+    Note over U,DB: 6) Signup consent (PR3)
+    U->>PC: (via nav) /signup
+    Note over U,REG: required Terms checkbox (*) + optional marketing checkbox
+    U->>REG: POST /api/auth/register { termsAccepted:true, marketingConsent }
+    alt termsAccepted !== true
+        REG-->>U: 400 (z.literal(true) — required, R-2)
+    else valid
+        REG->>DB: INSERT User (tier STARTER, termsAcceptedAt=now, marketingConsent)
+        REG-->>U: 201 -> auto sign-in -> /onboarding
+    end
+
+    Note over U,DB: 7) Login marketing opt-in (PR3, R-4)
+    U->>PC: (via nav) /login, tick "send me marketing"
+    PC->>PC: signIn() succeeds
+    alt box ticked (opt-in only)
+        PC->>MC: POST { consent: true }  (requires session)
+        MC->>DB: UPDATE User (marketingConsent=true, marketingConsentAt=now)
+        MC->>DB: UPSERT EmailSubscriber (subscribed=true)
+        MC-->>PC: { ok: true }
+    else box unticked
+        Note over PC: no-op — never revokes existing consent
+    end
