@@ -12,6 +12,16 @@ const schema = z.object({
   password: z.string().min(8),
   plan: z.enum(["starter", "pro", "elite"]).optional().default("starter"),
   track: z.enum(["CAREER", "SALES"]).default("CAREER"),
+  /**
+   * R-2 (team-lead override): terms acceptance is REQUIRED and must literally be
+   * `true`. The web signup page is the only caller of this route (the mobile app
+   * posts to its own `/api/mobile/auth/register`), so there is no other client to
+   * protect — and accepting anything falsy here would let an account be created
+   * with no terms acceptance recorded at all, defeating the feature.
+   */
+  termsAccepted: z.literal(true),
+  /** Optional marketing opt-in. Absent means "not given" -> false. */
+  marketingConsent: z.boolean().optional().default(false),
 });
 
 /**
@@ -32,7 +42,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    const { name, password, track } = parsed.data;
+    const { name, password, track, marketingConsent } = parsed.data;
+    // `termsAccepted` is enforced by the schema (z.literal(true)); reaching this
+    // point means it was `true`, so we can record acceptance unconditionally.
     // Store the normalised form so `Foo@X.com` and `foo@x.com` are one account.
     const email = normalizeEmail(parsed.data.email);
 
@@ -55,6 +67,10 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
+    // One timestamp for the signup event; marketing consent is only stamped when
+    // it was actually given (null means "never opted in").
+    const now = new Date();
+
     const user = await prisma.user.create({
       data: {
         name,
@@ -63,6 +79,9 @@ export async function POST(req: NextRequest) {
         tier: "STARTER",
         track,
         onboardingDone: false,
+        termsAcceptedAt: now,
+        marketingConsent,
+        marketingConsentAt: marketingConsent ? now : null,
       },
       select: { id: true, email: true },
     });

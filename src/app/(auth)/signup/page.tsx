@@ -25,7 +25,11 @@ const schema = z.object({
     .regex(/[A-Z]/, "Must contain an uppercase letter")
     .regex(/[0-9]/, "Must contain a number"),
   track: z.enum(["CAREER", "SALES"], { message: "Please select a track" }),
-  gdpr: z.boolean().refine((v) => v, "Please accept the privacy policy"),
+  // REQUIRED — the register API enforces `termsAccepted === true`, so this must be
+  // ticked before the form can submit.
+  terms: z.boolean().refine((v) => v, "Please accept the Terms of Service and Privacy Policy"),
+  // OPTIONAL marketing opt-in — defaults unchecked and never blocks submission.
+  marketing: z.boolean().optional().default(false),
 });
 type FormData = z.infer<typeof schema>;
 
@@ -55,7 +59,7 @@ function SignupForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { gdpr: false, track: trackFromParam(trackParam) },
+    defaultValues: { terms: false, marketing: false, track: trackFromParam(trackParam) },
   });
 
   const password = watch("password", "");
@@ -82,6 +86,8 @@ function SignupForm() {
           password: data.password,
           plan,
           track: data.track,
+          termsAccepted: data.terms,
+          marketingConsent: data.marketing,
         }),
       });
 
@@ -296,24 +302,35 @@ function SignupForm() {
               )}
             </div>
 
-            {/* GDPR */}
+            {/* Terms — REQUIRED (blocking). The register API requires termsAccepted === true. */}
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input
                 type="checkbox"
                 className="mt-0.5 rounded border-border accent-primary-400"
-                {...register("gdpr")}
+                {...register("terms")}
               />
               <span className="text-xs text-muted-fg leading-relaxed">
-                I agree to the{" "}
-                <Link href="/privacy" className="text-primary-400 hover:underline">Privacy Policy</Link>
+                <span className="text-red-500 font-bold" aria-hidden>*</span> I agree to the{" "}
+                <Link href="/terms" className="text-primary-400 hover:underline">Terms of Service</Link>
                 {" "}and{" "}
-                <Link href="/terms" className="text-primary-400 hover:underline">Terms of Service</Link>.
-                I may receive the Email Digest and onboarding emails.
+                <Link href="/privacy" className="text-primary-400 hover:underline">Privacy Policy</Link>.
               </span>
             </label>
-            {errors.gdpr && (
-              <p className="text-xs text-red-500">{errors.gdpr.message}</p>
+            {errors.terms && (
+              <p className="text-xs text-red-500">{errors.terms.message}</p>
             )}
+
+            {/* Marketing — OPTIONAL, unchecked by default, non-blocking. */}
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-0.5 rounded border-border accent-primary-400"
+                {...register("marketing")}
+              />
+              <span className="text-xs text-muted-fg leading-relaxed">
+                Send me the Email Digest and occasional product updates. You can unsubscribe anytime.
+              </span>
+            </label>
 
             <Button
               type="submit"
