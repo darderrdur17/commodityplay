@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   ArrowRight, BookOpen, Users,
-  Star, Zap, ChevronRight,
+  Star, Zap,
   MessageSquare, FileText, Map, Target,
-  Check, X, Pencil,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,12 +25,11 @@ import { MembersStrip } from "@/components/landing/members-strip";
 import { ChapterAccordion } from "@/components/landing/chapter-accordion";
 import { CaseStudiesSection } from "@/components/landing/case-studies-section";
 import { MarketNoteStrip } from "@/components/landing/market-note-strip";
-import { PricingTierGrid } from "@/components/pricing/pricing-tier-grid";
+import { LandingPlaceholderSection } from "@/components/landing/landing-placeholder-section";
 import {
   LANDING_HERO_TOP,
   LANDING_HERO_BOTTOM,
   HERO_EYEBROW_BASE,
-  PAGE_SECTION_PY,
 } from "@/lib/layout-constants";
 import {
   type LandingContent,
@@ -38,10 +37,6 @@ import {
 } from "@/data/landing-content";
 import { CAREER_MARKET_NOTE } from "@/data/market-notes";
 import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-notes";
-import { isPaymentsLive } from "@/lib/payments";
-import { startCheckout } from "@/lib/start-checkout";
-import { CAREER_PRICING_HREF } from "@/lib/pricing-routes";
-import type { BillingCadence, PlanTerm } from "@/data/pricing-shared";
 
 type Track = "career" | "sales";
 
@@ -69,9 +64,6 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
   const [activeTrack, setActiveTrack] = useState<Track>("career");
   const [modalOpen, setModalOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
-  const [showFeatureComparison, setShowFeatureComparison] = useState(false);
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     const track = searchParams.get("track");
@@ -86,40 +78,9 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
     const timer = window.setTimeout(() => {
       const el = document.getElementById(hash);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-      if (hash === "pricing") setShowFeatureComparison(true);
     }, 350);
     return () => window.clearTimeout(timer);
   }, [activeTrack]);
-
-  /**
-   * 🔴 REVENUE FIX. This component used to render <PricingTierGrid> WITHOUT onPurchase,
-   * so pricing-tier-grid fell through to <Link href={CAREER_PLAN_HREF(...)}>
-   * = /?track=career#plan-pro — an anchor to the card the visitor had just clicked.
-   * No career-track visitor could start a checkout from the pricing section.
-   *
-   * Mirrors sales-landing-panel: payments-live gate → signup redirect → startCheckout.
-   * The track is NOT sent — the server reads User.track.
-   */
-  async function handlePurchase(plan: "pro" | "elite", term: PlanTerm, cadence: BillingCadence = "monthly") {
-    if (!isPaymentsLive()) {
-      setContactOpen(true);
-      return;
-    }
-    if (!session?.user) {
-      router.push(`/signup?plan=${plan}&track=career&callbackUrl=${encodeURIComponent(CAREER_PRICING_HREF)}`);
-      return;
-    }
-    setLoadingPlan(plan);
-    try {
-      const url = await startCheckout(plan, term, cadence);
-      if (url) window.location.href = url;
-      else router.push(CAREER_PRICING_HREF);
-    } catch {
-      router.push(CAREER_PRICING_HREF);
-    } finally {
-      setLoadingPlan(null);
-    }
-  }
 
   // getLandingContent() already merges CMS edits with repo defaults on the server.
   const career = content.career;
@@ -127,7 +88,6 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
   const whatsInside = content.whatsInside;
   const chapterCoverage = content.chapterCoverage;
   const caseStudySample = content.caseStudySample;
-  const pricing = content.pricing;
   const testimonials = content.testimonials;
   const sales = content.sales;
 
@@ -289,92 +249,11 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
 
           <CaseStudiesSection content={caseStudySample} />
 
-          {/* Pricing */}
-          <section id="pricing" className={`bg-primary-800 section-dark ${PAGE_SECTION_PY} relative overflow-hidden scroll-mt-24`}>
-            <GradientOrbs />
-            <div className="relative z-10 page-container">
-              <Reveal className="text-center mb-12 sm:mb-14">
-                <SectionCategoryLabel colorClass="text-white/50">Choose Your Plan</SectionCategoryLabel>
-                <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-bold tracking-tight text-white mb-4">
-                  {pricing.title}
-                </h2>
-                <p className="text-white/65 text-base sm:text-lg max-w-none leading-relaxed px-0">
-                  {pricing.subtitle}
-                </p>
-              </Reveal>
-              <PricingTierGrid
-                tiers={pricing.tiers}
-                variant="landing"
-                onStarterModal={() => setModalOpen(true)}
-                onPurchase={handlePurchase}
-                loadingPlan={loadingPlan}
-              />
-              <Reveal className="text-center mt-8">
-                <button
-                  type="button"
-                  onClick={() => setShowFeatureComparison((prev) => !prev)}
-                  className="inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors"
-                  aria-expanded={showFeatureComparison}
-                >
-                  View full feature comparison
-                  <ChevronRight
-                    className={cn(
-                      "w-4 h-4 transition-transform duration-200",
-                      showFeatureComparison && "rotate-90"
-                    )}
-                  />
-                </button>
-              </Reveal>
-
-              {showFeatureComparison && (
-                <Reveal className="mt-8 sm:mt-10">
-                  <div className="text-center mb-6 sm:mb-8">
-                    <h3 className="font-serif text-2xl sm:text-3xl font-bold text-white">Feature Comparison</h3>
-                    <p className="text-xs text-white/50 mt-2 sm:hidden">Swipe to compare plans →</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/15 bg-white overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-                    <div className="min-w-[560px]">
-                      <div className="grid grid-cols-4 gap-0 bg-secondary">
-                        <div className="p-4 col-span-1" />
-                        {pricing.tiers.map((tier) => (
-                          <div key={tier.name} className="p-4 text-center border-l border-border">
-                            <p className="font-semibold text-sm text-gray-900">{tier.name}</p>
-                            <p className="text-xs text-muted-fg">{tier.price === "Free" ? "Free" : `${tier.price} · ${tier.billing}`}</p>
-                          </div>
-                        ))}
-                      </div>
-                      {pricing.comparison.groups.map((group) => (
-                        <React.Fragment key={group.category}>
-                          <div className="px-4 py-2.5 border-t border-border" style={{ background: `${group.color}08` }}>
-                            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: group.color }}>
-                              {group.category}
-                            </p>
-                          </div>
-                          {group.items.map((item) => (
-                            <div
-                              key={item.name}
-                              className="grid grid-cols-4 border-t border-border hover:bg-secondary transition-colors"
-                            >
-                              <div className="p-3.5 col-span-1 text-sm text-gray-700">{item.name}</div>
-                              {(["starter", "pro", "elite"] as const).map((tierKey) => (
-                                <div key={tierKey} className="p-3.5 flex items-center justify-center border-l border-border">
-                                  {item[tierKey] ? (
-                                    <Check className="w-4 h-4 text-green-500" />
-                                  ) : (
-                                    <X className="w-4 h-4 text-gray-300" />
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          ))}
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  </div>
-                </Reveal>
-              )}
-            </div>
-          </section>
+          {/* Pricing section removed (PR1 / T02) — pricing now lives on /pricing.
+              A clearly-marked placeholder stands in until the next real landing
+              section lands. The in-page #pricing anchor and its consumers all
+              point at /pricing now (see src/lib/pricing-routes.ts). */}
+          <LandingPlaceholderSection id="coming-soon" />
 
           {/* Testimonials */}
           <section className="py-16 sm:py-24 page-container">
