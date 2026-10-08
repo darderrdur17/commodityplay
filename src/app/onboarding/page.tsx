@@ -10,6 +10,7 @@ import { GradientOrbs } from "@/components/animations";
 import { Logo } from "@/components/brand/logo";
 import { TRACK_SELECTION } from "@/data/track-selection";
 import { BRAND_NAME } from "@/lib/brand";
+import { takeSignupConsent } from "@/lib/signup-consent";
 
 export default function OnboardingPage() {
   return (
@@ -59,6 +60,27 @@ function OnboardingContent() {
           await update({ track: stored });
         } catch {
           // Continue with quiz — track saves again at finish.
+        }
+      }
+
+      // A Google signup bypasses `/api/auth/register`, which is the only other
+      // place consent is written. The signup form stashes the ticked boxes before
+      // handing off to Google; this is where they land. Best-effort on purpose:
+      // a failure here must not block onboarding, and the acceptance itself was
+      // already given (the Google button is gated on it).
+      const consent = takeSignupConsent();
+      if (consent) {
+        try {
+          await fetch("/api/account/signup-consent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              termsAccepted: consent.termsAccepted,
+              marketingConsent: consent.marketingConsent,
+            }),
+          });
+        } catch {
+          // Ignore — see above.
         }
       }
 

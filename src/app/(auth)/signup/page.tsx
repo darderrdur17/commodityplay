@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { GradientOrbs, HeroParticles } from "@/components/animations";
 import { MAIN_MIN_HEIGHT_BELOW_NAV } from "@/lib/layout-constants";
 import { useGoogleSignInAvailable } from "@/hooks/use-google-sign-in";
+import { storeSignupConsent } from "@/lib/signup-consent";
 
 const schema = z.object({
   name: z.string().min(2, "Please enter your name"),
@@ -64,6 +65,10 @@ function SignupForm() {
 
   const password = watch("password", "");
   const selectedTrack = watch("track");
+  // The Google button leaves our origin before the form is ever submitted, so
+  // these two boxes are the ONLY place its consent can come from.
+  const termsAccepted = watch("terms", false);
+  const marketingAccepted = watch("marketing", false);
 
   const passwordStrength = {
     length: password.length >= 8,
@@ -169,9 +174,16 @@ function SignupForm() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full mb-6"
+                className="w-full"
+                disabled={!termsAccepted}
                 onClick={() => {
+                  // Both consents must survive the Google round trip: the account
+                  // is created by the OAuth callback, so `/api/auth/register`
+                  // never runs and would otherwise record neither. Stashed the
+                  // same way `signupTrack` already is, and collected by the
+                  // onboarding page.
                   sessionStorage.setItem("signupTrack", selectedTrack);
+                  storeSignupConsent(marketingAccepted);
                   signIn("google", { callbackUrl: onboardingUrl });
                 }}
               >
@@ -183,6 +195,11 @@ function SignupForm() {
                 </svg>
                 Continue with Google
               </Button>
+              {!termsAccepted && (
+                <p className="text-xs text-muted-fg text-center -mt-4 mb-6">
+                  Tick the Terms of Service box below to continue with Google.
+                </p>
+              )}
               <div className="flex items-center gap-3 mb-6">
                 <div className="flex-1 h-px bg-border" />
                 <span className="text-xs text-muted-fg">or with email</span>
