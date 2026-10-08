@@ -6,23 +6,48 @@ import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/animations";
-import { PRICING_CONTENT_FOOTNOTE } from "@/data/pricing-shared";
-import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
+import {
+  PRICING_CONTENT_FOOTNOTE,
+  monthlyRateUsd,
+  priceLabel,
+  termSavingsPercent,
+} from "@/data/pricing-shared";
+import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import type { LandingTier } from "@/data/landing-content";
-import type { BillingCadence, PlanTerm } from "@/data/pricing-shared";
+import type { BillingCadence, PlanTerm, PlanTier, PlanTrack } from "@/data/pricing-shared";
 import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
 
 interface Props {
   tiers: LandingTier[];
   variant: "landing" | "page";
+  /**
+   * The track this grid renders. Drives the in-card `PlanTermSelector` and the
+   * no-`onPurchase` fallback href. Defaults to `"CAREER"` so any stray caller
+   * keeps working; `/pricing` passes the live track.
+   */
+  track?: PlanTrack;
   onStarterModal?: () => void;
   onPurchase?: (plan: "pro" | "elite", term: PlanTerm, cadence: BillingCadence) => void;
   loadingPlan?: string | null;
+  /**
+   * Controlled term/cadence. `/pricing` owns these in the shared toggle ABOVE the
+   * grid; when omitted the grid keeps its own state (the landing behaviour).
+   */
+  term?: PlanTerm;
+  cadence?: BillingCadence;
+  onTermChange?: (term: PlanTerm) => void;
+  onCadenceChange?: (cadence: BillingCadence) => void;
+  /**
+   * When `false`, each paid card hides its own term selector — the shared toggle
+   * above the table drives every column instead (design C-4).
+   */
+  showTermSelector?: boolean;
 }
 
 function TierCard({
   tier,
   variant,
+  track,
   onStarterModal,
   onPurchase,
   loadingPlan,
@@ -30,9 +55,11 @@ function TierCard({
   onTermChange,
   cadence,
   onCadenceChange,
+  showTermSelector,
 }: {
   tier: LandingTier;
   variant: "landing" | "page";
+  track: PlanTrack;
   onStarterModal?: () => void;
   onPurchase?: (plan: "pro" | "elite", term: PlanTerm, cadence: BillingCadence) => void;
   loadingPlan?: string | null;
@@ -40,10 +67,31 @@ function TierCard({
   onTermChange: (term: PlanTerm) => void;
   cadence: BillingCadence;
   onCadenceChange: (cadence: BillingCadence) => void;
+  showTermSelector: boolean;
 }) {
   const isLanding = variant === "landing";
-  const planId = tier.name === "Pro" ? "plan-pro" : tier.name === "Elite" ? "plan-elite" : undefined;
+  const planId =
+    tier.name === "Starter"
+      ? "plan-starter"
+      : tier.name === "Pro"
+        ? "plan-pro"
+        : tier.name === "Elite"
+          ? "plan-elite"
+          : undefined;
   const isPaid = tier.name === "Pro" || tier.name === "Elite";
+  const planTier: PlanTier | null =
+    tier.name === "Pro" ? "PRO" : tier.name === "Elite" ? "ELITE" : null;
+
+  /**
+   * The printed price is always DERIVED (PRD C4 — no hardcoded price strings).
+   * On the monthly term it equals the CMS `tier.price` (both come from
+   * `PLAN_BASE_USD`), so CMS-edited monthly copy is preserved; on the 12-month
+   * term it is the discounted normalised monthly rate (Career Pro -> USD 16.29).
+   */
+  const displayPrice =
+    isPaid && planTier && term === "12"
+      ? priceLabel(monthlyRateUsd(track, planTier, term))
+      : tier.price;
 
   /**
    * The featured card INVERTS between the two layouts — see the three return branches
@@ -104,7 +152,7 @@ function TierCard({
                   : "text-gray-900"
             }`}
           >
-            {tier.price}
+            {displayPrice}
           </span>
           {tier.price !== "Free" && (
             <span
@@ -119,6 +167,11 @@ function TierCard({
               }`}
             >
               {tier.billing}
+            </span>
+          )}
+          {isPaid && term === "12" && (
+            <span className="ml-2 inline-block align-middle text-[11px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 bg-green-50 text-green-700 border border-green-200">
+              Save {termSavingsPercent("12")}%
             </span>
           )}
         </div>
@@ -182,15 +235,17 @@ function TierCard({
           </Button>
         ) : isPaid && onPurchase ? (
           <div className="space-y-3">
-            <PlanTermSelector
-              track="CAREER"
-              tier={tier.name === "Elite" ? "ELITE" : "PRO"}
-              value={term}
-              onChange={onTermChange}
-              cadence={cadence}
-              onCadenceChange={onCadenceChange}
-              tone={cardIsLight ? "light" : "dark"}
-            />
+            {showTermSelector && (
+              <PlanTermSelector
+                track={track}
+                tier={tier.name === "Elite" ? "ELITE" : "PRO"}
+                value={term}
+                onChange={onTermChange}
+                cadence={cadence}
+                onCadenceChange={onCadenceChange}
+                tone={cardIsLight ? "light" : "dark"}
+              />
+            )}
             <Button
               className={`w-full ${!isLanding && tier.name === "Elite" ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
               variant={tier.highlight ? (isLanding ? "default" : "primary-dark") : "primary-dark"}
@@ -203,7 +258,14 @@ function TierCard({
             </Button>
           </div>
         ) : isPaid ? (
-          <Link href={CAREER_PLAN_HREF(tier.name.toLowerCase() as "pro" | "elite")} className="block">
+          <Link
+            href={
+              track === "SALES"
+                ? SALES_PLAN_HREF(tier.name.toLowerCase() as "pro" | "elite")
+                : CAREER_PLAN_HREF(tier.name.toLowerCase() as "pro" | "elite")
+            }
+            className="block"
+          >
             <Button
               className="w-full"
               variant={tier.highlight ? "default" : "primary-dark"}
@@ -268,48 +330,46 @@ function TierCard({
 export function PricingTierGrid({
   tiers,
   variant,
+  track = "CAREER",
   onStarterModal,
   onPurchase,
   loadingPlan,
+  term: controlledTerm,
+  cadence: controlledCadence,
+  onTermChange,
+  onCadenceChange,
+  showTermSelector = true,
 }: Props) {
   // One term for the whole grid: a member comparing Pro and Elite keeps the term they
-  // picked when they move between cards.
-  const [term, setTerm] = useState<PlanTerm>("monthly");
-  const [cadence, setCadence] = useState<BillingCadence>("monthly");
+  // picked when they move between cards. On `/pricing` the term/cadence are controlled
+  // by the shared toggle above the grid, so the internal state is the fallback only.
+  const [internalTerm, setInternalTerm] = useState<PlanTerm>("monthly");
+  const [internalCadence, setInternalCadence] = useState<BillingCadence>("monthly");
+
+  const term = controlledTerm ?? internalTerm;
+  const cadence = controlledCadence ?? internalCadence;
+  const setTerm = onTermChange ?? setInternalTerm;
+  const setCadence = onCadenceChange ?? setInternalCadence;
 
   const grid = (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-      {tiers.map((tier, i) =>
-        variant === "landing" ? (
-          <Reveal key={tier.name} delay={i * 0.1} className="h-full">
-            <TierCard
-              tier={tier}
-              variant={variant}
-              onStarterModal={onStarterModal}
-              onPurchase={onPurchase}
-              loadingPlan={loadingPlan}
-              term={term}
-              onTermChange={setTerm}
-              cadence={cadence}
-              onCadenceChange={setCadence}
-            />
-          </Reveal>
-        ) : (
-          <Reveal key={tier.name} delay={i * 0.1} className="h-full">
-            <TierCard
-              tier={tier}
-              variant={variant}
-              onStarterModal={onStarterModal}
-              onPurchase={onPurchase}
-              loadingPlan={loadingPlan}
-              term={term}
-              onTermChange={setTerm}
-              cadence={cadence}
-              onCadenceChange={setCadence}
-            />
-          </Reveal>
-        )
-      )}
+      {tiers.map((tier, i) => (
+        <Reveal key={tier.name} delay={i * 0.1} className="h-full">
+          <TierCard
+            tier={tier}
+            variant={variant}
+            track={track}
+            onStarterModal={onStarterModal}
+            onPurchase={onPurchase}
+            loadingPlan={loadingPlan}
+            term={term}
+            onTermChange={setTerm}
+            cadence={cadence}
+            onCadenceChange={setCadence}
+            showTermSelector={showTermSelector}
+          />
+        </Reveal>
+      ))}
     </div>
   );
 

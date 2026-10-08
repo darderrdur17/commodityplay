@@ -2,19 +2,16 @@
 
 import React, { useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import {
-  ArrowRight, AlertCircle, Users, TrendingUp, Check, Download, Star,
-  ChevronDown, ChevronRight, X,
+  AlertCircle, Users, TrendingUp, Check, Download, Star,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
 import { SectionCategoryLabel } from "@/components/landing/section-category-label";
 import { MembersStrip } from "@/components/landing/members-strip";
 import { MarketNoteStrip } from "@/components/landing/market-note-strip";
-import { startCheckout } from "@/lib/start-checkout";
-import { isPaymentsLive } from "@/lib/payments";
+import { LandingPlaceholderSection } from "@/components/landing/landing-placeholder-section";
 import { cn } from "@/lib/utils";
 import {
   LANDING_HERO_TOP,
@@ -24,11 +21,8 @@ import {
 } from "@/lib/layout-constants";
 import type { LandingContent, LandingTestimonials } from "@/data/landing-content";
 import { SALES_MARKET_NOTE } from "@/data/market-notes";
-import { SALES_PRICING_HREF } from "@/lib/pricing-routes";
 import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-notes";
 import { SALES_HERO_GREEN } from "@/lib/sales-brand-colors";
-import type { BillingCadence, PlanTerm } from "@/data/pricing-shared";
-import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
 
 const SALES_COLOR = "#0F766E";
 
@@ -117,39 +111,6 @@ export function SalesLandingPanel({
   starterPackItems,
 }: Props) {
   const learnRef = useRef<HTMLElement>(null);
-  const router = useRouter();
-  const { data: session } = useSession();
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [term, setTerm] = useState<PlanTerm>("monthly");
-  const [cadence, setCadence] = useState<BillingCadence>("monthly");
-  const [showFeatureComparison, setShowFeatureComparison] = useState(false);
-  const featureTable = content.comparison.groups;
-
-  async function handlePurchase(
-    plan: "pro" | "elite",
-    term: PlanTerm = "monthly",
-    cadence: BillingCadence = "monthly"
-  ) {
-    if (!isPaymentsLive()) {
-      onOpenContactModal();
-      return;
-    }
-    if (!session?.user) {
-      router.push(`/signup?plan=${plan}&track=sales&callbackUrl=/?track=sales`);
-      return;
-    }
-    setLoadingPlan(plan);
-    try {
-      // The track is NOT sent — the server reads User.track from the DB.
-      const url = await startCheckout(plan, term, cadence);
-      if (url) window.location.href = url;
-      else router.push(SALES_PRICING_HREF);
-    } catch {
-      router.push(SALES_PRICING_HREF);
-    } finally {
-      setLoadingPlan(null);
-    }
-  }
 
   return (
     <div className="sales-panel">
@@ -327,139 +288,10 @@ export function SalesLandingPanel({
         </div>
       </section>
 
-      {/* Sales pricing — Pro & Elite only */}
-      <section id="pricing" className="py-16 sm:py-24 page-container scroll-mt-24">
-        <Reveal className="text-center mb-12">
-          <SectionCategoryLabel colorClass="text-teal-700">Pricing</SectionCategoryLabel>
-          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">Built for Sales Professionals.</h2>
-        </Reveal>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {content.pricing.map((tier, i) => (
-            <Reveal key={tier.name} delay={i * 0.1}>
-              <div
-                id={`plan-${tier.name.toLowerCase()}`}
-                className={`rounded-2xl h-full flex flex-col scroll-mt-24 ${
-                  tier.featured
-                    ? "bg-teal-900 text-white border-2 border-teal-500 shadow-xl"
-                    : "bg-white border border-border"
-                }`}
-              >
-                <div className="p-6 sm:p-7 flex-1">
-                  {tier.featured && (
-                    <span className="inline-block text-[10px] font-bold uppercase tracking-widest bg-teal-600 text-white px-2 py-0.5 rounded mb-3">
-                      Recommended
-                    </span>
-                  )}
-                  <h3 className="font-serif text-xl font-bold mb-1">{tier.name}</h3>
-                  <div className="mb-3">
-                    <span className="font-serif text-3xl font-bold">{tier.price}</span>
-                    <span className={`text-sm ml-2 ${tier.featured ? "text-teal-200/70" : "text-muted-fg"}`}>{tier.billing}</span>
-                  </div>
-                  <p className={`text-sm mb-5 leading-relaxed ${tier.featured ? "text-teal-100/75" : "text-muted-fg"}`}>{tier.description}</p>
-                  <ul className="space-y-2.5">
-                    {tier.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-sm">
-                        <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${tier.featured ? "text-teal-300" : "text-teal-600"}`} />
-                        <span className={tier.featured ? "text-white/90" : "text-gray-700"}>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="p-6 sm:p-7 pt-0">
-                  <div className="space-y-3">
-                    <PlanTermSelector
-                      track="SALES"
-                      tier={tier.name === "Elite" ? "ELITE" : "PRO"}
-                      value={term}
-                      onChange={setTerm}
-                      cadence={cadence}
-                      onCadenceChange={setCadence}
-                      tone={tier.featured ? "dark" : "light"}
-                    />
-                    <Button
-                      className={`w-full ${tier.featured ? "bg-teal-600 hover:bg-teal-500 text-white border-0" : ""}`}
-                      variant={tier.featured ? "default" : "outline"}
-                      size="lg"
-                      onClick={() =>
-                        handlePurchase(tier.name.toLowerCase() as "pro" | "elite", term, cadence)
-                      }
-                      loading={loadingPlan === tier.name.toLowerCase()}
-                    >
-                      {tier.cta}
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-
-        <Reveal className="text-center mt-8">
-          <button
-            type="button"
-            onClick={() => setShowFeatureComparison((prev) => !prev)}
-            className="inline-flex items-center gap-1.5 text-sm text-teal-700 hover:text-teal-900 transition-colors"
-            aria-expanded={showFeatureComparison}
-          >
-            View full feature comparison
-            <ChevronRight
-              className={cn(
-                "w-4 h-4 transition-transform duration-200",
-                showFeatureComparison && "rotate-90"
-              )}
-            />
-          </button>
-        </Reveal>
-
-        {showFeatureComparison && (
-          <Reveal className="mt-8 sm:mt-10">
-            <div className="text-center mb-6 sm:mb-8">
-              <h3 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900">Feature Comparison</h3>
-              <p className="text-xs text-muted-fg mt-2 sm:hidden">Swipe to compare plans →</p>
-            </div>
-            <div className="rounded-2xl border border-border overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-              <div className="min-w-[480px]">
-                <div className="grid grid-cols-3 gap-0 bg-secondary">
-                  <div className="p-4 col-span-1" />
-                  {content.pricing.map((tier) => (
-                    <div key={tier.name} className="p-4 text-center border-l border-border">
-                      <p className="font-semibold text-sm text-gray-900">{tier.name}</p>
-                      <p className="text-xs text-muted-fg">{tier.price} · {tier.billing}</p>
-                    </div>
-                  ))}
-                </div>
-                {featureTable.map((group) => (
-                  <React.Fragment key={group.category}>
-                    <div className="px-4 py-2.5 border-t border-border" style={{ background: `${group.color}08` }}>
-                      <p className="text-xs font-bold uppercase tracking-widest" style={{ color: group.color }}>
-                        {group.category}
-                      </p>
-                    </div>
-                    {group.items.map((item) => (
-                      <div
-                        key={item.name}
-                        className="grid grid-cols-3 border-t border-border hover:bg-secondary transition-colors"
-                      >
-                        <div className="p-3.5 col-span-1 text-sm text-gray-700">{item.name}</div>
-                        {(["pro", "elite"] as const).map((tier) => (
-                          <div key={tier} className="p-3.5 flex items-center justify-center border-l border-border">
-                            {item[tier] ? (
-                              <Check className="w-4 h-4 text-green-500" />
-                            ) : (
-                              <X className="w-4 h-4 text-gray-300" />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
-          </Reveal>
-        )}
-      </section>
+      {/* Sales pricing section removed (PR1 / T02) — Sales pricing now lives on
+          /pricing?track=sales. A clearly-marked placeholder stands in until the
+          next real landing section lands. */}
+      <LandingPlaceholderSection id="coming-soon" />
 
       {/* Free Starter Pack signup */}
       <section className="py-16 sm:py-20 page-container">

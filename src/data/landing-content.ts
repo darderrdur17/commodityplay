@@ -1,4 +1,5 @@
 import { TRACK_SELECTION } from "@/data/track-selection";
+import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   PLAN_BASE_USD,
   formatUsd,
@@ -300,8 +301,8 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
       "Resume Vetting (up to twice a year)",
       "Career Navigation Guide — move across the industry with confidence",
     ],
-    cta: "Get Pro",
-    href: "/?track=career#plan-pro",
+    cta: "Get Started",
+    href: CAREER_PLAN_HREF("pro"),
   },
   {
     name: "Elite",
@@ -318,8 +319,8 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
       "Anonymous Mentor Connect",
       "Market Job Openings Tracker (tailored to persona)",
     ],
-    cta: "Get Elite",
-    href: "/?track=career#plan-elite",
+    cta: "Get Started",
+    href: CAREER_PLAN_HREF("elite"),
   },
 ];
 
@@ -337,8 +338,8 @@ const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
       "Sales Guide - key industry areas to look out for when selling",
       "Weekly Sales Edge Note - highlight interesting market happenings to note from sales perspectives",
     ],
-    cta: "Get Pro",
-    href: "/signup?plan=pro",
+    cta: "Get Started",
+    href: SALES_PLAN_HREF("pro"),
     featured: false,
   },
   {
@@ -353,8 +354,8 @@ const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
       "Anonymous Mentor Connect - ask your real sales preparation questions to practitioners directly",
       "Market Role Openings - track which firms are growing and hiring (your next target accounts)",
     ],
-    cta: "Get Elite",
-    href: "/signup?plan=elite",
+    cta: "Get Started",
+    href: SALES_PLAN_HREF("elite"),
     featured: true,
   },
 ];

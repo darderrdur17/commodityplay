@@ -101,6 +101,17 @@ export function termDiscountCents(track: PlanTrack, tier: PlanTier): number {
   return Math.round((base * 100) / 7);
 }
 
+/**
+ * Discount of a term versus the monthly rate, as a whole percent, rounded DOWN.
+ * monthly -> 0 ; "12" -> floor((1 - 12/14) * 100) = floor(14.2857) = 14.
+ * Single source for the "Save 14%" line (PRD C5).
+ */
+export function termSavingsPercent(term: PlanTerm): number {
+  const { paidMonths, accessMonths } = PLAN_TERMS[term];
+  if (paidMonths >= accessMonths) return 0;
+  return Math.floor((1 - paidMonths / accessMonths) * 100);
+}
+
 /** `USD 19` / `USD 16.29` — whole amounts lose the trailing `.00`. */
 export function priceLabel(amount: number): string {
   return `${CURRENCY} ${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;
@@ -193,3 +204,12 @@ export const PRICING_CTA = {
   description: "Get the Starter pack instantly — no card required. Upgrade when the time is right.",
   button: "Join Free",
 };
+
+/** Centered CTA band copy (PRD E3) — headline + supporting line + button. */
+export const PRICING_CTA_BAND = {
+  eyebrow: "Plans & pricing",
+  title: "Find the plan that fits your desk.",
+  description:
+    "Compare Career and Sales tracks side by side — monthly, or 12 months + 2 free.",
+  button: "Get Started",
+} as const;
