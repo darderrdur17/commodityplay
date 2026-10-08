@@ -1,0 +1,209 @@
+classDiagram
+    %% CommodityPlay revamp — pricing + auth consent data & component model
+    %% (new + modified types only; existing types shown for context)
+
+    class PlanTrack {
+        <<enum>>
+        CAREER
+        SALES
+    }
+    class PlanTier {
+        <<enum>>
+        PRO
+        ELITE
+    }
+    class PlanTerm {
+        <<enum>>
+        monthly
+        "12"
+    }
+    class BillingCadence {
+        <<enum>>
+        monthly
+        annual
+    }
+    class PlanKey {
+        <<type>>
+        `${PlanTrack}_${PlanTier}`
+    }
+
+    class pricing_shared {
+        <<module>>
+        +PLAN_BASE_USD: Record~PlanKey,number~
+        +PLAN_TERMS: Record~PlanTerm,TermMeta~
+        +PLAN_TERM_ORDER: PlanTerm[]
+        +monthlyRateUsd(track,tier,term) number
+        +termTotalUsd(track,tier,term) number
+        +priceLabel(amount) string
+        +formatUsd(amount) string
+        +termSavingsPercent(term) number  %% NEW
+        +PRICING_CTA_BAND  %% NEW
+        +PRICING_HERO
+        +PRICING_CONTENT_FOOTNOTE
+    }
+
+    class pricing_routes {
+        <<module>>
+        +CAREER_PRICING_HREF: "/pricing?track=career#pricing"
+        +CAREER_PLAN_HREF(plan) string
+        +SALES_PRICING_HREF: "/pricing?track=sales#pricing"
+        +SALES_PLAN_HREF(plan) string
+        +CAREER_PRICING_PATH: "/pricing?track=career"
+        +SALES_PRICING_PATH: "/pricing?track=sales"
+    }
+
+    class LandingTier {
+        +name: string
+        +price: string
+        +billing: string
+        +badge: starter|pro|elite
+        +highlight: boolean
+        +tooltip: string
+        +description: string
+        +features: string[]
+        +cta: string
+        +href: string
+        +opensModal?: boolean
+    }
+
+    class SalesPricingTier {
+        +name: string
+        +price: string
+        +billing: string
+        +description: string
+        +features: string[]
+        +cta: string
+        +href: string
+        +featured?: boolean
+    }
+
+    class FeatureComparisonItem {
+        +name: string
+        +starter?: boolean
+        +pro: boolean
+        +elite: boolean
+    }
+    class FeatureComparisonGroup {
+        +category: string
+        +color: string
+        +items: FeatureComparisonItem[]
+    }
+    class FeatureComparisonTable {
+        +groups: FeatureComparisonGroup[]
+    }
+
+    class TrackSwitcher {
+        <<NEW>>
+        +value: PlanTrack
+        +onChange(track)
+        +pinnedTrack?: PlanTrack  %% R-1: signed-in pins to own track
+        +lockedNote?: string      %% R-1: e.g. "Your account is on the Career track"
+        +className?: string
+    }
+
+    class PlanTermSelector {
+        +track?: PlanTrack
+        +tier?: PlanTier
+        +value: PlanTerm
+        +onChange(term)
+        +cadence?: BillingCadence
+        +onCadenceChange?(c)
+        +tone?: light|dark
+        +showRate?: boolean  %% NEW, default true
+    }
+
+    class PricingTierGrid {
+        +tiers: LandingTier[]
+        +variant: landing|page
+        +track?: PlanTrack  %% NEW, default CAREER
+        +onStarterModal?()
+        +onPurchase?(plan,term,cadence)
+        +loadingPlan?: string|null
+    }
+
+    class PricingComparisonTable {
+        <<NEW>>
+        +groups: FeatureComparisonGroup[]
+        +columns: ColumnKey[]
+        +tone?: light|dark
+    }
+
+    class PricingPageClient {
+        <<NEW>>
+        +content: LandingContent
+        +userTrack?: PlanTrack|null  %% R-1: from server session; pins TrackSwitcher
+        +starterPackItems?: string[]
+        +starterPackHeadline?: string
+        -track: Track
+        -term: PlanTerm
+        -cadence: BillingCadence
+        -loadingPlan: string|null
+        +toLandingTiers(track,content) LandingTier[]
+        +handlePurchase(plan,term,cadence)
+    }
+
+    class LandingPlaceholderSection {
+        <<NEW>>
+        +id?: string
+        +eyebrow?: string
+        +title?: string
+        +note?: string
+    }
+
+    class PricingCtaBand {
+        <<NEW>>
+        +eyebrow?: string
+        +title?: string
+        +description?: string
+        +button?: string
+        +href?: string
+    }
+
+    class startCheckout {
+        <<module>>
+        +startCheckout(plan,term,cadence) Promise~string|null~
+    }
+
+    class RegisterAPI {
+        <<route>>
+        +POST(req)
+        -schema: {name,email,password,plan,track, marketingConsent?:boolean=true-default, termsAccepted: literal(true) REQUIRED}
+    }
+
+    class MarketingConsentAPI {
+        <<route NEW R-4>>
+        +POST(req) : requires session
+        -schema: {consent: boolean}
+        -writes: User.marketingConsent, User.marketingConsentAt
+        -upserts: EmailSubscriber
+    }
+
+    class User {
+        +id: string
+        +email: string
+        +tier: STARTER|PRO|ELITE
+        +track: CAREER|SALES
+        +marketingConsent: boolean  %% NEW
+        +marketingConsentAt: DateTime?  %% NEW
+        +termsAcceptedAt: DateTime?  %% NEW
+    }
+
+    %% Relationships
+    pricing_shared ..> PlanTrack
+    pricing_shared ..> PlanTier
+    pricing_shared ..> PlanTerm
+    PricingTierGrid --> LandingTier : renders
+    PricingTierGrid --> PlanTermSelector : embeds
+    PricingTierGrid ..> pricing_routes : fallback href
+    PlanTermSelector ..> pricing_shared : derives rate
+    PricingComparisonTable --> FeatureComparisonGroup : renders
+    PricingPageClient --> PricingTierGrid
+    PricingPageClient --> PricingComparisonTable
+    PricingPageClient --> TrackSwitcher
+    PricingPageClient --> PlanTermSelector
+    PricingPageClient --> startCheckout
+    PricingPageClient ..> LandingTier : toLandingTiers()
+    PricingPageClient ..> SalesPricingTier : toLandingTiers()
+    PricingPageClient ..> FeatureComparisonTable
+    RegisterAPI --> User : creates (termsAcceptedAt always set)
+    MarketingConsentAPI --> User : updates marketingConsent / marketingConsentAt
