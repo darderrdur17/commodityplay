@@ -84,14 +84,18 @@ function TierCard({
 
   /**
    * The printed price is always DERIVED (PRD C4 — no hardcoded price strings).
-   * On the monthly term it equals the CMS `tier.price` (both come from
-   * `PLAN_BASE_USD`), so CMS-edited monthly copy is preserved; on the 12-month
-   * term it is the discounted normalised monthly rate (Career Pro -> USD 16.29).
+   *
+   * Both terms now go through `monthlyRateUsd()`, which for the monthly term is
+   * just the base rate. Previously the monthly term printed the CMS `tier.price`
+   * instead, which left a hole: `landing-content.ts` derives its defaults from
+   * `PLAN_BASE_USD`, so the two agree today, but a price edited in the admin CMS
+   * would have been advertised while Stripe charged the unchanged base amount.
+   * Deriving it means the displayed price cannot drift from the charged one.
+   *
+   * Career Pro: monthly -> USD 19, 12-month -> USD 16.29 (19 x 12/14).
    */
   const displayPrice =
-    isPaid && planTier && term === "12"
-      ? priceLabel(monthlyRateUsd(track, planTier, term))
-      : tier.price;
+    isPaid && planTier ? priceLabel(monthlyRateUsd(track, planTier, term)) : tier.price;
 
   /**
    * The featured card INVERTS between the two layouts — see the three return branches
