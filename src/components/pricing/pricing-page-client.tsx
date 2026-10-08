@@ -63,7 +63,7 @@ function toLandingTiers(track: Track, content: LandingContent): LandingTier[] {
     tooltip: t.description,
     description: t.description,
     features: t.features,
-    cta: "Get Started",
+    cta: t.cta,
     href: SALES_PLAN_HREF(t.name.toLowerCase() as "pro" | "elite"),
   }));
 }
