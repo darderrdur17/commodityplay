@@ -351,8 +351,16 @@ export function PricingTierGrid({
   const setTerm = onTermChange ?? setInternalTerm;
   const setCadence = onCadenceChange ?? setInternalCadence;
 
+  // Match the column count to the number of tiers so the row always fills.
+  // Career has three tiers (Starter/Pro/Elite) and wants three columns. Sales has two
+  // (Pro/Elite), so a hardcoded three-column grid left its cards in columns 1–2 with an
+  // empty third column on the right — the row looked half-finished.
+  // The literals must stay written out in full for Tailwind's source scanner.
+  const gridColsClass =
+    tiers.length === 1 ? "md:grid-cols-1" : tiers.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3";
+
   const grid = (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+    <div className={`grid grid-cols-1 ${gridColsClass} gap-6 items-stretch`}>
       {tiers.map((tier, i) => (
         <Reveal key={tier.name} delay={i * 0.1} className="h-full">
           <TierCard
