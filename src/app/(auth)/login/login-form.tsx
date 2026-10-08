@@ -41,6 +41,9 @@ export function LoginForm({
   const callbackUrl = isSafeCallbackUrl(rawCallback) ? rawCallback : "/dashboard";
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  // Optional login-time marketing opt-in. Starts unchecked and is only ever sent
+  // when ticked (see onSubmit) — never sent as `false`.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const googleAvailable = useGoogleSignInAvailable(googleEnabled);
   const resetSuccess = searchParams.get("reset") === "1";
 
@@ -61,6 +64,21 @@ export function LoginForm({
     if (result?.error) {
       setAuthError("Invalid email or password. Please try again.");
     } else {
+      // Persist the opt-in ONLY when the member ticked the box. The box starts
+      // unchecked, so "unchecked" is the default state, not an expression of
+      // preference — sending `false` here would silently wipe an opt-in the member
+      // gave at signup. The session cookie is already set, so the authed call works.
+      if (marketingOptIn) {
+        try {
+          await fetch("/api/account/marketing-consent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ marketingConsent: true }),
+          });
+        } catch {
+          // Non-fatal: sign-in already succeeded; consent can be set later.
+        }
+      }
       router.push(callbackUrl);
     }
   }
@@ -195,6 +213,30 @@ export function LoginForm({
                 Forgot password?
               </Link>
             </div>
+
+            {/* Passive consent acknowledgement — links only, no control, non-blocking.
+                The owner chose passive over a required checkbox: requiring terms on
+                every sign-in is hostile UX and legally redundant, since agreement was
+                already captured at signup. */}
+            <p className="text-xs text-muted-fg leading-relaxed">
+              By signing in you agree to our{" "}
+              <Link href="/terms" className="text-primary-400 hover:underline">Terms of Service</Link>
+              {" "}and{" "}
+              <Link href="/privacy" className="text-primary-400 hover:underline">Privacy Policy</Link>.
+            </p>
+
+            {/* OPTIONAL marketing opt-in — unchecked by default, non-blocking. */}
+            <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
+              <input
+                type="checkbox"
+                className="rounded border-border accent-primary-400"
+                checked={marketingOptIn}
+                onChange={(e) => setMarketingOptIn(e.target.checked)}
+              />
+              <span className="text-sm text-gray-600">
+                Send me the Email Digest and occasional product updates.
+              </span>
+            </label>
 
             <Button type="submit" className="w-full" size="lg" loading={isSubmitting}>
               Sign in <ArrowRight className="w-4 h-4" />
