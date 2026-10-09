@@ -51,6 +51,15 @@ interface Props {
    * Omit it to keep the original short-bullet card.
    */
   comparisonGroups?: FeatureComparisonGroup[];
+  /**
+   * When set, every PAID card renders this short note in place of its purchase
+   * CTA (both the purchase button and the no-`onPurchase` plan link). `/pricing`
+   * passes it only for an administrator previewing the track that is NOT their
+   * own: the checkout route charges `User.track`, so a purchase offered here would
+   * show one price and charge another. The free Starter card (`opensModal`) is
+   * unaffected — it opens the starter-pack modal, not a purchase.
+   */
+  previewNotice?: string;
 }
 
 function TierCard({
@@ -66,6 +75,7 @@ function TierCard({
   onCadenceChange,
   showTermSelector,
   comparisonGroups,
+  previewNotice,
 }: {
   tier: LandingTier;
   variant: "landing" | "page";
@@ -79,6 +89,7 @@ function TierCard({
   onCadenceChange: (cadence: BillingCadence) => void;
   showTermSelector: boolean;
   comparisonGroups?: FeatureComparisonGroup[];
+  previewNotice?: string;
 }) {
   const isLanding = variant === "landing";
   const planId =
@@ -282,6 +293,8 @@ function TierCard({
           >
             {tier.cta}
           </Button>
+        ) : previewNotice ? (
+          <p className="text-xs text-muted-fg text-center">{previewNotice}</p>
         ) : isPaid && onPurchase ? (
           <div className="space-y-3">
             {showTermSelector && (
@@ -392,6 +405,7 @@ export function PricingTierGrid({
   onCadenceChange,
   showTermSelector = true,
   comparisonGroups,
+  previewNotice,
 }: Props) {
   // One term for the whole grid: a member comparing Pro and Elite keeps the term they
   // picked when they move between cards. On `/pricing` the term/cadence are controlled
@@ -442,6 +456,7 @@ export function PricingTierGrid({
             onCadenceChange={setCadence}
             showTermSelector={showTermSelector}
             comparisonGroups={comparisonGroups}
+            previewNotice={previewNotice}
           />
         </Reveal>
       ))}

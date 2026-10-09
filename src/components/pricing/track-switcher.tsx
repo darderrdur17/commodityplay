@@ -13,6 +13,13 @@ export interface TrackSwitcherProps {
    * one price and charge another.
    */
   disabledTrack?: PlanTrack;
+  /**
+   * Overrides the note derived from `disabledTrack`. `/pricing` uses it to explain
+   * the administrator preview: an admin is NOT pinned (R-1 exception), so both
+   * segments stay enabled and the derived pin note would be wrong. Non-admins are
+   * unaffected — they omit this and keep the derived note.
+   */
+  note?: string;
   className?: string;
 }
 
@@ -25,13 +32,14 @@ const TRACKS: ReadonlyArray<{ key: PlanTrack; label: string }> = [
  * Segmented `Career | Sales` control for the /pricing page — light tone, built on
  * the same palette as `PlanTermSelector` so the two sit together cleanly.
  */
-export function TrackSwitcher({ value, onChange, disabledTrack, className }: TrackSwitcherProps) {
-  const note =
+export function TrackSwitcher({ value, onChange, disabledTrack, note, className }: TrackSwitcherProps) {
+  const derivedNote =
     disabledTrack === "SALES"
       ? "Your account is on the Career track, so Career pricing is shown."
       : disabledTrack === "CAREER"
         ? "Your account is on the Sales track, so Sales pricing is shown."
         : null;
+  const resolvedNote = note ?? derivedNote;
 
   return (
     <div className={cn("flex flex-col items-center gap-2", className)}>
@@ -64,7 +72,7 @@ export function TrackSwitcher({ value, onChange, disabledTrack, className }: Tra
           );
         })}
       </div>
-      {note && <p className="text-xs text-muted-fg">{note}</p>}
+      {resolvedNote && <p className="text-xs text-muted-fg">{resolvedNote}</p>}
     </div>
   );
 }
