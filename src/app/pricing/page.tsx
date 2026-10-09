@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: `Pricing — ${BRAND_NAME}`,
   description:
-    "Compare Career and Sales plans side by side. Monthly, or 12 months + 2 free. Starter is free forever.",
+    "Compare Career and Sales plans side by side — billed monthly, or annually and save 15%. Start free with the Starter Pack.",
 };
 
 export default async function PricingPage() {

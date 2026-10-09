@@ -244,6 +244,7 @@ export function PricingPageClient({
               onChange={(next) => setTrack(next === "SALES" ? "sales" : "career")}
               disabledTrack={disabledTrack}
               note={adminNote}
+              tone="dark"
             />
             <h2 className="text-center font-serif text-[clamp(28px,4vw,46px)] font-bold tracking-tight text-white">
               {PRICING_TRACK_HEADINGS[track === "sales" ? "SALES" : "CAREER"]}

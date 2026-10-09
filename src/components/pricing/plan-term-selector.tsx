@@ -3,7 +3,7 @@
 import {
   PLAN_TERMS,
   PLAN_TERM_ORDER,
-  monthlyRateUsd,
+  monthlyRate,
   priceLabel,
   termSavingsPercent,
   type PlanTerm,
@@ -73,7 +73,7 @@ export function PlanTermSelector({
       {PLAN_TERM_ORDER.map((term) => {
         const active = term === value;
         const { shortLabel } = PLAN_TERMS[term];
-        const rate = priced ? monthlyRateUsd(priced.track, priced.tier, term) : null;
+        const rate = priced ? monthlyRate(priced.track, priced.tier, term) : null;
 
         return (
           /* Presentational wrapper: keeps the radio buttons as the radiogroup's

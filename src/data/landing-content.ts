@@ -3,7 +3,7 @@ import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   PLAN_BASE_PRICE,
   formatMoney,
-  monthlyRateUsd,
+  monthlyRate,
   priceLabel,
 } from "@/data/pricing-shared";
 
@@ -484,10 +484,10 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
       title: "One Deal Pays for",
       titleAccent: "a Year of Elite.",
       description:
-        `Elite is ${formatMoney(monthlyRateUsd("SALES", "ELITE", "monthly"))}/month. If understanding the commodity trading desk helps you close one additional deal per year — at even a fraction of typical contract values in this sector — the return is not close. The question is whether you can afford not to know this.`,
+        `Elite is ${formatMoney(monthlyRate("SALES", "ELITE", "monthly"))}/month. If understanding the commodity trading desk helps you close one additional deal per year — at even a fraction of typical contract values in this sector — the return is not close. The question is whether you can afford not to know this.`,
       stats: [
         { value: "$250K–$2M+", label: "Typical ETRM / data platform ACV" },
-        { value: formatMoney(monthlyRateUsd("SALES", "ELITE", "monthly") * 12), label: "Full year of Elite access" },
+        { value: formatMoney(monthlyRate("SALES", "ELITE", "monthly") * 12), label: "Full year of Elite access" },
         { value: "2 min", label: "How fast traders assess your credibility" },
         { value: "6 wks", label: "Reported reduction in deal cycle (user data)" },
       ],

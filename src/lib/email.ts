@@ -616,10 +616,11 @@ function formatStripeAmount(amountCents: number, currency: string): string {
   const amount = amountCents / 100;
   const code = currency.toUpperCase();
   // Explicit branches for the currencies the site actually prices in, so receipts read
-  // exactly like the pricing page ("USD 19.00"). The Intl fallback below stays for any
-  // other code — the en-SG locale renders USD as "US$19.00", not "USD 19.00".
+  // exactly like the pricing page ("S$19.00"). The Intl fallback below stays for any
+  // other code — the en-SG locale renders SGD as "SGD 19.00" and USD as "US$19.00",
+  // neither of which matches the `S$` form the pricing page uses.
   if (code === "SGD") {
-    return `SGD ${amount.toFixed(2)}`;
+    return `S$${amount.toFixed(2)}`;
   }
   if (code === "USD") {
     return `USD ${amount.toFixed(2)}`;

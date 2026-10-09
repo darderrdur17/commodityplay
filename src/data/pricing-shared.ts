@@ -78,7 +78,7 @@ export const PLAN_TERMS: Record<
 export const PLAN_TERM_ORDER: PlanTerm[] = ["monthly", "12"];
 
 /** Normalised monthly rate in SGD, rounded to whole cents. */
-export function monthlyRateUsd(
+export function monthlyRate(
   track: PlanTrack,
   tier: PlanTier,
   term: PlanTerm
@@ -89,7 +89,7 @@ export function monthlyRateUsd(
 }
 
 /** Total charged over a full term, in SGD. */
-export function termTotalUsd(
+export function termTotal(
   track: PlanTrack,
   tier: PlanTier,
   term: PlanTerm
@@ -106,7 +106,7 @@ export function termTotalUsd(
  */
 export function annualSavingAmount(track: PlanTrack, tier: PlanTier): number {
   const base = PLAN_BASE_PRICE[`${track}_${tier}`];
-  return Math.round((base * 12 - termTotalUsd(track, tier, "12")) * 100) / 100;
+  return Math.round((base * 12 - termTotal(track, tier, "12")) * 100) / 100;
 }
 
 /**
@@ -144,7 +144,7 @@ export function formatMoney(amount: number): string {
 export function annualTooltip(track: PlanTrack, tier: PlanTier): string {
   const base = PLAN_BASE_PRICE[`${track}_${tier}`];
   return `Compared to paying monthly. Your full annual price is ${formatMoney(
-    termTotalUsd(track, tier, "12")
+    termTotal(track, tier, "12")
   )} against ${formatMoney(base * 12)} with regular monthly payments.`;
 }
 
@@ -248,6 +248,6 @@ export const PRICING_CTA_BAND = {
   eyebrow: "Plans & pricing",
   title: "Find the plan that fits your desk.",
   description:
-    "Compare Career and Sales tracks side by side — monthly, or 12 months + 2 free.",
+    "Compare Career and Sales tracks side by side — billed monthly, or annually and save 15%.",
   button: "Get Started",
 } as const;

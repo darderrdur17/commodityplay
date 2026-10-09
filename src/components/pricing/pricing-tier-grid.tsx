@@ -11,7 +11,7 @@ import {
   annualSavingAmount,
   annualTooltip,
   formatMoney,
-  monthlyRateUsd,
+  monthlyRate,
   priceLabel,
 } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
@@ -164,7 +164,7 @@ function TierCard({
   /**
    * The printed price is always DERIVED (PRD C4 — no hardcoded price strings).
    *
-   * Both terms go through `monthlyRateUsd()`, which for the monthly term is just
+   * Both terms go through `monthlyRate()`, which for the monthly term is just
    * the base rate. Previously the monthly term printed the CMS `tier.price`
    * instead, which left a hole: `landing-content.ts` derives its defaults from
    * `PLAN_BASE_PRICE`, so the two agree today, but a price edited in the admin CMS
@@ -174,7 +174,7 @@ function TierCard({
    * Career Pro: monthly -> S$19, annually -> S$16.15 (19 x 0.85).
    */
   const displayPrice =
-    isPaid && planTier ? priceLabel(monthlyRateUsd(track, planTier, term)) : tier.price;
+    isPaid && planTier ? priceLabel(monthlyRate(track, planTier, term)) : tier.price;
 
   /**
    * Whether the card paints a LIGHT (white) surface, which decides the text/icon
@@ -314,7 +314,7 @@ function TierCard({
             {tier.cta}
           </Button>
         ) : previewNotice ? (
-          <p className="text-xs text-muted-fg text-center">{previewNotice}</p>
+          <p className="text-xs text-white/60 text-center">{previewNotice}</p>
         ) : isPaid && onPurchase ? (
           <div className="space-y-3">
             {showTermSelector && (
@@ -442,6 +442,11 @@ export function PricingTierGrid({
   // Match the column count to the number of tiers so the row always fills.
   // Career now shows two tiers on /pricing (Starter is filtered out and lives in
   // the top panel); Sales has two (Pro/Elite).
+  //
+  // ⚠️ The `xl:grid-cols-3` branch is therefore currently UNREACHABLE — both tracks
+  // now pass exactly two tiers. It is kept (not deleted) because the 3-up layout is
+  // still correct if a third paid tier is ever added, and the measured reasoning
+  // below is what makes it safe.
   //
   // The 3-column step is `xl`, NOT `md` and NOT `lg`. Each plan column carries a
   // ~20-row ✓/✗ list, so it needs roughly 300px of content width to be readable.

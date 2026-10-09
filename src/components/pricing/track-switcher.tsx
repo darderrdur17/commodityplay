@@ -20,6 +20,13 @@ export interface TrackSwitcherProps {
    * unaffected — they omit this and keep the derived note.
    */
   note?: string;
+  /**
+   * Palette for the surface this sits on. `/pricing` renders it inside the dark
+   * track-themed section, where the light palette's `text-muted-fg` note and
+   * inactive label fall below WCAG AA against `#050b1d` / `#04130f`. Defaults to
+   * `"light"` so every other consumer is byte-identical.
+   */
+  tone?: "light" | "dark";
   className?: string;
 }
 
@@ -29,10 +36,19 @@ const TRACKS: ReadonlyArray<{ key: PlanTrack; label: string }> = [
 ];
 
 /**
- * Segmented `Career | Sales` control for the /pricing page — light tone, built on
- * the same palette as `PlanTermSelector` so the two sit together cleanly.
+ * Segmented `Career | Sales` control for the /pricing page — built on the same
+ * palette as `PlanTermSelector` so the two sit together cleanly. `tone` picks the
+ * light or dark palette; the default keeps every existing consumer unchanged.
  */
-export function TrackSwitcher({ value, onChange, disabledTrack, note, className }: TrackSwitcherProps) {
+export function TrackSwitcher({
+  value,
+  onChange,
+  disabledTrack,
+  note,
+  tone = "light",
+  className,
+}: TrackSwitcherProps) {
+  const dark = tone === "dark";
   const derivedNote =
     disabledTrack === "SALES"
       ? "Your account is on the Career track, so Career pricing is shown."
@@ -46,7 +62,7 @@ export function TrackSwitcher({ value, onChange, disabledTrack, note, className 
       <div
         role="radiogroup"
         aria-label="Pricing track"
-        className="inline-grid grid-cols-2 gap-1 rounded-lg bg-secondary p-1"
+        className={cn("inline-grid grid-cols-2 gap-1 rounded-lg p-1", dark ? "bg-white/10" : "bg-secondary")}
       >
         {TRACKS.map((t) => {
           const active = t.key === value;
@@ -63,8 +79,15 @@ export function TrackSwitcher({ value, onChange, disabledTrack, note, className 
               }}
               className={cn(
                 "rounded-md px-5 py-1.5 text-sm font-semibold leading-tight transition-colors",
-                active ? "bg-white text-gray-900 shadow-sm" : "text-muted-fg hover:text-gray-900",
-                disabled && "cursor-not-allowed opacity-40 hover:text-muted-fg"
+                active
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : dark
+                    ? "text-white/70 hover:text-white"
+                    : "text-muted-fg hover:text-gray-900",
+                disabled &&
+                  (dark
+                    ? "cursor-not-allowed opacity-40 hover:text-white/70"
+                    : "cursor-not-allowed opacity-40 hover:text-muted-fg")
               )}
             >
               {t.label}
@@ -72,7 +95,9 @@ export function TrackSwitcher({ value, onChange, disabledTrack, note, className 
           );
         })}
       </div>
-      {resolvedNote && <p className="text-xs text-muted-fg">{resolvedNote}</p>}
+      {resolvedNote && (
+        <p className={cn("text-xs", dark ? "text-white/60" : "text-muted-fg")}>{resolvedNote}</p>
+      )}
     </div>
   );
 }
