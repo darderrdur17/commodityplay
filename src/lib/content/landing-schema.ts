@@ -75,6 +75,50 @@ const featureComparisonTableSchema = z.object({
   groups: z.array(featureComparisonGroupSchema).min(1),
 });
 
+const featurePointSchema = z.object({
+  label: z.string().min(1),
+  text: z.string().min(1),
+});
+
+const trackFeatureSchema = z.object({
+  eyebrow: z.string().min(1),
+  headline: z.string().min(1),
+  lede: z.string().min(1),
+  points: z.array(featurePointSchema).min(1),
+});
+
+const mentorStepSchema = z.object({
+  num: z.string().min(1),
+  title: z.string().min(1),
+  body: z.string().min(1),
+});
+
+const mentorSchema = z.object({
+  id: z.string().min(1),
+  years: z.number(),
+  title: z.string().min(1),
+  category: z.string().min(1),
+  bio: z.string().min(1),
+});
+
+const mentorSectionSchema = z.object({
+  eyebrow: z.string().min(1),
+  headline: z.string().min(1),
+  lede: z.string().min(1),
+  steps: z.array(mentorStepSchema).min(1),
+  primaryCta: z.string().min(1),
+  secondaryCta: z.string().min(1),
+  demoHint: z.string().min(1),
+  demoFoot: z.string().min(1),
+  rosterTitle: z.string().min(1),
+  rosterSub: z.string().min(1),
+  rosterNote: z.string().min(1),
+  creditPill: z.string().min(1),
+  sampleQuestion: z.string().min(1),
+  sampleAnswer: z.string().min(1),
+  mentors: z.array(mentorSchema).min(1),
+});
+
 const whoCardSchema = z.object({
   role: z.string().min(1),
   title: z.string().min(1),
@@ -299,6 +343,14 @@ export const landingContentSchema = z.object({
       button: z.string().min(1),
     })
     .default(() => DEFAULT_LANDING_CONTENT.pricingCtaBand),
+  salesFeatures: z
+    .object({
+      marketNudges: trackFeatureSchema,
+      prepLibrary: trackFeatureSchema,
+      accountIntelligence: trackFeatureSchema,
+    })
+    .default(() => DEFAULT_LANDING_CONTENT.salesFeatures),
+  mentorSection: mentorSectionSchema.default(() => DEFAULT_LANDING_CONTENT.mentorSection),
 }).transform((data) => {
   const legacy = data.membersStrip;
   const careerFallback = legacy ?? DEFAULT_LANDING_CONTENT.careerMembersStrip;

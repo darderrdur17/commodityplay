@@ -1,4 +1,8 @@
-import type { FeatureComparisonGroup, LandingContent } from "@/data/landing-content";
+import type {
+  FeatureComparisonGroup,
+  LandingContent,
+  LandingTrackFeature,
+} from "@/data/landing-content";
 import type { MentorOverride, MentorProfile, MentorSegment } from "@/data/mentors";
 import { UNASSIGNED_SEGMENT_ID } from "@/data/mentors";
 
@@ -262,6 +266,75 @@ export function resolvePricingCtaBand(
     title: cmsString(cms?.title, defaults.pricingCtaBand.title),
     description: cmsString(cms?.description, defaults.pricingCtaBand.description),
     button: cmsString(cms?.button, defaults.pricingCtaBand.button),
+  };
+}
+
+/**
+ * One sales-track feature section. Arrays are replaced wholesale once non-empty
+ * (`deepMerge` does not merge arrays element-wise, so an admin deleting a row must
+ * not have it silently restored from defaults).
+ */
+function resolveTrackFeature(
+  defaults: LandingTrackFeature,
+  cms?: Partial<LandingTrackFeature>
+): LandingTrackFeature {
+  return {
+    eyebrow: cmsString(cms?.eyebrow, defaults.eyebrow),
+    headline: cmsString(cms?.headline, defaults.headline),
+    lede: cmsString(cms?.lede, defaults.lede),
+    points: cms?.points?.length
+      ? cms.points.map((point) => ({ label: point.label, text: point.text }))
+      : defaults.points,
+  };
+}
+
+/** Sales-track feature sections — resolved per section so one edit cannot reset its siblings. */
+export function resolveSalesFeatures(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["salesFeatures"]>
+): LandingContent["salesFeatures"] {
+  return {
+    marketNudges: resolveTrackFeature(defaults.salesFeatures.marketNudges, cms?.marketNudges),
+    prepLibrary: resolveTrackFeature(defaults.salesFeatures.prepLibrary, cms?.prepLibrary),
+    accountIntelligence: resolveTrackFeature(
+      defaults.salesFeatures.accountIntelligence,
+      cms?.accountIntelligence
+    ),
+  };
+}
+
+/** Mentor Connect landing section — shared by both tracks, so no per-track split. */
+export function resolveMentorSection(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["mentorSection"]>
+): LandingContent["mentorSection"] {
+  const d = defaults.mentorSection;
+  return {
+    eyebrow: cmsString(cms?.eyebrow, d.eyebrow),
+    headline: cmsString(cms?.headline, d.headline),
+    lede: cmsString(cms?.lede, d.lede),
+    steps: cms?.steps?.length
+      ? cms.steps.map((step) => ({ num: step.num, title: step.title, body: step.body }))
+      : d.steps,
+    primaryCta: cmsString(cms?.primaryCta, d.primaryCta),
+    secondaryCta: cmsString(cms?.secondaryCta, d.secondaryCta),
+    demoHint: cmsString(cms?.demoHint, d.demoHint),
+    demoFoot: cmsString(cms?.demoFoot, d.demoFoot),
+    rosterTitle: cmsString(cms?.rosterTitle, d.rosterTitle),
+    rosterSub: cmsString(cms?.rosterSub, d.rosterSub),
+    rosterNote: cmsString(cms?.rosterNote, d.rosterNote),
+    creditPill: cmsString(cms?.creditPill, d.creditPill),
+    sampleQuestion: cmsString(cms?.sampleQuestion, d.sampleQuestion),
+    sampleAnswer: cmsString(cms?.sampleAnswer, d.sampleAnswer),
+    mentors: cms?.mentors?.length
+      ? cms.mentors.map((m) => ({
+          id: m.id,
+          years: m.years,
+          title: m.title,
+          category: m.category,
+          bio: m.bio,
+        }))
+      : d.mentors,
   };
 }
 
@@ -580,6 +653,8 @@ export function mergeLandingContent(
   merged.trackSelection = resolveTrackSelection(defaults, cms.trackSelection);
   merged.mentorConnect = resolveMentorConnect(defaults, cms.mentorConnect);
   merged.pricingCtaBand = resolvePricingCtaBand(defaults, cms.pricingCtaBand);
+  merged.salesFeatures = resolveSalesFeatures(defaults, cms.salesFeatures);
+  merged.mentorSection = resolveMentorSection(defaults, cms.mentorSection);
   merged.career = resolveCareerContent(defaults, cms.career);
 
   merged.stats = resolveEditableList(defaults.stats, cms.stats);

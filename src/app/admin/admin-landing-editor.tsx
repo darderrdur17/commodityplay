@@ -3,7 +3,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { FeatureComparisonTable, LandingContent, CaseStudyPreviewCard } from "@/data/landing-content";
+import type {
+  FeatureComparisonTable,
+  LandingContent,
+  LandingTrackFeature,
+  CaseStudyPreviewCard,
+} from "@/data/landing-content";
 
 interface Props {
   content: LandingContent;
@@ -349,6 +354,72 @@ function ComparisonTableEditor({
         <Plus className="w-3.5 h-3.5" /> Add plan group
       </button>
     </div>
+  );
+}
+
+/**
+ * Eyebrow / headline / lede / three labelled points — the shape shared by the
+ * three Sales feature sections (Market Nudges, Prep Library, Account
+ * Intelligence). The product mock panel beside the copy is illustrative sample
+ * content and deliberately NOT editable here.
+ */
+function TrackFeatureFields({
+  feature,
+  onChange,
+}: {
+  feature: LandingTrackFeature;
+  onChange: (next: LandingTrackFeature) => void;
+}) {
+  return (
+    <>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Field label="Eyebrow">
+          <TextInput
+            value={feature.eyebrow}
+            onChange={(v) => onChange({ ...feature, eyebrow: v })}
+          />
+        </Field>
+        <Field label="Headline">
+          <TextInput
+            value={feature.headline}
+            onChange={(v) => onChange({ ...feature, headline: v })}
+          />
+        </Field>
+      </div>
+      <Field label="Lede">
+        <TextInput
+          multiline
+          value={feature.lede}
+          onChange={(v) => onChange({ ...feature, lede: v })}
+        />
+      </Field>
+      <div className="space-y-2">
+        {feature.points.map((point, i) => (
+          <div key={`point-${i}`} className="grid gap-2 sm:grid-cols-[130px_1fr]">
+            <Field label={`Point ${i + 1} label`}>
+              <TextInput
+                value={point.label}
+                onChange={(v) => {
+                  const points = [...feature.points];
+                  points[i] = { ...point, label: v };
+                  onChange({ ...feature, points });
+                }}
+              />
+            </Field>
+            <Field label="Text">
+              <TextInput
+                value={point.text}
+                onChange={(v) => {
+                  const points = [...feature.points];
+                  points[i] = { ...point, text: v };
+                  onChange({ ...feature, points });
+                }}
+              />
+            </Field>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -1968,6 +2039,332 @@ export function AdminLandingEditor({
             </Field>
           </>
         )}
+      </Section>
+
+      {showSales && (
+        <Section
+          title="Sales Track — Feature Sections"
+          description="The three two-column sections on the sales landing: Market Nudges, Prep Library and Account Intelligence. The product panel beside each is a sample preview and is not editable here."
+        >
+          <div className="space-y-6">
+            <div className="p-3 rounded-lg border border-border space-y-3">
+              <p className="text-xs font-bold text-muted-fg uppercase">Sales Market Nudges</p>
+              <TrackFeatureFields
+                feature={content.salesFeatures.marketNudges}
+                onChange={(next) =>
+                  patch("salesFeatures", { ...content.salesFeatures, marketNudges: next })
+                }
+              />
+            </div>
+            <div className="p-3 rounded-lg border border-border space-y-3">
+              <p className="text-xs font-bold text-muted-fg uppercase">Prep Library</p>
+              <TrackFeatureFields
+                feature={content.salesFeatures.prepLibrary}
+                onChange={(next) =>
+                  patch("salesFeatures", { ...content.salesFeatures, prepLibrary: next })
+                }
+              />
+            </div>
+            <div className="p-3 rounded-lg border border-border space-y-3">
+              <p className="text-xs font-bold text-muted-fg uppercase">Account Intelligence</p>
+              <TrackFeatureFields
+                feature={content.salesFeatures.accountIntelligence}
+                onChange={(next) =>
+                  patch("salesFeatures", {
+                    ...content.salesFeatures,
+                    accountIntelligence: next,
+                  })
+                }
+              />
+            </div>
+          </div>
+        </Section>
+      )}
+
+      <Section
+        title="Mentor Connect (both landing pages)"
+        description="The “Ask the desk. Stay anonymous.” section and its interactive demo card. The same words appear on both tracks — only the accent colour differs."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Eyebrow">
+            <TextInput
+              value={content.mentorSection.eyebrow}
+              onChange={(v) =>
+                patch("mentorSection", { ...content.mentorSection, eyebrow: v })
+              }
+            />
+          </Field>
+          <Field label="Headline">
+            <TextInput
+              value={content.mentorSection.headline}
+              onChange={(v) =>
+                patch("mentorSection", { ...content.mentorSection, headline: v })
+              }
+            />
+          </Field>
+        </div>
+        <Field label="Lede">
+          <TextInput
+            multiline
+            value={content.mentorSection.lede}
+            onChange={(v) => patch("mentorSection", { ...content.mentorSection, lede: v })}
+          />
+        </Field>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-gray-700">Steps</p>
+          {content.mentorSection.steps.map((step, i) => (
+            <div key={`mentor-step-${i}`} className="p-3 rounded-lg border border-border space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-muted-fg uppercase">Step {i + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (content.mentorSection.steps.length <= 1) return;
+                    patch("mentorSection", {
+                      ...content.mentorSection,
+                      steps: content.mentorSection.steps.filter((_, idx) => idx !== i),
+                    });
+                  }}
+                  disabled={content.mentorSection.steps.length <= 1}
+                  className="text-xs text-muted-fg hover:text-red-600 disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[80px_1fr]">
+                <Field label="Number">
+                  <TextInput
+                    value={step.num}
+                    onChange={(v) => {
+                      const steps = [...content.mentorSection.steps];
+                      steps[i] = { ...step, num: v };
+                      patch("mentorSection", { ...content.mentorSection, steps });
+                    }}
+                  />
+                </Field>
+                <Field label="Title">
+                  <TextInput
+                    value={step.title}
+                    onChange={(v) => {
+                      const steps = [...content.mentorSection.steps];
+                      steps[i] = { ...step, title: v };
+                      patch("mentorSection", { ...content.mentorSection, steps });
+                    }}
+                  />
+                </Field>
+              </div>
+              <Field label="Body">
+                <TextInput
+                  multiline
+                  value={step.body}
+                  onChange={(v) => {
+                    const steps = [...content.mentorSection.steps];
+                    steps[i] = { ...step, body: v };
+                    patch("mentorSection", { ...content.mentorSection, steps });
+                  }}
+                />
+              </Field>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() =>
+              patch("mentorSection", {
+                ...content.mentorSection,
+                steps: [
+                  ...content.mentorSection.steps,
+                  {
+                    num: String(content.mentorSection.steps.length + 1).padStart(2, "0"),
+                    title: "",
+                    body: "",
+                  },
+                ],
+              })
+            }
+            className={smallButtonClass}
+          >
+            <Plus className="w-3.5 h-3.5" /> Add step
+          </button>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Primary button" hint="Scrolls to the demo card">
+            <TextInput
+              value={content.mentorSection.primaryCta}
+              onChange={(v) =>
+                patch("mentorSection", { ...content.mentorSection, primaryCta: v })
+              }
+            />
+          </Field>
+          <Field label="Secondary link" hint="Goes to /pricing for this track">
+            <TextInput
+              value={content.mentorSection.secondaryCta}
+              onChange={(v) =>
+                patch("mentorSection", { ...content.mentorSection, secondaryCta: v })
+              }
+            />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Demo label">
+            <TextInput
+              value={content.mentorSection.demoHint}
+              onChange={(v) => patch("mentorSection", { ...content.mentorSection, demoHint: v })}
+            />
+          </Field>
+          <Field label="Demo footnote">
+            <TextInput
+              value={content.mentorSection.demoFoot}
+              onChange={(v) => patch("mentorSection", { ...content.mentorSection, demoFoot: v })}
+            />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Roster title">
+            <TextInput
+              value={content.mentorSection.rosterTitle}
+              onChange={(v) =>
+                patch("mentorSection", { ...content.mentorSection, rosterTitle: v })
+              }
+            />
+          </Field>
+          <Field label="Roster subtitle">
+            <TextInput
+              value={content.mentorSection.rosterSub}
+              onChange={(v) => patch("mentorSection", { ...content.mentorSection, rosterSub: v })}
+            />
+          </Field>
+        </div>
+        <Field label="Roster footnote">
+          <TextInput
+            multiline
+            value={content.mentorSection.rosterNote}
+            onChange={(v) => patch("mentorSection", { ...content.mentorSection, rosterNote: v })}
+          />
+        </Field>
+        <Field label="Credit pill">
+          <TextInput
+            value={content.mentorSection.creditPill}
+            onChange={(v) => patch("mentorSection", { ...content.mentorSection, creditPill: v })}
+          />
+        </Field>
+
+        <Field label="Sample question" hint="Used by “Use a sample question” in the demo">
+          <TextInput
+            multiline
+            value={content.mentorSection.sampleQuestion}
+            onChange={(v) =>
+              patch("mentorSection", { ...content.mentorSection, sampleQuestion: v })
+            }
+          />
+        </Field>
+        <Field label="Sample reply" hint="Shown as “What a reply looks like”">
+          <TextInput
+            multiline
+            rows={5}
+            value={content.mentorSection.sampleAnswer}
+            onChange={(v) =>
+              patch("mentorSection", { ...content.mentorSection, sampleAnswer: v })
+            }
+          />
+        </Field>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-gray-700">Mentors</p>
+          {content.mentorSection.mentors.map((mentor, i) => (
+            <div key={`mentor-${i}`} className="p-3 rounded-lg border border-border space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-muted-fg uppercase">Mentor {i + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (content.mentorSection.mentors.length <= 1) return;
+                    patch("mentorSection", {
+                      ...content.mentorSection,
+                      mentors: content.mentorSection.mentors.filter((_, idx) => idx !== i),
+                    });
+                  }}
+                  disabled={content.mentorSection.mentors.length <= 1}
+                  className="text-xs text-muted-fg hover:text-red-600 disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[110px_100px_1fr]">
+                <Field label="Ref">
+                  <TextInput
+                    value={mentor.id}
+                    onChange={(v) => {
+                      const mentors = [...content.mentorSection.mentors];
+                      mentors[i] = { ...mentor, id: v };
+                      patch("mentorSection", { ...content.mentorSection, mentors });
+                    }}
+                  />
+                </Field>
+                <Field label="Years">
+                  <StatValueInput
+                    value={mentor.years}
+                    placeholder="Years"
+                    onChange={(years) => {
+                      const mentors = [...content.mentorSection.mentors];
+                      mentors[i] = { ...mentor, years };
+                      patch("mentorSection", { ...content.mentorSection, mentors });
+                    }}
+                  />
+                </Field>
+                <Field label="Title">
+                  <TextInput
+                    value={mentor.title}
+                    onChange={(v) => {
+                      const mentors = [...content.mentorSection.mentors];
+                      mentors[i] = { ...mentor, title: v };
+                      patch("mentorSection", { ...content.mentorSection, mentors });
+                    }}
+                  />
+                </Field>
+              </div>
+              <Field label="Category">
+                <TextInput
+                  value={mentor.category}
+                  onChange={(v) => {
+                    const mentors = [...content.mentorSection.mentors];
+                    mentors[i] = { ...mentor, category: v };
+                    patch("mentorSection", { ...content.mentorSection, mentors });
+                  }}
+                />
+              </Field>
+              <Field label="Bio">
+                <TextInput
+                  multiline
+                  value={mentor.bio}
+                  onChange={(v) => {
+                    const mentors = [...content.mentorSection.mentors];
+                    mentors[i] = { ...mentor, bio: v };
+                    patch("mentorSection", { ...content.mentorSection, mentors });
+                  }}
+                />
+              </Field>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() =>
+              patch("mentorSection", {
+                ...content.mentorSection,
+                mentors: [
+                  ...content.mentorSection.mentors,
+                  { id: "", years: 0, title: "", category: "", bio: "" },
+                ],
+              })
+            }
+            className={smallButtonClass}
+          >
+            <Plus className="w-3.5 h-3.5" /> Add mentor
+          </button>
+        </div>
       </Section>
 
       <Section
