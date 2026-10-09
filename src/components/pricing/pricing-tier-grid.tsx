@@ -172,7 +172,11 @@ function TierCard({
           {tier.name}
         </Badge>
         <p
-          className={`text-sm mb-4 italic leading-relaxed ${
+          // `min-h` reserves two lines at text-sm/leading-relaxed (2 x 22.75px).
+          // Without it a one-line description ("Only an email required") lifts that
+          // whole column's list ~24px above its neighbours and the ✓/✗ rows stop
+          // lining up — measured at 95px of drift on the tablet layout.
+          className={`text-sm mb-4 italic leading-relaxed min-h-[46px] ${
             isLanding
               ? tier.highlight
                 ? "text-muted-fg"
@@ -185,7 +189,15 @@ function TierCard({
           {tier.tooltip}
         </p>
         <div className="mb-4">
-          <span
+          {/* Price and billing are stacked, not inline. Inline they need
+              `price (180px) + gap (8px) + billing (168px) = 356px`, but a Career
+              column only offers 288px of content at 768px and 319px at 1280px — so
+              the billing line wrapped to a second line at exactly those widths and
+              pushed that column's ✓/✗ list 20px below its neighbours'. `billing` is
+              admin-editable, so its length is not ours to rely on; stacking removes
+              the dependency. (Sales reads "per month" and never wrapped — which is
+              why only Career drifted.) */}
+          <div
             className={`font-serif text-3xl sm:text-4xl font-bold ${
               isLanding
                 ? tier.highlight
@@ -197,29 +209,38 @@ function TierCard({
             }`}
           >
             {displayPrice}
-          </span>
-          {tier.price !== "Free" && (
-            <span
-              className={`text-sm ml-2 ${
-                isLanding
-                  ? tier.highlight
-                    ? "text-muted-fg"
-                    : "text-white/60"
-                  : tier.highlight
-                    ? "text-white/60"
-                    : "text-muted-fg"
-              }`}
-            >
-              {tier.billing}
-            </span>
-          )}
-          {isPaid && term === "12" && (
-            <span className="ml-2 inline-block align-middle text-[11px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 bg-green-50 text-green-700 border border-green-200">
-              Save {termSavingsPercent("12")}%
-            </span>
+          </div>
+          {/* Reserved in every column — including the free tier, whose "forever"
+              is intentionally not shown — so the price block is the same height
+              everywhere. */}
+          <div
+            className={`mt-1 min-h-[20px] text-sm ${
+              isLanding
+                ? tier.highlight
+                  ? "text-muted-fg"
+                  : "text-white/60"
+                : tier.highlight
+                  ? "text-white/60"
+                  : "text-muted-fg"
+            }`}
+          >
+            {tier.price !== "Free" && tier.billing}
+          </div>
+          {/* The savings badge gets its OWN row, reserved for the whole 12-month
+              term in every column. `flex h-6` rather than `min-h-[24px]` + an
+              inline-block badge: an inline-block creates a 26px line box where an
+              empty row measures 24px, which was the last 2px of drift. */}
+          {term === "12" && (
+            <div className="mt-1.5 flex h-6 items-center">
+              {isPaid && (
+                <span className="inline-flex items-center text-[11px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 bg-green-50 text-green-700 border border-green-200">
+                  Save {termSavingsPercent("12")}%
+                </span>
+              )}
+            </div>
           )}
         </div>
-        <ul className="space-y-2.5">
+        <ul className="space-y-2 sm:space-y-2.5">
           {featureRows.map((row) => (
             <li key={row.name} className="flex items-start gap-2.5 text-sm">
               {row.included ? (
@@ -338,7 +359,7 @@ function TierCard({
     return (
       <div
         id={planId}
-        className="relative bg-primary-800 rounded-2xl border-2 border-primary-400 p-7 h-full flex flex-col text-white shadow-2xl shadow-primary-800/30 scroll-mt-24"
+        className="relative bg-primary-800 rounded-2xl border-2 border-primary-400 p-5 sm:p-6 lg:p-7 h-full flex flex-col text-white shadow-2xl shadow-primary-800/30 scroll-mt-24"
       >
         {cardInner}
       </div>
@@ -348,7 +369,10 @@ function TierCard({
   return (
     <div
       id={planId}
-      className="bg-white rounded-2xl border border-border p-7 h-full flex flex-col scroll-mt-24"
+      // `border-2` (not `border`) so the content box is the same width as the
+      // highlighted card's `border-2` — a 1px difference is enough to make one
+      // feature row wrap differently and break the cross-column alignment.
+      className="bg-white rounded-2xl border-2 border-border p-5 sm:p-6 lg:p-7 h-full flex flex-col scroll-mt-24"
     >
       {cardInner}
     </div>
@@ -381,12 +405,25 @@ export function PricingTierGrid({
   const setCadence = onCadenceChange ?? setInternalCadence;
 
   // Match the column count to the number of tiers so the row always fills.
-  // Career has three tiers (Starter/Pro/Elite) and wants three columns. Sales has two
-  // (Pro/Elite), so a hardcoded three-column grid left its cards in columns 1–2 with an
-  // empty third column on the right — the row looked half-finished.
+  // Career has three tiers (Starter/Pro/Elite); Sales has two (Pro/Elite).
+  //
+  // The 3-column step is `xl`, NOT `md` and NOT `lg`. Each plan column carries a
+  // ~20-row ✓/✗ list, so it needs roughly 300px of content width to be readable.
+  // Measured content width per column for the Career track:
+  //     768px -> 3 cols = 219px  (cards ballooned to 1292px tall)
+  //    1024px -> 3 cols = 233px  (descriptions spilled to a 3rd line, 1089px tall)
+  //    1180px -> 3 cols = 285px  (still under the ~300px floor)
+  //    1280px -> 3 cols = 319px  ✅
+  // So 3-up only from `xl`; 1024–1279 uses the 2-up tablet step instead, which
+  // gives ~392px per column and is genuinely comfortable.
+  //
   // The literals must stay written out in full for Tailwind's source scanner.
   const gridColsClass =
-    tiers.length === 1 ? "md:grid-cols-1" : tiers.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3";
+    tiers.length === 1
+      ? "md:grid-cols-1"
+      : tiers.length === 2
+        ? "md:grid-cols-2"
+        : "md:grid-cols-2 xl:grid-cols-3";
 
   const grid = (
     <div className={`grid grid-cols-1 ${gridColsClass} gap-6 items-stretch`}>
