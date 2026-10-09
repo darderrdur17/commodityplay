@@ -287,6 +287,18 @@ export const landingContentSchema = z.object({
     eyebrow: z.string().min(1),
     title: z.string().min(1),
   }),
+  /**
+   * `.default(...)` keeps payloads saved BEFORE this group existed valid — without
+   * it, saving any other field on an old payload would fail validation here.
+   */
+  pricingCtaBand: z
+    .object({
+      eyebrow: z.string().min(1),
+      title: z.string().min(1),
+      description: z.string().min(1),
+      button: z.string().min(1),
+    })
+    .default(() => DEFAULT_LANDING_CONTENT.pricingCtaBand),
 }).transform((data) => {
   const legacy = data.membersStrip;
   const careerFallback = legacy ?? DEFAULT_LANDING_CONTENT.careerMembersStrip;

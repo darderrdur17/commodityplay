@@ -91,6 +91,7 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
   const caseStudySample = content.caseStudySample;
   const testimonials = content.testimonials;
   const sales = content.sales;
+  const pricingCtaBand = content.pricingCtaBand;
 
   return (
     <>
@@ -112,6 +113,7 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
           onOpenModal={() => setModalOpen(true)}
           onOpenContactModal={() => setContactOpen(true)}
           starterPackItems={starterPackItems}
+          pricingCtaBand={pricingCtaBand}
         />
       ) : (
         <>
@@ -257,7 +259,12 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
           <LandingPlaceholderSection id="coming-soon" />
 
           {/* Centered "choose a plan" band, mounted where pricing used to sit. */}
-          <PricingCtaBand />
+          <PricingCtaBand
+            eyebrow={pricingCtaBand.eyebrow}
+            title={pricingCtaBand.title}
+            description={pricingCtaBand.description}
+            button={pricingCtaBand.button}
+          />
 
           {/* Testimonials */}
           <section className="py-16 sm:py-24 page-container">

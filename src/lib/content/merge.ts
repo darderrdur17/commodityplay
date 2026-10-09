@@ -246,6 +246,25 @@ export function resolveMentorConnect(
   };
 }
 
+/**
+ * Shared "Plans & pricing" CTA band — fully CMS-editable.
+ *
+ * One band for both tracks, so there is no per-track split here. `cmsString`
+ * (not `??`) keeps an intentionally-cleared string rather than silently
+ * restoring the default.
+ */
+export function resolvePricingCtaBand(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["pricingCtaBand"]>
+): LandingContent["pricingCtaBand"] {
+  return {
+    eyebrow: cmsString(cms?.eyebrow, defaults.pricingCtaBand.eyebrow),
+    title: cmsString(cms?.title, defaults.pricingCtaBand.title),
+    description: cmsString(cms?.description, defaults.pricingCtaBand.description),
+    button: cmsString(cms?.button, defaults.pricingCtaBand.button),
+  };
+}
+
 /** Career track pricing — CMS edits (price, tiers, feature comparison) apply; code fills any missing tiers. */
 export function resolvePricing(
   defaults: LandingContent,
@@ -560,6 +579,7 @@ export function mergeLandingContent(
   merged.salesTestimonials = resolveSalesTestimonials(defaults, cms.salesTestimonials);
   merged.trackSelection = resolveTrackSelection(defaults, cms.trackSelection);
   merged.mentorConnect = resolveMentorConnect(defaults, cms.mentorConnect);
+  merged.pricingCtaBand = resolvePricingCtaBand(defaults, cms.pricingCtaBand);
   merged.career = resolveCareerContent(defaults, cms.career);
 
   merged.stats = resolveEditableList(defaults.stats, cms.stats);

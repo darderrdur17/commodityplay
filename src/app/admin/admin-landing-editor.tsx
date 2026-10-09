@@ -1969,6 +1969,45 @@ export function AdminLandingEditor({
           </>
         )}
       </Section>
+
+      <Section
+        title="Plans & Pricing Band (both landing pages)"
+        description="The centered band that invites visitors to /pricing. One set of words for both tracks."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Eyebrow">
+            <TextInput
+              value={content.pricingCtaBand.eyebrow}
+              onChange={(v) =>
+                patch("pricingCtaBand", { ...content.pricingCtaBand, eyebrow: v })
+              }
+            />
+          </Field>
+          <Field label="Button">
+            <TextInput
+              value={content.pricingCtaBand.button}
+              onChange={(v) =>
+                patch("pricingCtaBand", { ...content.pricingCtaBand, button: v })
+              }
+            />
+          </Field>
+        </div>
+        <Field label="Headline">
+          <TextInput
+            value={content.pricingCtaBand.title}
+            onChange={(v) => patch("pricingCtaBand", { ...content.pricingCtaBand, title: v })}
+          />
+        </Field>
+        <Field label="Description">
+          <TextInput
+            multiline
+            value={content.pricingCtaBand.description}
+            onChange={(v) =>
+              patch("pricingCtaBand", { ...content.pricingCtaBand, description: v })
+            }
+          />
+        </Field>
+      </Section>
     </div>
   );
 }

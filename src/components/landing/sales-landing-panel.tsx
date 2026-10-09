@@ -101,6 +101,11 @@ interface Props {
   onOpenContactModal: () => void;
   /** Live Starter Pack titles — one list with /starter-pack and the free-pack popup. */
   starterPackItems?: string[];
+  /**
+   * Shared "Plans & pricing" band copy. Top-level on LandingContent (one band for
+   * both tracks), so it does not arrive with `content`, which is the sales slice.
+   */
+  pricingCtaBand: LandingContent["pricingCtaBand"];
 }
 
 export function SalesLandingPanel({
@@ -110,6 +115,7 @@ export function SalesLandingPanel({
   edgeNote,
   onOpenContactModal,
   starterPackItems,
+  pricingCtaBand,
 }: Props) {
   const learnRef = useRef<HTMLElement>(null);
 
@@ -295,7 +301,12 @@ export function SalesLandingPanel({
       <LandingPlaceholderSection id="coming-soon" />
 
       {/* Centered "choose a plan" band, mounted where pricing used to sit. */}
-      <PricingCtaBand />
+      <PricingCtaBand
+        eyebrow={pricingCtaBand.eyebrow}
+        title={pricingCtaBand.title}
+        description={pricingCtaBand.description}
+        button={pricingCtaBand.button}
+      />
 
       {/* Free Starter Pack signup */}
       <section className="py-16 sm:py-20 page-container">
