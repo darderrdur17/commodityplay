@@ -44,7 +44,6 @@ export function AccountBillingSection({
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [term, setTerm] = useState<PlanTerm>("monthly");
-  const [cadence, setCadence] = useState<BillingCadence>("monthly");
 
   const statusTone = subscriptionStatusTone(stripeStatus);
   const isPastDue = stripeStatus === "past_due";
@@ -220,12 +219,13 @@ export function AccountBillingSection({
               tier={upgradePlan === "elite" ? "ELITE" : "PRO"}
               value={term}
               onChange={setTerm}
-              cadence={cadence}
-              onCadenceChange={setCadence}
             />
             <Button
               size="sm"
-              onClick={() => handleUpgrade(upgradePlan, term, cadence)}
+              // Cadence is DERIVED from the term: Annually always bills annually.
+              onClick={() =>
+                handleUpgrade(upgradePlan, term, term === "12" ? "annual" : "monthly")
+              }
               disabled={Boolean(loadingAction)}
             >
               {loadingAction === `upgrade-${upgradePlan}` ? (

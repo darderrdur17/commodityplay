@@ -1,24 +1,32 @@
 /**
  * Pricing — the SINGLE SOURCE OF TRUTH for every price the app displays.
  *
- * Four tiers x two terms. All amounts are USD, and every other price string in
- * the app is DERIVED from this file, so changing a price happens in exactly one
- * place. Before this, four independent constants advertised four different
- * numbers (SGD 59 / 99 / 99 / 199) while the checkout code charged a fifth —
- * a member could be billed a different amount than the page they clicked.
+ * Four tiers x two terms. All amounts are SGD and rendered as `S$`, and every
+ * other price string in the app is DERIVED from this file, so changing a price
+ * happens in exactly one place. Before this, four independent constants
+ * advertised four different numbers while the checkout code charged a fifth — a
+ * member could be billed a different amount than the page they clicked.
  *
  * ---------------------------------------------------------------------------
- * TERM ARITHMETIC — why the 12-month plan is cheaper per month
+ * TERM ARITHMETIC — the annual plan is a flat 15% off twelve months
  * ---------------------------------------------------------------------------
- *   monthly   pay 1  month,  get 1   month  -> full base rate
- *   12-month  pay 12 months, get 14  months -> 12/14 of base, per month
+ *   monthly   pay 1  month,  get 1  month   -> full base rate
+ *   annually  pay 12 months, get 12 months  -> base x 0.85 per month (15% off)
  *
- * `12/14` is exactly 1/7, so the 12-month plan is ALWAYS 14.29% off the monthly
- * rate. The term length is data here, not logic, so the product decision can be
- * revisited without touching this arithmetic.
+ * This REPLACED the old "pay 12 months, get 14 months" model. The annual plan no
+ * longer grants free months — the whole benefit is the 15% discount. The 60-day
+ * Stripe trial that used to deliver the two free months was removed from the
+ * checkout route at the same time: leaving it in would stack a 60-day discount on
+ * top of the 15% and contradict the displayed price.
  */
 
-export const CURRENCY = "USD" as const;
+export const CURRENCY = "SGD" as const;
+
+/** Rendered before every amount, with NO space: `S$19`, `S$16.15`. */
+export const CURRENCY_SYMBOL = "S$" as const;
+
+/** Flat discount applied to twelve months when billed annually. */
+export const ANNUAL_DISCOUNT_PERCENT = 15 as const;
 
 export type PlanTrack = "CAREER" | "SALES";
 export type PlanTier = "PRO" | "ELITE";
@@ -29,23 +37,25 @@ export type BillingCadence = "monthly" | "annual";
 export type PlanKey = `${PlanTrack}_${PlanTier}`;
 
 /**
- * Monthly list price, in whole USD, per tier.
+ * Monthly list price, in whole SGD, per tier.
  *
- * Note `SALES_PRO` (39) equals `CAREER_ELITE` (39) — deliberate, but it means the
- * tier can no longer be inferred from the amount charged. Always resolve the
- * tier from the price ID, never from a total.
+ * The old `SALES_PRO` === `CAREER_ELITE` collision (both 39) is gone, but the
+ * rule it forced still stands: always resolve the tier from the Stripe price ID,
+ * never from an amount — the amounts are ours to change and a total can never
+ * identify a plan on its own.
  */
-export const PLAN_BASE_USD: Record<PlanKey, number> = {
+export const PLAN_BASE_PRICE: Record<PlanKey, number> = {
   CAREER_PRO: 19,
-  CAREER_ELITE: 39,
+  CAREER_ELITE: 34,
   SALES_PRO: 39,
-  SALES_ELITE: 59,
+  SALES_ELITE: 56,
 };
 
 /**
- * The two purchasable terms. `accessMonths` is how long the member gets access;
- * `paidMonths` is how many months they are actually billed for. The free months
- * are the difference.
+ * The two purchasable terms. `paidMonths` is how many months the member is billed
+ * for; `accessMonths` is how long they get access. They are EQUAL for both terms:
+ * the annual plan buys exactly twelve months, discounted, with no free months.
+ * (They were 12/14 under the old "12 + 2 free" model.)
  */
 export const PLAN_TERMS: Record<
   PlanTerm,
@@ -58,78 +68,84 @@ export const PLAN_TERMS: Record<
     accessMonths: 1,
   },
   "12": {
-    label: "12 months + 2 free",
-    shortLabel: "12 + 2 free",
+    label: "Annually",
+    shortLabel: "Annually",
     paidMonths: 12,
-    accessMonths: 14,
+    accessMonths: 12,
   },
 };
 
 export const PLAN_TERM_ORDER: PlanTerm[] = ["monthly", "12"];
 
-/** Normalised monthly rate in USD, rounded to whole cents. */
+/** Normalised monthly rate in SGD, rounded to whole cents. */
 export function monthlyRateUsd(
   track: PlanTrack,
   tier: PlanTier,
   term: PlanTerm
 ): number {
-  const base = PLAN_BASE_USD[`${track}_${tier}`];
-  const { paidMonths, accessMonths } = PLAN_TERMS[term];
-  return Math.round(((base * paidMonths) / accessMonths) * 100) / 100;
+  const base = PLAN_BASE_PRICE[`${track}_${tier}`];
+  if (term === "monthly") return base;
+  return Math.round(base * (1 - ANNUAL_DISCOUNT_PERCENT / 100) * 100) / 100;
 }
 
-/** Total charged over a full term, in USD. */
+/** Total charged over a full term, in SGD. */
 export function termTotalUsd(
   track: PlanTrack,
   tier: PlanTier,
   term: PlanTerm
 ): number {
-  const base = PLAN_BASE_USD[`${track}_${tier}`];
-  const { paidMonths } = PLAN_TERMS[term];
-  return base * paidMonths;
+  const base = PLAN_BASE_PRICE[`${track}_${tier}`];
+  if (term === "monthly") return base;
+  return Math.round(base * 12 * (1 - ANNUAL_DISCOUNT_PERCENT / 100) * 100) / 100;
 }
 
 /**
- * Stripe coupon `amount_off`, in CENTS, for a long-term plan.
- *
- * Equal to exactly one seventh of the base price — `19.00 / 7 = 2.714…` -> 271.
- * `amount_off` is used rather than `percent_off` so the monthly charge lands on a
- * clean cent (16.29) instead of a rounded percentage.
+ * Dollars saved by paying for twelve months up front, versus twelve monthly
+ * payments. Equal to `base x 1.8` (twelve months x 15%).
+ * Career Pro: 19 x 12 = 228, minus 193.80 = 34.20.
  */
-export function termDiscountCents(track: PlanTrack, tier: PlanTier): number {
-  const base = PLAN_BASE_USD[`${track}_${tier}`];
-  return Math.round((base * 100) / 7);
+export function annualSavingAmount(track: PlanTrack, tier: PlanTier): number {
+  const base = PLAN_BASE_PRICE[`${track}_${tier}`];
+  return Math.round((base * 12 - termTotalUsd(track, tier, "12")) * 100) / 100;
 }
 
 /**
- * Discount of a term versus the monthly rate, as a whole percent, rounded DOWN.
- * monthly -> 0 ; "12" -> floor((1 - 12/14) * 100) = floor(14.2857) = 14.
- * Single source for the "Save 14%" line (PRD C5).
+ * Discount of a term versus paying monthly, as a whole percent.
+ * monthly -> 0 ; "12" -> 15. Single source for the "Save 15%" badge.
  */
 export function termSavingsPercent(term: PlanTerm): number {
-  const { paidMonths, accessMonths } = PLAN_TERMS[term];
-  if (paidMonths >= accessMonths) return 0;
-  return Math.floor((1 - paidMonths / accessMonths) * 100);
+  return term === "12" ? ANNUAL_DISCOUNT_PERCENT : 0;
 }
 
-/** `USD 19` / `USD 16.29` — whole amounts lose the trailing `.00`. */
+/** `S$19` / `S$16.15` — whole amounts lose the trailing `.00`. */
 export function priceLabel(amount: number): string {
-  return `${CURRENCY} ${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;
+  return `${CURRENCY_SYMBOL}${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;
 }
 
-/** `USD 19/month` — the canonical label used across the landing pages. */
+/** `S$19/month` — the canonical label used across the landing pages. */
 export function priceLabelPerMonth(amount: number): string {
   return `${priceLabel(amount)}/month`;
 }
 
-/** `$19.00` / `$16.29` — for prose and stat blocks. */
-export function formatUsd(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: CURRENCY,
+/** `S$193.80` / `S$228` — for prose and stat blocks. */
+export function formatMoney(amount: number): string {
+  return `${CURRENCY_SYMBOL}${new Intl.NumberFormat("en-SG", {
     minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(amount)}`;
+}
+
+/**
+ * Annual savings tooltip copy. The numbers are DERIVED, never hardcoded, so a
+ * price change can never leave this sentence advertising the old amount.
+ * Career Pro: "Compared to paying monthly. Your full annual price is S$193.80
+ * against S$228 with regular monthly payments."
+ */
+export function annualTooltip(track: PlanTrack, tier: PlanTier): string {
+  const base = PLAN_BASE_PRICE[`${track}_${tier}`];
+  return `Compared to paying monthly. Your full annual price is ${formatMoney(
+    termTotalUsd(track, tier, "12")
+  )} against ${formatMoney(base * 12)} with regular monthly payments.`;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -147,26 +163,26 @@ export function tierAccessLabel(requiredTier: "PRO" | "ELITE"): string {
 }
 
 /*
- * The four `*_SUBSCRIPTION` objects below are DERIVED from `PLAN_BASE_USD`.
+ * The four `*_SUBSCRIPTION` objects below are DERIVED from `PLAN_BASE_PRICE`.
  * Do not reintroduce a literal price here — that is exactly how the app ended up
  * advertising four different numbers.
  */
 
 export const PRO_SUBSCRIPTION = {
-  price: priceLabel(PLAN_BASE_USD.CAREER_PRO),
+  price: priceLabel(PLAN_BASE_PRICE.CAREER_PRO),
   period: "per month",
   note: "cancel anytime",
-  label: priceLabelPerMonth(PLAN_BASE_USD.CAREER_PRO),
+  label: priceLabelPerMonth(PLAN_BASE_PRICE.CAREER_PRO),
   fullNote: "Unlock the full playbook, resume templates, career roadmap, and more.",
   cta: UPGRADE_TO_ACCESS,
   unlockCta: UPGRADE_TO_ACCESS,
 } as const;
 
 export const ELITE_SUBSCRIPTION = {
-  price: priceLabel(PLAN_BASE_USD.CAREER_ELITE),
+  price: priceLabel(PLAN_BASE_PRICE.CAREER_ELITE),
   period: "per month",
   note: "cancel anytime",
-  label: priceLabelPerMonth(PLAN_BASE_USD.CAREER_ELITE),
+  label: priceLabelPerMonth(PLAN_BASE_PRICE.CAREER_ELITE),
   fullNote: "Unlock case studies, Mentor Connect, the Desk Channel, and job openings.",
   cta: UPGRADE_TO_ACCESS,
   unlockCta: UPGRADE_TO_ACCESS,
@@ -174,19 +190,41 @@ export const ELITE_SUBSCRIPTION = {
 
 /** Sales track subscription copy — landing sales panel */
 export const SALES_PRO_SUBSCRIPTION = {
-  price: priceLabel(PLAN_BASE_USD.SALES_PRO),
+  price: priceLabel(PLAN_BASE_PRICE.SALES_PRO),
   period: "per month",
-  label: priceLabelPerMonth(PLAN_BASE_USD.SALES_PRO),
-  fullNote: `${priceLabelPerMonth(PLAN_BASE_USD.SALES_PRO)} — cancel anytime`,
+  label: priceLabelPerMonth(PLAN_BASE_PRICE.SALES_PRO),
+  fullNote: `${priceLabelPerMonth(PLAN_BASE_PRICE.SALES_PRO)} — cancel anytime`,
   cta: "Get Pro",
 } as const;
 
 export const SALES_ELITE_SUBSCRIPTION = {
-  price: priceLabel(PLAN_BASE_USD.SALES_ELITE),
+  price: priceLabel(PLAN_BASE_PRICE.SALES_ELITE),
   period: "per month",
-  label: priceLabelPerMonth(PLAN_BASE_USD.SALES_ELITE),
-  fullNote: `${priceLabelPerMonth(PLAN_BASE_USD.SALES_ELITE)} — cancel anytime`,
+  label: priceLabelPerMonth(PLAN_BASE_PRICE.SALES_ELITE),
+  fullNote: `${priceLabelPerMonth(PLAN_BASE_PRICE.SALES_ELITE)} — cancel anytime`,
   cta: "Get Elite",
+} as const;
+
+/**
+ * The free tier's top panel on /pricing. This REPLACED the old dark "Simple
+ * pricing" hero: the free plan is no longer a column in the grid (see
+ * `toLandingTiers`), it is this panel, and its `Sign up` button opens the Starter
+ * Pack modal.
+ */
+export const PRICING_FREE_PANEL = {
+  title: "Free, until you're ready",
+  line1: "Look first at how all the markets are performing.",
+  line2: "Then leap into them on the platform used by 100 million traders.",
+  price: "S$0",
+  period: "forever",
+  cta: "Sign up",
+  note: "No credit card needed",
+} as const;
+
+/** Track heading above the plan grid — switches with the Career | Sales toggle. */
+export const PRICING_TRACK_HEADINGS = {
+  CAREER: "Plans for every level of Learner",
+  SALES: "Plans for every level of Sales ambition",
 } as const;
 
 /** Shared pricing copy — career and sales landing pages stay in sync */
