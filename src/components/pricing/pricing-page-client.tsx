@@ -10,8 +10,7 @@ import { ContactModal } from "@/components/landing/contact-modal";
 import { PricingTierGrid } from "@/components/pricing/pricing-tier-grid";
 import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
 import { TrackSwitcher } from "@/components/pricing/track-switcher";
-import { PricingComparisonTable } from "@/components/pricing/pricing-comparison-table";
-import { PRICING_HERO } from "@/data/pricing-shared";
+import { PRICING_CONTENT_FOOTNOTE, PRICING_HERO } from "@/data/pricing-shared";
 import type { BillingCadence, PlanTerm, PlanTrack } from "@/data/pricing-shared";
 import type { LandingContent, LandingTier } from "@/data/landing-content";
 import { CAREER_PRICING_PATH, SALES_PLAN_HREF, SALES_PRICING_PATH } from "@/lib/pricing-routes";
@@ -34,17 +33,6 @@ export interface PricingPageClientProps {
    */
   userTrack?: PlanTrack | null;
 }
-
-const CAREER_COLUMNS: Array<{ key: "starter" | "pro" | "elite"; label: string }> = [
-  { key: "starter", label: "Starter" },
-  { key: "pro", label: "Pro" },
-  { key: "elite", label: "Elite" },
-];
-
-const SALES_COLUMNS: Array<{ key: "starter" | "pro" | "elite"; label: string }> = [
-  { key: "pro", label: "Pro" },
-  { key: "elite", label: "Elite" },
-];
 
 /**
  * Adapter: render both tracks through the one `LandingTier` grid (design C-2).
@@ -147,7 +135,6 @@ export function PricingPageClient({
   const tiers = toLandingTiers(track, content);
   const comparisonGroups =
     track === "sales" ? content.sales.comparison.groups : content.pricing.comparison.groups;
-  const columns = track === "sales" ? SALES_COLUMNS : CAREER_COLUMNS;
 
   return (
     <div className="bg-white">
@@ -200,18 +187,12 @@ export function PricingPageClient({
           onStarterModal={() => setModalOpen(true)}
           onPurchase={handlePurchase}
           loadingPlan={loadingPlan}
+          comparisonGroups={comparisonGroups}
         />
-      </section>
-
-      {/* Feature comparison */}
-      <section className="pb-16 sm:pb-24 page-container">
-        <Reveal className="text-center mb-8 sm:mb-10">
-          <h2 className="font-serif text-[clamp(24px,3.5vw,36px)] font-bold tracking-tight text-gray-900">
-            Feature Comparison
-          </h2>
-          <p className="text-xs text-muted-fg mt-2 sm:hidden">Swipe to compare plans →</p>
-        </Reveal>
-        <PricingComparisonTable groups={comparisonGroups} columns={columns} tone="light" />
+        {/* Rendered once for the whole column row rather than inside every card. */}
+        <p className="text-xs italic text-muted-fg text-center mt-6">
+          {PRICING_CONTENT_FOOTNOTE}
+        </p>
       </section>
 
       <StarterPackModal

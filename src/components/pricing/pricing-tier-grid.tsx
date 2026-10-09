@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/animations";
@@ -13,7 +13,7 @@ import {
   termSavingsPercent,
 } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
-import type { LandingTier } from "@/data/landing-content";
+import type { FeatureComparisonGroup, LandingTier } from "@/data/landing-content";
 import type { BillingCadence, PlanTerm, PlanTier, PlanTrack } from "@/data/pricing-shared";
 import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
 
@@ -42,6 +42,15 @@ interface Props {
    * above the table drives every column instead (design C-4).
    */
   showTermSelector?: boolean;
+  /**
+   * TradingView-style plan columns. When supplied, each column replaces the tier's
+   * short bullet list with the FULL feature list, marking ✓ for a feature the tier
+   * includes and ✗ for one it does not. The tier's own `badge` ("starter" | "pro" |
+   * "elite") selects which flag on each comparison row to read.
+   *
+   * Omit it to keep the original short-bullet card.
+   */
+  comparisonGroups?: FeatureComparisonGroup[];
 }
 
 function TierCard({
@@ -56,6 +65,7 @@ function TierCard({
   cadence,
   onCadenceChange,
   showTermSelector,
+  comparisonGroups,
 }: {
   tier: LandingTier;
   variant: "landing" | "page";
@@ -68,6 +78,7 @@ function TierCard({
   cadence: BillingCadence;
   onCadenceChange: (cadence: BillingCadence) => void;
   showTermSelector: boolean;
+  comparisonGroups?: FeatureComparisonGroup[];
 }) {
   const isLanding = variant === "landing";
   const planId =
@@ -108,6 +119,35 @@ function TierCard({
    * the live site — the label computed to rgba(255,255,255,0.7).
    */
   const cardIsLight = isLanding === Boolean(tier.highlight);
+
+  /**
+   * TradingView-style plan column. When `comparisonGroups` is supplied the column
+   * shows the whole feature list — ✓ for what this tier includes, ✗ for what it
+   * does not — instead of the tier's own short bullets.
+   *
+   * Every column renders the SAME names in the SAME order at the same width, so the
+   * rows line up across columns without needing a shared grid. That is what removes
+   * the old left-hand label column (and with it the table look).
+   */
+  const featureRows: Array<{ name: string; included: boolean }> = comparisonGroups
+    ? comparisonGroups.flatMap((group) =>
+        group.items.map((item) => ({
+          name: item.name,
+          // `item.starter` is optional; sales rows carry only pro/elite.
+          included: Boolean(item[tier.badge]),
+        }))
+      )
+    : tier.features.map((name) => ({ name, included: true }));
+
+  /**
+   * Excluded rows are deliberately de-emphasised, but not below the point of
+   * legibility: `text-gray-500` on white still clears WCAG AA (4.8:1). An earlier
+   * `text-gray-400` read as almost invisible against the white card.
+   */
+  const includedIconClass = cardIsLight ? "text-green-500" : "text-green-400";
+  const excludedIconClass = cardIsLight ? "text-gray-400" : "text-white/40";
+  const includedTextClass = cardIsLight ? "text-gray-700" : "text-white/85";
+  const excludedTextClass = cardIsLight ? "text-gray-500" : "text-white/55";
 
   const cardInner = (
     <>
@@ -180,38 +220,22 @@ function TierCard({
           )}
         </div>
         <ul className="space-y-2.5">
-          {tier.features.map((f) => (
-            <li key={f} className="flex items-start gap-2.5 text-sm">
-              <Check
-                className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                  isLanding
-                    ? tier.highlight
-                      ? "text-primary-400"
-                      : "text-accent"
-                    : tier.highlight
-                      ? "text-accent"
-                      : tier.name === "Elite"
-                        ? "text-amber-500"
-                        : "text-green-500"
-                }`}
-              />
-              <span
-                className={
-                  isLanding
-                    ? tier.highlight
-                      ? "text-gray-700"
-                      : "text-white/85"
-                    : tier.highlight
-                      ? "text-white/85"
-                      : "text-gray-700"
-                }
-              >
-                {f}
+          {featureRows.map((row) => (
+            <li key={row.name} className="flex items-start gap-2.5 text-sm">
+              {row.included ? (
+                <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${includedIconClass}`} />
+              ) : (
+                <X className={`w-4 h-4 mt-0.5 flex-shrink-0 ${excludedIconClass}`} />
+              )}
+              <span className={row.included ? includedTextClass : excludedTextClass}>
+                {row.name}
               </span>
             </li>
           ))}
         </ul>
-        {isPaid && (
+        {/* The footnote is rendered once beneath the whole column row in this mode,
+            not repeated inside every card. */}
+        {isPaid && !comparisonGroups && (
           <p
             className={`text-xs italic mt-4 ${
               isLanding
@@ -343,6 +367,7 @@ export function PricingTierGrid({
   onTermChange,
   onCadenceChange,
   showTermSelector = true,
+  comparisonGroups,
 }: Props) {
   // One term for the whole grid: a member comparing Pro and Elite keeps the term they
   // picked when they move between cards. On `/pricing` the term/cadence are controlled
@@ -379,6 +404,7 @@ export function PricingTierGrid({
             cadence={cadence}
             onCadenceChange={setCadence}
             showTermSelector={showTermSelector}
+            comparisonGroups={comparisonGroups}
           />
         </Reveal>
       ))}
