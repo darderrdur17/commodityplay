@@ -32,6 +32,15 @@ export interface PricingPageClientProps {
    * sends.
    */
   userTrack?: PlanTrack | null;
+  /**
+   * True when the caller is on the `ADMIN_EMAILS` allowlist (resolved server-side
+   * via `requireSoleAdmin()`). Administrators are NOT pinned (R-1 exception): they
+   * may preview both tracks, because the rest of the admin surface already allows
+   * this. Their `User.track` is never modified, and on the track that is not their
+   * own the paid CTA is replaced by a note so no price is shown that the server
+   * will not charge. Non-admins keep the existing pin untouched.
+   */
+  isAdmin?: boolean;
 }
 
 /**
@@ -61,27 +70,52 @@ export function PricingPageClient({
   starterPackItems,
   starterPackHeadline,
   userTrack = null,
+  isAdmin = false,
 }: PricingPageClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
 
-  // R-1: a signed-in member is pinned to their own track; the other segment is
-  // disabled so they never see prices the server will not charge.
-  const lockedTrack: Track | null =
+  // The member's OWN track, derived from the session. Separate from the track they
+  // are allowed to VIEW: they differ only for an administrator.
+  const ownTrack: Track | null =
     userTrack === "SALES" ? "sales" : userTrack === "CAREER" ? "career" : null;
+
+  // R-1: a signed-in member is pinned to their own track; the other segment is
+  // disabled so they never see prices the server will not charge. Administrators
+  // are exempt — they preview both tracks (see `previewingOtherTrack` below).
+  const lockedTrack: Track | null = isAdmin ? null : ownTrack;
   const disabledTrack: PlanTrack | undefined =
     lockedTrack === "sales" ? "CAREER" : lockedTrack === "career" ? "SALES" : undefined;
 
-  const [track, setTrack] = useState<Track>(lockedTrack ?? "career");
+  // The initial view is always the member's OWN track — an admin whose account is
+  // on Sales still lands on Sales and can switch away from there.
+  const [track, setTrack] = useState<Track>(ownTrack ?? "career");
   const [term, setTerm] = useState<PlanTerm>("monthly");
   const [cadence, setCadence] = useState<BillingCadence>("monthly");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
 
+  // An administrator viewing a track that is NOT their own. On that track the paid
+  // CTAs are replaced by a note (below) and `handlePurchase` refuses — no code path
+  // may offer a price the server will not charge, since `/api/stripe/checkout` reads
+  // `User.track` from the DB.
+  const previewingOtherTrack = isAdmin && ownTrack !== null && track !== ownTrack;
+  const ownTrackLabel = ownTrack === "sales" ? "Sales" : ownTrack === "career" ? "Career" : null;
+  const adminNote =
+    isAdmin && ownTrackLabel
+      ? `Admin view — both tracks are shown. Purchases follow your account's own track (${ownTrackLabel}).`
+      : isAdmin
+        ? "Admin view — both tracks are shown."
+        : undefined;
+  const previewNotice = previewingOtherTrack
+    ? `Purchases follow your account's own track (${ownTrackLabel}).`
+    : undefined;
+
   // `?track=` drives the initial view for signed-out visitors; signed-in members
-  // stay pinned to their own track.
+  // stay pinned to their own track. Administrators are not pinned, so the param
+  // applies to them too.
   useEffect(() => {
     if (lockedTrack) return;
     const requested = searchParams.get("track");
@@ -107,6 +141,10 @@ export function PricingPageClient({
     selectedTerm: PlanTerm,
     selectedCadence: BillingCadence
   ) {
+    // Defence in depth: the CTA is already replaced by a note while previewing the
+    // other track, but a purchase must never start there — the server would charge
+    // the admin's own `User.track`, not the one on screen.
+    if (previewingOtherTrack) return;
     if (!isPaymentsLive()) {
       setContactOpen(true);
       return;
@@ -162,6 +200,7 @@ export function PricingPageClient({
             value={track === "sales" ? "SALES" : "CAREER"}
             onChange={(next) => setTrack(next === "SALES" ? "sales" : "career")}
             disabledTrack={disabledTrack}
+            note={adminNote}
           />
           <div className="w-full max-w-sm">
             <PlanTermSelector
@@ -188,6 +227,7 @@ export function PricingPageClient({
           onPurchase={handlePurchase}
           loadingPlan={loadingPlan}
           comparisonGroups={comparisonGroups}
+          previewNotice={previewNotice}
         />
         {/* Rendered once for the whole column row rather than inside every card. */}
         <p className="text-xs italic text-muted-fg text-center mt-6">
