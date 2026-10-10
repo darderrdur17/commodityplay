@@ -168,7 +168,7 @@ export const RESUME_VETTING_SECTION: ResumeVettingSection = (
   ],
   includedLabel: "Included in",
   includedNote:
-    "Pro Pack subscribers get 2 resume vetting reviews per year — included in your S$19/month subscription. Starter members can purchase additional reviews at S$49 per review.",
+    "Pro Pack subscribers get 2 resume vetting reviews per year — included in your USD 19/month subscription. Starter members can purchase additional reviews at SGD 49 per review.",
   formTitle: "Submit for Review",
   formSubtitle: "Pro members · 2 reviews included · 5 business day turnaround",
   labels: {

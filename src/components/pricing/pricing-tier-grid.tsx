@@ -171,7 +171,7 @@ function TierCard({
    * would have been advertised while Stripe charged the unchanged base amount.
    * Deriving it means the displayed price cannot drift from the charged one.
    *
-   * Career Pro: monthly -> S$19, annually -> S$16.15 (19 x 0.85).
+   * Career Pro: monthly -> USD 19, annually -> USD 16.15 (19 x 0.85).
    */
   const displayPrice =
     isPaid && planTier ? priceLabel(monthlyRate(track, planTier, term)) : tier.price;
