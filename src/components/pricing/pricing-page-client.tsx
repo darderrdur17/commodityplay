@@ -260,7 +260,8 @@ export function PricingPageClient({
           Everything here is the DARK palette (`tone="dark"`, `text-white`,
           `text-white/50`). The plan cards below keep their own track fills, which
           is why `PricingTierGrid` still renders them with the dark in-card
-          palette — cards and page are now the same surface. */}
+          palette — the cards are a slightly lighter dark than the page behind
+          them, so they still read as cards on the black backdrop. */}
       <section
         id="pricing"
         className={`${PAGE_SECTION_PY} scroll-mt-24`}
