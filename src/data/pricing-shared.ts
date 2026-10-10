@@ -1,7 +1,7 @@
 /**
  * Pricing — the SINGLE SOURCE OF TRUTH for every price the app displays.
  *
- * Four tiers x two terms. All amounts are USD and rendered as `USD`, and every
+ * Four tiers x two terms. All amounts are SGD and rendered as `S$`, and every
  * other price string in the app is DERIVED from this file, so changing a price
  * happens in exactly one place. Before this, four independent constants
  * advertised four different numbers while the checkout code charged a fifth — a
@@ -10,13 +10,15 @@
  * ---------------------------------------------------------------------------
  * ⚠️ THE CURRENCY HERE MUST MATCH WHAT STRIPE CHARGES
  * ---------------------------------------------------------------------------
- * These are the USD list prices behind the `STRIPE_PRICE_*` env vars — see
+ * These are the SGD list prices behind the `STRIPE_PRICE_*` env vars — see
  * `src/lib/stripe.ts` and `docs/deploy-to-vercel-guide.md`.
  *
- * They were briefly S$ (19 / 34 / 39 / 56) while Stripe still billed USD, which
- * made the page UNDER-quote the charge by ~34% monthly and ~57% annually. If the
- * Stripe prices ever move to another currency, this file moves WITH them in the
- * same change — the displayed price and the charged price are one decision.
+ * Read the history before touching this. The page spent a stretch quoting USD
+ * (19 / 39 / 39 / 59) while Stripe billed SGD, then briefly quoted S$ while
+ * Stripe still billed USD — each time under-quoting the charge by roughly a
+ * third. As of 10 Oct 2026 the Stripe prices are SGD and this file matches them.
+ * **If the Stripe prices ever move again, this file moves WITH them in the same
+ * change — the displayed price and the charged price are one decision.**
  *
  * ---------------------------------------------------------------------------
  * TERM ARITHMETIC — the annual plan is a flat 15% off twelve months
@@ -31,22 +33,24 @@
  * top of the 15% and contradict the displayed price.
  */
 
-export const CURRENCY = "USD" as const;
+export const CURRENCY = "SGD" as const;
 
 /**
- * Rendered before every amount. USD is an ISO code rather than a glyph, so it
- * needs a separator — see `CURRENCY_PREFIX`. A bare `$` is deliberately NOT used:
- * it reads as any of a dozen dollar currencies, and the receipts already say
- * `USD 19.00` (`formatStripeAmount` in `src/lib/email.ts`).
+ * Rendered before every amount, with NO space: `S$19`, `S$16.15`.
+ *
+ * `S$` rather than `SGD` because it is a glyph-style symbol the market reads at a
+ * glance. The USD form needed the opposite treatment — an ISO code with a space,
+ * `USD 19` — which is why the separator lives in `CURRENCY_PREFIX` below rather
+ * than being baked into a call site.
  */
-export const CURRENCY_SYMBOL = "USD" as const;
+export const CURRENCY_SYMBOL = "S$" as const;
 
 /**
- * `USD ` — the symbol plus the space a three-letter code needs, so amounts read
- * `USD 19` rather than `USD19`. Never hand-concatenate the symbol and an amount;
- * always go through `priceLabel()` / `formatMoney()`.
+ * The symbol plus whatever separator the currency needs — nothing at all for
+ * `S$`. Never hand-concatenate a symbol and an amount; always go through
+ * `priceLabel()` / `formatMoney()`.
  */
-const CURRENCY_PREFIX = `${CURRENCY_SYMBOL} `;
+const CURRENCY_PREFIX = CURRENCY_SYMBOL;
 
 /** Flat discount applied to twelve months when billed annually. */
 export const ANNUAL_DISCOUNT_PERCENT = 15 as const;
@@ -60,18 +64,18 @@ export type BillingCadence = "monthly" | "annual";
 export type PlanKey = `${PlanTrack}_${PlanTier}`;
 
 /**
- * Monthly list price, in whole USD, per tier.
+ * Monthly list price, in whole SGD, per tier.
  *
- * Note `SALES_PRO` (39) equals `CAREER_ELITE` (39) — deliberate, but it means the
- * tier can no longer be inferred from the amount charged. Always resolve the tier
- * from the Stripe price ID, never from a total: the amounts are ours to change and
- * a total can never identify a plan on its own.
+ * The OLD `SALES_PRO` === `CAREER_ELITE` collision (both 39) is gone in SGD (34
+ * vs 39), but the rule it forced still stands: always resolve the tier from the
+ * Stripe price ID, never from an amount — the amounts are ours to change and a
+ * total can never identify a plan on its own.
  */
 export const PLAN_BASE_PRICE: Record<PlanKey, number> = {
   CAREER_PRO: 19,
-  CAREER_ELITE: 39,
+  CAREER_ELITE: 34,
   SALES_PRO: 39,
-  SALES_ELITE: 59,
+  SALES_ELITE: 56,
 };
 
 /**
@@ -100,7 +104,7 @@ export const PLAN_TERMS: Record<
 
 export const PLAN_TERM_ORDER: PlanTerm[] = ["monthly", "12"];
 
-/** Normalised monthly rate in USD, rounded to whole cents. */
+/** Normalised monthly rate in SGD, rounded to whole cents. */
 export function monthlyRate(
   track: PlanTrack,
   tier: PlanTier,
@@ -111,7 +115,7 @@ export function monthlyRate(
   return Math.round(base * (1 - ANNUAL_DISCOUNT_PERCENT / 100) * 100) / 100;
 }
 
-/** Total charged over a full term, in USD. */
+/** Total charged over a full term, in SGD. */
 export function termTotal(
   track: PlanTrack,
   tier: PlanTier,
@@ -140,19 +144,19 @@ export function termSavingsPercent(term: PlanTerm): number {
   return term === "12" ? ANNUAL_DISCOUNT_PERCENT : 0;
 }
 
-/** `USD 19` / `USD 16.15` — whole amounts lose the trailing `.00`. */
+/** `S$19` / `S$16.15` — whole amounts lose the trailing `.00`. */
 export function priceLabel(amount: number): string {
   return `${CURRENCY_PREFIX}${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;
 }
 
-/** `USD 19/month` — the canonical label used across the landing pages. */
+/** `S$19/month` — the canonical label used across the landing pages. */
 export function priceLabelPerMonth(amount: number): string {
   return `${priceLabel(amount)}/month`;
 }
 
-/** `USD 193.80` / `USD 228` — for prose and stat blocks. */
+/** `S$193.80` / `S$228` — for prose and stat blocks. */
 export function formatMoney(amount: number): string {
-  return `${CURRENCY_PREFIX}${new Intl.NumberFormat("en-US", {
+  return `${CURRENCY_PREFIX}${new Intl.NumberFormat("en-SG", {
     minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
     maximumFractionDigits: 2,
   }).format(amount)}`;
@@ -161,8 +165,8 @@ export function formatMoney(amount: number): string {
 /**
  * Annual savings tooltip copy. The numbers are DERIVED, never hardcoded, so a
  * price change can never leave this sentence advertising the old amount.
- * Career Pro: "Compared to paying monthly. Your full annual price is USD 193.80
- * against USD 228 with regular monthly payments."
+ * Career Pro: "Compared to paying monthly. Your full annual price is S$193.80
+ * against S$228 with regular monthly payments."
  */
 export function annualTooltip(track: PlanTrack, tier: PlanTier): string {
   const base = PLAN_BASE_PRICE[`${track}_${tier}`];
@@ -234,8 +238,8 @@ export const SALES_ELITE_SUBSCRIPTION = {
  * `toLandingTiers`), it is this panel, and its `Sign up` button opens the Starter
  * Pack modal.
  *
- * The `$0` is a literal, not `priceLabel(0)`: a big `USD 0` reads like a bug,
- * and `$0` beside "forever" is the unambiguous free-plan idiom.
+ * The `$0` is a literal, not `priceLabel(0)`: a big `S$0` reads like a bug, and
+ * `$0` beside "forever" is the unambiguous free-plan idiom.
  */
 export const PRICING_FREE_PANEL = {
   title: "Free, until you're ready",

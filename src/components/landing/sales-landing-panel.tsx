@@ -238,6 +238,37 @@ export function SalesLandingPanel({
         features={content.trackTools.features}
       />
 
+      {/* The four sales-only detail sections sit immediately under the Sales
+          Intelligence strip, because that strip is the overview of the six tools
+          and the deep-dives belong right beneath it. They previously sat much
+          further down (after the ROI argument, where the pricing section used to
+          be) — moved here at the owner's request, 10 Oct 2026.
+
+          Order and mock side follow the design brief: Market Nudges and Account
+          Intelligence put the product panel on the left, Prep Library mirrors it
+          to the right, and the mint background alternates. */}
+      <TrackFeatureSection
+        id="sales-market-nudges"
+        feature={salesFeatures.marketNudges}
+        mock={<MarketNudgesMock />}
+        mockSide="left"
+      />
+      <TrackFeatureSection
+        id="prep-library"
+        feature={salesFeatures.prepLibrary}
+        mock={<PrepLibraryMock />}
+        mockSide="right"
+        tinted
+      />
+      <TrackFeatureSection
+        id="account-intelligence"
+        feature={salesFeatures.accountIntelligence}
+        mock={<AccountIntelligenceMock />}
+        mockSide="left"
+      />
+
+      <MentorConnectSection content={mentorSection} track="sales" />
+
       {/* Who this is for */}
       <section className="py-16 sm:py-24 page-container">
         <Reveal className="text-center mb-12 max-w-3xl mx-auto">
@@ -306,32 +337,6 @@ export function SalesLandingPanel({
           </div>
         </div>
       </section>
-
-      {/* Sales-only feature sections, mounted where the pricing section used to
-          sit. Order and mock side follow the design brief: Market Nudges and
-          Account Intelligence put the product panel on the left, Prep Library
-          mirrors it to the right, and the mint background alternates. */}
-      <TrackFeatureSection
-        id="sales-market-nudges"
-        feature={salesFeatures.marketNudges}
-        mock={<MarketNudgesMock />}
-        mockSide="left"
-      />
-      <TrackFeatureSection
-        id="prep-library"
-        feature={salesFeatures.prepLibrary}
-        mock={<PrepLibraryMock />}
-        mockSide="right"
-        tinted
-      />
-      <TrackFeatureSection
-        id="account-intelligence"
-        feature={salesFeatures.accountIntelligence}
-        mock={<AccountIntelligenceMock />}
-        mockSide="left"
-      />
-
-      <MentorConnectSection content={mentorSection} track="sales" />
 
       {/* Centered "choose a plan" band, mounted where pricing used to sit. */}
       <PricingCtaBand

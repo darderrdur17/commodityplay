@@ -616,13 +616,13 @@ function formatStripeAmount(amountCents: number, currency: string): string {
   const amount = amountCents / 100;
   const code = currency.toUpperCase();
   // Explicit branches for the currencies the site actually prices in, so receipts read
-  // exactly like the pricing page ("USD 19.00"). The Intl fallback below stays for any
+  // exactly like the pricing page ("S$19.00"). The Intl fallback below stays for any
   // other code — the en-SG locale renders SGD as "SGD 19.00" and USD as "US$19.00",
-  // neither of which matches the `USD ` form the pricing page uses.
+  // neither of which matches the `S$` form the pricing page uses.
   //
-  // This is why the page had to come back to USD: the receipt branch was ALREADY
-  // printing `USD 19.00` (it reads the currency off the Stripe invoice), so a page
-  // quoting `S$19` contradicted the very email it triggered.
+  // This function is the page/charge mismatch detector: it reads the currency off the
+  // Stripe invoice, so a receipt and a page quoting different currencies is proof the
+  // display and the Stripe prices have drifted apart.
   if (code === "SGD") {
     return `S$${amount.toFixed(2)}`;
   }
