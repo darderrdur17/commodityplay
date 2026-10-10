@@ -89,8 +89,8 @@ export const EMAIL_TEMPLATE_SAMPLES = {
   billing_receipt: {
     memberName: "Sample Member",
     invoiceNumber: "#SAMPLE-0001",
-    amountCents: 9900,
-    currency: "SGD",
+    amountCents: 1900,
+    currency: "USD",
     planLabel: "Pro (sample)",
     periodStart: new Date("2026-01-01T00:00:00.000Z"),
     periodEnd: new Date("2026-02-01T00:00:00.000Z"),
