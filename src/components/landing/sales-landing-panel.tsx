@@ -11,7 +11,13 @@ import { Reveal, StaggerChildren, StaggerItem } from "@/components/animations";
 import { SectionCategoryLabel } from "@/components/landing/section-category-label";
 import { MembersStrip } from "@/components/landing/members-strip";
 import { MarketNoteStrip } from "@/components/landing/market-note-strip";
-import { LandingPlaceholderSection } from "@/components/landing/landing-placeholder-section";
+import { TrackFeatureSection } from "@/components/landing/track-feature-section";
+import {
+  AccountIntelligenceMock,
+  MarketNudgesMock,
+  PrepLibraryMock,
+} from "@/components/landing/sales-feature-mocks";
+import { MentorConnectSection } from "@/components/landing/mentor-connect-section";
 import { PricingCtaBand } from "@/components/landing/pricing-cta-band";
 import { cn } from "@/lib/utils";
 import {
@@ -106,6 +112,10 @@ interface Props {
    * both tracks), so it does not arrive with `content`, which is the sales slice.
    */
   pricingCtaBand: LandingContent["pricingCtaBand"];
+  /** Sales-only feature sections (Market Nudges / Prep Library / Account Intelligence). */
+  salesFeatures: LandingContent["salesFeatures"];
+  /** Mentor Connect — shared words, sales palette. */
+  mentorSection: LandingContent["mentorSection"];
 }
 
 export function SalesLandingPanel({
@@ -116,6 +126,8 @@ export function SalesLandingPanel({
   onOpenContactModal,
   starterPackItems,
   pricingCtaBand,
+  salesFeatures,
+  mentorSection,
 }: Props) {
   const learnRef = useRef<HTMLElement>(null);
 
@@ -295,10 +307,31 @@ export function SalesLandingPanel({
         </div>
       </section>
 
-      {/* Sales pricing section removed (PR1 / T02) — Sales pricing now lives on
-          /pricing?track=sales. A clearly-marked placeholder stands in until the
-          next real landing section lands. */}
-      <LandingPlaceholderSection id="coming-soon" />
+      {/* Sales-only feature sections, mounted where the pricing section used to
+          sit. Order and mock side follow the design brief: Market Nudges and
+          Account Intelligence put the product panel on the left, Prep Library
+          mirrors it to the right, and the mint background alternates. */}
+      <TrackFeatureSection
+        id="sales-market-nudges"
+        feature={salesFeatures.marketNudges}
+        mock={<MarketNudgesMock />}
+        mockSide="left"
+      />
+      <TrackFeatureSection
+        id="prep-library"
+        feature={salesFeatures.prepLibrary}
+        mock={<PrepLibraryMock />}
+        mockSide="right"
+        tinted
+      />
+      <TrackFeatureSection
+        id="account-intelligence"
+        feature={salesFeatures.accountIntelligence}
+        mock={<AccountIntelligenceMock />}
+        mockSide="left"
+      />
+
+      <MentorConnectSection content={mentorSection} track="sales" />
 
       {/* Centered "choose a plan" band, mounted where pricing used to sit. */}
       <PricingCtaBand

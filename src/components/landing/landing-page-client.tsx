@@ -25,7 +25,7 @@ import { MembersStrip } from "@/components/landing/members-strip";
 import { ChapterAccordion } from "@/components/landing/chapter-accordion";
 import { CaseStudiesSection } from "@/components/landing/case-studies-section";
 import { MarketNoteStrip } from "@/components/landing/market-note-strip";
-import { LandingPlaceholderSection } from "@/components/landing/landing-placeholder-section";
+import { MentorConnectSection } from "@/components/landing/mentor-connect-section";
 import { PricingCtaBand } from "@/components/landing/pricing-cta-band";
 import {
   LANDING_HERO_TOP,
@@ -114,6 +114,8 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
           onOpenContactModal={() => setContactOpen(true)}
           starterPackItems={starterPackItems}
           pricingCtaBand={pricingCtaBand}
+          salesFeatures={content.salesFeatures}
+          mentorSection={content.mentorSection}
         />
       ) : (
         <>
@@ -253,10 +255,10 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
           <CaseStudiesSection content={caseStudySample} />
 
           {/* Pricing section removed (PR1 / T02) — pricing now lives on /pricing.
-              A clearly-marked placeholder stands in until the next real landing
-              section lands. The in-page #pricing anchor and its consumers all
-              point at /pricing now (see src/lib/pricing-routes.ts). */}
-          <LandingPlaceholderSection id="coming-soon" />
+              The old dashed placeholder is replaced by the real Mentor Connect
+              section. The in-page #pricing anchor and its consumers all point at
+              /pricing now (see src/lib/pricing-routes.ts). */}
+          <MentorConnectSection content={content.mentorSection} track="career" />
 
           {/* Centered "choose a plan" band, mounted where pricing used to sit. */}
           <PricingCtaBand

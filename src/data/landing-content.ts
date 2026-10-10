@@ -154,6 +154,70 @@ export interface LandingPricingCtaBand {
   button: string;
 }
 
+/** One "NOW / ACTION / TARGET"-style row in a track feature section. */
+export interface LandingFeaturePoint {
+  /** Short uppercase label rendered in the left gutter. */
+  label: string;
+  text: string;
+}
+
+/**
+ * A two-column track feature section — Sales Market Nudges, Prep Library and
+ * Account Intelligence.
+ *
+ * The **mock panel** beside the copy is illustrative product content (dates,
+ * example accounts, sample nudges). It lives in `sales-feature-mocks.ts` rather
+ * than the CMS: it mirrors real product screens, so the words here are the
+ * editable ones and the mock is a picture of the product.
+ */
+export interface LandingTrackFeature {
+  eyebrow: string;
+  headline: string;
+  lede: string;
+  points: LandingFeaturePoint[];
+}
+
+/** One numbered step in the Mentor Connect "how it works" list. */
+export interface LandingMentorStep {
+  num: string;
+  title: string;
+  body: string;
+}
+
+/** A mentor shown in the interactive demo roster. */
+export interface LandingMentor {
+  id: string;
+  years: number;
+  title: string;
+  category: string;
+  bio: string;
+}
+
+/**
+ * "Mentor Connect — Ask the desk. Stay anonymous."
+ *
+ * One set of words for BOTH landing pages (career and sales); only the accent
+ * colour differs, driven by the component's `track` prop. Deliberately separate
+ * from `mentorConnect`, which is the `/mentor-connect` page hero fallback.
+ */
+export interface LandingMentorSection {
+  eyebrow: string;
+  headline: string;
+  lede: string;
+  steps: LandingMentorStep[];
+  primaryCta: string;
+  secondaryCta: string;
+  demoHint: string;
+  demoFoot: string;
+  rosterTitle: string;
+  rosterSub: string;
+  rosterNote: string;
+  creditPill: string;
+  sampleQuestion: string;
+  sampleAnswer: string;
+  mentors: LandingMentor[];
+}
+
 export interface TrackSelectionTrackCopy {
   title: string;
   caption: string;
@@ -277,6 +341,14 @@ export interface LandingContent {
   mentorConnect: LandingMentorConnect;
   /** Shared "Plans & pricing" CTA band — same words on both landing pages. */
   pricingCtaBand: LandingPricingCtaBand;
+  /** Sales-track tool sections shown on the sales landing, above the pricing band. */
+  salesFeatures: {
+    marketNudges: LandingTrackFeature;
+    prepLibrary: LandingTrackFeature;
+    accountIntelligence: LandingTrackFeature;
+  };
+  /** Shared Mentor Connect section — same words on both landing pages. */
+  mentorSection: LandingMentorSection;
   trackSelection: TrackSelectionContent;
 }
 
@@ -810,6 +882,96 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
     title: PRICING_CTA_BAND.title,
     description: PRICING_CTA_BAND.description,
     button: PRICING_CTA_BAND.button,
+  },
+  salesFeatures: {
+    marketNudges: {
+      eyebrow: "Sales Market Nudges",
+      headline: "Know what moved before you dial.",
+      lede: "Practitioner-framed market briefs, refreshed weekly, plus a nudge whenever a move touches one of your tracked accounts.",
+      points: [
+        { label: "Now", text: "What moved, in two lines, and why it matters." },
+        { label: "Action", text: "The conversation to open with this week." },
+        { label: "Target", text: "Which account types to call first." },
+      ],
+    },
+    prepLibrary: {
+      eyebrow: "Prep Library",
+      headline: "Walk in with a point of view.",
+      lede: "A private, growing set of market topics you can bring into a client conversation with confidence, ready to pull up before your next meeting.",
+      points: [
+        { label: "Save", text: "Keep topics from what you read, or add your own." },
+        { label: "Sort", text: "Tag by category and who you can use it for." },
+        { label: "Link", text: "Attach any topic to an account you track." },
+      ],
+    },
+    accountIntelligence: {
+      eyebrow: "Account Intelligence",
+      headline: "Your tracked accounts, with bookmarked topics.",
+      lede: "Add the accounts you cover, then link talking points from Prep Library or Sales Market Nudges. Everything you linked shows up here, in one place.",
+      points: [
+        { label: "Add", text: "Create a desk for each account you track." },
+        { label: "Link", text: "Pin nudges and prep topics to the right account." },
+        { label: "Prep", text: "Open one account and see every point you saved for it." },
+      ],
+    },
+  },
+  mentorSection: {
+    eyebrow: "Mentor Connect",
+    headline: "Ask the desk. Stay anonymous.",
+    lede: "Put one specific question to a working practitioner and get the answer only they can give, framed the way the desk actually thinks about the problem.",
+    steps: [
+      {
+        num: "01",
+        title: "Pick a mentor",
+        body: "Browse practitioners by function and years on the desk.",
+      },
+      {
+        num: "02",
+        title: "Ask one specific question",
+        body: "Give context, name the commodity or function. Each question uses 1 credit once sent.",
+      },
+      {
+        num: "03",
+        title: "Choose whether to share it",
+        body: "With your consent, and your mentor's, a Q&A can be published anonymously on Desk Channel after admin review.",
+      },
+    ],
+    primaryCta: "See demo",
+    secondaryCta: "Included in Pro and Elite",
+    demoHint: "Try it — pick a mentor",
+    demoFoot: "Interactive preview. Nothing you type here is sent anywhere.",
+    rosterTitle: "Choose a mentor",
+    rosterSub: "Practitioners by function and years on the desk",
+    rosterNote:
+      "Questions are asked anonymously. Pick the mentor closest to the problem you are preparing for.",
+    creditPill: "1 credit per question",
+    sampleQuestion:
+      "A refiner's buyer says they're hedged into Q4. What should I ask next to keep the conversation useful?",
+    sampleAnswer:
+      "\u201cHedged\u201d usually means flat price. Differentials and timing are often still open. Ask which grades and pricing windows are covered and how much of their freight is fixed versus floating. That tells you where they still have a decision to make.",
+    mentors: [
+      {
+        id: "PT-01",
+        years: 25,
+        title: "Crude Oil Trader — Ex-Supermajor",
+        category: "Physical & Paper Trading Markets",
+        bio: "Eighteen years on a global crude desk. Spent half that time on the Med/West African arbitrage book, the rest on US Gulf exports.",
+      },
+      {
+        id: "SL-01",
+        years: 20,
+        title: "Tanker Chartering Manager — Ex-Trading House",
+        category: "Shipping & Logistics",
+        bio: "Fifteen years fixing tankers across clean and dirty trades, from voyage economics to demurrage disputes.",
+      },
+      {
+        id: "RM-01",
+        years: 15,
+        title: "Market Risk Lead — Ex-Energy Major",
+        category: "Risk Management",
+        bio: "Built and ran position-limit and VaR frameworks for a multi-commodity trading book.",
+      },
+    ],
   },
   trackSelection: {
     career: { ...TRACK_SELECTION.career },
