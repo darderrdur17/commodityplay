@@ -135,7 +135,25 @@ export async function POST(req: NextRequest) {
       customer_update: { address: "auto", name: "auto" },
       // Now for every plan, not just Elite: every plan is recurring.
       saved_payment_method_options: { payment_method_save: "enabled" },
-      payment_method_types: ["card"],
+      // 🔴 `payment_method_types` is deliberately NOT set — do not add it back.
+      //
+      // Pinning it to `["card"]` turned OFF Stripe's dynamic payment methods, which is
+      // the only thing that surfaces Link and the local methods and lets Stripe order
+      // the wallets per customer. Apple Pay / Google Pay are NOT valid values here —
+      // they are wallet variants of `card`, so `["card"]` never excluded them and can
+      // never be used to add them. On hosted Checkout Stripe does the device/browser
+      // detection itself and needs no domain registration.
+      //
+      // Omitting the parameter hands the choice to the Dashboard, which is what Stripe
+      // recommends ("we recommend that you manage payment methods from the Dashboard").
+      // Stripe still filters by `mode: "subscription"` and by `setup_future_usage`, so a
+      // method that cannot be saved for a recurring plan is excluded automatically.
+      //
+      // It would also be REQUIRED to omit it if Managed Payments were ever enabled —
+      // Stripe lists `payment_method_types` as an unsupported parameter for Managed
+      // Payments Checkout Sessions and says to remove it. (Note: we set the Basil API
+      // version below but never send `managed_payments[enabled]`, so these are ordinary
+      // Checkout Sessions today.)
     }, {
       // Managed Payments requires API version 2025-03-31.basil or later for Checkout
       // Session creation. Deliberately a PER-REQUEST option: the shared getStripe()
