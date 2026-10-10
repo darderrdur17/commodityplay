@@ -2,6 +2,7 @@ import { TRACK_SELECTION } from "@/data/track-selection";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   PLAN_BASE_PRICE,
+  PRICING_CTA_BAND,
   formatMoney,
   monthlyRate,
   priceLabel,
@@ -138,6 +139,21 @@ export interface LandingMentorConnect {
   title: string;
 }
 
+/**
+ * Centered "Plans & pricing" band on the two landing pages.
+ *
+ * Shared by BOTH tracks — it is one band with one set of words, not a per-track
+ * pair, because the copy itself speaks about both tracks ("Compare Career and
+ * Sales tracks side by side"). Defaults are seeded from `PRICING_CTA_BAND` so
+ * the band keeps a single source of truth with the rest of the pricing copy.
+ */
+export interface LandingPricingCtaBand {
+  eyebrow: string;
+  title: string;
+  description: string;
+  button: string;
+}
+
 export interface TrackSelectionTrackCopy {
   title: string;
   caption: string;
@@ -259,6 +275,8 @@ export interface LandingContent {
   testimonials: LandingTestimonials;
   salesTestimonials: LandingTestimonials;
   mentorConnect: LandingMentorConnect;
+  /** Shared "Plans & pricing" CTA band — same words on both landing pages. */
+  pricingCtaBand: LandingPricingCtaBand;
   trackSelection: TrackSelectionContent;
 }
 
@@ -786,6 +804,12 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
   mentorConnect: {
     eyebrow: "Elite Access",
     title: "Mentor Connect",
+  },
+  pricingCtaBand: {
+    eyebrow: PRICING_CTA_BAND.eyebrow,
+    title: PRICING_CTA_BAND.title,
+    description: PRICING_CTA_BAND.description,
+    button: PRICING_CTA_BAND.button,
   },
   trackSelection: {
     career: { ...TRACK_SELECTION.career },
