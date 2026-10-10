@@ -118,6 +118,18 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${roboto.variable}`}>
       <body className="font-sans antialiased bg-white text-gray-800 min-h-screen flex flex-col overflow-x-hidden">
+        {/*
+          No-JS fallback. The scroll-reveal wrappers (`Reveal`, `StaggerItem` in
+          components/animations.tsx) render framer-motion's `initial="hidden"` as an
+          inline `opacity:0;transform:translateY(…)`, and only become visible once
+          JS hydrates and the IntersectionObserver fires. With scripting unavailable
+          they would stay invisible forever — which on `/pricing` hides the entire
+          Pro/Elite grid, leaving only the free plan. Every inline `opacity:0` in the
+          SSR output is one of those wrappers, so this is precisely scoped to them.
+        */}
+        <noscript>
+          <style>{`[style*="opacity:0"]{opacity:1!important;transform:none!important}`}</style>
+        </noscript>
         <SessionProvider>
           <SiteChrome nav={<Nav />} footer={<FooterWrapper />}>
             {children}
