@@ -14,10 +14,18 @@ export interface TrackSwitcherProps {
    */
   disabledTrack?: PlanTrack;
   /**
-   * Overrides the note derived from `disabledTrack`. `/pricing` uses it to explain
-   * the administrator preview: an admin is NOT pinned (R-1 exception), so both
-   * segments stay enabled and the derived pin note would be wrong. Non-admins are
-   * unaffected — they omit this and keep the derived note.
+   * Overrides the note derived from `disabledTrack`.
+   *
+   * ⚠️ Currently UNUSED — no caller passes it, and that is deliberate. It existed
+   * for `/pricing`'s administrator preview ("Admin view — both tracks are shown…"),
+   * which the owner asked to remove; an admin is never pinned, so `disabledTrack`
+   * is undefined for them and the derived note is null too. The prop is kept rather
+   * than deleted because the control is designed to sit on other surfaces, and an
+   * override is the natural way to explain a locked segment there.
+   *
+   * It must NOT be used to suppress the DERIVED note: that one is shown to a
+   * signed-in member pinned to their own track and is the only explanation for why
+   * the other segment is disabled.
    */
   note?: string;
   /**
