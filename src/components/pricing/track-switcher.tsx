@@ -21,10 +21,10 @@ export interface TrackSwitcherProps {
    */
   note?: string;
   /**
-   * Palette for the surface this sits on. `/pricing` renders it inside the dark
-   * track-themed section, where the light palette's `text-muted-fg` note and
-   * inactive label fall below WCAG AA against `#050b1d` / `#04130f`. Defaults to
-   * `"light"` so every other consumer is byte-identical.
+   * Palette for the surface this sits on. `/pricing` is the only consumer and now
+   * renders it on the light page, so it passes `"light"`; the `"dark"` branch is
+   * kept because the control is designed to sit on either surface and the note /
+   * inactive-label colours are the only thing that changes. Defaults to `"light"`.
    */
   tone?: "light" | "dark";
   className?: string;
@@ -36,9 +36,45 @@ const TRACKS: ReadonlyArray<{ key: PlanTrack; label: string }> = [
 ];
 
 /**
- * Segmented `Career | Sales` control for the /pricing page — built on the same
- * palette as `PlanTermSelector` so the two sit together cleanly. `tone` picks the
- * light or dark palette; the default keeps every existing consumer unchanged.
+ * The selected segment's fill, one per track — the owner's brief was "blue for
+ * Career, green for Sales". These are the SAME two accents the plan cards below
+ * already use (`#2e7bfe` on the Career cards, `#2fbf8f` on the Sales cards), so
+ * the toggle reads as part of the same page rather than a detached control.
+ *
+ * The gradient is vertical (lighter at the top) because that is what sells the
+ * emboss: light from above, shadow below.
+ */
+const ACTIVE_FILL: Record<PlanTrack, string> = {
+  CAREER: "bg-gradient-to-b from-[#5a9bff] to-[#0b45e0]",
+  SALES: "bg-gradient-to-b from-[#43d6a0] to-[#14805f]",
+};
+
+/**
+ * The embossed treatment for a selected segment: a light inner highlight along
+ * the top edge, a hard 2px bottom edge that reads as physical thickness, and a
+ * soft drop shadow beneath. Together they lift the segment off the track.
+ */
+const EMBOSSED_ACTIVE =
+  "shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_2px_0_rgba(15,23,42,0.28),0_6px_16px_rgba(15,23,42,0.22)]";
+
+/**
+ * The matching treatment for an UNSELECTED segment: pressed into the track
+ * instead of raised — a soft inner shadow and no drop shadow. The pair is what
+ * makes the control read as embossed rather than as two flat chips.
+ */
+const EMBOSSED_IDLE = "shadow-[inset_0_2px_4px_rgba(15,23,42,0.10)]";
+
+/**
+ * Segmented `Career | Sales` control for the /pricing page.
+ *
+ * Each segment is a raised button; the selected one is filled in its own track
+ * colour (blue Career, green Sales) and lifted, the other is recessed into the
+ * track. Sizes are deliberately generous — the brief was "make the toggle
+ * buttons bigger" — so the hit targets are ~44px tall even before the padding
+ * step, which clears the 24px minimum comfortably.
+ *
+ * `tone` only affects the note and the idle label colour; the selected fill is
+ * track-coloured on either surface.
  */
 export function TrackSwitcher({
   value,
@@ -58,11 +94,16 @@ export function TrackSwitcher({
   const resolvedNote = note ?? derivedNote;
 
   return (
-    <div className={cn("flex flex-col items-center gap-2", className)}>
+    <div className={cn("flex flex-col items-center gap-2.5", className)}>
       <div
         role="radiogroup"
         aria-label="Pricing track"
-        className={cn("inline-grid grid-cols-2 gap-1 rounded-lg p-1", dark ? "bg-white/10" : "bg-secondary")}
+        className={cn(
+          "inline-grid grid-cols-2 gap-2 rounded-2xl p-2",
+          dark
+            ? "bg-white/10 shadow-[inset_0_2px_6px_rgba(0,0,0,0.35)]"
+            : "bg-secondary shadow-[inset_0_2px_6px_rgba(15,23,42,0.10)]"
+        )}
       >
         {TRACKS.map((t) => {
           const active = t.key === value;
@@ -78,16 +119,19 @@ export function TrackSwitcher({
                 if (!disabled) onChange(t.key);
               }}
               className={cn(
-                "rounded-md px-5 py-1.5 text-sm font-semibold leading-tight transition-colors",
+                "min-w-[112px] rounded-xl px-6 py-3 text-base font-bold leading-tight transition-all sm:min-w-[140px] sm:px-9 sm:py-3.5",
                 active
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : dark
-                    ? "text-white/70 hover:text-white"
-                    : "text-muted-fg hover:text-gray-900",
+                  ? cn("text-white", ACTIVE_FILL[t.key], EMBOSSED_ACTIVE)
+                  : cn(
+                      EMBOSSED_IDLE,
+                      dark ? "text-white/70 hover:text-white" : "text-muted-fg hover:text-gray-900"
+                    ),
+                !active && "active:translate-y-px",
                 disabled &&
-                  (dark
-                    ? "cursor-not-allowed opacity-40 hover:text-white/70"
-                    : "cursor-not-allowed opacity-40 hover:text-muted-fg")
+                  cn(
+                    "cursor-not-allowed opacity-40",
+                    dark ? "hover:text-white/70" : "hover:text-muted-fg"
+                  )
               )}
             >
               {t.label}

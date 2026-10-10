@@ -254,7 +254,7 @@ function TierCard({
               line is now derived (not CMS-editable), but the stacking stays so the
               layout cannot drift again. */}
           <div
-            className={`font-serif text-3xl sm:text-4xl font-bold ${
+            className={`font-serif text-5xl font-bold tracking-tight ${
               cardIsLight ? "text-gray-900" : "text-white"
             }`}
           >
@@ -263,9 +263,11 @@ function TierCard({
           {/* Reserved in every column — including the free tier, whose "forever"
               is intentionally not shown — so the price block is the same height
               everywhere. The line is DERIVED from the term, never the CMS
-              `tier.billing`, so the words and the term can never disagree. */}
+              `tier.billing`, so the words and the term can never disagree.
+              `min-h` tracks the type size below it: a line box that is shorter
+              than the text is exactly the 2px-of-drift bug this guards against. */}
           <div
-            className={`mt-1 min-h-[20px] text-sm ${
+            className={`mt-1 min-h-[24px] text-base sm:min-h-[28px] sm:text-lg ${
               cardIsLight ? "text-muted-fg" : "text-white/60"
             }`}
           >
@@ -297,11 +299,11 @@ function TierCard({
         </div>
         <ul className="space-y-2 sm:space-y-2.5">
           {featureRows.map((row) => (
-            <li key={row.name} className="flex items-start gap-2.5 text-sm">
+            <li key={row.name} className="flex items-start gap-2.5 text-base sm:text-lg">
               {row.included ? (
-                <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${includedIconClass}`} />
+                <Check className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 ${includedIconClass}`} />
               ) : (
-                <X className={`w-4 h-4 mt-0.5 flex-shrink-0 ${excludedIconClass}`} />
+                <X className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 ${excludedIconClass}`} />
               )}
               <span className={row.included ? includedTextClass : excludedTextClass}>
                 {row.name}
