@@ -56,15 +56,21 @@ export function MentorDemoCard({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const askRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const rosterHeadingRef = useRef<HTMLParagraphElement>(null);
+  const previousViewRef = useRef<View>("roster");
 
   const mentor = content.mentors[mentorIndex];
   const trimmed = text.trim();
   const canSend = trimmed.length >= MIN_QUESTION;
 
   // Return focus to the roster when the form closes, so keyboard users are not
-  // dropped back at the top of the document.
+  // dropped back at the top of the document. Skipped on the first render: `view`
+  // starts as "roster", and focusing on load would scroll the card into view and
+  // silently teleport keyboard / screen-reader users into it with no context.
   useEffect(() => {
-    if (view === "roster") rosterHeadingRef.current?.focus();
+    const previousView = previousViewRef.current;
+    previousViewRef.current = view;
+    if (previousView === "roster" || view !== "roster") return;
+    rosterHeadingRef.current?.focus({ preventScroll: true });
   }, [view]);
 
   function openForm(index: number) {
