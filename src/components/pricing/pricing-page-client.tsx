@@ -137,12 +137,18 @@ export function PricingPageClient({
   // `User.track` from the DB.
   const previewingOtherTrack = isAdmin && ownTrack !== null && track !== ownTrack;
   const ownTrackLabel = ownTrack === "sales" ? "Sales" : ownTrack === "career" ? "Career" : null;
-  const adminNote =
-    isAdmin && ownTrackLabel
-      ? `Admin view — both tracks are shown. Purchases follow your account's own track (${ownTrackLabel}).`
-      : isAdmin
-        ? "Admin view — both tracks are shown."
-        : undefined;
+  // ⚠️ There is deliberately NO admin note under the track toggle. It used to read
+  // "Admin view — both tracks are shown. Purchases follow your account's own track
+  // (Sales).", which the owner asked to remove. Nothing is lost by dropping it:
+  // the per-card `previewNotice` below already says "Purchases follow your
+  // account's own track (…)" on the track that is not the admin's own, which is
+  // the only place the warning actually applies.
+  //
+  // The `TrackSwitcher` still derives its OWN note from `disabledTrack`, and that
+  // one must stay: it is shown to a signed-in member pinned to their own track and
+  // is the only explanation for why the other segment is greyed out. An admin is
+  // never pinned (`lockedTrack` is null above), so `disabledTrack` is undefined for
+  // them and they now see no note at all.
   const previewNotice = previewingOtherTrack
     ? `Purchases follow your account's own track (${ownTrackLabel}).`
     : undefined;
@@ -278,7 +284,6 @@ export function PricingPageClient({
               value={track === "sales" ? "SALES" : "CAREER"}
               onChange={(next) => setTrack(next === "SALES" ? "sales" : "career")}
               disabledTrack={disabledTrack}
-              note={adminNote}
               tone="dark"
             />
             {/* Same clamp as the free-plan `h1` above — the two section headings are

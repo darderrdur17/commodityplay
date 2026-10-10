@@ -191,6 +191,18 @@ function TierCard({
     isPaid && planTier ? priceLabel(monthlyRate(track, planTier, term)) : tier.price;
 
   /**
+   * The `/ mo` qualifier printed beside the price on every PAID card.
+   *
+   * A bare `S$19` reads as a one-off charge — the owner's note was that the prices
+   * "are missing / mo". It matters most on the ANNUAL term, where the figure is the
+   * effective monthly rate (S$16.15) and not the amount collected, so without the
+   * suffix "S$16.15 / billed annually" reads as though a year costs S$16.15.
+   *
+   * The free tier keeps `tier.price` ("Free") untouched — "Free / mo" is nonsense.
+   */
+  const showMonthlySuffix = isPaid && planTier !== null;
+
+  /**
    * Whether the card paints a LIGHT (white) surface, which decides the text/icon
    * palette. Only the LANDING featured card is light; on /pricing every column is
    * now a dark track-themed card, so this is false throughout the page variant.
@@ -254,11 +266,24 @@ function TierCard({
               line is now derived (not CMS-editable), but the stacking stays so the
               layout cannot drift again. */}
           <div
-            className={`font-serif text-5xl font-bold tracking-tight ${
+            className={`flex items-baseline gap-2 font-serif text-5xl font-bold tracking-tight ${
               cardIsLight ? "text-gray-900" : "text-white"
             }`}
           >
-            {displayPrice}
+            <span>{displayPrice}</span>
+            {/* The suffix is deliberately smaller and sans-serif, mirroring the
+                free-plan panel above (`$0` + a small `per month`). Kept on the same
+                baseline so the price block's height — which every column reserves —
+                is unchanged by its presence. */}
+            {showMonthlySuffix && (
+              <span
+                className={`font-sans text-base font-semibold tracking-normal sm:text-lg ${
+                  cardIsLight ? "text-muted-fg" : "text-white/60"
+                }`}
+              >
+                / mo
+              </span>
+            )}
           </div>
           {/* Reserved in every column — including the free tier, whose "forever"
               is intentionally not shown — so the price block is the same height
