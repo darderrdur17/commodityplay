@@ -1,9 +1,9 @@
 import { TRACK_SELECTION } from "@/data/track-selection";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
-  PLAN_BASE_USD,
-  formatUsd,
-  monthlyRateUsd,
+  PLAN_BASE_PRICE,
+  formatMoney,
+  monthlyRate,
   priceLabel,
 } from "@/data/pricing-shared";
 
@@ -285,10 +285,10 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
   },
   {
     name: "Pro",
-    price: priceLabel(PLAN_BASE_USD.CAREER_PRO),
+    price: priceLabel(PLAN_BASE_PRICE.CAREER_PRO),
     billing: "per month · cancel anytime",
     badge: "pro",
-    highlight: true,
+    highlight: false,
     tooltip: "For professionals and learners going deeper into how commodity markets work.",
     description: "For professionals and learners going deeper into how commodity markets work.",
     features: [
@@ -301,15 +301,15 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
       "Resume Vetting (up to twice a year)",
       "Career Navigation Guide — move across the industry with confidence",
     ],
-    cta: "Get Started",
+    cta: "Start now",
     href: CAREER_PLAN_HREF("pro"),
   },
   {
     name: "Elite",
-    price: priceLabel(PLAN_BASE_USD.CAREER_ELITE),
+    price: priceLabel(PLAN_BASE_PRICE.CAREER_ELITE),
     billing: "per month · cancel anytime",
     badge: "elite",
-    highlight: false,
+    highlight: true,
     tooltip: "For long-term serious learners with long-term downstream careers.",
     description: "For long-term serious learners with long-term downstream careers.",
     features: [
@@ -319,7 +319,7 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
       "Anonymous Mentor Connect",
       "Market Job Openings Tracker (tailored to persona)",
     ],
-    cta: "Get Started",
+    cta: "Start now",
     href: CAREER_PLAN_HREF("elite"),
   },
 ];
@@ -328,7 +328,7 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
 const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
   {
     name: "Pro",
-    price: priceLabel(PLAN_BASE_USD.SALES_PRO),
+    price: priceLabel(PLAN_BASE_PRICE.SALES_PRO),
     billing: "per month",
     description: "The toolkit for selling smarter into commodity trading space.",
     features: [
@@ -338,13 +338,13 @@ const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
       "Sales Guide - key industry areas to look out for when selling",
       "Weekly Sales Edge Note - highlight interesting market happenings to note from sales perspectives",
     ],
-    cta: "Get Started",
+    cta: "Start now",
     href: SALES_PLAN_HREF("pro"),
     featured: false,
   },
   {
     name: "Elite",
-    price: priceLabel(PLAN_BASE_USD.SALES_ELITE),
+    price: priceLabel(PLAN_BASE_PRICE.SALES_ELITE),
     billing: "per month",
     description: "For sales professionals who need ongoing desk intelligence",
     features: [
@@ -354,7 +354,7 @@ const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
       "Anonymous Mentor Connect - ask your real sales preparation questions to practitioners directly",
       "Market Role Openings - track which firms are growing and hiring (your next target accounts)",
     ],
-    cta: "Get Started",
+    cta: "Start now",
     href: SALES_PLAN_HREF("elite"),
     featured: true,
   },
@@ -484,10 +484,10 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
       title: "One Deal Pays for",
       titleAccent: "a Year of Elite.",
       description:
-        `Elite is ${formatUsd(monthlyRateUsd("SALES", "ELITE", "monthly"))}/month. If understanding the commodity trading desk helps you close one additional deal per year — at even a fraction of typical contract values in this sector — the return is not close. The question is whether you can afford not to know this.`,
+        `Elite is ${formatMoney(monthlyRate("SALES", "ELITE", "monthly"))}/month. If understanding the commodity trading desk helps you close one additional deal per year — at even a fraction of typical contract values in this sector — the return is not close. The question is whether you can afford not to know this.`,
       stats: [
         { value: "$250K–$2M+", label: "Typical ETRM / data platform ACV" },
-        { value: formatUsd(monthlyRateUsd("SALES", "ELITE", "monthly") * 12), label: "Full year of Elite access" },
+        { value: formatMoney(monthlyRate("SALES", "ELITE", "monthly") * 12), label: "Full year of Elite access" },
         { value: "2 min", label: "How fast traders assess your credibility" },
         { value: "6 wks", label: "Reported reduction in deal cycle (user data)" },
       ],

@@ -46,6 +46,16 @@ export async function POST(req: NextRequest) {
 
   try {
     const { plan, term, cadence } = parsed.data;
+
+    // 🔴 A 12-month term is ALWAYS billed annually. Without this guard a hand-crafted
+    // request could pair the annual term with the monthly cadence and be mispriced:
+    // the annual price carries the 15% discount, the monthly one does not. The UI
+    // can no longer produce this combination (cadence is derived from term), so this
+    // only ever rejects a request that did not come from our own page.
+    if (term === "12" && cadence !== "annual") {
+      return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+    }
+
     const userId = session.user.id;
     const email = session.user.email!;
     const tier: PlanTier = plan === "elite" ? "ELITE" : "PRO";
@@ -72,6 +82,11 @@ export async function POST(req: NextRequest) {
     const customerId = await createOrRetrieveCustomer(userId, email);
     const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL;
 
+    // ⚠️ Currently UNREACHABLE. The guard above forces `term === "12"` to be
+    // `isAnnual`, and `getStripeCoupon` returns null for "monthly" — so `couponId`
+    // is always null and no coupon is ever applied. The plumbing is kept (not
+    // deleted) because it cannot be exercised in this environment and a future
+    // non-annual long term may want it again. See `getStripeCoupon` in lib/stripe.ts.
     const couponId = isAnnual ? null : getStripeCoupon(track, tier, term);
     if (!isAnnual && term !== "monthly" && !couponId) {
       console.error("[stripe/checkout] term requested but coupon not configured", {
@@ -116,20 +131,19 @@ export async function POST(req: NextRequest) {
       cancel_url: `${origin}/account?cancelled=1`,
       metadata: { userId, plan: tier, term, cadence, track },
       subscription_data: {
+        // 🔴 NO `trial_period_days`. The 60-day trial was how the OLD "12 + 2 free"
+        // model delivered its two free months. The annual benefit is now the flat 15%
+        // discount, so a trial on top would be a DOUBLE discount that contradicts the
+        // displayed annual price. Do not reinstate it.
         metadata: { userId, plan: tier, term, cadence, track },
-        ...(isAnnual ? { trial_period_days: 60 } : {}),
       },
-      // Promo-code entry is offered on every plan that is not already carrying an
-      // auto-applied coupon.
+      // Promo-code entry is offered on every plan.
       //
       // The two are mutually exclusive by construction, not by luck: Stripe rejects
       // `allow_promotion_codes` combined with `discounts`, and `discount` is only ever
-      // set when `couponId` resolved. `couponId` is null for the annual plan (the
-      // annual price carries its own 60-day trial instead of a coupon), so annual now
-      // falls through to `allow_promotion_codes`.
-      //
-      // Annual previously passed `{}` here, which silently left the highest-value plan
-      // with no way to enter a seasonal promotion code at all.
+      // set when `couponId` resolved. With the coupon path now unreachable (see above)
+      // `discount` is always null, so every plan falls through to
+      // `allow_promotion_codes`.
       ...(discount ? { discounts: [discount] } : { allow_promotion_codes: true }),
       billing_address_collection: "required",
       customer_update: { address: "auto", name: "auto" },

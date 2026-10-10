@@ -2,41 +2,44 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, X } from "lucide-react";
+import { ArrowRight, Check, Info, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/animations";
 import {
   PRICING_CONTENT_FOOTNOTE,
-  monthlyRateUsd,
+  annualSavingAmount,
+  annualTooltip,
+  formatMoney,
+  monthlyRate,
   priceLabel,
-  termSavingsPercent,
 } from "@/data/pricing-shared";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import type { FeatureComparisonGroup, LandingTier } from "@/data/landing-content";
 import type { BillingCadence, PlanTerm, PlanTier, PlanTrack } from "@/data/pricing-shared";
 import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
+import { cn } from "@/lib/utils";
 
 interface Props {
   tiers: LandingTier[];
   variant: "landing" | "page";
   /**
-   * The track this grid renders. Drives the in-card `PlanTermSelector` and the
-   * no-`onPurchase` fallback href. Defaults to `"CAREER"` so any stray caller
-   * keeps working; `/pricing` passes the live track.
+   * The track this grid renders. Drives the in-card `PlanTermSelector`, the
+   * no-`onPurchase` fallback href, and the track-themed card colours on /pricing.
+   * Defaults to `"CAREER"` so any stray caller keeps working; `/pricing` passes
+   * the live track.
    */
   track?: PlanTrack;
   onStarterModal?: () => void;
   onPurchase?: (plan: "pro" | "elite", term: PlanTerm, cadence: BillingCadence) => void;
   loadingPlan?: string | null;
   /**
-   * Controlled term/cadence. `/pricing` owns these in the shared toggle ABOVE the
-   * grid; when omitted the grid keeps its own state (the landing behaviour).
+   * Controlled term. `/pricing` owns it in the shared toggle ABOVE the grid; when
+   * omitted the grid keeps its own state (the landing behaviour). The cadence is
+   * no longer a separate input — it is DERIVED from the term (see `TierCard`).
    */
   term?: PlanTerm;
-  cadence?: BillingCadence;
   onTermChange?: (term: PlanTerm) => void;
-  onCadenceChange?: (cadence: BillingCadence) => void;
   /**
    * When `false`, each paid card hides its own term selector — the shared toggle
    * above the table drives every column instead (design C-4).
@@ -62,6 +65,57 @@ interface Props {
   previewNotice?: string;
 }
 
+/**
+ * The "i" affordance beside the annual savings badge. Toggled on click, hover AND
+ * focus, and rendered as a real `<button>` with an aria-label so it is reachable by
+ * keyboard and screen readers. The bubble carries `role="tooltip"`.
+ *
+ * The bubble is absolutely positioned with a z-index and must NOT be clipped by an
+ * `overflow-hidden` ancestor. The pricing cards deliberately do not clip (see the
+ * card classes below) — if a future refactor adds `overflow-hidden` to a card, this
+ * tooltip is the first thing that will break.
+ */
+function AnnualSavingTooltip({
+  track,
+  tier,
+  onLight,
+}: {
+  track: PlanTrack;
+  tier: PlanTier;
+  onLight: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        aria-label="How the annual saving is calculated"
+        onClick={() => setOpen((v) => !v)}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        className={cn(
+          "flex h-4 w-4 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2",
+          onLight
+            ? "border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 focus-visible:ring-gray-400"
+            : "border-white/25 bg-white/10 text-white/80 hover:bg-white/20 focus-visible:ring-white/50"
+        )}
+      >
+        <Info className="h-3 w-3" />
+      </button>
+      {open && (
+        <span
+          role="tooltip"
+          className="absolute bottom-full left-1/2 z-30 mb-2 w-60 -translate-x-1/2 rounded-md bg-[#484848] px-3 py-2 text-left text-[11px] font-normal leading-snug text-white shadow-lg"
+        >
+          {annualTooltip(track, tier)}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function TierCard({
   tier,
   variant,
@@ -71,8 +125,6 @@ function TierCard({
   loadingPlan,
   term,
   onTermChange,
-  cadence,
-  onCadenceChange,
   showTermSelector,
   comparisonGroups,
   previewNotice,
@@ -85,8 +137,6 @@ function TierCard({
   loadingPlan?: string | null;
   term: PlanTerm;
   onTermChange: (term: PlanTerm) => void;
-  cadence: BillingCadence;
-  onCadenceChange: (cadence: BillingCadence) => void;
   showTermSelector: boolean;
   comparisonGroups?: FeatureComparisonGroup[];
   previewNotice?: string;
@@ -105,31 +155,36 @@ function TierCard({
     tier.name === "Pro" ? "PRO" : tier.name === "Elite" ? "ELITE" : null;
 
   /**
+   * Cadence is DERIVED from the term, never held separately: "Annually" always
+   * means billed annually. The old nested cadence toggle allowed a 12-month term
+   * collected monthly, a combination the checkout route now rejects outright.
+   */
+  const cadence: BillingCadence = term === "12" ? "annual" : "monthly";
+
+  /**
    * The printed price is always DERIVED (PRD C4 — no hardcoded price strings).
    *
-   * Both terms now go through `monthlyRateUsd()`, which for the monthly term is
-   * just the base rate. Previously the monthly term printed the CMS `tier.price`
+   * Both terms go through `monthlyRate()`, which for the monthly term is just
+   * the base rate. Previously the monthly term printed the CMS `tier.price`
    * instead, which left a hole: `landing-content.ts` derives its defaults from
-   * `PLAN_BASE_USD`, so the two agree today, but a price edited in the admin CMS
+   * `PLAN_BASE_PRICE`, so the two agree today, but a price edited in the admin CMS
    * would have been advertised while Stripe charged the unchanged base amount.
    * Deriving it means the displayed price cannot drift from the charged one.
    *
-   * Career Pro: monthly -> USD 19, 12-month -> USD 16.29 (19 x 12/14).
+   * Career Pro: monthly -> S$19, annually -> S$16.15 (19 x 0.85).
    */
   const displayPrice =
-    isPaid && planTier ? priceLabel(monthlyRateUsd(track, planTier, term)) : tier.price;
+    isPaid && planTier ? priceLabel(monthlyRate(track, planTier, term)) : tier.price;
 
   /**
-   * The featured card INVERTS between the two layouts — see the three return branches
-   * below. On the landing page the featured card is the LIGHT one (bg-white) and the
-   * others are dark; in the in-app grid the featured card is the DARK one (bg-primary-800).
+   * Whether the card paints a LIGHT (white) surface, which decides the text/icon
+   * palette. Only the LANDING featured card is light; on /pricing every column is
+   * now a dark track-themed card, so this is false throughout the page variant.
    *
-   * PlanTermSelector paints its own track and label from this `tone`, so deriving it from
-   * `isLanding` alone gave the LIGHT featured card the DARK palette: its unselected
-   * "12 + 2 free" label rendered `text-white/70` on white and was invisible. Verified on
-   * the live site — the label computed to rgba(255,255,255,0.7).
+   * (Previously this was `isLanding === Boolean(tier.highlight)`, which made the
+   * non-featured PAGE card "light" and left it white against the new dark section.)
    */
-  const cardIsLight = isLanding === Boolean(tier.highlight);
+  const cardIsLight = isLanding && Boolean(tier.highlight);
 
   /**
    * TradingView-style plan column. When `comparisonGroups` is supplied the column
@@ -152,13 +207,13 @@ function TierCard({
 
   /**
    * Excluded rows are deliberately de-emphasised, but not below the point of
-   * legibility: `text-gray-500` on white still clears WCAG AA (4.8:1). An earlier
-   * `text-gray-400` read as almost invisible against the white card.
+   * legibility: `text-gray-500` on white still clears WCAG AA (4.8:1). On the dark
+   * track-themed cards the equivalents are white at reduced opacity.
    */
   const includedIconClass = cardIsLight ? "text-green-500" : "text-green-400";
-  const excludedIconClass = cardIsLight ? "text-gray-400" : "text-white/40";
+  const excludedIconClass = cardIsLight ? "text-gray-400" : "text-white/35";
   const includedTextClass = cardIsLight ? "text-gray-700" : "text-white/85";
-  const excludedTextClass = cardIsLight ? "text-gray-500" : "text-white/55";
+  const excludedTextClass = cardIsLight ? "text-gray-500" : "text-white/50";
 
   const cardInner = (
     <>
@@ -171,82 +226,57 @@ function TierCard({
         <Badge
           variant={tier.badge}
           className={
-            isLanding
-              ? tier.highlight
-                ? "mb-4"
-                : "mb-4 bg-white/10 text-white border-white/20"
-              : tier.highlight
-                ? "mb-4 bg-white/10 text-white border-white/20"
-                : "mb-4"
+            cardIsLight ? "mb-4" : "mb-4 bg-white/10 text-white border-white/20"
           }
         >
           {tier.name}
         </Badge>
-        <p
-          // `min-h` reserves two lines at text-sm/leading-relaxed (2 x 22.75px).
-          // Without it a one-line description ("Only an email required") lifts that
-          // whole column's list ~24px above its neighbours and the ✓/✗ rows stop
-          // lining up — measured at 95px of drift on the tablet layout.
-          className={`text-sm mb-4 italic leading-relaxed min-h-[46px] ${
-            isLanding
-              ? tier.highlight
-                ? "text-muted-fg"
-                : "text-white/70"
-              : tier.highlight
-                ? "text-white/70"
-                : "text-muted-fg"
-          }`}
-        >
-          {tier.tooltip}
-        </p>
         <div className="mb-4">
           {/* Price and billing are stacked, not inline. Inline they need
               `price (180px) + gap (8px) + billing (168px) = 356px`, but a Career
               column only offers 288px of content at 768px and 319px at 1280px — so
               the billing line wrapped to a second line at exactly those widths and
-              pushed that column's ✓/✗ list 20px below its neighbours'. `billing` is
-              admin-editable, so its length is not ours to rely on; stacking removes
-              the dependency. (Sales reads "per month" and never wrapped — which is
-              why only Career drifted.) */}
+              pushed that column's ✓/✗ list 20px below its neighbours'. The billing
+              line is now derived (not CMS-editable), but the stacking stays so the
+              layout cannot drift again. */}
           <div
             className={`font-serif text-3xl sm:text-4xl font-bold ${
-              isLanding
-                ? tier.highlight
-                  ? "text-gray-900"
-                  : "text-white"
-                : tier.highlight
-                  ? "text-white"
-                  : "text-gray-900"
+              cardIsLight ? "text-gray-900" : "text-white"
             }`}
           >
             {displayPrice}
           </div>
           {/* Reserved in every column — including the free tier, whose "forever"
               is intentionally not shown — so the price block is the same height
-              everywhere. */}
+              everywhere. The line is DERIVED from the term, never the CMS
+              `tier.billing`, so the words and the term can never disagree. */}
           <div
             className={`mt-1 min-h-[20px] text-sm ${
-              isLanding
-                ? tier.highlight
-                  ? "text-muted-fg"
-                  : "text-white/60"
-                : tier.highlight
-                  ? "text-white/60"
-                  : "text-muted-fg"
+              cardIsLight ? "text-muted-fg" : "text-white/60"
             }`}
           >
-            {tier.price !== "Free" && tier.billing}
+            {isPaid && (term === "12" ? "billed annually" : "billed monthly")}
           </div>
-          {/* The savings badge gets its OWN row, reserved for the whole 12-month
+          {/* The savings badge gets its OWN row, reserved for the whole annual
               term in every column. `flex h-6` rather than `min-h-[24px]` + an
               inline-block badge: an inline-block creates a 26px line box where an
               empty row measures 24px, which was the last 2px of drift. */}
           {term === "12" && (
-            <div className="mt-1.5 flex h-6 items-center">
-              {isPaid && (
-                <span className="inline-flex items-center text-[11px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 bg-green-50 text-green-700 border border-green-200">
-                  Save {termSavingsPercent("12")}%
-                </span>
+            <div className="mt-1.5 flex h-6 items-center gap-1.5">
+              {planTier && (
+                <>
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-bold",
+                      track === "SALES"
+                        ? "border-[#2fbf8f]/40 bg-[#2fbf8f]/15 text-[#7fe3c0]"
+                        : "border-[#2e7bfe]/40 bg-[#2e7bfe]/15 text-[#9dc0ff]"
+                    )}
+                  >
+                    Save {formatMoney(annualSavingAmount(track, planTier))} a year
+                  </span>
+                  <AnnualSavingTooltip track={track} tier={planTier} onLight={cardIsLight} />
+                </>
               )}
             </div>
           )}
@@ -268,17 +298,7 @@ function TierCard({
         {/* The footnote is rendered once beneath the whole column row in this mode,
             not repeated inside every card. */}
         {isPaid && !comparisonGroups && (
-          <p
-            className={`text-xs italic mt-4 ${
-              isLanding
-                ? tier.highlight
-                  ? "text-muted-fg"
-                  : "text-white/55"
-                : tier.highlight
-                  ? "text-white/55"
-                  : "text-muted-fg"
-            }`}
-          >
+          <p className={`text-xs italic mt-4 ${cardIsLight ? "text-muted-fg" : "text-white/55"}`}>
             {PRICING_CONTENT_FOOTNOTE}
           </p>
         )}
@@ -294,7 +314,7 @@ function TierCard({
             {tier.cta}
           </Button>
         ) : previewNotice ? (
-          <p className="text-xs text-muted-fg text-center">{previewNotice}</p>
+          <p className="text-xs text-white/60 text-center">{previewNotice}</p>
         ) : isPaid && onPurchase ? (
           <div className="space-y-3">
             {showTermSelector && (
@@ -303,8 +323,6 @@ function TierCard({
                 tier={tier.name === "Elite" ? "ELITE" : "PRO"}
                 value={term}
                 onChange={onTermChange}
-                cadence={cadence}
-                onCadenceChange={onCadenceChange}
                 tone={cardIsLight ? "light" : "dark"}
               />
             )}
@@ -372,7 +390,12 @@ function TierCard({
     return (
       <div
         id={planId}
-        className="relative bg-primary-800 rounded-2xl border-2 border-primary-400 p-5 sm:p-6 lg:p-7 h-full flex flex-col text-white shadow-2xl shadow-primary-800/30 scroll-mt-24"
+        className={cn(
+          "relative rounded-2xl border-2 p-5 sm:p-6 lg:p-7 h-full flex flex-col text-white shadow-2xl scroll-mt-24",
+          track === "SALES"
+            ? "bg-[#082820] border-[#2fbf8f] shadow-[#2fbf8f]/20"
+            : "bg-[#102850] border-[#2e7bfe] shadow-[#2e7bfe]/20"
+        )}
       >
         {cardInner}
       </div>
@@ -385,7 +408,10 @@ function TierCard({
       // `border-2` (not `border`) so the content box is the same width as the
       // highlighted card's `border-2` — a 1px difference is enough to make one
       // feature row wrap differently and break the cross-column alignment.
-      className="bg-white rounded-2xl border-2 border-border p-5 sm:p-6 lg:p-7 h-full flex flex-col scroll-mt-24"
+      className={cn(
+        "rounded-2xl border-2 p-5 sm:p-6 lg:p-7 h-full flex flex-col text-white scroll-mt-24",
+        track === "SALES" ? "bg-[#082820] border-white/10" : "bg-[#102850] border-white/10"
+      )}
     >
       {cardInner}
     </div>
@@ -400,30 +426,31 @@ export function PricingTierGrid({
   onPurchase,
   loadingPlan,
   term: controlledTerm,
-  cadence: controlledCadence,
   onTermChange,
-  onCadenceChange,
   showTermSelector = true,
   comparisonGroups,
   previewNotice,
 }: Props) {
-  // One term for the whole grid: a member comparing Pro and Elite keeps the term they
-  // picked when they move between cards. On `/pricing` the term/cadence are controlled
+  // One term for the whole grid: a member comparing Pro and Elite keeps the term
+  // they picked when they move between cards. On `/pricing` the term is controlled
   // by the shared toggle above the grid, so the internal state is the fallback only.
   const [internalTerm, setInternalTerm] = useState<PlanTerm>("monthly");
-  const [internalCadence, setInternalCadence] = useState<BillingCadence>("monthly");
 
   const term = controlledTerm ?? internalTerm;
-  const cadence = controlledCadence ?? internalCadence;
   const setTerm = onTermChange ?? setInternalTerm;
-  const setCadence = onCadenceChange ?? setInternalCadence;
 
   // Match the column count to the number of tiers so the row always fills.
-  // Career has three tiers (Starter/Pro/Elite); Sales has two (Pro/Elite).
+  // Career now shows two tiers on /pricing (Starter is filtered out and lives in
+  // the top panel); Sales has two (Pro/Elite).
+  //
+  // ⚠️ The `xl:grid-cols-3` branch is therefore currently UNREACHABLE — both tracks
+  // now pass exactly two tiers. It is kept (not deleted) because the 3-up layout is
+  // still correct if a third paid tier is ever added, and the measured reasoning
+  // below is what makes it safe.
   //
   // The 3-column step is `xl`, NOT `md` and NOT `lg`. Each plan column carries a
   // ~20-row ✓/✗ list, so it needs roughly 300px of content width to be readable.
-  // Measured content width per column for the Career track:
+  // Measured content width per column for a three-column track:
   //     768px -> 3 cols = 219px  (cards ballooned to 1292px tall)
   //    1024px -> 3 cols = 233px  (descriptions spilled to a 3rd line, 1089px tall)
   //    1180px -> 3 cols = 285px  (still under the ~300px floor)
@@ -452,8 +479,6 @@ export function PricingTierGrid({
             loadingPlan={loadingPlan}
             term={term}
             onTermChange={setTerm}
-            cadence={cadence}
-            onCadenceChange={setCadence}
             showTermSelector={showTermSelector}
             comparisonGroups={comparisonGroups}
             previewNotice={previewNotice}

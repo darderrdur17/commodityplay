@@ -3,14 +3,17 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { GradientOrbs, Reveal } from "@/components/animations";
-import { SectionCategoryLabel } from "@/components/landing/section-category-label";
+import { Reveal } from "@/components/animations";
 import { StarterPackModal } from "@/components/landing/starter-pack-modal";
 import { ContactModal } from "@/components/landing/contact-modal";
 import { PricingTierGrid } from "@/components/pricing/pricing-tier-grid";
 import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
 import { TrackSwitcher } from "@/components/pricing/track-switcher";
-import { PRICING_CONTENT_FOOTNOTE, PRICING_HERO } from "@/data/pricing-shared";
+import {
+  PRICING_CONTENT_FOOTNOTE,
+  PRICING_FREE_PANEL,
+  PRICING_TRACK_HEADINGS,
+} from "@/data/pricing-shared";
 import type { BillingCadence, PlanTerm, PlanTrack } from "@/data/pricing-shared";
 import type { LandingContent, LandingTier } from "@/data/landing-content";
 import { CAREER_PRICING_PATH, SALES_PLAN_HREF, SALES_PRICING_PATH } from "@/lib/pricing-routes";
@@ -19,6 +22,12 @@ import { startCheckout } from "@/lib/start-checkout";
 import { PAGE_SECTION_PY } from "@/lib/layout-constants";
 
 type Track = "career" | "sales";
+
+/** The dark track-themed page background behind the plan grid. */
+const TRACK_BACKGROUNDS: Record<Track, string> = {
+  career: "#050b1d", // very dark navy
+  sales: "#04130f", // very dark green
+};
 
 export interface PricingPageClientProps {
   /** CMS-merged landing content (career + sales tiers + comparison tables). */
@@ -48,9 +57,16 @@ export interface PricingPageClientProps {
  * Career tiers are already `LandingTier`; Sales tiers are `SalesPricingTier` and
  * are mapped across. Prices are carried over verbatim from the CMS content — the
  * grid derives the term-specific figures itself.
+ *
+ * The free Starter tier is FILTERED OUT here, not in the CMS defaults: the free
+ * plan is now the "Free, until you're ready" top panel, and saved CMS content
+ * overrides repo defaults, so a filter at the CMS layer would leave the column
+ * visible on the live site.
  */
 function toLandingTiers(track: Track, content: LandingContent): LandingTier[] {
-  if (track === "career") return content.pricing.tiers;
+  if (track === "career") {
+    return content.pricing.tiers.filter((t) => t.badge !== "starter");
+  }
   return content.sales.pricing.map((t) => ({
     name: t.name,
     price: t.price,
@@ -92,7 +108,6 @@ export function PricingPageClient({
   // on Sales still lands on Sales and can switch away from there.
   const [track, setTrack] = useState<Track>(ownTrack ?? "career");
   const [term, setTerm] = useState<PlanTerm>("monthly");
-  const [cadence, setCadence] = useState<BillingCadence>("monthly");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
@@ -176,63 +191,85 @@ export function PricingPageClient({
 
   return (
     <div className="bg-white">
-      {/* Hero */}
-      <section className="relative bg-primary-800 section-dark overflow-hidden pt-14 pb-16 sm:pt-20 sm:pb-24">
-        <GradientOrbs />
-        <div className="relative z-10 page-container text-center">
-          <Reveal>
-            <SectionCategoryLabel colorClass="text-white/50">{PRICING_HERO.eyebrow}</SectionCategoryLabel>
-            <h1 className="font-serif text-[clamp(32px,5vw,52px)] font-bold tracking-tight text-white mb-4">
-              {PRICING_HERO.title}
-            </h1>
-            <p className="text-white/65 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-              {PRICING_HERO.subtitle}
-            </p>
-          </Reveal>
+      {/* Free plan — the top panel that REPLACED the old "Simple pricing" hero.
+          The free tier is no longer a column in the grid; this is where a visitor
+          signs up for the Starter Pack, via the same modal as before. */}
+      <section className="bg-black text-white">
+        <div className="page-container py-14 sm:py-20">
+          <div className="grid items-center gap-10 lg:grid-cols-2">
+            <div>
+              <h1 className="mb-5 font-serif text-[clamp(32px,5vw,52px)] font-bold tracking-tight">
+                {PRICING_FREE_PANEL.title}
+              </h1>
+              <p className="max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">
+                {PRICING_FREE_PANEL.line1}
+                <br />
+                {PRICING_FREE_PANEL.line2}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/15 bg-white/[0.03] p-6 sm:p-8">
+              <div className="flex items-baseline justify-center gap-2">
+                <span className="font-serif text-5xl font-bold tracking-tight">
+                  {PRICING_FREE_PANEL.price}
+                </span>
+                <span className="text-sm text-white/60">{PRICING_FREE_PANEL.period}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                // The blue -> magenta gradient is a brand asset, not a palette token.
+                style={{ backgroundImage: "linear-gradient(90deg, #3060ff 0%, #c808f8 100%)" }}
+                className="mt-6 w-full rounded-full px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                {PRICING_FREE_PANEL.cta}
+              </button>
+              <p className="mt-3 text-center text-xs text-white/60">{PRICING_FREE_PANEL.note}</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Track + term controls and the tier columns. `id="pricing"` is the anchor
-          the old `#pricing` deep links resolve to. */}
-      <section id="pricing" className={`${PAGE_SECTION_PY} page-container scroll-mt-24`}>
-        <Reveal className="flex flex-col items-center gap-5 mb-10 sm:mb-12">
-          <TrackSwitcher
-            value={track === "sales" ? "SALES" : "CAREER"}
-            onChange={(next) => setTrack(next === "SALES" ? "sales" : "career")}
-            disabledTrack={disabledTrack}
-            note={adminNote}
-          />
-          <div className="w-full max-w-sm">
-            <PlanTermSelector
-              value={term}
-              onChange={setTerm}
-              cadence={cadence}
-              onCadenceChange={setCadence}
-              tone="light"
-              showRate={false}
+      {/* Track heading, term control and the tier columns, on the dark track-themed
+          background. `id="pricing"` is the anchor the old `#pricing` deep links
+          resolve to. */}
+      <section
+        id="pricing"
+        className={`${PAGE_SECTION_PY} scroll-mt-24`}
+        style={{ backgroundColor: TRACK_BACKGROUNDS[track] }}
+      >
+        <div className="page-container">
+          <Reveal className="mb-10 flex flex-col items-center gap-5 sm:mb-12">
+            <TrackSwitcher
+              value={track === "sales" ? "SALES" : "CAREER"}
+              onChange={(next) => setTrack(next === "SALES" ? "sales" : "career")}
+              disabledTrack={disabledTrack}
+              note={adminNote}
+              tone="dark"
             />
-          </div>
-        </Reveal>
+            <h2 className="text-center font-serif text-[clamp(28px,4vw,46px)] font-bold tracking-tight text-white">
+              {PRICING_TRACK_HEADINGS[track === "sales" ? "SALES" : "CAREER"]}
+            </h2>
+            <PlanTermSelector value={term} onChange={setTerm} tone="dark" showRate={false} />
+          </Reveal>
 
-        <PricingTierGrid
-          tiers={tiers}
-          variant="page"
-          track={track === "sales" ? "SALES" : "CAREER"}
-          term={term}
-          cadence={cadence}
-          onTermChange={setTerm}
-          onCadenceChange={setCadence}
-          showTermSelector={false}
-          onStarterModal={() => setModalOpen(true)}
-          onPurchase={handlePurchase}
-          loadingPlan={loadingPlan}
-          comparisonGroups={comparisonGroups}
-          previewNotice={previewNotice}
-        />
-        {/* Rendered once for the whole column row rather than inside every card. */}
-        <p className="text-xs italic text-muted-fg text-center mt-6">
-          {PRICING_CONTENT_FOOTNOTE}
-        </p>
+          <PricingTierGrid
+            tiers={tiers}
+            variant="page"
+            track={track === "sales" ? "SALES" : "CAREER"}
+            term={term}
+            onTermChange={setTerm}
+            showTermSelector={false}
+            onStarterModal={() => setModalOpen(true)}
+            onPurchase={handlePurchase}
+            loadingPlan={loadingPlan}
+            comparisonGroups={comparisonGroups}
+            previewNotice={previewNotice}
+          />
+          {/* Rendered once for the whole column row rather than inside every card. */}
+          <p className="mt-6 text-center text-xs italic text-white/50">
+            {PRICING_CONTENT_FOOTNOTE}
+          </p>
+        </div>
       </section>
 
       <StarterPackModal

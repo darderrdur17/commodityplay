@@ -45,7 +45,7 @@ export function getStripe(): Stripe {
 
 /**
  * All four prices are RECURRING monthly subscriptions (no one-time product remains).
- * Career Pro USD 19 · Career Elite USD 39 · Sales Pro USD 39 · Sales Elite USD 59.
+ * Career Pro S$19 · Career Elite S$34 · Sales Pro S$39 · Sales Elite S$56.
  */
 export function getStripePrices() {
   const careerPro = process.env.STRIPE_PRICE_CAREER_PRO;
@@ -93,6 +93,12 @@ export function resolveStripePriceId(track: PlanTrack, tier: PlanTier): string {
 
 /**
  * Term coupon for a (track, tier, term) combination.
+ *
+ * ⚠️ Currently UNREACHABLE from checkout: the route now rejects a 12-month term that
+ * is not billed annually, and this returns null for "monthly" — so no call site can
+ * ever resolve a coupon. Kept deliberately rather than deleted: it cannot be exercised
+ * in this environment, and the annual plan's 15% discount could later be delivered as
+ * a coupon again.
  *
  * `null` means "monthly" or "not configured" — the CALLER decides whether that is
  * fatal (checkout returns 503 for that plan only; see the checkout route). Do NOT add
@@ -148,9 +154,8 @@ export function resolveTierFromPriceId(
 
   try {
     const prices = getStripePrices();
-    // Sales Pro (USD 39) === Career Elite (USD 39): tier can NEVER be guessed from an
-    // amount, only from the price id. Track is not derivable from a price either, and
-    // is not needed for tier resolution.
+    // Tier can NEVER be guessed from an amount, only from the price id. Track is not
+    // derivable from a price either, and is not needed for tier resolution.
     if (priceId === prices.CAREER_ELITE || priceId === prices.SALES_ELITE) return "ELITE";
     if (priceId === prices.CAREER_PRO || priceId === prices.SALES_PRO) return "PRO";
   } catch {
