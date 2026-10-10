@@ -290,13 +290,20 @@ function TierCard({
               everywhere. The line is DERIVED from the term, never the CMS
               `tier.billing`, so the words and the term can never disagree.
               `min-h` tracks the type size below it: a line box that is shorter
-              than the text is exactly the 2px-of-drift bug this guards against. */}
+              than the text is exactly the 2px-of-drift bug this guards against.
+
+              ANNUAL ONLY. On the monthly term the price already ends in `/ mo`
+              and this line read "billed monthly" — the same fact stated twice.
+              The row is now empty there, but the `min-h` above still reserves
+              its height, so no column moves. Annual keeps it: `S$16.15 / mo`
+              over "billed annually" is NOT a duplicate — S$16.15 is the
+              effective monthly rate, while S$193.80 is what is charged. */}
           <div
             className={`mt-1 min-h-[24px] text-base sm:min-h-[28px] sm:text-lg ${
               cardIsLight ? "text-muted-fg" : "text-white/60"
             }`}
           >
-            {isPaid && (term === "12" ? "billed annually" : "billed monthly")}
+            {isPaid && term === "12" ? "billed annually" : null}
           </div>
           {/* The savings badge gets its OWN row, reserved for the whole annual
               term in every column. `flex h-6` rather than `min-h-[24px]` + an

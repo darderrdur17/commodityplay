@@ -34,7 +34,22 @@ const config: Config = {
         },
         muted: {
           DEFAULT: "#f9fafb",
-          fg: "#677184",
+          /**
+           * Tuned to clear WCAG AA (4.5:1) on the two faintest surfaces this
+           * token puts body text on: `primary.soft` over white (#eff5ff → 4.62)
+           * and `secondary.DEFAULT` (#f2f4f7 → 4.59). The previous `#677184`
+           * measured 4.489 and 4.461 — both failing by a hair, which is what
+           * flagged it. Only the green/blue channels moved, so the hue is
+           * unchanged, and the move is monotonic: every existing use gains
+           * contrast rather than losing it.
+           *
+           * ⚠️ `#677184` is ALSO hardcoded in ~12 places that never read this
+           * token — chart accents, the transactional email HTML, and a
+           * `var(--muted-fg, #677184)` fallback whose variable is never defined
+           * anywhere. Those were deliberately left at the old value: none is
+           * body text on a light surface, and a 2-unit delta is imperceptible.
+           */
+          fg: "#656f82",
         },
         border: "#e4e7ec",
         secondary: {
