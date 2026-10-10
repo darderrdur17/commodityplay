@@ -25,9 +25,10 @@ import { PAGE_SECTION_PY } from "@/lib/layout-constants";
 type Track = "career" | "sales";
 
 /**
- * The page background behind the plan grid — pure black for BOTH tracks.
+ * The page background behind the plan grid — WHITE for BOTH tracks, matching
+ * `body { bg-white }` (globals.css) and every other page on the site.
  *
- * This has moved three times, and the Record below is what made every move a
+ * This has moved four times, and the Record below is what made every move a
  * one-liner:
  *
  *   1. The tints (#050b1d navy for career, #04130f dark green for sales) went
@@ -42,10 +43,13 @@ type Track = "career" | "sales";
  *   3. The white went next — the owner reversed that call ("change it back to
  *      fully black"), so both tracks are pure black again. The type scale and
  *      the embossed track toggle from the same pass are KEPT.
+ *   4. The white came back — the owner reversed the reversal ("put the white
+ *      version back"), so both tracks are white again. Nothing else moves: the
+ *      type scale and the embossed track toggle are still the ones from item 2.
  */
 const TRACK_BACKGROUNDS: Record<Track, string> = {
-  career: "#000000",
-  sales: "#000000",
+  career: "#ffffff",
+  sales: "#ffffff",
 };
 
 export interface PricingPageClientProps {
@@ -219,32 +223,34 @@ export function PricingPageClient({
     track === "sales" ? content.sales.comparison.groups : content.pricing.comparison.groups;
 
   return (
-    <div className="bg-black">
+    <div className="bg-white">
       {/* Free plan — the top panel that REPLACED the old "Simple pricing" hero.
           The free tier is no longer a column in the grid; this is where a visitor
           signs up for the Starter Pack, via the same modal as before.
 
-          The band is black to match the page; the price card inside is a faint
-          white-on-black panel so it still reads as a card on the dark backdrop. */}
-      <section className="bg-black text-white">
+          The band is `bg-primary-soft` (the site's faint-blue band token) rather
+          than white: it keeps the free plan reading as a distinct hero band now
+          that the page is light, and it gives the white price card an edge to sit
+          against. */}
+      <section className="bg-primary-soft">
         <div className="page-container py-14 sm:py-20">
           <div className="grid items-center gap-10 lg:grid-cols-2">
             <div>
-              <h1 className="mb-5 font-serif text-[clamp(32px,5vw,52px)] font-bold tracking-tight">
+              <h1 className="mb-5 font-serif text-[clamp(32px,5vw,52px)] font-bold tracking-tight text-gray-900">
                 {PRICING_FREE_PANEL.title}
               </h1>
-              <p className="max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">
+              <p className="max-w-xl text-base leading-relaxed text-muted-fg sm:text-lg">
                 {PRICING_FREE_PANEL.line1}
                 <br />
                 {PRICING_FREE_PANEL.line2}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/15 bg-white/[0.03] p-6 sm:p-8">
+            <div className="rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8">
               <div className="flex items-baseline justify-center gap-2">
-                <span className="font-serif text-5xl font-bold tracking-tight">
+                <span className="font-serif text-5xl font-bold tracking-tight text-gray-900">
                   {PRICING_FREE_PANEL.price}
                 </span>
-                <span className="text-sm text-white/60">{PRICING_FREE_PANEL.period}</span>
+                <span className="text-sm text-muted-fg">{PRICING_FREE_PANEL.period}</span>
               </div>
               {/* The reference button for the whole page: pill shape + blue
                   gradient. Every other CTA on /pricing matches this — see
@@ -257,23 +263,22 @@ export function PricingPageClient({
               >
                 {PRICING_FREE_PANEL.cta}
               </Button>
-              <p className="mt-3 text-center text-xs text-white/60">{PRICING_FREE_PANEL.note}</p>
+              <p className="mt-3 text-center text-xs text-muted-fg">{PRICING_FREE_PANEL.note}</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Track heading, term control and the tier columns, on the page's black
+      {/* Track heading, term control and the tier columns, on the page's white
           background. Deliberately has NO `id="pricing"`: `/pricing` IS the pricing
           page, so the top already shows this — keeping the id made the browser's
           native fragment scroll jump past the free-plan hero on load. The legacy
           `#pricing` fragment is now a no-op.
 
-          Everything here is the DARK palette (`tone="dark"`, `text-white`,
-          `text-white/50`). The plan cards below keep their own track fills, which
-          is why `PricingTierGrid` still renders them with the dark in-card
-          palette — the cards are a slightly lighter dark than the page behind
-          them, so they still read as cards on the black backdrop. */}
+          Everything here is the LIGHT palette (`tone="light"`, `text-gray-900`,
+          `text-muted-fg`). The plan cards below keep their own dark track fills,
+          which is why `PricingTierGrid` still renders them with the dark in-card
+          palette — the cards are a dark surface on a light page. */}
       <section
         className={`${PAGE_SECTION_PY} scroll-mt-24`}
         style={{ backgroundColor: TRACK_BACKGROUNDS[track] }}
@@ -284,14 +289,14 @@ export function PricingPageClient({
               value={track === "sales" ? "SALES" : "CAREER"}
               onChange={(next) => setTrack(next === "SALES" ? "sales" : "career")}
               disabledTrack={disabledTrack}
-              tone="dark"
+              tone="light"
             />
             {/* Same clamp as the free-plan `h1` above — the two section headings are
                 deliberately identical in size, weight and tracking. */}
-            <h2 className="text-center font-serif text-[clamp(32px,5vw,52px)] font-bold tracking-tight text-white">
+            <h2 className="text-center font-serif text-[clamp(32px,5vw,52px)] font-bold tracking-tight text-gray-900">
               {PRICING_TRACK_HEADINGS[track === "sales" ? "SALES" : "CAREER"]}
             </h2>
-            <PlanTermSelector value={term} onChange={setTerm} tone="dark" showRate={false} />
+            <PlanTermSelector value={term} onChange={setTerm} tone="light" showRate={false} />
           </Reveal>
 
           <PricingTierGrid
@@ -308,7 +313,7 @@ export function PricingPageClient({
             previewNotice={previewNotice}
           />
           {/* Rendered once for the whole column row rather than inside every card. */}
-          <p className="mt-6 text-center text-xs italic text-white/50">
+          <p className="mt-6 text-center text-xs italic text-muted-fg">
             {PRICING_CONTENT_FOOTNOTE}
           </p>
         </div>
