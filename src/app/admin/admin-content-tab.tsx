@@ -15,6 +15,7 @@ import { CareerRoadmapEditor } from "./editors/career-roadmap-editor";
 import { JobOpeningsEditor } from "./editors/job-openings-editor";
 import { CaseStudiesEditor } from "./editors/case-studies-editor";
 import { LandingEditorWrapper } from "./editors/landing-editor";
+import { PricingPlansEditor } from "./editors/pricing-plans-editor";
 import { FaqEditor } from "./editors/faq-editor";
 import { StarterPackEditor } from "./editors/starter-pack-editor";
 import { ResumeEditor } from "./editors/resume-editor";
@@ -57,7 +58,8 @@ interface SidebarItem {
     | "sales-nav"
     | "industry-guide"
     | "track-captions"
-    | "mentor-apply";
+    | "mentor-apply"
+    | "pricing-plans";
   listSlug?: string;
 }
 
@@ -84,6 +86,23 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { slug: "site-footer", label: "Footer & alert emails", track: "Both", tier: "STARTER" },
       { slug: "faq", label: "FAQ", track: "Both", tier: "STARTER" },
       { slug: "member-dashboard", label: "Member Dashboard", track: "Both", tier: "STARTER" },
+    ],
+  },
+  {
+    // Edits the SAME `landing` payload as the two cards above — the plan feature rows
+    // live in it. Kept as its own card because it is the only place the pricing
+    // comparison rows are edited per plan, and hunting for them inside the full
+    // Landing editor is what prompted the request.
+    label: "Pricing",
+    tier: "STARTER",
+    items: [
+      {
+        slug: "landing",
+        label: "Pricing plans",
+        track: "Both",
+        tier: "STARTER",
+        editorVariant: "pricing-plans",
+      },
     ],
   },
   {
@@ -233,6 +252,9 @@ function ModuleEditor({
       case "landing":
         if (editorVariant === "track-captions") {
           return <TrackSelectionCaptionsEditor payload={payload} onChange={setPayload} contentVersion={version} />;
+        }
+        if (editorVariant === "pricing-plans") {
+          return <PricingPlansEditor payload={payload} onChange={setPayload} />;
         }
         return (
           <LandingEditorWrapper
