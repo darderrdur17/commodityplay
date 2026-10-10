@@ -90,7 +90,7 @@ export const EMAIL_TEMPLATE_SAMPLES = {
     memberName: "Sample Member",
     invoiceNumber: "#SAMPLE-0001",
     amountCents: 1900,
-    currency: "USD",
+    currency: "SGD",
     planLabel: "Pro (sample)",
     periodStart: new Date("2026-01-01T00:00:00.000Z"),
     periodEnd: new Date("2026-02-01T00:00:00.000Z"),

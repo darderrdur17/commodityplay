@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Reveal } from "@/components/animations";
+import { Button } from "@/components/ui/button";
 import { StarterPackModal } from "@/components/landing/starter-pack-modal";
 import { ContactModal } from "@/components/landing/contact-modal";
 import { PricingTierGrid } from "@/components/pricing/pricing-tier-grid";
@@ -23,10 +24,20 @@ import { PAGE_SECTION_PY } from "@/lib/layout-constants";
 
 type Track = "career" | "sales";
 
-/** The dark track-themed page background behind the plan grid. */
+/**
+ * The page background behind the plan grid — pure black for BOTH tracks.
+ *
+ * These used to be track-tinted (#050b1d navy for career, #04130f dark green for
+ * sales). The owner's brief was a fully black backdrop: against the black
+ * free-plan panel directly above, the tints read as "dark blue or grey" and the
+ * page looked like two slightly different shades stacked on top of each other.
+ * The track is already carried by the switcher, the heading and the card
+ * accents, so the backdrop does not need to repeat it. The Record is kept (rather
+ * than collapsed to one constant) so re-tinting stays a one-line change.
+ */
 const TRACK_BACKGROUNDS: Record<Track, string> = {
-  career: "#050b1d", // very dark navy
-  sales: "#04130f", // very dark green
+  career: "#000000",
+  sales: "#000000",
 };
 
 export interface PricingPageClientProps {
@@ -190,7 +201,7 @@ export function PricingPageClient({
     track === "sales" ? content.sales.comparison.groups : content.pricing.comparison.groups;
 
   return (
-    <div className="bg-white">
+    <div className="bg-black">
       {/* Free plan — the top panel that REPLACED the old "Simple pricing" hero.
           The free tier is no longer a column in the grid; this is where a visitor
           signs up for the Starter Pack, via the same modal as before. */}
@@ -214,15 +225,17 @@ export function PricingPageClient({
                 </span>
                 <span className="text-sm text-white/60">{PRICING_FREE_PANEL.period}</span>
               </div>
-              <button
-                type="button"
+              {/* The reference button for the whole page: pill shape + blue
+                  gradient. Every other CTA on /pricing matches this — see
+                  `Button variant="gradient"`. */}
+              <Button
+                variant="gradient"
+                size="lg"
                 onClick={() => setModalOpen(true)}
-                // The blue -> magenta gradient is a brand asset, not a palette token.
-                style={{ backgroundImage: "linear-gradient(90deg, #3060ff 0%, #c808f8 100%)" }}
-                className="mt-6 w-full rounded-full px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                className="mt-6 w-full rounded-full"
               >
                 {PRICING_FREE_PANEL.cta}
-              </button>
+              </Button>
               <p className="mt-3 text-center text-xs text-white/60">{PRICING_FREE_PANEL.note}</p>
             </div>
           </div>

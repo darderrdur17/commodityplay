@@ -86,17 +86,31 @@ function AnnualSavingTooltip({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <span className="relative inline-flex">
+    // The hover handlers live on the WRAPPER rather than the button, for two
+    // reasons that together read as the tooltip "lagging in showing up":
+    //
+    //   1. The trigger was a bare 16px circle, so the cursor had to land exactly
+    //      on it. Missing it looked like the tooltip was slow, when in fact it had
+    //      not been hit. `-m-1` + `h-6 w-6` widen the hit area to 24px without
+    //      moving anything on screen (the negative margin cancels the padding).
+    //   2. With the handlers on the button, moving the cursor toward the bubble
+    //      fired mouseleave and the bubble vanished before it could be read. On
+    //      the wrapper, mouseleave only fires once the cursor leaves BOTH — the
+    //      bubble is a DOM descendant, so it keeps the wrapper hovered.
+    <span
+      className="relative inline-flex"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
       <button
         type="button"
         aria-label="How the annual saving is calculated"
+        aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         className={cn(
-          "flex h-4 w-4 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2",
+          "-m-1 flex h-6 w-6 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2",
           onLight
             ? "border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 focus-visible:ring-gray-400"
             : "border-white/25 bg-white/10 text-white/80 hover:bg-white/20 focus-visible:ring-white/50"
@@ -171,7 +185,7 @@ function TierCard({
    * would have been advertised while Stripe charged the unchanged base amount.
    * Deriving it means the displayed price cannot drift from the charged one.
    *
-   * Career Pro: monthly -> USD 19, annually -> USD 16.15 (19 x 0.85).
+   * Career Pro: monthly -> S$19, annually -> S$16.15 (19 x 0.85).
    */
   const displayPrice =
     isPaid && planTier ? priceLabel(monthlyRate(track, planTier, term)) : tier.price;
@@ -327,8 +341,12 @@ function TierCard({
               />
             )}
             <Button
-              className={`w-full ${!isLanding && tier.name === "Elite" ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
-              variant={tier.highlight ? (isLanding ? "default" : "primary-dark") : "primary-dark"}
+              // On /pricing every CTA is the same pill: brand blue gradient, green ->
+              // blue on hover. The landing cards keep their own treatment, and the old
+              // amber Elite override on this page is deliberately gone — the brief was
+              // that all buttons read alike.
+              className={cn("w-full", !isLanding && "rounded-full")}
+              variant={isLanding ? (tier.highlight ? "default" : "primary-dark") : "gradient"}
               size="lg"
               onClick={() => onPurchase(tier.name.toLowerCase() as "pro" | "elite", term, cadence)}
               loading={loadingPlan === tier.name.toLowerCase()}

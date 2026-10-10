@@ -200,7 +200,9 @@ export function MentorConnectSection({
                 />
                 {content.demoHint}
               </p>
-              <MentorDemoCard content={content} theme={theme} />
+              {/* Career renders the preview inert (owner's request); Sales keeps the
+                  interactive demo. */}
+              <MentorDemoCard content={content} theme={theme} askDisabled={track === "career"} />
               <p className="mt-3 text-[12.5px] leading-[1.5]" style={{ color: theme.mute }}>
                 {content.demoFoot}
               </p>

@@ -45,7 +45,7 @@ export function getStripe(): Stripe {
 
 /**
  * All four prices are RECURRING monthly subscriptions (no one-time product remains).
- * Career Pro USD 19 · Career Elite USD 39 · Sales Pro USD 39 · Sales Elite USD 59.
+ * Career Pro S$19 · Career Elite S$34 · Sales Pro S$39 · Sales Elite S$56.
  *
  * These amounts MUST equal `PLAN_BASE_PRICE` in `src/data/pricing-shared.ts`. That
  * file is what the page QUOTES; this one is what the member is BILLED. They are two

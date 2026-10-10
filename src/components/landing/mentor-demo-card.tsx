@@ -34,9 +34,16 @@ type View = "roster" | "form" | "sent";
 export function MentorDemoCard({
   content,
   theme,
+  askDisabled = false,
 }: {
   content: LandingMentorSection;
   theme: MentorTheme;
+  /**
+   * Renders the "Ask a question" affordances inert. Set on the CAREER landing,
+   * where the preview is illustrative only and the owner asked that the buttons
+   * not be clickable. The Sales landing keeps the interactive demo.
+   */
+  askDisabled?: boolean;
 }) {
   const [view, setView] = useState<View>("roster");
   const [mentorIndex, setMentorIndex] = useState(0);
@@ -187,7 +194,12 @@ export function MentorDemoCard({
                     askRefs.current[index] = el;
                   }}
                   onClick={() => openForm(index)}
-                  className="col-start-2 justify-self-start sm:col-start-auto sm:justify-self-auto text-[12.5px] font-semibold rounded-lg px-3.5 py-2.5 border bg-white whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+                  disabled={askDisabled}
+                  aria-disabled={askDisabled}
+                  className={cn(
+                    "col-start-2 justify-self-start sm:col-start-auto sm:justify-self-auto text-[12.5px] font-semibold rounded-lg px-3.5 py-2.5 border bg-white whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2",
+                    askDisabled && "opacity-55 cursor-not-allowed"
+                  )}
                   style={{ color: theme.deep, borderColor: theme.line }}
                 >
                   Ask a question
@@ -392,8 +404,11 @@ export function MentorDemoCard({
                 setText("");
                 setConsent(false);
               }}
+              disabled={askDisabled}
+              aria-disabled={askDisabled}
               className={cn(
-                "text-[14px] font-semibold rounded-[10px] px-4 py-3 border bg-white focus-visible:outline-2 focus-visible:outline-offset-2"
+                "text-[14px] font-semibold rounded-[10px] px-4 py-3 border bg-white focus-visible:outline-2 focus-visible:outline-offset-2",
+                askDisabled && "opacity-55 cursor-not-allowed"
               )}
               style={{ color: theme.deep, borderColor: theme.line }}
             >
