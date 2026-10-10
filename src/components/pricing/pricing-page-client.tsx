@@ -156,16 +156,20 @@ export function PricingPageClient({
     if (requested === "sales" || requested === "career") setTrack(requested);
   }, [searchParams, lockedTrack]);
 
-  // Deep links: `?plan=pro|elite` -> `#plan-{plan}`; otherwise honour the hash
-  // (`#pricing` / `#plan-*`). This is what keeps the old in-app anchors working.
+  // Deep links: only a PLAN deep link (`?plan=pro|elite` or `#plan-pro` /
+  // `#plan-elite`) scrolls, landing on that column. This is what keeps the
+  // "Upgrade to Elite" flows working.
   useEffect(() => {
     const plan = searchParams.get("plan");
     const hash =
       typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : "";
-    const target = plan === "pro" || plan === "elite" ? `plan-${plan}` : hash || "pricing";
+    const target = plan === "pro" || plan === "elite" ? `plan-${plan}` : hash;
+    // Only a plan deep link scrolls. `/pricing` IS the pricing page, so the top of
+    // the page already shows it — scrolling here would skip the free-plan hero, and
+    // the legacy `#pricing` anchor has nothing left to point at.
+    if (target !== "plan-pro" && target !== "plan-elite") return;
     const timer = window.setTimeout(() => {
-      const el = document.getElementById(target);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 350);
     return () => window.clearTimeout(timer);
   }, [searchParams, track]);
@@ -254,8 +258,10 @@ export function PricingPageClient({
       </section>
 
       {/* Track heading, term control and the tier columns, on the page's black
-          background. `id="pricing"` is the anchor the old `#pricing` deep links
-          resolve to.
+          background. Deliberately has NO `id="pricing"`: `/pricing` IS the pricing
+          page, so the top already shows this — keeping the id made the browser's
+          native fragment scroll jump past the free-plan hero on load. The legacy
+          `#pricing` fragment is now a no-op.
 
           Everything here is the DARK palette (`tone="dark"`, `text-white`,
           `text-white/50`). The plan cards below keep their own track fills, which
@@ -263,7 +269,6 @@ export function PricingPageClient({
           palette — the cards are a slightly lighter dark than the page behind
           them, so they still read as cards on the black backdrop. */}
       <section
-        id="pricing"
         className={`${PAGE_SECTION_PY} scroll-mt-24`}
         style={{ backgroundColor: TRACK_BACKGROUNDS[track] }}
       >
