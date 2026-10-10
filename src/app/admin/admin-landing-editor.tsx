@@ -952,6 +952,24 @@ export function AdminLandingEditor({
                   />
                 </Field>
               </div>
+              {/* `highlight` drives the "Most Popular" badge on /pricing
+                  (`pricing-tier-grid.tsx` renders it when `tier.highlight`).
+                  It was previously WRITABLE BY NOTHING — no admin control
+                  touched it — so the badge could only be moved by a code change
+                  or a direct payload write. Exactly one tier should be checked;
+                  nothing enforces that, so two checks would render two badges. */}
+              <label className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={Boolean(tier.highlight)}
+                  onChange={(e) => {
+                    const tiers = [...content.pricing.tiers];
+                    tiers[i] = { ...tier, highlight: e.target.checked };
+                    patch("pricing", { ...content.pricing, tiers });
+                  }}
+                />
+                Most Popular — show the badge on this tier
+              </label>
               <Field label="Tier description">
                 <TextInput
                   value={tier.description}
@@ -1743,6 +1761,21 @@ export function AdminLandingEditor({
                   />
                 </Field>
               </div>
+              {/* Sales spells the same flag `featured` — `pricing-page-client.tsx`
+                  maps it to `highlight` when it adapts these tiers for the grid.
+                  Two different field names for one badge; keep them in step. */}
+              <label className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={Boolean(tier.featured)}
+                  onChange={(e) => {
+                    const pricing = [...content.sales.pricing];
+                    pricing[i] = { ...tier, featured: e.target.checked };
+                    patch("sales", { ...content.sales, pricing });
+                  }}
+                />
+                Most Popular — show the badge on this tier
+              </label>
               <Field label="Description">
                 <TextInput
                   value={tier.description}
