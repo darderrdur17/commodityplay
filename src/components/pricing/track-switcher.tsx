@@ -21,10 +21,11 @@ export interface TrackSwitcherProps {
    */
   note?: string;
   /**
-   * Palette for the surface this sits on. `/pricing` is the only consumer and now
-   * renders it on the light page, so it passes `"light"`; the `"dark"` branch is
-   * kept because the control is designed to sit on either surface and the note /
-   * inactive-label colours are the only thing that changes. Defaults to `"light"`.
+   * Palette for the surface this sits on. `/pricing` is the only consumer and
+   * renders it on the black page, so it passes `"dark"`; the `"light"` branch is
+   * retained because the control is designed to sit on either surface and the
+   * note / inactive-label colours are the only thing that changes. Defaults to
+   * `"light"`.
    */
   tone?: "light" | "dark";
   className?: string;
