@@ -30,7 +30,7 @@ export interface TrackSwitcherProps {
   note?: string;
   /**
    * Palette for the surface this sits on. `/pricing` is the only consumer and
-   * renders it on the black page, so it passes `"dark"`; the `"light"` branch is
+   * renders it on the white page, so it passes `"light"`; the `"dark"` branch is
    * retained because the control is designed to sit on either surface and the
    * note / inactive-label colours are the only thing that changes. Defaults to
    * `"light"`.
@@ -63,14 +63,20 @@ const ACTIVE_FILL: Record<PlanTrack, string> = {
  * the top edge, a hard 2px bottom edge that reads as physical thickness, and a
  * soft drop shadow beneath. Together they lift the segment off the track.
  *
- * There are two variants because the page background moved to pure black. The
+ * ⚠️ The DARK variant is currently UNREACHABLE — `/pricing` is the only caller
+ * and it renders the control on the WHITE page, so it passes `tone="light"` and
+ * only the LIGHT recipe is used. It is kept (not deleted) because the control is
+ * designed to sit on a dark surface too, and the dark recipe is what makes it
+ * read there.
+ *
+ * The dark variant exists because the page background was once pure black. The
  * light-page shadows are slate — `rgba(15,23,42,…)`, near-black — so against
- * `#000000` they cast nothing and the selected chip goes flat. On the dark page
+ * `#000000` they cast nothing and the selected chip went flat. On a dark surface
  * the lift has to come from the other direction:
  *
  *   - a TRUE black bottom edge, which is visible precisely because the chip sits
  *     on the lighter `#1a1a1a` track (`bg-white/10`) rather than on the page; and
- *   - a faint 1px light rim, which is what separates the chip from the black
+ *   - a faint 1px light rim, which is what separated the chip from the black
  *     page behind it — on a dark surface a raised element reads as *lit*, not
  *     as *shadowed*.
  */
@@ -84,9 +90,13 @@ const EMBOSSED_ACTIVE_DARK =
  * instead of raised — a soft inner shadow and no drop shadow. The pair is what
  * makes the control read as embossed rather than as two flat chips.
  *
- * The dark variant uses a true black inset for the same reason as above: a
- * slate inset is invisible against the `#1a1a1a` track, so the pressed-in cue
- * disappeared along with the page's white background.
+ * Like the active pair above, the DARK variant is currently UNREACHABLE —
+ * `/pricing` passes `tone="light"`, so only the LIGHT inset is used. It is kept
+ * for the same reason: the control is designed to sit on either surface.
+ *
+ * The dark variant uses a true black inset for the same reason as above: a slate
+ * inset was invisible against the `#1a1a1a` track on the black page, so the
+ * pressed-in cue disappeared.
  */
 const EMBOSSED_IDLE_LIGHT = "shadow-[inset_0_2px_4px_rgba(15,23,42,0.10)]";
 const EMBOSSED_IDLE_DARK = "shadow-[inset_0_2px_5px_rgba(0,0,0,0.55)]";

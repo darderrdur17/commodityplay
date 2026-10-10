@@ -22,7 +22,12 @@ interface PlanTermSelectorProps {
   tier?: PlanTier;
   value: PlanTerm;
   onChange: (term: PlanTerm) => void;
-  /** "dark" for the dark track-themed pricing page; "light" for white cards and /account. */
+  /**
+   * Palette for the surface this sits on. `/pricing` renders the control on the
+   * WHITE page and passes `"light"`, so the `"dark"` branch is currently
+   * UNREACHABLE — no caller uses it. It is kept (not deleted) because the control
+   * is designed to sit on the dark track-themed cards too.
+   */
   tone?: "light" | "dark";
   /**
    * `false` drops the per-month rate from each option. Set by the shared toggle
