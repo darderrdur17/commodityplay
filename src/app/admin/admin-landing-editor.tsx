@@ -217,7 +217,7 @@ function FeaturesList({
   );
 }
 
-type ComparisonColumn = { key: "starter" | "pro" | "elite"; label: string };
+export type ComparisonColumn = { key: "starter" | "pro" | "elite"; label: string };
 
 const smallButtonClass =
   "inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-border hover:bg-secondary/60 transition-colors";
@@ -226,8 +226,13 @@ const smallButtonClass =
  * Editable Feature Comparison / pricing comparison table — same table rendered on the live
  * landing page. Admins can edit group titles, colors, row (feature) names, and which plans
  * check the feature off, without touching code.
+ *
+ * EXPORTED because the focused "Pricing plans" card (`editors/pricing-plans-editor.tsx`)
+ * renders this exact component for its own track. Sharing the one implementation is what
+ * keeps the two entry points from drifting apart — there is only ever one editor for
+ * these rows.
  */
-function ComparisonTableEditor({
+export function ComparisonTableEditor({
   table,
   onChange,
   columns,
