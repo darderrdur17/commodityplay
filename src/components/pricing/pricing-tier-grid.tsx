@@ -292,18 +292,26 @@ function TierCard({
               `min-h` tracks the type size below it: a line box that is shorter
               than the text is exactly the 2px-of-drift bug this guards against.
 
-              ANNUAL ONLY. On the monthly term the price already ends in `/ mo`
-              and this line read "billed monthly" — the same fact stated twice.
-              The row is now empty there, but the `min-h` above still reserves
-              its height, so no column moves. Annual keeps it: `S$16.15 / mo`
-              over "billed annually" is NOT a duplicate — S$16.15 is the
-              effective monthly rate, while S$193.80 is what is charged. */}
+              HISTORY — the row was once ANNUAL ONLY. On the monthly term the
+              price already ends in `/ mo` and this line read "billed monthly",
+              which PR #79 judged the same fact stated twice, so the row was left
+              empty there. The `min-h` above still reserved its height, so no
+              column moved.
+
+              REVERSED (owner's request): the monthly term now shows "billed
+              monthly" again. The reasoning that changed: an explicit "billed
+              monthly" reads as deliberate where a bare `/ mo` can be skimmed.
+              The free tier still shows neither, and the `min-h` reservation
+              above still means the row's presence never moves a column. Annual
+              remains the case where the line is load-bearing, because
+              `S$16.15 / mo` over "billed annually" is NOT a duplicate — S$16.15
+              is the effective monthly rate, while S$193.80 is what is charged. */}
           <div
             className={`mt-1 min-h-[24px] text-base sm:min-h-[28px] sm:text-lg ${
               cardIsLight ? "text-muted-fg" : "text-white/60"
             }`}
           >
-            {isPaid && term === "12" ? "billed annually" : null}
+            {isPaid ? (term === "12" ? "billed annually" : "billed monthly") : null}
           </div>
           {/* The savings badge gets its OWN row, reserved for the whole annual
               term in every column. `flex h-6` rather than `min-h-[24px]` + an
