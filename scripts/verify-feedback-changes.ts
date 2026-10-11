@@ -2606,10 +2606,14 @@ async function verifyPdfStampWrites() {
     "Internal /demo is gated to Frances admin (not public)",
     proxySrc.includes('"/demo"') &&
       proxySrc.includes("src/app/demo/page.tsx") &&
-      FRANCES_DEMO_LOGIN_EMAIL === BRAND_EMAIL_SUPPORT &&
+      // Demo access is an identity, not a contact address. Frances's account and
+      // the consolidated hello@ inbox both open the switcher, and the identity
+      // literal is decoupled from BRAND_EMAIL_SUPPORT (which now points at hello@).
+      FRANCES_DEMO_LOGIN_EMAIL === "frances@commodityplay.ai" &&
       canAccessInternalDemo({ role: "USER", email: FRANCES_DEMO_LOGIN_EMAIL }) &&
       !canAccessInternalDemo({ role: "ADMIN", email: "anyone@example.com" }) &&
       canAccessInternalDemo({ role: "USER", email: "frances@commodityplay.ai" }) &&
+      canAccessInternalDemo({ role: "USER", email: "hello@commodityplay.ai" }) &&
       !canAccessInternalDemo({ role: "USER", email: "member@example.com" }) &&
       !canAccessInternalDemo(null)
   );
@@ -2624,8 +2628,8 @@ async function verifyPdfStampWrites() {
   );
   const registerRoute = fs.readFileSync(path.join(process.cwd(), "src/app/api/auth/register/route.ts"), "utf8");
   ok(
-    "Operator leads email Frances (newsletter, contact, mentor apply, starter signup)",
-    BRAND_EMAIL_SUPPORT === "frances@commodityplay.ai" &&
+    "Operator leads email Support (newsletter, contact, mentor apply, starter signup)",
+    BRAND_EMAIL_SUPPORT === "hello@commodityplay.ai" &&
       fs.readFileSync(path.join(process.cwd(), "src/lib/email.ts"), "utf8").includes(
         "getOperatorNotifyEmails"
       ) &&
@@ -2635,6 +2639,10 @@ async function verifyPdfStampWrites() {
       registerRoute.includes("notifyOperatorLead")
   );
   const footerMerged = mergeSiteFooterContent({});
+  // Custom list uses arbitrary addresses on purpose: this fixture tests that a
+  // hand-entered operator list is normalised and preserved, not that those
+  // addresses are the live contacts. The default (footerMerged) follows
+  // BRAND_EMAIL_SUPPORT, which is now the consolidated hello@ inbox.
   const footerCustom = mergeSiteFooterContent({
     operatorNotifyEmails: ["support@commodityplay.ai", "frances@commodityplay.ai"],
   });
@@ -2643,7 +2651,7 @@ async function verifyPdfStampWrites() {
   });
   const emailSrc = fs.readFileSync(path.join(process.cwd(), "src/lib/email.ts"), "utf8");
   ok(
-    "Footer CMS defaults operator alerts to Frances and keeps extra inboxes",
+    "Footer CMS defaults operator alerts to Support and keeps extra inboxes",
     footerMerged.operatorNotifyEmails.join(",") === BRAND_EMAIL_SUPPORT &&
       footerCustom.operatorNotifyEmails.includes("support@commodityplay.ai") &&
       footerCustom.operatorNotifyEmails.includes("frances@commodityplay.ai") &&
