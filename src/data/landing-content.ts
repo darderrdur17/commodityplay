@@ -3,6 +3,7 @@ import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   PLAN_BASE_PRICE,
   PRICING_CTA_BAND,
+  PRICING_FREE_PANEL,
   formatMoney,
   monthlyRate,
   priceLabel,
@@ -152,6 +153,28 @@ export interface LandingPricingCtaBand {
   title: string;
   description: string;
   button: string;
+}
+
+/**
+ * The free-plan hero band at the top of `/pricing` — the one that used to read
+ * "Free, until you're ready".
+ *
+ * Editable because the owner treats the pricing page's wording as hers to change
+ * from the admin panel. The band was previously a hardcoded constant
+ * (`PRICING_FREE_PANEL`) that no admin surface could reach; the defaults are still
+ * seeded from that constant, so `pricing-shared.ts` stays the single source of
+ * truth for the shipped wording.
+ *
+ * ⚠️ `price` and `period` are deliberately NOT part of this group. `price` is a
+ * literal `$0` — a big `S$0` reads like a bug — and the pair is a price, not copy.
+ * See the docblock on `PRICING_FREE_PANEL`.
+ */
+export interface LandingPricingFreePanel {
+  title: string;
+  line1: string;
+  line2: string;
+  cta: string;
+  note: string;
 }
 
 /** One "NOW / ACTION / TARGET"-style row in a track feature section. */
@@ -341,6 +364,11 @@ export interface LandingContent {
   mentorConnect: LandingMentorConnect;
   /** Shared "Plans & pricing" CTA band — same words on both landing pages. */
   pricingCtaBand: LandingPricingCtaBand;
+  /**
+   * Free-plan hero band on `/pricing` — one band for both tracks, edited from the
+   * "Pricing plans" admin card rather than the landing editor.
+   */
+  pricingFreePanel: LandingPricingFreePanel;
   /** Sales-track tool sections shown on the sales landing, above the pricing band. */
   salesFeatures: {
     marketNudges: LandingTrackFeature;
@@ -882,6 +910,13 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
     title: PRICING_CTA_BAND.title,
     description: PRICING_CTA_BAND.description,
     button: PRICING_CTA_BAND.button,
+  },
+  pricingFreePanel: {
+    title: PRICING_FREE_PANEL.title,
+    line1: PRICING_FREE_PANEL.line1,
+    line2: PRICING_FREE_PANEL.line2,
+    cta: PRICING_FREE_PANEL.cta,
+    note: PRICING_FREE_PANEL.note,
   },
   salesFeatures: {
     marketNudges: {

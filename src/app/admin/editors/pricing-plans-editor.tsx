@@ -3,10 +3,10 @@
 import React, { useState } from "react";
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EditorSection } from "./shared";
+import { EditorField, EditorSection, inputClass, textareaClass } from "./shared";
 import { ComparisonTableEditor, type ComparisonColumn } from "../admin-landing-editor";
 import { resolveEditorLandingContent } from "./landing-editor";
-import type { FeatureComparisonGroup } from "@/data/landing-content";
+import type { FeatureComparisonGroup, LandingContent } from "@/data/landing-content";
 
 /**
  * Focused "Pricing plans" card — the plan-by-plan view of what each tier includes.
@@ -31,7 +31,17 @@ import type { FeatureComparisonGroup } from "@/data/landing-content";
  * The payload also holds every other landing section. Writing back a merged
  * `LandingContent` would risk stamping defaults over keys this card does not own,
  * so each edit replaces only the one nested key it is responsible for
- * (`pricing.comparison` or `sales.comparison`) inside the RAW payload.
+ * (`pricing.comparison`, `sales.comparison`, or the top-level `pricingFreePanel`)
+ * inside the RAW payload.
+ *
+ * ---------------------------------------------------------------------------
+ * THE FREE-PLAN BAND (added 11 Oct 2026)
+ * ---------------------------------------------------------------------------
+ * The heading and subheading at the top of `/pricing` used to be a hardcoded
+ * constant (`PRICING_FREE_PANEL`) with no admin surface at all. They are now the
+ * top-level `pricingFreePanel` group, edited here because this is the card the
+ * owner looks in for pricing wording. The `$0` price is deliberately still code —
+ * it is a price, not copy, and a big `S$0` reads like a bug.
  */
 
 type PricingTrack = "career" | "sales";
@@ -125,6 +135,19 @@ export function PricingPlansEditor({
     });
   }
 
+  /**
+   * The free-plan hero band is a TOP-LEVEL key, not nested under a track, so it is
+   * written once for both tracks. Same surgical rule: merge into the raw key
+   * rather than writing back a fully-resolved group.
+   */
+  function writeFreePanel(next: Partial<LandingContent["pricingFreePanel"]>) {
+    const rawFreePanel = (rawPayload.pricingFreePanel ?? {}) as Record<string, unknown>;
+    onChange({
+      ...rawPayload,
+      pricingFreePanel: { ...rawFreePanel, ...next },
+    });
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 px-1">
@@ -175,6 +198,53 @@ export function PricingPlansEditor({
           onChange={(table) => writeComparison(table.groups)}
           columns={columns}
         />
+      </EditorSection>
+
+      <EditorSection
+        title="Free plan band — top of /pricing"
+        description="The heading and subheading above the plan grid. One band for both tracks; the $0 price and its period are fixed in code."
+        defaultOpen
+      >
+        <EditorField label="Heading">
+          <input
+            className={inputClass}
+            value={content.pricingFreePanel.title}
+            onChange={(e) => writeFreePanel({ title: e.target.value })}
+          />
+        </EditorField>
+        <EditorField label="Subheading — first line">
+          <textarea
+            className={textareaClass}
+            value={content.pricingFreePanel.line1}
+            onChange={(e) => writeFreePanel({ line1: e.target.value })}
+          />
+        </EditorField>
+        <EditorField
+          label="Subheading — second line"
+          hint="Rendered on its own line directly under the first."
+        >
+          <textarea
+            className={textareaClass}
+            value={content.pricingFreePanel.line2}
+            onChange={(e) => writeFreePanel({ line2: e.target.value })}
+          />
+        </EditorField>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <EditorField label="Button label">
+            <input
+              className={inputClass}
+              value={content.pricingFreePanel.cta}
+              onChange={(e) => writeFreePanel({ cta: e.target.value })}
+            />
+          </EditorField>
+          <EditorField label="Footnote under the button">
+            <input
+              className={inputClass}
+              value={content.pricingFreePanel.note}
+              onChange={(e) => writeFreePanel({ note: e.target.value })}
+            />
+          </EditorField>
+        </div>
       </EditorSection>
     </div>
   );

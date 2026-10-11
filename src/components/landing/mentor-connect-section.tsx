@@ -59,6 +59,12 @@ export interface MentorConnectSectionProps {
   content: LandingMentorSection;
   /** Drives the accent colour only — the words are shared by both tracks. */
   track: Track;
+  /**
+   * Opens the shared Contact modal. The section owns no contact form of its own —
+   * every enquiry goes through the same `/api/contact` funnel as the rest of the
+   * site, which is what routes it to the support inbox.
+   */
+  onOpenContact: () => void;
   id?: string;
 }
 
@@ -68,27 +74,27 @@ export interface MentorConnectSectionProps {
  * Rendered on BOTH landing pages in the slot the dashed placeholder used to
  * occupy. One set of CMS words; the track only swaps the palette.
  *
- * "See demo" scrolls to and focuses the embedded interactive card rather than
- * opening the Contact modal. The house convention elsewhere (`edge-notes.ts`)
- * has a "See demo" open Contact Us — that reads oddly here, because the demo is
- * literally the panel beside the button. Worth raising with the owner.
+ * HISTORY — what the primary CTA does:
+ * It used to scroll to and focus the embedded interactive card rather than open
+ * the Contact modal, on the reasoning that the demo is literally the panel beside
+ * the button. The build flagged that as reading oddly, because the house
+ * convention elsewhere (`edge-notes.ts`) has a "See demo" open Contact Us.
+ * REVERSED at the owner's request (11 Oct 2026): the button now opens the Contact
+ * modal, so the enquiry lands on the support inbox like every other Contact Us.
  */
 export function MentorConnectSection({
   content,
   track,
+  onOpenContact,
   id = "mentor-connect",
 }: MentorConnectSectionProps) {
   const theme = THEMES[track];
+  /**
+   * The demo wrapper stays a focusable, labelled region even though nothing
+   * scrolls to it any more — it is the anchor the demo card lives inside, and
+   * `#mentor-connect` deep links still resolve against the section itself.
+   */
   const demoRef = useRef<HTMLDivElement>(null);
-
-  function scrollToDemo() {
-    const node = demoRef.current;
-    if (!node) return;
-    node.scrollIntoView({ behavior: "smooth", block: "center" });
-    // Move the reading point as well as the viewport, so keyboard and screen
-    // reader users land inside the card rather than back at the page top.
-    node.focus({ preventScroll: true });
-  }
 
   return (
     <section
@@ -159,7 +165,7 @@ export function MentorConnectSection({
             <div className="flex items-center gap-[22px] flex-wrap">
               <button
                 type="button"
-                onClick={scrollToDemo}
+                onClick={onOpenContact}
                 className={cn(
                   "inline-flex items-center justify-center whitespace-nowrap font-semibold text-white",
                   "px-7 py-3.5 rounded-md text-[14.5px] transition-colors",

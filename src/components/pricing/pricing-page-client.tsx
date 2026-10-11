@@ -236,13 +236,16 @@ export function PricingPageClient({
         <div className="page-container py-14 sm:py-20">
           <div className="grid items-center gap-10 lg:grid-cols-2">
             <div>
+              {/* Copy comes from the CMS (`pricingFreePanel`), so the owner can edit
+                  the heading and subheading from the "Pricing plans" admin card. The
+                  PRICE does not — `PRICING_FREE_PANEL.price` stays a code literal. */}
               <h1 className="mb-5 font-serif text-[clamp(32px,5vw,52px)] font-bold tracking-tight text-gray-900">
-                {PRICING_FREE_PANEL.title}
+                {content.pricingFreePanel.title}
               </h1>
               <p className="max-w-xl text-base leading-relaxed text-muted-fg sm:text-lg">
-                {PRICING_FREE_PANEL.line1}
+                {content.pricingFreePanel.line1}
                 <br />
-                {PRICING_FREE_PANEL.line2}
+                {content.pricingFreePanel.line2}
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8">
@@ -261,9 +264,9 @@ export function PricingPageClient({
                 onClick={() => setModalOpen(true)}
                 className="mt-6 w-full rounded-full"
               >
-                {PRICING_FREE_PANEL.cta}
+                {content.pricingFreePanel.cta}
               </Button>
-              <p className="mt-3 text-center text-xs text-muted-fg">{PRICING_FREE_PANEL.note}</p>
+              <p className="mt-3 text-center text-xs text-muted-fg">{content.pricingFreePanel.note}</p>
             </div>
           </div>
         </div>
