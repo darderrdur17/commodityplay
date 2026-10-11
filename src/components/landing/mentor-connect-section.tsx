@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { MentorDemoCard, type MentorTheme } from "@/components/landing/mentor-demo-card";
 import type { LandingMentorSection } from "@/data/landing-content";
 import { CAREER_PRICING_HREF, SALES_PRICING_HREF } from "@/lib/pricing-routes";
+import { LANDING_CTA } from "@/lib/landing-cta";
 
 type Track = "career" | "sales";
 
@@ -117,8 +118,14 @@ export function MentorConnectSection({
               <span className="h-px flex-1" style={{ background: theme.line }} aria-hidden />
             </p>
 
+            {/* Type scale deliberately matches `TrackFeatureSection`'s headline
+                (`clamp(28px,3.6vw,38px)`), not the hero scale. At the owner's
+                request (11 Oct 2026) this heading was rendering one step larger
+                than every other section headline on the page — most visibly
+                against "Your tracked accounts, with bookmarked topics." directly
+                above it on the Sales track. */}
             <h2
-              className="font-serif text-[clamp(32px,4.4vw,46px)] font-bold leading-[1.08] tracking-[-0.025em] mb-4 text-balance"
+              className="font-serif text-[clamp(28px,3.6vw,38px)] font-bold leading-[1.15] tracking-tight mb-4 text-balance"
               style={{ color: theme.deep }}
             >
               {content.headline}
@@ -168,8 +175,9 @@ export function MentorConnectSection({
                 onClick={onOpenContact}
                 className={cn(
                   "inline-flex items-center justify-center whitespace-nowrap font-semibold text-white",
-                  "px-7 py-3.5 rounded-md text-[14.5px] transition-colors",
+                  "px-7 py-3.5 text-[14.5px] transition-colors",
                   "focus-visible:outline-2 focus-visible:outline-offset-[3px]",
+                  LANDING_CTA,
                   BUTTON_CLASS[track]
                 )}
                 style={{ outlineColor: theme.accent }}

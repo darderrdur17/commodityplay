@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Reveal } from "@/components/animations";
 import { Button } from "@/components/ui/button";
 import { SALES_SECTION_MINT } from "@/lib/sales-brand-colors";
+import { LANDING_CTA } from "@/lib/landing-cta";
 import { topicDisplayLines, type MarketNoteTopic } from "@/data/market-notes";
 import type { SalesTrackFeature } from "@/data/landing-content";
 
@@ -112,12 +113,23 @@ export function MarketNoteStrip({
                   <div className="mt-8 flex flex-wrap items-center gap-3">
                     {cta.href ? (
                       <Link href={cta.href}>
-                        <Button size="lg" variant={cta.variant ?? "default"} loading={cta.loading}>
+                        <Button
+                          size="lg"
+                          variant={cta.variant ?? "default"}
+                          loading={cta.loading}
+                          className={LANDING_CTA}
+                        >
                           {cta.label} <ArrowRight className="w-4 h-4" />
                         </Button>
                       </Link>
                     ) : (
-                      <Button size="lg" variant={cta.variant ?? "default"} onClick={cta.onClick} loading={cta.loading}>
+                      <Button
+                        size="lg"
+                        variant={cta.variant ?? "default"}
+                        onClick={cta.onClick}
+                        loading={cta.loading}
+                        className={LANDING_CTA}
+                      >
                         {cta.label} <ArrowRight className="w-4 h-4" />
                       </Button>
                     )}
@@ -319,7 +331,8 @@ function AccentSecondaryButton({
       variant={cta.variant ?? "outline"}
       onClick={cta.onClick}
       className={cn(
-        cta.accent && "border-transparent text-white hover:brightness-110 hover:border-transparent rounded-lg px-6",
+        LANDING_CTA,
+        cta.accent && "border-transparent text-white hover:brightness-110 hover:border-transparent px-6",
         fullWidth && "w-full"
       )}
       style={

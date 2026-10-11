@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { uploadContentAssetFile } from "./editors/shared";
 import type {
   FeatureComparisonTable,
   LandingContent,
@@ -428,6 +429,96 @@ function TrackFeatureFields({
   );
 }
 
+/**
+ * Single-image picker for a CMS slot that holds ONE `ContentAsset` id.
+ *
+ * Uploads through the same `/api/admin/content/assets` endpoint every other
+ * admin surface uses, with a STABLE `assetKey` (`landing/final-cta-image`). That
+ * key is what makes re-uploading REPLACE the previous image rather than leave
+ * orphans behind in the asset table — `upsertContentAsset` upserts on it.
+ *
+ * Deliberately not wrapped in `Field`: that renders a `<label>`, and a label
+ * forwards clicks to its labelled control, so pressing "Remove" would pop the
+ * file dialog. The caller renders the heading itself.
+ */
+function ImageAssetField({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange: (assetId: string | undefined) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function pick(file: File) {
+    setBusy(true);
+    setError("");
+    const result = await uploadContentAssetFile({
+      file,
+      moduleSlug: "landing",
+      requiredTier: "PRO",
+      assetKey: "landing/final-cta-image",
+    });
+    setBusy(false);
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+    onChange(result.id);
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.heic,.heif,.tiff,.tif,image/*"
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void pick(f);
+            e.target.value = "";
+          }}
+        />
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => fileRef.current?.click()}
+          className="inline-flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs transition-colors hover:border-primary-400 hover:bg-secondary/40 disabled:opacity-50"
+        >
+          <Upload className="w-3.5 h-3.5 text-primary-400" />
+          {busy ? "Uploading…" : value ? "Replace image" : "Upload image"}
+        </button>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange(undefined)}
+            className="text-xs font-medium text-red-500 hover:text-red-700"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+      {value ? (
+        // eslint-disable-next-line @next/next/no-img-element -- CMS asset of unknown dimensions
+        <img
+          src={`/api/content/assets/${value}`}
+          alt=""
+          className="h-24 w-auto rounded-lg border border-border object-cover"
+        />
+      ) : (
+        <p className="text-[11px] text-muted-fg">
+          Optional. Renders centred under the closing band&rsquo;s title. PNG or JPG, max 4MB.
+        </p>
+      )}
+      {error && <p className="text-[11px] text-red-600">{error}</p>}
+    </div>
+  );
+}
+
 export function AdminLandingEditor({
   content,
   onChange,
@@ -450,7 +541,11 @@ export function AdminLandingEditor({
 
       {showCareer && (
       <>
-      <Section title="Career Track — Hero" description="Track 1 hero section" defaultOpen>
+      <Section
+        title="Career Track — Hero"
+        description="Track 1 hero section, plus the closing “Be part of industry community” band's buttons and image"
+        defaultOpen
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Eyebrow">
             <TextInput value={content.career.eyebrow} onChange={(v) => patch("career", { ...content.career, eyebrow: v })} />
@@ -490,6 +585,25 @@ export function AdminLandingEditor({
               onChange={(v) => patch("career", { ...content.career, finalCtaAccent: v })}
             />
           </Field>
+          <Field label="Bottom CTA primary button" hint="The closing band's main button.">
+            <TextInput
+              value={content.career.finalCtaPrimary}
+              onChange={(v) => patch("career", { ...content.career, finalCtaPrimary: v })}
+            />
+          </Field>
+          <Field label="Bottom CTA secondary button" hint="Sits beside it; opens the Contact form.">
+            <TextInput
+              value={content.career.finalCtaSecondary}
+              onChange={(v) => patch("career", { ...content.career, finalCtaSecondary: v })}
+            />
+          </Field>
+        </div>
+        <div className="space-y-1.5">
+          <span className="block text-xs font-semibold text-gray-700">Bottom CTA image</span>
+          <ImageAssetField
+            value={content.career.finalCtaImageAssetId}
+            onChange={(id) => patch("career", { ...content.career, finalCtaImageAssetId: id })}
+          />
         </div>
         <Field label="Description">
           <TextInput

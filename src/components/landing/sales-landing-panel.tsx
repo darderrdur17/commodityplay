@@ -30,6 +30,8 @@ import type { LandingContent, LandingTestimonials } from "@/data/landing-content
 import { SALES_MARKET_NOTE } from "@/data/market-notes";
 import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-notes";
 import { SALES_HERO_GREEN } from "@/lib/sales-brand-colors";
+import { LANDING_CTA } from "@/lib/landing-cta";
+import { starterSignupHref } from "@/lib/signup-routes";
 
 const SALES_COLOR = "#0F766E";
 
@@ -153,7 +155,10 @@ export function SalesLandingPanel({
               <Button
                 size="xl"
                 variant="outline-dark"
-                className="border-teal-200/40 text-white hover:bg-teal-200/10 w-full sm:w-auto"
+                className={cn(
+                  "border-teal-200/40 text-white hover:bg-teal-200/10 w-full sm:w-auto",
+                  LANDING_CTA
+                )}
                 onClick={() => learnRef.current?.scrollIntoView({ behavior: "smooth" })}
               >
                 {content.ctaSecondary}
@@ -371,10 +376,10 @@ export function SalesLandingPanel({
               </div>
             </div>
             <div className="relative z-10 flex flex-col justify-center">
-              <Link href="/signup?plan=starter&track=sales&callbackUrl=/?track=sales">
+              <Link href={starterSignupHref("sales")}>
                 <Button
                   size="lg"
-                  className="w-full bg-white text-teal-900 hover:bg-white/90 border-0"
+                  className={cn("w-full bg-white text-teal-900 hover:bg-white/90 border-0", LANDING_CTA)}
                 >
                   <Download className="w-4 h-4" />
                   Join Free - Upgrade Later
@@ -443,7 +448,7 @@ export function SalesLandingPanel({
             </p>
             <Button
               variant="outline"
-              className="border-teal-300 text-teal-800 hover:bg-teal-50 mt-4"
+              className={cn("border-teal-300 text-teal-800 hover:bg-teal-50 mt-4", LANDING_CTA)}
               onClick={onOpenContactModal}
             >
               Contact Us

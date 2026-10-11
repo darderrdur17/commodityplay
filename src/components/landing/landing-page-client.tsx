@@ -38,6 +38,8 @@ import {
 } from "@/data/landing-content";
 import { CAREER_MARKET_NOTE } from "@/data/market-notes";
 import { toMarketNoteStripProps, type WeeklyEdgeNote } from "@/lib/content/edge-notes";
+import { LANDING_CTA } from "@/lib/landing-cta";
+import { starterSignupHref } from "@/lib/signup-routes";
 
 type Track = "career" | "sales";
 
@@ -150,17 +152,25 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
                     {career.description}
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                    <Button
-                      size="xl"
-                      variant="primary-dark"
-                      className="group shadow-xl shadow-black/20 w-full sm:w-auto"
-                      onClick={() => setModalOpen(true)}
-                    >
-                      {career.ctaPrimary}
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </Button>
+                    {/* Free signup links to the real /signup flow — the Starter Pack
+                        pop-up it used to open only captured an email and never made
+                        an account. Owner request, 11 Oct 2026. */}
+                    <Link href={starterSignupHref("career")} className="w-full sm:w-auto">
+                      <Button
+                        size="xl"
+                        variant="primary-dark"
+                        className={cn("group shadow-xl shadow-black/20 w-full sm:w-auto", LANDING_CTA)}
+                      >
+                        {career.ctaPrimary}
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </Link>
                     <Link href="/starter-pack" className="w-full sm:w-auto">
-                      <Button size="xl" variant="outline-dark" className="w-full sm:w-auto">
+                      <Button
+                        size="xl"
+                        variant="outline-dark"
+                        className={cn("w-full sm:w-auto", LANDING_CTA)}
+                      >
                         {career.ctaSecondary}
                       </Button>
                     </Link>
@@ -322,17 +332,39 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
                   {career.finalCtaTitle}{" "}
                   <span className="text-accent italic font-normal">{career.finalCtaAccent}</span>
                 </h2>
+                {/* Optional image, uploaded from the admin (Career Hero → "Bottom
+                    CTA image"). Owner request, 11 Oct 2026. Renders nothing at all
+                    until an image is chosen, so the band is unchanged by default. */}
+                {career.finalCtaImageAssetId ? (
+                  <img
+                    src={`/api/content/assets/${career.finalCtaImageAssetId}`}
+                    alt=""
+                    aria-hidden
+                    className="mx-auto mb-8 w-full max-w-3xl rounded-2xl border border-white/15 object-cover shadow-2xl shadow-black/30"
+                    loading="lazy"
+                  />
+                ) : null}
+                {/* Both labels are CMS-editable (Career Hero → "Bottom CTA
+                    buttons"). They were previously `career.ctaPrimary` + a
+                    hardcoded "Contact Us", which meant the closing band could not
+                    be reworded without also rewording the hero. */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-8">
-                  <Button size="xl" variant="primary-dark" className="shadow-xl w-full sm:w-auto" onClick={() => setModalOpen(true)}>
-                    {career.ctaPrimary} <ArrowRight className="w-5 h-5" />
-                  </Button>
+                  <Link href={starterSignupHref("career")} className="w-full sm:w-auto">
+                    <Button
+                      size="xl"
+                      variant="primary-dark"
+                      className={cn("shadow-xl w-full sm:w-auto", LANDING_CTA)}
+                    >
+                      {career.finalCtaPrimary} <ArrowRight className="w-5 h-5" />
+                    </Button>
+                  </Link>
                   <Button
                     size="xl"
                     variant="outline-dark"
-                    className="w-full sm:w-auto"
+                    className={cn("w-full sm:w-auto", LANDING_CTA)}
                     onClick={() => setContactOpen(true)}
                   >
-                    Contact Us
+                    {career.finalCtaSecondary}
                   </Button>
                 </div>
               </Reveal>

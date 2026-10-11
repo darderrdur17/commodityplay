@@ -424,7 +424,10 @@ export function resolveCareerContent(
 function resolveCareerFinalCta(
   defaults: LandingContent,
   cms?: Partial<LandingContent["career"]>
-): Pick<LandingContent["career"], "finalCtaTitle" | "finalCtaAccent"> {
+): Pick<
+  LandingContent["career"],
+  "finalCtaTitle" | "finalCtaAccent" | "finalCtaPrimary" | "finalCtaSecondary" | "finalCtaImageAssetId"
+> {
   const defaultTitle = defaults.career.finalCtaTitle;
   const defaultAccent = defaults.career.finalCtaAccent;
 
@@ -440,7 +443,18 @@ function resolveCareerFinalCta(
 
   if (!title) title = defaultTitle;
 
-  return { finalCtaTitle: title, finalCtaAccent: accent };
+  return {
+    finalCtaTitle: title,
+    finalCtaAccent: accent,
+    // `cmsString` keeps an intentionally-cleared label cleared (the owner can
+    // blank a button rather than have the default silently reappear).
+    finalCtaPrimary: cmsString(cms?.finalCtaPrimary, defaults.career.finalCtaPrimary),
+    finalCtaSecondary: cmsString(cms?.finalCtaSecondary, defaults.career.finalCtaSecondary),
+    // Unlike the labels, a blanked image must become `undefined`, not "": the
+    // renderer treats an empty string as "no image", but keeping it out of the
+    // payload entirely is what the schema's `.optional()` expects.
+    finalCtaImageAssetId: cms?.finalCtaImageAssetId?.trim() || undefined,
+  };
 }
 
 /** Sales track — CMS copy wins; repo defaults fill missing structure. */
