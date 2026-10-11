@@ -85,7 +85,9 @@ export type OperatorLeadKind =
   | "operator_mentor_apply"
   | "operator_member_signup"
   | "operator_upgrade"
-  | "operator_billing_lapse";
+  | "operator_billing_lapse"
+  | "operator_mentor_connect"
+  | "operator_job_chat";
 
 /**
  * Renders a notification value, showing an explicit placeholder when it is blank.

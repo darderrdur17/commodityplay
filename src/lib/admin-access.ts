@@ -27,8 +27,14 @@ export interface SoleAdminSession {
 /**
  * Operator inbox used when `ADMIN_EMAILS` is absent outside production, so a
  * fresh checkout still has a working admin surface for local development.
+ *
+ * Points at the consolidated support inbox. On 11 Oct 2026 the owner retired
+ * `frances@commodityplay.ai` and `support@commodityplay.ai` and moved every
+ * contact onto `hello@commodityplay.ai`, so the dev fallback follows the one
+ * inbox. This is a local-development convenience only — production access is
+ * governed solely by the `ADMIN_EMAILS` allowlist.
  */
-export const DEFAULT_DEV_ADMIN_EMAIL = "frances@commodityplay.ai";
+export const DEFAULT_DEV_ADMIN_EMAIL = "hello@commodityplay.ai";
 
 /** Guard so a missing allowlist logs once per process instead of per request. */
 let emptyAllowlistWarned = false;

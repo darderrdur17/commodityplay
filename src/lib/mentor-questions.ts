@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
+  notifyOperatorLead,
   sendMenteeAnswerEmail,
   sendMentorReminderEmail,
   sendNewQuestionToMentorPoolEmail,
@@ -178,6 +179,20 @@ export async function notifyMentorPoolNewQuestion(questionId: string): Promise<v
       memberLabel: memberDisplayId(question.user.id),
     });
   }
+
+  // Operator visibility: a new Mentor Connect question previously notified only
+  // the addressed mentor (or the pool) and never the operator. Mirror the other
+  // lead routes with a fire-and-forget notification so the single support inbox
+  // also sees the question. Destination resolves through `getOperatorNotifyEmails`.
+  void notifyOperatorLead({
+    kind: "operator_mentor_connect",
+    subject: "New Mentor Connect question",
+    lines: [
+      { label: "Segment", value: segmentLabel },
+      { label: "Member", value: memberDisplayId(question.user.id) },
+      { label: "Question", value: question.question },
+    ],
+  });
 }
 
 /** Emails of the mentor account(s) linked to an anonymous Mentor Connect profile. */
