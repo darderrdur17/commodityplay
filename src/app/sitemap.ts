@@ -46,7 +46,10 @@ const PUBLIC_ROUTES: ReadonlyArray<{
   { path: "/", changeFrequency: "daily", priority: 1 },
   { path: "/pricing", changeFrequency: "weekly", priority: 0.9 },
   { path: "/starter-pack", changeFrequency: "weekly", priority: 0.8 },
-  { path: "/faq", changeFrequency: "monthly", priority: 0.7 },
+  // `/faq` is deliberately absent: it 308-redirects to `/pricing#faq` (the FAQ is
+  // a section on /pricing now, not a page), and the contract above forbids
+  // advertising a URL that does not return 200. The redirect carries the index
+  // entry across; listing it here would produce "redirected" errors instead.
   { path: "/mentor-apply", changeFrequency: "monthly", priority: 0.6 },
   { path: "/waitlist", changeFrequency: "monthly", priority: 0.5 },
   { path: "/privacy", changeFrequency: "yearly", priority: 0.3 },

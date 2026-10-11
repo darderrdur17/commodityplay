@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Reveal } from "@/components/animations";
@@ -10,6 +11,7 @@ import { ContactModal } from "@/components/landing/contact-modal";
 import { PricingTierGrid } from "@/components/pricing/pricing-tier-grid";
 import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
 import { TrackSwitcher } from "@/components/pricing/track-switcher";
+import { FaqSection } from "@/components/faq/faq-section";
 import {
   PRICING_CONTENT_FOOTNOTE,
   PRICING_FREE_PANEL,
@@ -17,10 +19,14 @@ import {
 } from "@/data/pricing-shared";
 import type { BillingCadence, PlanTerm, PlanTrack } from "@/data/pricing-shared";
 import type { LandingContent, LandingTier } from "@/data/landing-content";
+import type { FaqContent } from "@/data/faq";
 import { CAREER_PRICING_PATH, SALES_PLAN_HREF, SALES_PRICING_PATH } from "@/lib/pricing-routes";
 import { isPaymentsLive } from "@/lib/payments";
 import { startCheckout } from "@/lib/start-checkout";
 import { PAGE_SECTION_PY } from "@/lib/layout-constants";
+import { LANDING_CTA } from "@/lib/landing-cta";
+import { starterSignupHref } from "@/lib/signup-routes";
+import { cn } from "@/lib/utils";
 
 type Track = "career" | "sales";
 
@@ -73,6 +79,12 @@ export interface PricingPageClientProps {
    * will not charge. Non-admins keep the existing pin untouched.
    */
   isAdmin?: boolean;
+  /**
+   * The FAQ, moved here from its own `/faq` route at the owner's request
+   * (11 Oct 2026). Rendered as the last section on the page, under `id="faq"`,
+   * which is what the footer link and the `/faq` redirect both point at.
+   */
+  faq: FaqContent;
 }
 
 /**
@@ -110,6 +122,7 @@ export function PricingPageClient({
   starterPackHeadline,
   userTrack = null,
   isAdmin = false,
+  faq,
 }: PricingPageClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -166,18 +179,18 @@ export function PricingPageClient({
     if (requested === "sales" || requested === "career") setTrack(requested);
   }, [searchParams, lockedTrack]);
 
-  // Deep links: only a PLAN deep link (`?plan=pro|elite` or `#plan-pro` /
-  // `#plan-elite`) scrolls, landing on that column. This is what keeps the
-  // "Upgrade to Elite" flows working.
+  // Deep links: a PLAN deep link (`?plan=pro|elite` or `#plan-pro` / `#plan-elite`)
+  // scrolls to that column, and `#faq` scrolls to the FAQ section at the foot of
+  // the page. This is what keeps the "Upgrade to Elite" flows working and what
+  // makes the footer's `/pricing#faq` link land on the FAQ rather than the top.
   useEffect(() => {
     const plan = searchParams.get("plan");
     const hash =
       typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : "";
     const target = plan === "pro" || plan === "elite" ? `plan-${plan}` : hash;
-    // Only a plan deep link scrolls. `/pricing` IS the pricing page, so the top of
-    // the page already shows it — scrolling here would skip the free-plan hero, and
-    // the legacy `#pricing` anchor has nothing left to point at.
-    if (target !== "plan-pro" && target !== "plan-elite") return;
+    // The top of the page already shows the pricing, so a bare `/pricing` visit
+    // must not scroll — and the legacy `#pricing` anchor has nothing to point at.
+    if (target !== "plan-pro" && target !== "plan-elite" && target !== "faq") return;
     const timer = window.setTimeout(() => {
       document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 350);
@@ -257,15 +270,22 @@ export function PricingPageClient({
               </div>
               {/* The reference button for the whole page: pill shape + blue
                   gradient. Every other CTA on /pricing matches this — see
-                  `Button variant="gradient"`. */}
-              <Button
-                variant="gradient"
-                size="lg"
-                onClick={() => setModalOpen(true)}
-                className="mt-6 w-full rounded-full"
+                  `Button variant="gradient"`.
+
+                  HISTORY: this used to open the Starter Pack pop-up, which only
+                  captured an email and never created an account. At the owner's
+                  request (11 Oct 2026) a free signup now goes to the real
+                  `/signup` flow so it actually produces a Starter account. The
+                  track comes from the toggle above, so the visitor lands on the
+                  signup form with the track they were already looking at. */}
+              <Link
+                href={starterSignupHref(track)}
+                className="mt-6 block w-full rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2"
               >
-                {content.pricingFreePanel.cta}
-              </Button>
+                <Button variant="gradient" size="lg" className="w-full rounded-full">
+                  {content.pricingFreePanel.cta}
+                </Button>
+              </Link>
               <p className="mt-3 text-center text-xs text-muted-fg">{content.pricingFreePanel.note}</p>
             </div>
           </div>
@@ -321,6 +341,11 @@ export function PricingPageClient({
           </p>
         </div>
       </section>
+
+      {/* The FAQ. Moved here from its own `/faq` route at the owner's request
+          (11 Oct 2026) — it is the last section on the page, and `#faq` is the
+          anchor both the footer link and the `/faq` redirect resolve to. */}
+      <FaqSection hero={faq.hero} items={faq.items} footerCta={faq.footerCta} />
 
       <StarterPackModal
         open={modalOpen}

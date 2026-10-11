@@ -266,6 +266,23 @@ export interface LandingContent {
     ctaSecondary: string;
     finalCtaTitle: string;
     finalCtaAccent: string;
+    /**
+     * The closing band's two button labels.
+     *
+     * They used to be `ctaPrimary` + a hardcoded "Contact Us", which meant the
+     * closing band could not be reworded without also rewording the hero above it.
+     * Split out at the owner's request (11 Oct 2026) so both are editable from
+     * Content → Landing → "Career Track — Hero".
+     */
+    finalCtaPrimary: string;
+    finalCtaSecondary: string;
+    /**
+     * Optional image shown directly beneath the closing band's title, above the
+     * buttons. Holds a `ContentAsset` id (uploaded from the same admin section via
+     * the shared content-asset endpoint) and is rendered as
+     * `/api/content/assets/<id>`. Undefined or empty renders nothing at all.
+     */
+    finalCtaImageAssetId?: string;
     heroStats: { value: number; suffix: string; label: string }[];
   };
   sales: {
@@ -544,6 +561,8 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
     ctaSecondary: "Preview Content",
     finalCtaTitle: "Your career, driven right.",
     finalCtaAccent: "Join the desk community",
+    finalCtaPrimary: "Join Free",
+    finalCtaSecondary: "Contact Us",
     heroStats: [
       { value: 20, suffix: "+", label: "Years desk experience" },
       { value: 9, suffix: "", label: "Full playbook chapters" },

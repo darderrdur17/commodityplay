@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, Download, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TRACK_SELECTION } from "@/data/track-selection";
+import { cn } from "@/lib/utils";
+import { LANDING_CTA } from "@/lib/landing-cta";
 
 const PACK_ITEMS = [
   "Ecosystem Map",
@@ -207,7 +209,7 @@ export function StarterPackModal({ open, onClose, items, headline }: Props) {
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full" size="lg" loading={submitting}>
+                  <Button type="submit" className={cn("w-full", LANDING_CTA)} size="lg" loading={submitting}>
                     <Download className="w-4 h-4" />
                     Send Me the Free Pack →
                   </Button>
@@ -224,7 +226,7 @@ export function StarterPackModal({ open, onClose, items, headline }: Props) {
                   Your free infographic pack is on its way. While you wait — explore the Playbook below.
                 </p>
                 <Link href="/signup" onClick={handleClose}>
-                  <Button className="w-full">Create Your Account</Button>
+                  <Button className={cn("w-full", LANDING_CTA)}>Create Your Account</Button>
                 </Link>
               </div>
             )}

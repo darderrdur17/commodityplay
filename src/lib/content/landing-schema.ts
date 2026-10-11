@@ -141,6 +141,19 @@ export const landingContentSchema = z.object({
     ctaSecondary: z.string().min(1),
     finalCtaTitle: z.string().min(1),
     finalCtaAccent: z.string().min(1),
+    /**
+     * ⚠️ `.default(...)` on both is load-bearing, exactly like the group-level
+     * defaults below. A payload saved BEFORE these fields existed has no
+     * `finalCtaPrimary`, so without a default the next save of ANY other landing
+     * field would fail validation here and the owner's edit would be rejected.
+     */
+    finalCtaPrimary: z.string().min(1).default(() => DEFAULT_LANDING_CONTENT.career.finalCtaPrimary),
+    finalCtaSecondary: z
+      .string()
+      .min(1)
+      .default(() => DEFAULT_LANDING_CONTENT.career.finalCtaSecondary),
+    /** Optional: absent means "no image", which is the shipped default. */
+    finalCtaImageAssetId: z.string().optional(),
     heroStats: z.array(heroStatSchema).min(1),
   }),
   sales: z.object({
