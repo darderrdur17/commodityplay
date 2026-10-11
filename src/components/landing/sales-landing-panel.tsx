@@ -267,7 +267,11 @@ export function SalesLandingPanel({
         mockSide="left"
       />
 
-      <MentorConnectSection content={mentorSection} track="sales" />
+      <MentorConnectSection
+        content={mentorSection}
+        track="sales"
+        onOpenContact={onOpenContactModal}
+      />
 
       {/* Who this is for */}
       <section className="py-16 sm:py-24 page-container">
@@ -337,14 +341,6 @@ export function SalesLandingPanel({
           </div>
         </div>
       </section>
-
-      {/* Centered "choose a plan" band, mounted where pricing used to sit. */}
-      <PricingCtaBand
-        eyebrow={pricingCtaBand.eyebrow}
-        title={pricingCtaBand.title}
-        description={pricingCtaBand.description}
-        button={pricingCtaBand.button}
-      />
 
       {/* Free Starter Pack signup */}
       <section className="py-16 sm:py-20 page-container">
@@ -423,6 +419,16 @@ export function SalesLandingPanel({
           ))}
         </StaggerChildren>
       </section>
+
+      {/* Centered "choose a plan" band. Moved BELOW the testimonials at the
+          owner's request (11 Oct 2026) — it previously sat above the Free Starter
+          Pack card, between the ROI argument and the signup card. */}
+      <PricingCtaBand
+        eyebrow={pricingCtaBand.eyebrow}
+        title={pricingCtaBand.title}
+        description={pricingCtaBand.description}
+        button={pricingCtaBand.button}
+      />
 
       {/* Team licences */}
       <section className="py-10 sm:py-12 bg-[#ecfdf5] border-t border-teal-100">

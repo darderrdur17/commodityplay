@@ -270,6 +270,24 @@ export function resolvePricingCtaBand(
 }
 
 /**
+ * Free-plan hero band on `/pricing`. Same `cmsString` rule as the pricing band
+ * above — an intentionally-cleared line stays cleared rather than being silently
+ * restored from the defaults.
+ */
+export function resolvePricingFreePanel(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["pricingFreePanel"]>
+): LandingContent["pricingFreePanel"] {
+  return {
+    title: cmsString(cms?.title, defaults.pricingFreePanel.title),
+    line1: cmsString(cms?.line1, defaults.pricingFreePanel.line1),
+    line2: cmsString(cms?.line2, defaults.pricingFreePanel.line2),
+    cta: cmsString(cms?.cta, defaults.pricingFreePanel.cta),
+    note: cmsString(cms?.note, defaults.pricingFreePanel.note),
+  };
+}
+
+/**
  * One sales-track feature section. Arrays are replaced wholesale once non-empty
  * (`deepMerge` does not merge arrays element-wise, so an admin deleting a row must
  * not have it silently restored from defaults).
@@ -653,6 +671,7 @@ export function mergeLandingContent(
   merged.trackSelection = resolveTrackSelection(defaults, cms.trackSelection);
   merged.mentorConnect = resolveMentorConnect(defaults, cms.mentorConnect);
   merged.pricingCtaBand = resolvePricingCtaBand(defaults, cms.pricingCtaBand);
+  merged.pricingFreePanel = resolvePricingFreePanel(defaults, cms.pricingFreePanel);
   merged.salesFeatures = resolveSalesFeatures(defaults, cms.salesFeatures);
   merged.mentorSection = resolveMentorSection(defaults, cms.mentorSection);
   merged.career = resolveCareerContent(defaults, cms.career);

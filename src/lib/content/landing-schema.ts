@@ -343,6 +343,20 @@ export const landingContentSchema = z.object({
       button: z.string().min(1),
     })
     .default(() => DEFAULT_LANDING_CONTENT.pricingCtaBand),
+  /**
+   * Free-plan hero band on `/pricing`. `.default(...)` for the same reason as the
+   * band above: a payload saved before this group existed must not fail
+   * validation on the next save of any other field.
+   */
+  pricingFreePanel: z
+    .object({
+      title: z.string().min(1),
+      line1: z.string().min(1),
+      line2: z.string().min(1),
+      cta: z.string().min(1),
+      note: z.string().min(1),
+    })
+    .default(() => DEFAULT_LANDING_CONTENT.pricingFreePanel),
   salesFeatures: z
     .object({
       marketNudges: trackFeatureSchema,

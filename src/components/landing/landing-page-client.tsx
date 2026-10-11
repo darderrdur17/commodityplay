@@ -258,14 +258,10 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
               The old dashed placeholder is replaced by the real Mentor Connect
               section. The in-page #pricing anchor and its consumers all point at
               /pricing now (see src/lib/pricing-routes.ts). */}
-          <MentorConnectSection content={content.mentorSection} track="career" />
-
-          {/* Centered "choose a plan" band, mounted where pricing used to sit. */}
-          <PricingCtaBand
-            eyebrow={pricingCtaBand.eyebrow}
-            title={pricingCtaBand.title}
-            description={pricingCtaBand.description}
-            button={pricingCtaBand.button}
+          <MentorConnectSection
+            content={content.mentorSection}
+            track="career"
+            onOpenContact={() => setContactOpen(true)}
           />
 
           {/* Testimonials */}
@@ -306,6 +302,16 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
               ))}
             </StaggerChildren>
           </section>
+
+          {/* Centered "choose a plan" band. Moved BELOW the testimonials at the
+              owner's request (11 Oct 2026) — it previously sat directly above
+              them, between Mentor Connect and the social proof. */}
+          <PricingCtaBand
+            eyebrow={pricingCtaBand.eyebrow}
+            title={pricingCtaBand.title}
+            description={pricingCtaBand.description}
+            button={pricingCtaBand.button}
+          />
 
           {/* CTA — flush against footer (no white gap) */}
           <section className={`bg-primary-800 section-dark ${LANDING_HERO_TOP} ${LANDING_HERO_BOTTOM} relative overflow-hidden`}>
