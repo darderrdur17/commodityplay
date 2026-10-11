@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Tag, Zap } from "lucide-react";
+import { Tag, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   SALES_ACCENT,
@@ -25,8 +24,13 @@ import {
  * The editable words for these sections are the eyebrow / headline / lede / point
  * rows in `landingContent.salesFeatures`.
  *
- * The only real interaction is the "Link to account" select, which mirrors the
- * product's confirmation line. Nothing leaves the page.
+ * HISTORY — the "Link to account" select:
+ * It used to be the one genuinely interactive element on these mocks: a working
+ * `<select>` that set local state and revealed a "Linked to X (preview only)"
+ * line. The owner asked for the dropdown to stop accepting clicks (11 Oct 2026),
+ * which leaves the panels fully inert — they are illustrations, and a control
+ * that looks operable but leads nowhere invites a dead end. It is not removed, so
+ * the mock still reads as a screenshot of the real product.
  */
 
 const cardBase =
@@ -44,9 +48,17 @@ function EyebrowLine({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Select + the product's confirmation line. Preview only — nothing is sent. */
+/**
+ * Select rendered inert — preview only, and nothing is sent.
+ *
+ * Follows the same idiom as `MentorDemoCard`'s `askDisabled`: `disabled` +
+ * `aria-disabled` + the muted `cursor-not-allowed` treatment. A native `disabled`
+ * control is removed from the tab order and refuses to open, while the styling
+ * keeps it looking like the product control it is imitating rather than looking
+ * broken. The confirmation line that used to appear on selection is gone with it —
+ * it could never fire again.
+ */
 function LinkToAccount({ label, options }: { label: string; options: string[] }) {
-  const [value, setValue] = useState("");
   const selectId = `link-${label.replace(/\s+/g, "-").toLowerCase()}`;
 
   return (
@@ -62,9 +74,13 @@ function LinkToAccount({ label, options }: { label: string; options: string[] })
       </label>
       <select
         id={selectId}
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        className="w-full rounded-lg border bg-white px-3 py-2.5 pr-8 text-[13px] appearance-none"
+        defaultValue=""
+        disabled
+        aria-disabled={true}
+        className={cn(
+          "w-full rounded-lg border bg-white px-3 py-2.5 pr-8 text-[13px] appearance-none",
+          "cursor-not-allowed opacity-55"
+        )}
         style={{
           borderColor: SALES_FEATURE_LINE,
           color: SALES_INK,
@@ -81,14 +97,6 @@ function LinkToAccount({ label, options }: { label: string; options: string[] })
           </option>
         ))}
       </select>
-      <p
-        aria-live="polite"
-        className={cn("text-[12px] font-semibold mt-2 items-center gap-1.5", value ? "flex" : "hidden")}
-        style={{ color: SALES_HERO_GREEN }}
-      >
-        <Check className="w-3.5 h-3.5" aria-hidden />
-        {value ? `Linked to ${value} (preview only)` : ""}
-      </p>
     </>
   );
 }
