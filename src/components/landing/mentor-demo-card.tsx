@@ -6,11 +6,16 @@ import { cn } from "@/lib/utils";
 import type { LandingMentorSection } from "@/data/landing-content";
 
 /**
- * The "Try it — pick a mentor" interactive preview.
+ * The "Try it — pick a mentor" preview.
  *
  * A self-contained three-view demo (roster → ask form → sent) that mirrors the
  * product's mentor modal. **Nothing is sent anywhere** — there is no network call
- * and no state leaves this component, which is why the copy underneath says so.
+ * and no state leaves this component.
+ *
+ * ⚠️ Both landing pages now render it with `askDisabled`, so the form and sent
+ * views are unreachable in production: the roster shows, and "Ask a question"
+ * does not open anything. The interactive path is deliberately kept intact rather
+ * than deleted — see the prop note below.
  */
 
 const MIN_QUESTION = 20;
@@ -39,9 +44,17 @@ export function MentorDemoCard({
   content: LandingMentorSection;
   theme: MentorTheme;
   /**
-   * Renders the "Ask a question" affordances inert. Set on the CAREER landing,
-   * where the preview is illustrative only and the owner asked that the buttons
-   * not be clickable. The Sales landing keeps the interactive demo.
+   * Renders the "Ask a question" affordances inert — the roster shows, but the
+   * form can never open.
+   *
+   * HISTORY: this started as CAREER-only. The owner asked for the career preview
+   * to stop being clickable while Sales kept the working demo. On 11 Oct 2026 she
+   * asked for the same on Sales, so `MentorConnectSection` now passes it for BOTH
+   * tracks and the preview is static everywhere.
+   *
+   * The prop is kept rather than the card being hardcoded inert: the interactive
+   * path is still intact, so a single track could be turned back on without
+   * rebuilding it. `MentorConnectSection` is its only call site.
    */
   askDisabled?: boolean;
 }) {
