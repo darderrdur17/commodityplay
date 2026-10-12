@@ -115,7 +115,7 @@ export function LibraryClient({
                   <h2 className="font-serif text-xl font-bold text-gray-900">{freeSection.title}</h2>
                   <p className="text-sm text-muted-fg mt-1">{freeSection.description}</p>
                 </Reveal>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {freeFiles.map((file) => (
                     <LibraryFileCard key={file.id} file={file} />
                   ))}
@@ -138,7 +138,7 @@ export function LibraryClient({
                   <p className="text-sm text-muted-fg mt-1">{eliteSection.description}</p>
                 </Reveal>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {eliteFiles.map((file) => (
                     <LibraryFileCard key={file.id} file={file} />
                   ))}
