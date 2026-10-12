@@ -11,7 +11,7 @@ import {
   type NudgeLifecycleStatus,
 } from "@/data/sales-market-nudges";
 import { normalizeSalesMarketNudgesPayload } from "@/lib/content/sales-market-nudges-schema";
-import { EditorField, EditorSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorSection, LinesTextarea, inputClass, textareaClass } from "./shared";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -241,19 +241,10 @@ export function SalesMarketNudgesEditor({
         defaultOpen
       >
         <EditorField label="Categories (one per line)">
-          <textarea
-            className={textareaClass}
+          <LinesTextarea
             rows={4}
-            value={content.briefCategories.join("\n")}
-            onChange={(e) =>
-              patch({
-                ...content,
-                briefCategories: e.target.value
-                  .split("\n")
-                  .map((s) => s.trim())
-                  .filter(Boolean),
-              })
-            }
+            value={content.briefCategories}
+            onChange={(briefCategories) => patch({ ...content, briefCategories })}
           />
         </EditorField>
       </EditorSection>
@@ -460,18 +451,10 @@ export function SalesMarketNudgesEditor({
                 />
               </EditorField>
               <EditorField label="Discovery questions (one per line)">
-                <textarea
-                  className={textareaClass}
+                <LinesTextarea
                   rows={3}
-                  value={brief.discoveryQuestions.join("\n")}
-                  onChange={(e) =>
-                    updateBrief(i, {
-                      discoveryQuestions: e.target.value
-                        .split("\n")
-                        .map((s) => s.trim())
-                        .filter(Boolean),
-                    })
-                  }
+                  value={brief.discoveryQuestions}
+                  onChange={(discoveryQuestions) => updateBrief(i, { discoveryQuestions })}
                 />
               </EditorField>
             </div>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { type FooterLinkItem, type SiteFooterContent } from "@/data/footer-content";
 import { type FooterLegalPage } from "@/data/legal-content";
 import { mergeSiteFooterContent } from "@/lib/content/footer-schema";
-import { EditorField, EditorSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorSection, LinesTextarea, inputClass, textareaClass } from "./shared";
 
 type ColumnKey = keyof SiteFooterContent["columns"];
 
@@ -249,17 +249,10 @@ export function SiteFooterEditor({
         defaultOpen
       >
         <EditorField label="Alert email addresses">
-          <textarea
-            className={textareaClass}
-            value={content.operatorNotifyEmails.join("\n")}
-            onChange={(e) =>
-              patch({
-                operatorNotifyEmails: e.target.value
-                  .split(/\n/)
-                  .map((line) => line.trim())
-                  .filter(Boolean),
-              })
-            }
+          <LinesTextarea
+            rows={2}
+            value={content.operatorNotifyEmails}
+            onChange={(operatorNotifyEmails) => patch({ operatorNotifyEmails })}
           />
         </EditorField>
       </EditorSection>
