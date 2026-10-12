@@ -2359,20 +2359,14 @@ export function AdminLandingEditor({
           </Field>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Demo label">
-            <TextInput
-              value={content.mentorSection.demoHint}
-              onChange={(v) => patch("mentorSection", { ...content.mentorSection, demoHint: v })}
-            />
-          </Field>
-          <Field label="Demo footnote">
-            <TextInput
-              value={content.mentorSection.demoFoot}
-              onChange={(v) => patch("mentorSection", { ...content.mentorSection, demoFoot: v })}
-            />
-          </Field>
-        </div>
+        {/* The "Demo footnote" input was removed with the footnote itself — the card
+            is inert, so the line is no longer rendered on either landing page. */}
+        <Field label="Demo label">
+          <TextInput
+            value={content.mentorSection.demoHint}
+            onChange={(v) => patch("mentorSection", { ...content.mentorSection, demoHint: v })}
+          />
+        </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Roster title">
