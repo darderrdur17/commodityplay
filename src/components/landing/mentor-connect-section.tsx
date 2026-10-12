@@ -217,9 +217,10 @@ export function MentorConnectSection({
               {/* The preview is rendered inert on BOTH tracks — see the HISTORY note
                   on MentorDemoCard's `askDisabled`. */}
               <MentorDemoCard content={content} theme={theme} askDisabled />
-              <p className="mt-3 text-[12.5px] leading-[1.5]" style={{ color: theme.mute }}>
-                {content.demoFoot}
-              </p>
+              {/* The demo footnote ("Interactive preview. Nothing you type here is sent
+                  anywhere.") was removed at the owner's request — the card is inert, so
+                  the line described behaviour the demo no longer has. `demoFoot` is
+                  still in the schema and defaults; re-add this <p> to restore it. */}
             </div>
           </Reveal>
         </div>
