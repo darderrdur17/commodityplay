@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   DEFAULT_SALES_MARKET_NUDGES_CONTENT,
   resolveBriefCategories,
+  type DiscoveryPoint,
   type IntelligenceBrief,
   type MarketNudgeItem,
   type NudgeLifecycleStatus,
@@ -9,6 +10,71 @@ import {
 } from "@/data/sales-market-nudges";
 
 const lifecycleStatus = z.enum(["active", "expired", "archive"]);
+
+/**
+ * Coerce one stored discovery row into the Ask / Listen for / Offer shape.
+ *
+ * Briefs authored before the table existed stored a flat `string[]`, so a plain
+ * string becomes a row with only `ask` filled.
+ *
+ * ⚠️ This must NOT trim, filter, or otherwise reshape anything. The admin editor
+ * re-runs `normalizeSalesMarketNudgesPayload` on every render, so whatever this
+ * returns is written straight back into the field the user is typing in —
+ * trimming would swallow the space bar, and dropping blank rows would delete a
+ * newly added row the instant it appeared. Blank rows are skipped at render time
+ * instead (`visibleDiscoveryRows`).
+ */
+function coerceDiscoveryPoint(value: unknown): DiscoveryPoint {
+  if (typeof value === "string") return { ask: value, listenFor: "", offer: "" };
+  if (value && typeof value === "object") {
+    const row = value as Record<string, unknown>;
+    return {
+      ask: typeof row.ask === "string" ? row.ask : "",
+      listenFor: typeof row.listenFor === "string" ? row.listenFor : "",
+      offer: typeof row.offer === "string" ? row.offer : "",
+    };
+  }
+  return { ask: "", listenFor: "", offer: "" };
+}
+
+export function coerceDiscoveryQuestions(value: unknown): DiscoveryPoint[] {
+  return Array.isArray(value) ? value.map(coerceDiscoveryPoint) : [];
+}
+
+const discoveryPointSchema = z.object({
+  ask: z.string().max(600).default(""),
+  listenFor: z.string().max(600).default(""),
+  offer: z.string().max(600).default(""),
+});
+
+/** A discovery row is either the current object or a legacy bare question. */
+const discoveryQuestionSchema = z
+  .union([z.string().max(600), discoveryPointSchema])
+  .transform(coerceDiscoveryPoint);
+
+/**
+ * The green weekly-nudge card was headed "This Week — Talking Points" until the
+ * owner renamed it on 12 Oct 2026.
+ *
+ * CMS values beat repo defaults, so the live `sales-market-nudges` row still
+ * carries the retired string — editing
+ * `DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyHeading` alone would never reach the
+ * member page. Rewrite it here, the same way `normalizeFooterLink` repairs its
+ * own stale `/faq` href.
+ *
+ * Idempotent by design: only the retired heading (in any dash flavour) is
+ * touched, so a custom heading the owner sets later is left alone.
+ */
+function normalizeWeeklyHeading(stored: string | undefined): string {
+  const trimmed = stored?.trim();
+  const isRetired = trimmed
+    ? trimmed.replace(/[\u2010-\u2015-]/g, "-").toLowerCase() === "this week - talking points"
+    : false;
+  if (!trimmed || isRetired) {
+    return DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyHeading;
+  }
+  return trimmed;
+}
 
 function coerceStatus(status: unknown, archived?: boolean): NudgeLifecycleStatus {
   if (status === "expired" || status === "archive" || status === "active") return status;
@@ -48,7 +114,7 @@ const intelligenceBriefSchema = z
     month: z.number().int().min(1).max(12),
     year: z.number().int().min(2020).max(2100),
     description: z.string().min(1).max(1000),
-    discoveryQuestions: z.array(z.string().min(1).max(300)).min(1).max(6),
+    discoveryQuestions: z.array(discoveryQuestionSchema).max(12).default([]),
     updatedAt: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
@@ -100,9 +166,23 @@ function mergeNudges(cms?: MarketNudgeItem[]): MarketNudgeItem[] {
   return cms;
 }
 
+/**
+ * A brief that failed full validation still has to stay editable, so its
+ * discovery rows are coerced into the current shape here. Without this a legacy
+ * `string[]` would be spread into a character map by `withStatusDefaults`.
+ */
+function normalizeBriefDiscovery(brief: IntelligenceBrief): IntelligenceBrief {
+  return {
+    ...brief,
+    discoveryQuestions: coerceDiscoveryQuestions(
+      (brief as { discoveryQuestions?: unknown }).discoveryQuestions
+    ),
+  };
+}
+
 function mergeBriefs(cms?: IntelligenceBrief[]): IntelligenceBrief[] {
   if (!cms?.length) return DEFAULT_SALES_MARKET_NUDGES_CONTENT.intelligenceBriefs;
-  return cms;
+  return cms.map(normalizeBriefDiscovery);
 }
 
 function withStatusDefaults<T extends { status?: NudgeLifecycleStatus }>(items: T[]): T[] {
@@ -116,8 +196,7 @@ export function normalizeSalesMarketNudgesPayload(payload: unknown): SalesMarket
       eyebrow: parsed.data.eyebrow.trim(),
       title: parsed.data.title.trim(),
       description: parsed.data.description.trim(),
-      weeklyHeading:
-        parsed.data.weeklyHeading?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyHeading,
+      weeklyHeading: normalizeWeeklyHeading(parsed.data.weeklyHeading),
       briefsHeading:
         parsed.data.briefsHeading?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.briefsHeading,
       weeklyNudges: withStatusDefaults(mergeNudges(parsed.data.weeklyNudges)),
@@ -134,7 +213,7 @@ export function normalizeSalesMarketNudgesPayload(payload: unknown): SalesMarket
     eyebrow: partial.eyebrow?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.eyebrow,
     title: partial.title?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.title,
     description: partial.description?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.description,
-    weeklyHeading: partial.weeklyHeading?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyHeading,
+    weeklyHeading: normalizeWeeklyHeading(partial.weeklyHeading),
     briefsHeading: partial.briefsHeading?.trim() || DEFAULT_SALES_MARKET_NUDGES_CONTENT.briefsHeading,
     weeklyNudges: withStatusDefaults(mergeNudges(partial.weeklyNudges)),
     intelligenceBriefs: withStatusDefaults(mergeBriefs(partial.intelligenceBriefs)),
