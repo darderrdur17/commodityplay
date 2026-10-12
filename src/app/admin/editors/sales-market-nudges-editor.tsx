@@ -6,6 +6,7 @@ import {
   DEFAULT_SALES_MARKET_NUDGES_CONTENT,
   defaultBriefUpdatedAt,
   formatBriefPeriodLabel,
+  type DiscoveryPoint,
   type IntelligenceBrief,
   type MarketNudgeItem,
   type NudgeLifecycleStatus,
@@ -81,6 +82,91 @@ function StatusFilterBar({
 function matchesStatusFilter(status: NudgeLifecycleStatus | undefined, filter: StatusFilter) {
   if (filter === "all") return true;
   return (status ?? "active") === filter;
+}
+
+const DISCOVERY_CELL_CLASS = cn(textareaClass, "min-h-[64px]");
+
+const DISCOVERY_COLUMNS: { key: keyof DiscoveryPoint; label: string; placeholder: string }[] = [
+  { key: "ask", label: "Ask", placeholder: "What you ask the account" },
+  { key: "listenFor", label: "Listen for", placeholder: "What a useful answer sounds like" },
+  { key: "offer", label: "Offer", placeholder: "What you bring back in response" },
+];
+
+/**
+ * Editor for a brief's Ask / Listen for / Offer rows.
+ *
+ * This replaces the single "one per line" textarea that used to hold
+ * `discoveryQuestions`. That field could only express three columns as one line
+ * of `/`-separated text — which is exactly what the owner had to resort to, and
+ * why a row collided with the old 300-character-per-question cap. One field per
+ * cell removes the squeeze.
+ */
+function DiscoveryQuestionsEditor({
+  value,
+  onChange,
+}: {
+  value: DiscoveryPoint[];
+  onChange: (next: DiscoveryPoint[]) => void;
+}) {
+  function setCell(index: number, key: keyof DiscoveryPoint, cell: string) {
+    onChange(value.map((row, i) => (i === index ? { ...row, [key]: cell } : row)));
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="hidden sm:grid sm:grid-cols-[1fr_1fr_1fr_auto] gap-2">
+        {DISCOVERY_COLUMNS.map((column) => (
+          <span key={column.key} className="text-[11px] font-semibold text-gray-700">
+            {column.label}
+          </span>
+        ))}
+        <span className="sr-only">Remove row</span>
+      </div>
+
+      {value.map((row, i) => (
+        <div
+          key={i}
+          className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-start"
+        >
+          {DISCOVERY_COLUMNS.map((column) => (
+            <textarea
+              key={column.key}
+              className={DISCOVERY_CELL_CLASS}
+              rows={2}
+              placeholder={column.placeholder}
+              aria-label={`${column.label} ${i + 1}`}
+              value={row[column.key]}
+              onChange={(e) => setCell(i, column.key, e.target.value)}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => onChange(value.filter((_, index) => index !== i))}
+            className="justify-self-start sm:justify-self-auto p-1 mt-1 rounded hover:bg-red-50 text-muted-fg hover:text-red-500"
+            aria-label={`Remove question ${i + 1}`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+
+      {value.length === 0 && (
+        <p className="text-xs text-muted-fg">
+          No questions yet — the card hides the Discovery Questions block entirely.
+        </p>
+      )}
+
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() => onChange([...value, { ask: "", listenFor: "", offer: "" }])}
+        className="gap-1.5"
+      >
+        <Plus className="w-4 h-4" /> Add question
+      </Button>
+    </div>
+  );
 }
 
 export function SalesMarketNudgesEditor({
@@ -172,7 +258,7 @@ export function SalesMarketNudgesEditor({
           month: now.getMonth() + 1,
           year: now.getFullYear(),
           description: "",
-          discoveryQuestions: ["", ""],
+          discoveryQuestions: [{ ask: "", listenFor: "", offer: "" }],
           updatedAt: defaultBriefUpdatedAt(now.getFullYear(), now.getMonth() + 1),
           status: "active",
         },
@@ -222,7 +308,7 @@ export function SalesMarketNudgesEditor({
             className={inputClass}
             value={content.weeklyHeading}
             onChange={(e) => patch({ ...content, weeklyHeading: e.target.value })}
-            placeholder="This Week — Talking Points"
+            placeholder="This Week — Sales Nudges"
           />
         </EditorField>
         <EditorField label="Briefs section heading">
@@ -250,7 +336,7 @@ export function SalesMarketNudgesEditor({
       </EditorSection>
 
       <EditorSection
-        title="This Week — Talking Points"
+        title="This Week — Sales Nudges"
         description="Shown in the dark green card at the top of the page. Archive old nudges when drafting a new weekly set."
         defaultOpen
       >
@@ -450,9 +536,11 @@ export function SalesMarketNudgesEditor({
                   onChange={(e) => updateBrief(i, { description: e.target.value })}
                 />
               </EditorField>
-              <EditorField label="Discovery questions (one per line)">
-                <LinesTextarea
-                  rows={3}
+              <EditorField
+                label="Discovery questions"
+                hint="Ask / Listen for / Offer. Leave Listen for and Offer blank to show a plain question list instead of a table."
+              >
+                <DiscoveryQuestionsEditor
                   value={brief.discoveryQuestions}
                   onChange={(discoveryQuestions) => updateBrief(i, { discoveryQuestions })}
                 />

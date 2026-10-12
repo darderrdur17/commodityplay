@@ -473,8 +473,16 @@ export function AdminContentTab({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
-  async function loadModules() {
-    setLoading(true);
+  /**
+   * `silent` refreshes the module list without flipping `loading`, which is what
+   * the whole tab keys off — a non-silent refresh unmounts the editor panel and
+   * with it the SaveBar, destroying the very message (`Saved vN…` or a validation
+   * error) the refresh was meant to follow. Post-save refreshes are silent so the
+   * owner can actually read the outcome.
+   */
+  async function loadModules(options?: { silent?: boolean }) {
+    const silent = options?.silent ?? false;
+    if (!silent) setLoading(true);
     setLoadError("");
     try {
       const res = await fetch("/api/admin/content", { cache: "no-store" });
@@ -488,7 +496,7 @@ export function AdminContentTab({
     } catch {
       setLoadError("Network error loading content. Check database connection and run npm run db:seed.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
@@ -532,7 +540,7 @@ export function AdminContentTab({
         <p className="text-xs text-muted-fg mb-4">
           Sign in with an allowlisted administrator account, then open the Content CMS tab.
         </p>
-        <Button size="sm" onClick={loadModules}>
+        <Button size="sm" onClick={() => loadModules()}>
           <RefreshCw className="w-4 h-4" /> Retry
         </Button>
       </div>
@@ -547,7 +555,7 @@ export function AdminContentTab({
           <p className="text-xs font-bold uppercase tracking-wider text-muted-fg">Content CMS</p>
           <button
             type="button"
-            onClick={loadModules}
+            onClick={() => loadModules()}
             className="text-muted-fg hover:text-primary-400"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -592,7 +600,7 @@ export function AdminContentTab({
             track={selected.track}
             editorVariant={selected.editorVariant}
             modules={modules}
-            onRefresh={loadModules}
+            onRefresh={() => loadModules({ silent: true })}
           />
         )}
       </div>

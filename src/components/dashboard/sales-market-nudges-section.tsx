@@ -11,6 +11,9 @@ import { SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
   formatBriefCardDate,
   groupBriefsByMonthYear,
+  hasStructuredDiscovery,
+  visibleDiscoveryRows,
+  type DiscoveryPoint,
   type IntelligenceBrief,
   type MarketNudgeItem,
   type SalesMarketNudgesContent,
@@ -133,6 +136,44 @@ function ChipFilterBar({
   );
 }
 
+/**
+ * Ask / Listen for / Offer table on a brief card.
+ *
+ * Only used when at least one row carries a Listen-for or Offer cell. A brief
+ * whose rows are questions only keeps the original bulleted list, so briefs
+ * authored before the table existed render exactly as they did.
+ */
+function DiscoveryTable({ rows }: { rows: DiscoveryPoint[] }) {
+  const headClass =
+    "pb-1.5 text-[10px] font-bold uppercase tracking-wide text-gray-700";
+  return (
+    <table className="w-full table-fixed border-collapse text-left">
+      <thead>
+        <tr>
+          <th scope="col" className={cn(headClass, "w-[38%] pr-3")}>
+            Ask
+          </th>
+          <th scope="col" className={cn(headClass, "w-[27%] pr-3")}>
+            Listen for
+          </th>
+          <th scope="col" className={cn(headClass, "w-[35%]")}>
+            Offer
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, i) => (
+          <tr key={i} className="border-t border-border/60 align-top">
+            <td className="py-2 pr-3 text-sm text-muted-fg leading-relaxed">{row.ask}</td>
+            <td className="py-2 pr-3 text-sm text-muted-fg leading-relaxed">{row.listenFor}</td>
+            <td className="py-2 text-sm text-muted-fg leading-relaxed">{row.offer}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function IntelligenceBriefCard({
   brief,
   showLinkToAccount = false,
@@ -143,6 +184,7 @@ function IntelligenceBriefCard({
   highlighted?: boolean;
 }) {
   const updated = formatBriefCardDate(brief);
+  const discoveryRows = visibleDiscoveryRows(brief.discoveryQuestions);
   return (
     <article
       id={marketNudgeElementId(brief.id)}
@@ -164,19 +206,25 @@ function IntelligenceBriefCard({
       </div>
       <p className="text-sm text-muted-fg leading-relaxed mb-4 flex-1">{brief.description}</p>
       <div className="pt-3 border-t border-border/60 space-y-3">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg mb-2">
-            Discovery Questions
-          </p>
-          <ul className="space-y-1.5">
-            {brief.discoveryQuestions.map((question) => (
-              <li key={question} className="flex gap-2 text-sm text-muted-fg leading-relaxed">
-                <span className="text-gray-400 shrink-0">—</span>
-                <span>{question}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {discoveryRows.length > 0 && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-fg mb-2">
+              Discovery Questions
+            </p>
+            {hasStructuredDiscovery(discoveryRows) ? (
+              <DiscoveryTable rows={discoveryRows} />
+            ) : (
+              <ul className="space-y-1.5">
+                {discoveryRows.map((row, i) => (
+                  <li key={i} className="flex gap-2 text-sm text-muted-fg leading-relaxed">
+                    <span className="text-gray-400 shrink-0">—</span>
+                    <span>{row.ask}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
         {showLinkToAccount && (
           <LinkToAccountDropdown
             sourceType="MARKET_NUDGE"
@@ -293,7 +341,7 @@ export function SalesMarketNudgesSection({
           <div className="blur-sm pointer-events-none select-none p-6 space-y-6" aria-hidden>
             <div className="rounded-xl p-6 text-white bg-[#065F46]">
               <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">
-                This Week — Talking Points
+                {content.weeklyHeading}
               </p>
               <p className="text-sm">{content.weeklyNudges[0]?.title}</p>
             </div>
