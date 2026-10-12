@@ -334,7 +334,10 @@ export function SalesMarketNudgesSection({
         />
       </header>
 
-      {statusFilter === "ACTIVE" && (
+      {/* Not gated to the Active tab: an expired or archived weekly nudge must stay
+          reachable under its matching tab, exactly like the briefs section below.
+          `visibleWeeklyNudges` already carries the status filter, and the empty
+          state names the selected status. */}
       <section
         className="rounded-xl border border-border bg-white p-5 sm:p-6 space-y-4"
         aria-labelledby="weekly-nudges-heading"
@@ -352,58 +355,57 @@ export function SalesMarketNudgesSection({
             </li>
           ) : (
             visibleWeeklyNudges.map((nudge) => (
-            <li
-              key={nudge.id}
-              id={marketNudgeElementId(nudge.id)}
-              className={cn(
-                "rounded-lg border border-border bg-white p-4 space-y-3 scroll-mt-28",
-                isHighlighted(marketNudgeElementId(nudge.id)) && BOOKMARK_HIGHLIGHT_RING
-              )}
-            >
-              {nudge.title.trim() !== "" && (
-                <p className="text-sm font-semibold text-gray-900">{nudge.title}</p>
-              )}
-              <ul className="space-y-2">
-                {nudge.whyNow.trim() !== "" && (
-                  <li className="flex gap-2 text-sm leading-relaxed">
-                    <span className="font-semibold text-[#065F46] shrink-0">Now</span>
-                    <span className="text-gray-600">— {nudge.whyNow}</span>
-                  </li>
+              <li
+                key={nudge.id}
+                id={marketNudgeElementId(nudge.id)}
+                className={cn(
+                  "rounded-lg border border-border bg-white p-4 space-y-3 scroll-mt-28",
+                  isHighlighted(marketNudgeElementId(nudge.id)) && BOOKMARK_HIGHLIGHT_RING
                 )}
-                {nudge.accountAction.trim() !== "" && (
-                  <li className="flex gap-2 text-sm leading-relaxed">
-                    <span className="font-semibold text-[#065F46] shrink-0">Action</span>
-                    <span className="text-gray-600">— {nudge.accountAction}</span>
-                  </li>
+              >
+                {nudge.title.trim() !== "" && (
+                  <p className="text-sm font-semibold text-gray-900">{nudge.title}</p>
                 )}
-                {nudge.accountNames.length > 0 && (
-                  <li className="flex gap-2 text-sm leading-relaxed">
-                    {/* The whole Target row is blue — label *and* wording — where
-                        Now/Action keep a green label with a grey value. Frances
-                        asked for the entire target line in blue so it reads as
-                        the part a seller acts on. */}
-                    <span className="font-semibold text-primary-600 shrink-0">Target</span>
-                    <span className="text-primary-600">— {nudge.accountNames.join(", ")}</span>
-                  </li>
+                <ul className="space-y-2">
+                  {nudge.whyNow.trim() !== "" && (
+                    <li className="flex gap-2 text-sm leading-relaxed">
+                      <span className="font-semibold text-[#065F46] shrink-0">Now</span>
+                      <span className="text-gray-600">— {nudge.whyNow}</span>
+                    </li>
+                  )}
+                  {nudge.accountAction.trim() !== "" && (
+                    <li className="flex gap-2 text-sm leading-relaxed">
+                      <span className="font-semibold text-[#065F46] shrink-0">Action</span>
+                      <span className="text-gray-600">— {nudge.accountAction}</span>
+                    </li>
+                  )}
+                  {nudge.accountNames.length > 0 && (
+                    <li className="flex gap-2 text-sm leading-relaxed">
+                      {/* The whole Target row is blue — label *and* wording — where
+                          Now/Action keep a green label with a grey value. Frances
+                          asked for the entire target line in blue so it reads as
+                          the part a seller acts on. */}
+                      <span className="font-semibold text-primary-600 shrink-0">Target</span>
+                      <span className="text-primary-600">— {nudge.accountNames.join(", ")}</span>
+                    </li>
+                  )}
+                </ul>
+                {hasElite && (
+                  <div className="pt-1">
+                    <LinkToAccountDropdown
+                      sourceType="MARKET_NUDGE"
+                      sourceId={nudge.id}
+                      sourceTitle={getNudgeBookmarkTitle(nudge)}
+                      variant="default"
+                      className="shrink-0 sm:min-w-[200px]"
+                    />
+                  </div>
                 )}
-              </ul>
-              {hasElite && (
-                <div className="pt-1">
-                  <LinkToAccountDropdown
-                    sourceType="MARKET_NUDGE"
-                    sourceId={nudge.id}
-                    sourceTitle={getNudgeBookmarkTitle(nudge)}
-                    variant="default"
-                    className="shrink-0 sm:min-w-[200px]"
-                  />
-                </div>
-              )}
-            </li>
+              </li>
             ))
           )}
         </ul>
       </section>
-      )}
 
       <section
         className="rounded-xl border border-border bg-white p-5 sm:p-6"
@@ -425,7 +427,13 @@ export function SalesMarketNudgesSection({
               ...categories.map((category) => ({
                 id: category,
                 label: category,
-                count: content.intelligenceBriefs.filter((b) => b.category === category).length,
+                // Count only briefs the selected status tab actually shows — an
+                // expired/archived brief must not inflate the Active tab's chips.
+                count: content.intelligenceBriefs.filter(
+                  (b) =>
+                    b.category === category &&
+                    matchesMemberStatusFilter(b.status, statusFilter)
+                ).length,
               })),
             ]}
           />
