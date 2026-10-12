@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, LinesTextarea, UploadSection, inputClass, textareaClass } from "./shared";
 import { SingleGuideUpload, type GuideAttachment } from "./single-guide-upload";
 import {
   DEFAULT_FUNCTION_MATRIX_SECTION,
@@ -428,12 +428,14 @@ export function CareerRoadmapEditor({
                   </EditorField>
                 </div>
                 <EditorField label="Items" hint="One action per line">
-                  <textarea
-                    className={textareaClass}
-                    value={(q.items ?? []).join("\n")}
-                    onChange={(e) => {
+                  <LinesTextarea
+                    rows={2}
+                    value={q.items ?? []}
+                    // Legacy normalisation kept: drop blank lines but do NOT trim (matches old behaviour).
+                    fromText={(text) => text.split("\n").filter(Boolean)}
+                    onChange={(items) => {
                       const next = [...quarters];
-                      next[i] = { ...q, items: e.target.value.split("\n").filter(Boolean) };
+                      next[i] = { ...q, items };
                       updateRaw({ timeline12Month: next });
                     }}
                   />
@@ -563,10 +565,22 @@ export function CareerRoadmapEditor({
               <input className={inputClass} value={item.firms} onChange={(e) => patchItem(i, { ...item, firms: e.target.value })} />
             </EditorField>
             <EditorField label="Backgrounds" hint="One per line">
-              <textarea className={textareaClass} value={(item.backgrounds ?? []).join("\n")} onChange={(e) => patchItem(i, { ...item, backgrounds: e.target.value.split("\n").filter(Boolean) })} />
+              <LinesTextarea
+                rows={2}
+                value={item.backgrounds ?? []}
+                // Legacy normalisation kept: drop blank lines but do NOT trim (matches old behaviour).
+                fromText={(text) => text.split("\n").filter(Boolean)}
+                onChange={(backgrounds) => patchItem(i, { ...item, backgrounds })}
+              />
             </EditorField>
             <EditorField label="Red flags" hint="One per line">
-              <textarea className={textareaClass} value={(item.redFlags ?? []).join("\n")} onChange={(e) => patchItem(i, { ...item, redFlags: e.target.value.split("\n").filter(Boolean) })} />
+              <LinesTextarea
+                rows={2}
+                value={item.redFlags ?? []}
+                // Legacy normalisation kept: drop blank lines but do NOT trim (matches old behaviour).
+                fromText={(text) => text.split("\n").filter(Boolean)}
+                onChange={(redFlags) => patchItem(i, { ...item, redFlags })}
+              />
             </EditorField>
             <div className="space-y-2">
               <div className="flex items-center justify-between">

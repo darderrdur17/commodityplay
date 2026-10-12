@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { uploadContentAssetFile } from "./editors/shared";
+import { LinesTextarea, uploadContentAssetFile } from "./editors/shared";
 import type {
   FeatureComparisonTable,
   LandingContent,
@@ -1720,22 +1720,15 @@ export function AdminLandingEditor({
           />
         </Field>
         <Field label="Fallback items" hint="One per line. Only used when the Starter Pack is empty — the public landing always prefers the live Starter Pack titles, so edits here usually have no visible effect.">
-          <TextInput
-            value={content.sales.starterCard.items.join("\n")}
-            onChange={(v) =>
+          <LinesTextarea
+            rows={6}
+            value={content.sales.starterCard.items}
+            onChange={(items) =>
               patch("sales", {
                 ...content.sales,
-                starterCard: {
-                  ...content.sales.starterCard,
-                  items: v
-                    .split("\n")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                },
+                starterCard: { ...content.sales.starterCard, items },
               })
             }
-            multiline
-            rows={6}
           />
         </Field>
       </Section>

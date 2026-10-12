@@ -50,6 +50,119 @@ export function EditorField({
   );
 }
 
+/**
+ * Normalise a raw multi-line string into a trimmed, blank-free list.
+ *
+ * This is the canonical "one per line" normalisation used when committing a
+ * {@link LinesTextarea} value to its parent. It trims each line and drops empty
+ * entries so an in-progress trailing newline (or blank line) does not persist an
+ * empty string into the stored array.
+ */
+export function normalizeLines(raw: string): string[] {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+/** Default array → text serialiser for {@link LinesTextarea} (one entry per line). */
+function defaultLinesToText<T>(value: T[]): string {
+  return value.join("\n");
+}
+
+/** Default text → array parser for {@link LinesTextarea}. */
+function defaultLinesFromText<T>(text: string): T[] {
+  // Only meaningful when T is `string`; callers editing object arrays supply their own `fromText`.
+  return normalizeLines(text) as unknown as T[];
+}
+
+/**
+ * A controlled `<textarea>` for editing a "one per line" array.
+ *
+ * Why the raw text lives in local state while the parent receives a normalised copy:
+ *
+ * A naive controlled textarea renders `value.join("\n")` and re-derives the array on
+ * every keystroke (`onChange(e.target.value.split("\n").map(trim).filter(Boolean))`).
+ * That has two user-visible bugs:
+ *   1. You cannot add a line. A trailing `"\n"` splits into `[..., ""]`, the empty entry
+ *      is dropped by `filter(Boolean)`, the array is unchanged, and the re-render writes
+ *      the joined text back *without* the newline — so the caret can never reach a new line.
+ *   2. You cannot type a space. Trimming on every keystroke strips the trailing space the
+ *      instant it is typed, so the next character lands against the previous word.
+ *
+ * Keeping the raw text in local state and only re-syncing it from `value` while the field
+ * is unfocused fixes both: the user types freely, and the parent still receives a
+ * normalised copy on each keystroke so Save works without blurring first.
+ *
+ * `toText` / `fromText` are held in refs (not the effect dependency list) so that an
+ * inline arrow-function prop cannot change identity every render and re-trigger the sync
+ * effect, which would otherwise fight the user's typing.
+ */
+export function LinesTextarea<T = string>({
+  value,
+  onChange,
+  rows = 4,
+  placeholder,
+  className = textareaClass,
+  toText,
+  fromText,
+}: {
+  /** Current array value (source of truth from the parent). */
+  value: T[];
+  /** Called with the normalised array on every keystroke and on blur. */
+  onChange: (next: T[]) => void;
+  rows?: number;
+  placeholder?: string;
+  className?: string;
+  /** Serialise the array to text. Defaults to `value.join("\n")`. */
+  toText?: (value: T[]) => string;
+  /** Parse raw text back into an array. Defaults to {@link normalizeLines}. */
+  fromText?: (text: string) => T[];
+}) {
+  // Hold the latest serialisers in refs so the sync effect can stay `[value]`-only.
+  const toTextRef = useRef<(value: T[]) => string>(toText ?? defaultLinesToText);
+  const fromTextRef = useRef<(text: string) => T[]>(fromText ?? defaultLinesFromText);
+  toTextRef.current = toText ?? defaultLinesToText;
+  fromTextRef.current = fromText ?? defaultLinesFromText;
+
+  const [text, setText] = useState(() => (toText ?? defaultLinesToText)(value));
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    // Only adopt external changes while the user is not actively editing, so a parent
+    // re-render (or normalisation round-trip) never clobbers in-flight typing.
+    if (!focusedRef.current) {
+      setText(toTextRef.current(value));
+    }
+    // Intentionally depends on `value` only — see the ref note above.
+  }, [value]);
+
+  return (
+    <textarea
+      value={text}
+      rows={rows}
+      className={className}
+      placeholder={placeholder}
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
+      onChange={(e) => {
+        const next = e.target.value;
+        setText(next);
+        // Keep the parent in sync for Save without blur. Blank lines are dropped here so an
+        // in-progress trailing newline does not persist an empty entry.
+        onChange(fromTextRef.current(next));
+      }}
+      onBlur={(e) => {
+        focusedRef.current = false;
+        const normalized = fromTextRef.current(e.target.value);
+        setText(toTextRef.current(normalized));
+        onChange(normalized);
+      }}
+    />
+  );
+}
+
 export function EditorSection({
   title,
   description,

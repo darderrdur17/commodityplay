@@ -19,7 +19,7 @@ import {
   type ResumeSectionCopy,
 } from "@/lib/content/resume-payload";
 import { POSITIONING_PRINCIPLE, TEMPLATE_CARD_DETAILS, INDUSTRY_MAP, type IndustryMapZone, type TemplateCardDetails } from "@/data/resume-templates";
-import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, LinesTextarea, UploadSection, inputClass, textareaClass } from "./shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -447,18 +447,21 @@ function ResumeIndustryMapTab({ data, onChange }: { data: ResumePayload; onChang
             <EditorField label="Color"><input className={inputClass} value={zone.color} onChange={(e) => patch(i, { ...zone, color: e.target.value })} /></EditorField>
           </div>
           <EditorField label="Roles" hint="One per line. Optional tag after | e.g. Scheduler | Ops">
-            <textarea
-              className={textareaClass}
-              value={zone.roles.map((r) => (r.tag ? `${r.name} | ${r.tag}` : r.name)).join("\n")}
-              onChange={(e) =>
-                patch(i, {
-                  ...zone,
-                  roles: e.target.value.split("\n").filter(Boolean).map((line) => {
+            <LinesTextarea
+              rows={2}
+              value={zone.roles}
+              toText={(roles) => roles.map((r) => (r.tag ? `${r.name} | ${r.tag}` : r.name)).join("\n")}
+              // Legacy normalisation kept: drop blank lines (no line trim), then split "name | tag".
+              fromText={(text) =>
+                text
+                  .split("\n")
+                  .filter(Boolean)
+                  .map((line) => {
                     const [name, tag] = line.split("|").map((s) => s.trim());
                     return { name, ...(tag ? { tag } : {}) };
-                  }),
-                })
+                  })
               }
+              onChange={(roles) => patch(i, { ...zone, roles })}
             />
           </EditorField>
         </EditorRow>
@@ -491,7 +494,13 @@ function ResumeTemplateCardsTab({ data, onChange }: { data: ResumePayload; onCha
             <EditorField label="Title"><input className={inputClass} value={card.title} onChange={(e) => patch(id, { title: e.target.value })} /></EditorField>
             <EditorField label="Who this is for"><textarea className={textareaClass} value={card.whoThisIsFor} onChange={(e) => patch(id, { whoThisIsFor: e.target.value })} /></EditorField>
             <EditorField label="Highlights" hint="One per line">
-              <textarea className={textareaClass} value={(card.highlights ?? []).join("\n")} onChange={(e) => patch(id, { highlights: e.target.value.split("\n").filter(Boolean) })} />
+              <LinesTextarea
+                rows={2}
+                value={card.highlights ?? []}
+                // Legacy normalisation kept: drop blank lines but do NOT trim (matches old behaviour).
+                fromText={(text) => text.split("\n").filter(Boolean)}
+                onChange={(highlights) => patch(id, { highlights })}
+              />
             </EditorField>
             <EditorField label="Preview tagline"><input className={inputClass} value={card.previewTagline} onChange={(e) => patch(id, { previewTagline: e.target.value })} /></EditorField>
           </EditorRow>
