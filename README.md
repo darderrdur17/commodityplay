@@ -1,265 +1,119 @@
-# CommodityPlay. — Full-Stack Web App + Mobile
+# CommodityPlay.
 
-The definitive career and sales guide for commodity trading. Full-stack Next.js 15 web app + Expo React Native mobile app.
+The definitive career and sales guide for commodity trading — a Next.js web app plus an Expo mobile
+client.
+
+- **Production:** <https://www.commodityplay.ai>
+- **This app:** the `commodity-playbook-app/` directory (the git repo root)
+- **Deeper docs:** [`docs/`](./docs/README.md) — read the index there for anything beyond "how do I
+  run it"
 
 ---
 
-## Architecture
-
-```
-commodity-playbook-app/
-├── src/                    # Next.js web app
-│   ├── app/                # App Router pages
-│   │   ├── (auth)/         # Login / Signup
-│   │   ├── api/            # API routes
-│   │   ├── dashboard/      # Member dashboard
-│   │   ├── playbook/       # Full playbook (Pro+)
-│   │   ├── glossary/       # Desk glossary (free)
-│   │   ├── career-roadmap/ # Career roadmap (Pro+)
-│   │   ├── mentor-connect/ # Mentor Connect (Elite)
-│   │   ├── pricing/        # Pricing page
-│   │   └── ...
-│   ├── components/         # Shared components
-│   ├── lib/                # Auth, Prisma, Stripe
-│   └── data/               # Content data
-├── prisma/
-│   └── schema.prisma       # Database schema
-├── mobile/                 # Expo React Native app
-│   ├── app/                # Expo Router pages
-│   │   ├── (tabs)/         # Dashboard, Playbook, Glossary, Profile
-│   │   └── (auth)/         # Login, Signup
-│   └── lib/                # API client
-└── vercel.json             # Vercel config
-```
-
-## Tech Stack
+## Stack
 
 | Layer | Technology |
 |---|---|
-| Web Framework | Next.js 15 (App Router) |
-| Database | Neon Postgres (via Vercel Marketplace) |
-| Auth | Auth.js v5 (NextAuth) + bcrypt |
-| Payments | Stripe (one-time + subscriptions) |
-| ORM | Prisma |
-| Styling | Tailwind CSS + Framer Motion |
-| UI Components | Custom + Radix UI primitives |
+| Framework | Next.js **16.2.9** (App Router) · React 19 · TypeScript |
+| Database | Neon Postgres via **Prisma 5.22** |
+| Auth | Auth.js v5 (NextAuth) + bcrypt; Google OAuth optional |
+| Payments | **Stripe 17** — subscriptions only (no one-time products) |
 | Email | Resend |
-| Mobile | Expo (React Native) |
-| Hosting | Vercel |
+| Styling | Tailwind CSS · Framer Motion · Radix UI primitives |
+| Mobile | Expo (React Native) — `mobile/` |
+| Hosting | Vercel, region `sin1` |
 
-## Membership Tiers
+## Plans
 
-| Tier | Price | Access |
+Two **tracks** (Career, Sales) × three **tiers** (Starter, Pro, Elite). All prices are **SGD**, billed
+monthly. The track decides *which* content you see; the tier decides *how much*.
+
+| Tier | Price / month | Unlocks |
 |---|---|---|
-| **Starter** | Free | 5 infographics, Chapter A preview, Desk Glossary, Weekly Digest |
-| **Pro** | USD 19/month | Full Playbook (5ch), Resume Templates, Career Roadmap, Interview Qs, Knowledge Test |
-| **Elite** | USD 39/month | Everything in Pro + Case Studies, Desk Channel, Mentor Connect, Job Openings |
+| **Starter** | Free | Desk Glossary, Chapter A preview, weekly digest, Starter Pack |
+| **Pro** | Career **S$19** · Sales **S$39** | Full Playbook, resume templates, career roadmap, interview questions, knowledge test (Sales adds Market Nudges) |
+| **Elite** | Career **S$34** · Sales **S$56** | Everything in Pro, plus case studies, Desk Channel, Mentor Connect, job openings, library (Sales adds Account Intelligence) |
 
-> Sales track: **Sales Pro** USD 39/month, **Sales Elite** USD 59/month. All plans are monthly
-> subscriptions; the 6-month and 12-month terms bill 6 for 7 and 12 for 14 months respectively.
+Two **terms**: **Monthly**, or **Annually** (12 months up front, a flat **15% discount**). There is no
+trial and no free-month offer.
 
-## Personas
-
-- 🎓 Fresh Graduate
-- 🔄 Career Switcher
-- ⚡ Industry Insider
-- 📊 Analyst / Trader
-- 🤝 Vendor / Supplier
+> ⚠️ **A price is written in exactly one place** — `src/data/pricing-shared.ts`. The Stripe price IDs
+> that actually charge the member are env vars. Those are two halves of one decision and must move
+> together. See [`docs/billing-and-pricing.md`](./docs/billing-and-pricing.md).
 
 ---
 
-## Demo Accounts
-
-After setting up your database, seed demo accounts:
-
-```bash
-npm run db:push
-npm run db:seed
-```
-
-**Password for all demo accounts:** `Demo1234!`
-
-| Email | Role | Tier | Persona | Track |
-|---|---|---|---|---|
-| `admin@demo.com` | Admin | Elite | Insider | Career |
-| `starter.fresh@demo.com` | User | Starter | Fresh Grad | Career |
-| `starter.vendor@demo.com` | User | Starter | Vendor | Sales |
-| `pro.switcher@demo.com` | User | Pro | Career Switcher | Career |
-| `pro.analyst@demo.com` | User | Pro | Analyst / Trader | Career |
-| `pro.vendor@demo.com` | User | Pro | Vendor | Sales |
-| `elite.insider@demo.com` | User | Elite | Insider | Career |
-| `elite.vendor@demo.com` | User | Elite | Vendor | Sales |
-
-Try them at `/demo` (one-click sign-in) or from the login page quick-picker.
-
-**Admin panel:** `/admin` — manage users, answer mentor questions, view waitlist.
-
----
-
-## Quick Start
-
-### 1. Install dependencies
+## Quick start
 
 ```bash
 cd commodity-playbook-app
-npm install
+npm install                 # runs `prisma generate` via postinstall
+cp .env.example .env.local  # then fill it in — see docs/environment.md
+npm run db:push             # create the schema in your database
+npm run dev                 # http://localhost:3000
 ```
 
-### 2. Set up environment variables
+The app reconciles its own schema on first use (`src/lib/db-schema-migrations.ts`), so a fresh
+database does not need a separate migration step.
 
-```bash
-cp .env.example .env.local
-# Fill in all values (see below)
-```
+### Useful scripts
 
-### 3. Set up database
+| Script | What it does |
+|---|---|
+| `npm run dev` | Dev server with Turbopack |
+| `npm run build` | `build:content` → `prisma generate` → `sync:cms` → `next build --webpack` |
+| `npm run start` | Serve a production build |
+| `npm run lint` | **`tsc --noEmit`** — this is the only CI gate |
+| `npm run db:push` | Push the Prisma schema |
+| `npm run db:seed` | Seed demo accounts |
 
-```bash
-# Push schema to Neon Postgres
-npm run db:push
+> ⚠️ Building locally needs `NODE_OPTIONS=` cleared, or `next build` fails with
+> `ENOENT … mkdir .next/server/app/_not-found`. See [`docs/runbook.md`](./docs/runbook.md).
 
-# (Optional) Open Prisma Studio
-npm run db:studio
-```
-
-### 4. Run development server
-
-```bash
-npm run dev
-# → http://localhost:3000
-```
-
-### 5. Run mobile app
+### Mobile app
 
 ```bash
 cd mobile
 npm install
 npx expo start
-# Scan QR code with Expo Go app
 ```
 
----
-
-## Deployment to Vercel
-
-### Web App
-
-1. **Push to GitHub**:
-   ```bash
-   git init && git add . && git commit -m "initial commit"
-   gh repo create commodity-playbook --private --push
-   ```
-
-2. **Import to Vercel**:
-   - Go to [vercel.com/new](https://vercel.com/new)
-   - Import your GitHub repo
-   - Set Root Directory to `.` (or leave default)
-
-3. **Add Neon Postgres** via Vercel Marketplace:
-   - Marketplace → Neon → Add → Copies `DATABASE_URL` automatically
-
-4. **Set environment variables** in Vercel Dashboard → Settings → Environment Variables:
-   ```
-   AUTH_SECRET=          (generate: openssl rand -base64 32)
-   NEXTAUTH_URL=         https://your-domain.vercel.app
-   GOOGLE_CLIENT_ID=     (from Google Cloud Console)
-   GOOGLE_CLIENT_SECRET= (from Google Cloud Console)
-   STRIPE_SECRET_KEY=    (from Stripe Dashboard)
-   STRIPE_PRO_PRICE_ID=  (create in Stripe Products)
-   STRIPE_ELITE_PRICE_ID=(create in Stripe Products)
-   STRIPE_WEBHOOK_SECRET=(from Stripe Webhooks)
-   RESEND_API_KEY=       (from resend.com)
-   ```
-
-5. **Configure Stripe Webhook**:
-   - Stripe Dashboard → Developers → Webhooks → Add endpoint
-   - URL: `https://your-domain.vercel.app/api/stripe/webhook`
-   - Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`, `invoice.paid`
-
-6. **Stripe receipt emails (Dashboard — recommended in addition to app emails)**:
-   - Settings → Emails → enable **Successful payments** and **Invoices**
-   - Settings → Branding → add CommodityPlay. logo and accent colour `#0830a0`
-
-7. **Stripe Customer Portal** (Settings → Billing → Customer portal):
-   - Enable payment method update, invoice history, subscription cancellation
-   - Optional: copy Configuration ID → `STRIPE_BILLING_PORTAL_CONFIGURATION_ID`
-
-8. **Deploy**: Vercel auto-deploys on every git push to `main`
-
-### Mobile App (Expo)
-
-```bash
-cd mobile
-npm install -g eas-cli
-eas login
-eas build --platform all  # First build (creates .ipa + .apk)
-eas submit                 # Submit to App Store + Google Play
-```
+The mobile client talks to the web app's `/api/mobile/*` routes.
 
 ---
 
-## Stripe Products Setup
+## Admin
 
-All four plans are **monthly recurring subscriptions in USD**. Pro is no longer a one-time
-purchase.
+Admin authority is the **`ADMIN_EMAILS` allowlist** — never `User.role`, which is ignored. It **fails
+closed**: unset in production means nobody is an admin. Outside production an unset allowlist falls
+back to a single built-in address.
 
-1. Go to [dashboard.stripe.com/products](https://dashboard.stripe.com/products)
-2. Create four products, each with a **recurring, monthly** price:
+| Surface | Path |
+|---|---|
+| Admin panel | `/admin` (content, users, mentors, email preview, database) |
+| Member dashboard | `/dashboard` |
 
-   | Product | Name | Amount |
-   | --- | --- | --- |
-   | Career Pro | "CommodityPlay. Career Pro" | USD 19.00/month |
-   | Career Elite | "CommodityPlay. Career Elite" | USD 39.00/month |
-   | Sales Pro | "CommodityPlay. Sales Pro" | USD 39.00/month |
-   | Sales Elite | "CommodityPlay. Sales Elite" | USD 59.00/month |
-
-3. Copy each **Price** ID — it starts with `price_`, not the `prod_...` product ID:
-
-   | Price | Environment variable |
-   | --- | --- |
-   | Career Pro | `STRIPE_PRICE_CAREER_PRO` |
-   | Career Elite | `STRIPE_PRICE_CAREER_ELITE` |
-   | Sales Pro | `STRIPE_PRICE_SALES_PRO` |
-   | Sales Elite | `STRIPE_PRICE_SALES_ELITE` |
-
-> ⚠️ A Price's **currency is locked at creation**. Confirm USD before creating these — you cannot
-> change it afterwards; you delete and rebuild the price.
+Unauthenticated requests to `/admin` and `/api/admin/*` return **404, not 403** — deliberate, so a 403
+cannot confirm the admin surface exists.
 
 ---
 
-## Google OAuth Setup
+## Documentation map
 
-1. Go to [console.cloud.google.com](https://console.cloud.google.com)
-2. Create project → Enable "Google+ API"
-3. Credentials → Create OAuth 2.0 Client ID
-4. Authorized redirect URIs: `https://your-domain.vercel.app/api/auth/callback/google`
-5. Copy Client ID and Secret to env vars
+| Doc | Covers |
+|---|---|
+| [`docs/README.md`](./docs/README.md) | Index — start here |
+| [`docs/architecture.md`](./docs/architecture.md) | How the pieces fit together |
+| [`docs/environment.md`](./docs/environment.md) | Every env var, and what breaks without it |
+| [`docs/billing-and-pricing.md`](./docs/billing-and-pricing.md) | Plans, Stripe wiring, the money rules |
+| [`docs/runbook.md`](./docs/runbook.md) | Build, deploy, verify, common failures |
 
----
+Older design documents (PRDs, the revamp architecture, the admin-access audit) also live in `docs/`.
+Some are historical and describe superseded designs — check their dates before trusting them.
 
-## API Routes
+## Conventions
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/api/auth/register` | None | Create new user account |
-| POST | `/api/stripe/checkout` | Required | Create Stripe checkout session |
-| POST | `/api/stripe/webhook` | Stripe sig | Handle Stripe events |
-| POST | `/api/user/persona` | Required | Update user persona + track |
-| GET/POST | `/api/user/progress` | Required | Get/update chapter progress |
-| GET/POST | `/api/mentor-connect` | Elite | Submit/get mentor questions |
-| POST | `/api/waitlist` | None | Join job board waitlist |
-
----
-
-## QA Checklist
-
-- [ ] All env vars set in Vercel
-- [ ] `DATABASE_URL` from Neon (auto-set by Marketplace)
-- [ ] `AUTH_SECRET` is a random 32-byte string
-- [ ] Stripe products created and price IDs match
-- [ ] Stripe webhook endpoint registered with correct events
-- [ ] Google OAuth redirect URI matches production URL
-- [ ] Test complete purchase flow (Stripe test mode → real upgrade)
-- [ ] Test all 3 tier levels (Starter / Pro / Elite) access gates
-- [ ] Mobile app connects to production API
-- [ ] Verify Prisma schema is migrated (`npm run db:push`)
+- **Merge commits only.** Never `--admin`; the PR head must be up to date with `main`.
+- **No `prisma/migrations/`** — schema changes go into `CORE_MIGRATION_SQL`
+  (`src/lib/db-schema-migrations.ts`), which is additive and idempotent.
+- **`tsc --noEmit` is the only CI gate** (plus the Vercel build).
