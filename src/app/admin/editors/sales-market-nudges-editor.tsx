@@ -12,6 +12,7 @@ import {
   type NudgeLifecycleStatus,
 } from "@/data/sales-market-nudges";
 import { normalizeSalesMarketNudgesPayload } from "@/lib/content/sales-market-nudges-schema";
+import { parseInlineBold, renderInlineBold } from "@/lib/inline-bold";
 import { EditorField, EditorSection, LinesTextarea, inputClass, textareaClass } from "./shared";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -93,6 +94,25 @@ const DISCOVERY_COLUMNS: { key: keyof DiscoveryPoint; label: string; placeholder
 ];
 
 /**
+ * Live "what the member will see" line.
+ *
+ * Rendered only when the value actually carries a bold marker pair, so the common
+ * (unmarked) case adds zero layout noise. The check is `parseInlineBold(...).some(bold)`
+ * rather than a plain `includes("**")` so a stray `****` — which stays literal — shows
+ * nothing. Read-only: it never touches the value or `onChange`.
+ */
+function InlineBoldPreview({ value }: { value: string }) {
+  if (!parseInlineBold(value).some((segment) => segment.bold)) return null;
+  return (
+    <p className="text-[11px] text-muted-fg">
+      <span className="font-semibold uppercase tracking-wide">Preview</span>
+      {" — "}
+      {renderInlineBold(value)}
+    </p>
+  );
+}
+
+/**
  * Editor for a brief's Ask / Listen for / Offer rows.
  *
  * This replaces the single "one per line" textarea that used to hold
@@ -129,15 +149,17 @@ function DiscoveryQuestionsEditor({
           className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-start"
         >
           {DISCOVERY_COLUMNS.map((column) => (
-            <textarea
-              key={column.key}
-              className={DISCOVERY_CELL_CLASS}
-              rows={2}
-              placeholder={column.placeholder}
-              aria-label={`${column.label} ${i + 1}`}
-              value={row[column.key]}
-              onChange={(e) => setCell(i, column.key, e.target.value)}
-            />
+            <div key={column.key} className="space-y-1 min-w-0">
+              <textarea
+                className={DISCOVERY_CELL_CLASS}
+                rows={2}
+                placeholder={column.placeholder}
+                aria-label={`${column.label} ${i + 1}`}
+                value={row[column.key]}
+                onChange={(e) => setCell(i, column.key, e.target.value)}
+              />
+              <InlineBoldPreview value={row[column.key]} />
+            </div>
           ))}
           <button
             type="button"
@@ -278,7 +300,8 @@ export function SalesMarketNudgesEditor({
         <p className="text-xs text-muted-fg bg-secondary/50 rounded-lg px-3 py-2">
         Edit weekly market nudges and intelligence briefs for{" "}
         <code className="text-[11px]">/dashboard/sales-market-nudges</code>. Members can filter
-        briefs by month and by the categories you define below.
+        briefs by month and by the categories you define below. Wrap a phrase in{" "}
+        <strong>**double asterisks**</strong> to render it bold on the member page.
       </p>
 
       <EditorSection title="Page hero" defaultOpen>
@@ -393,6 +416,7 @@ export function SalesMarketNudgesEditor({
                   value={nudge.whyNow}
                   onChange={(e) => updateNudge(i, { whyNow: e.target.value })}
                 />
+                <InlineBoldPreview value={nudge.whyNow} />
               </EditorField>
               <EditorField label="Action">
                 <textarea
@@ -402,6 +426,7 @@ export function SalesMarketNudgesEditor({
                   value={nudge.accountAction}
                   onChange={(e) => updateNudge(i, { accountAction: e.target.value })}
                 />
+                <InlineBoldPreview value={nudge.accountAction} />
               </EditorField>
               <EditorField label="Target">
                 <input
@@ -535,10 +560,11 @@ export function SalesMarketNudgesEditor({
                   value={brief.description}
                   onChange={(e) => updateBrief(i, { description: e.target.value })}
                 />
+                <InlineBoldPreview value={brief.description} />
               </EditorField>
               <EditorField
                 label="Discovery questions"
-                hint="Ask / Listen for / Offer. Leave Listen for and Offer blank to show a plain question list instead of a table."
+                hint="Ask / Listen for / Offer. Wrap a phrase in **double asterisks** to make it bold on the member page. Leave Listen for and Offer blank to show a plain question list instead of a table."
               >
                 <DiscoveryQuestionsEditor
                   value={brief.discoveryQuestions}
