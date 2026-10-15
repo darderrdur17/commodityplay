@@ -18,6 +18,7 @@ import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import type { FeatureComparisonGroup, LandingTier } from "@/data/landing-content";
 import type { BillingCadence, PlanTerm, PlanTier, PlanTrack } from "@/data/pricing-shared";
 import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
+import { splitFeatureLabel } from "@/lib/feature-label";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -337,19 +338,45 @@ function TierCard({
             </div>
           )}
         </div>
+        {/* Feature rows. Two type decisions live here, both owner requests from
+            15 Oct 2026:
+
+            1. SIZE — `text-sm sm:text-base` (14/16px), down from `text-base
+               sm:text-lg` (16/18px). This deliberately BREAKS the old
+               `featureText === freeBody` equality with the free panel above: the
+               rows were matched to that body copy at 18px, and the owner asked
+               for the feature list to come down. The free panel is untouched, so
+               the two no longer agree by design — do not "restore" the match.
+
+               It also shortens the cards materially, which was the real driver:
+               the rows were 18px against a live label of up to 137 characters.
+
+            2. WEIGHT — the label is split on its dash (`splitFeatureLabel`), and
+               only the heading is bold. The caption after the dash stays at the
+               inherited weight so the row reads as a labelled fact rather than a
+               paragraph. A label with no dash has no caption and renders fully
+               bold, which is intended.
+
+            The ✓/✗ icon size is left alone: this is a type change, and the icons
+            were not part of the request. */}
         <ul className="space-y-2 sm:space-y-2.5">
-          {featureRows.map((row) => (
-            <li key={row.name} className="flex items-start gap-2.5 text-base sm:text-lg">
-              {row.included ? (
-                <Check className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 ${includedIconClass}`} />
-              ) : (
-                <X className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 ${excludedIconClass}`} />
-              )}
-              <span className={row.included ? includedTextClass : excludedTextClass}>
-                {row.name}
-              </span>
-            </li>
-          ))}
+          {featureRows.map((row) => {
+            const label = splitFeatureLabel(row.name);
+            return (
+              <li key={row.name} className="flex items-start gap-2.5 text-sm sm:text-base">
+                {row.included ? (
+                  <Check className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 ${includedIconClass}`} />
+                ) : (
+                  <X className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 ${excludedIconClass}`} />
+                )}
+                <span className={row.included ? includedTextClass : excludedTextClass}>
+                  <span className="font-semibold">{label.heading}</span>
+                  {label.separator}
+                  {label.caption}
+                </span>
+              </li>
+            );
+          })}
         </ul>
         {/* The footnote is rendered once beneath the whole column row in this mode,
             not repeated inside every card. */}

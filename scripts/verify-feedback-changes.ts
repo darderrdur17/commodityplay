@@ -2,6 +2,7 @@
  * Feedback + CMS fix verification — run with: npx tsx scripts/verify-feedback-changes.ts
  */
 import { DEFAULT_LANDING_CONTENT } from "../src/data/landing-content";
+import { splitFeatureLabel } from "../src/lib/feature-label";
 import { mergeLandingContent } from "../src/lib/content/merge";
 import { hydrateLandingCaseStudyCards } from "../src/lib/content/landing-case-study-preview";
 import {
@@ -2767,6 +2768,65 @@ async function verifyPdfStampWrites() {
       loginForm.includes("useGoogleSignInAvailable") &&
       loginForm.includes("/forgot-password") &&
       fs.existsSync(path.join(process.cwd(), "src/app/api/auth/google-status/route.ts"))
+  );
+}
+
+// ── Pricing feature rows: smaller type, bold heading only ───────────────────
+{
+  const tierGrid = fs.readFileSync(
+    path.join(process.cwd(), "src/components/pricing/pricing-tier-grid.tsx"),
+    "utf8"
+  );
+
+  const playbook = splitFeatureLabel("Full Playbook — all 9 chapters");
+  ok(
+    "Plan feature labels split into a heading and its caption",
+    playbook.heading === "Full Playbook" &&
+      playbook.separator === " — " &&
+      playbook.caption === "all 9 chapters"
+  );
+  ok(
+    "A plan label with no dash is all heading, with no caption",
+    JSON.stringify(splitFeatureLabel("Persona Analysis Quiz")) ===
+      JSON.stringify({ heading: "Persona Analysis Quiz", separator: null, caption: null }) &&
+      splitFeatureLabel("Market Scenarios & Case Studies").caption === null
+  );
+  ok(
+    "Hyphens inside a word are never read as the heading/caption separator",
+    splitFeatureLabel("General Job Board — auto-inclusion on upcoming feature").heading ===
+      "General Job Board" &&
+      splitFeatureLabel("General Job Board — auto-inclusion on upcoming feature").caption ===
+        "auto-inclusion on upcoming feature" &&
+      splitFeatureLabel("Resume Templates & Vetting — practitioner-vetted").caption ===
+        "practitioner-vetted"
+  );
+  ok(
+    "A dash with nothing on one side leaves the label whole",
+    splitFeatureLabel("— caption only").heading === "— caption only" &&
+      splitFeatureLabel("— caption only").caption === null &&
+      splitFeatureLabel("heading —").caption === null &&
+      splitFeatureLabel("heading — ").caption === null
+  );
+  ok(
+    "Splitting a plan label never drops a character",
+    [
+      "Full Playbook — all 9 chapters",
+      "Persona Analysis Quiz",
+      "Market Scenarios & Case Studies",
+      "Career Roadmap with role blueprints & industry compensation bands",
+      "General Job Board — auto-inclusion on upcoming feature",
+    ].every((label) => {
+      const parts = splitFeatureLabel(label);
+      return `${parts.heading}${parts.separator ?? ""}${parts.caption ?? ""}` === label;
+    })
+  );
+  ok(
+    "Pricing feature rows are 14/16px with a bold heading span",
+    tierGrid.includes("text-sm sm:text-base") &&
+      !tierGrid.includes("text-base sm:text-lg") &&
+      tierGrid.includes('<span className="font-semibold">{label.heading}</span>') &&
+      tierGrid.includes("{label.separator}") &&
+      tierGrid.includes("{label.caption}")
   );
 }
 
