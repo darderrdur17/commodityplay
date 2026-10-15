@@ -20,6 +20,7 @@ import {
 } from "@/data/sales-market-nudges";
 import { LinkToAccountDropdown } from "@/components/dashboard/link-to-account-dropdown";
 import { cn } from "@/lib/utils";
+import { renderInlineBold } from "@/lib/inline-bold";
 import {
   BOOKMARK_HIGHLIGHT_RING,
   marketNudgeElementId,
@@ -164,9 +165,15 @@ function DiscoveryTable({ rows }: { rows: DiscoveryPoint[] }) {
       <tbody>
         {rows.map((row, i) => (
           <tr key={i} className="border-t border-border/60 align-top">
-            <td className="py-2 pr-3 text-sm text-muted-fg leading-relaxed">{row.ask}</td>
-            <td className="py-2 pr-3 text-sm text-muted-fg leading-relaxed">{row.listenFor}</td>
-            <td className="py-2 text-sm text-muted-fg leading-relaxed">{row.offer}</td>
+            <td className="py-2 pr-3 text-sm text-muted-fg leading-relaxed">
+              {renderInlineBold(row.ask)}
+            </td>
+            <td className="py-2 pr-3 text-sm text-muted-fg leading-relaxed">
+              {renderInlineBold(row.listenFor)}
+            </td>
+            <td className="py-2 text-sm text-muted-fg leading-relaxed">
+              {renderInlineBold(row.offer)}
+            </td>
           </tr>
         ))}
       </tbody>
@@ -204,7 +211,9 @@ function IntelligenceBriefCard({
           {updated && <span className="text-[11px] text-muted-fg">{updated}</span>}
         </div>
       </div>
-      <p className="text-sm text-muted-fg leading-relaxed mb-4 flex-1">{brief.description}</p>
+      <p className="text-sm text-muted-fg leading-relaxed mb-4 flex-1">
+        {renderInlineBold(brief.description)}
+      </p>
       <div className="pt-3 border-t border-border/60 space-y-3">
         {discoveryRows.length > 0 && (
           <div>
@@ -218,7 +227,7 @@ function IntelligenceBriefCard({
                 {discoveryRows.map((row, i) => (
                   <li key={i} className="flex gap-2 text-sm text-muted-fg leading-relaxed">
                     <span className="text-gray-400 shrink-0">—</span>
-                    <span>{row.ask}</span>
+                    <span>{renderInlineBold(row.ask)}</span>
                   </li>
                 ))}
               </ul>
@@ -370,7 +379,9 @@ export function SalesMarketNudgesSection({
           {content.eyebrow}
         </p>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">{content.title}</h1>
-        <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">{content.description}</p>
+        <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">
+          {renderInlineBold(content.description)}
+        </p>
         <ChipFilterBar
           label="Filter talking points by status"
           value={statusFilter}
@@ -385,9 +396,14 @@ export function SalesMarketNudgesSection({
       {/* Not gated to the Active tab: an expired or archived weekly nudge must stay
           reachable under its matching tab, exactly like the briefs section below.
           `visibleWeeklyNudges` already carries the status filter, and the empty
-          state names the selected status. */}
+          state names the selected status.
+
+          The pale green tint is the only thing marking this section off from the
+          white Talking Points section below (owner request, 15 Oct 2026). It sits
+          on the container only — the nudge cards inside stay white, so the tint
+          reads as a band rather than filling the section. */}
       <section
-        className="rounded-xl border border-border bg-white p-5 sm:p-6 space-y-4"
+        className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 sm:p-6 space-y-4"
         aria-labelledby="weekly-nudges-heading"
       >
         <h2
@@ -418,13 +434,13 @@ export function SalesMarketNudgesSection({
                   {nudge.whyNow.trim() !== "" && (
                     <li className="flex gap-2 text-sm leading-relaxed">
                       <span className="font-semibold text-[#065F46] shrink-0">Now</span>
-                      <span className="text-gray-600">— {nudge.whyNow}</span>
+                      <span className="text-gray-600">— {renderInlineBold(nudge.whyNow)}</span>
                     </li>
                   )}
                   {nudge.accountAction.trim() !== "" && (
                     <li className="flex gap-2 text-sm leading-relaxed">
                       <span className="font-semibold text-[#065F46] shrink-0">Action</span>
-                      <span className="text-gray-600">— {nudge.accountAction}</span>
+                      <span className="text-gray-600">— {renderInlineBold(nudge.accountAction)}</span>
                     </li>
                   )}
                   {nudge.accountNames.length > 0 && (
