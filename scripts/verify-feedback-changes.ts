@@ -142,6 +142,7 @@ import {
   normalizeSalesMarketNudgesPayload,
   parseSalesMarketNudgesPayload,
 } from "../src/lib/content/sales-market-nudges-schema";
+import { parseInlineBold } from "../src/lib/inline-bold";
 import {
   PDF_COPYRIGHT_FOOTER,
   formatMemberWatermarkLine,
@@ -1809,7 +1810,7 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       nudgesEditor.includes("briefsHeading") &&
       nudgesSection.includes("content.weeklyHeading") &&
       nudgesSection.includes("content.briefsHeading") &&
-      DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyHeading === "This Week — Talking Points" &&
+      DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyHeading === "This Week — Sales Nudges" &&
       DEFAULT_SALES_MARKET_NUDGES_CONTENT.briefsHeading === "Talking Points" &&
       !nudgesSection.includes("Intelligence Briefs") &&
       !nudgesSection.includes("This Week — Market Nudges")
@@ -1851,12 +1852,84 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
         description: DEFAULT_SALES_MARKET_NUDGES_CONTENT.description,
         weeklyNudges: DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyNudges,
         intelligenceBriefs: DEFAULT_SALES_MARKET_NUDGES_CONTENT.intelligenceBriefs,
-      }).weeklyHeading === "This Week — Talking Points" &&
+      }).weeklyHeading === "This Week — Sales Nudges" &&
       normalizeSalesMarketNudgesPayload({
         ...DEFAULT_SALES_MARKET_NUDGES_CONTENT,
         weeklyHeading: "   ",
         briefsHeading: "",
       }).briefsHeading === "Talking Points"
+  );
+
+  // ── Inline bold (**phrase**) — render-time only, markers stay in storage ──
+  const inlineBoldModule = fs.readFileSync(
+    path.join(process.cwd(), "src/lib/inline-bold.tsx"),
+    "utf8"
+  );
+  const multiPair = parseInlineBold("**a** and **b**");
+  ok(
+    "Inline bold parses a **pair** into a bold run between plain runs",
+    JSON.stringify(parseInlineBold("a **b** c")) ===
+      JSON.stringify([
+        { text: "a ", bold: false },
+        { text: "b", bold: true },
+        { text: " c", bold: false },
+      ]) &&
+      JSON.stringify(parseInlineBold("**b**")) ===
+        JSON.stringify([{ text: "b", bold: true }]) &&
+      multiPair.filter((s) => s.bold).length === 2 &&
+      multiPair.length >= 3
+  );
+  ok(
+    "Inline bold leaves unmatched / empty / newline markers literal",
+    JSON.stringify(parseInlineBold("**b")) ===
+      JSON.stringify([{ text: "**b", bold: false }]) &&
+      JSON.stringify(parseInlineBold("****")) ===
+        JSON.stringify([{ text: "****", bold: false }]) &&
+      JSON.stringify(parseInlineBold("**a\nb**")) ===
+        JSON.stringify([{ text: "**a\nb**", bold: false }]) &&
+      JSON.stringify(parseInlineBold("plain text")) ===
+        JSON.stringify([{ text: "plain text", bold: false }]) &&
+      parseInlineBold("**a****b**").filter((s) => s.bold).length === 2 &&
+      parseInlineBold("**a****b**").every((s) => s.text.length > 0)
+  );
+  ok(
+    "Inline bold never drops characters (round-trip on unmatched input)",
+    ["plain text", "**b", "****", "**a\nb**", "a * b ** c", "no markers here"].every(
+      (input) => parseInlineBold(input).map((s) => s.text).join("") === input
+    )
+  );
+  ok(
+    "Inline bold helper is server-safe and never uses dangerouslySetInnerHTML",
+    !inlineBoldModule.trimStart().startsWith('"use client"') &&
+      !inlineBoldModule.includes('"use client";') &&
+      !inlineBoldModule.includes("dangerouslySetInnerHTML=") &&
+      inlineBoldModule.includes("export function parseInlineBold") &&
+      inlineBoldModule.includes("export function renderInlineBold")
+  );
+  ok(
+    "Member Sales Nudges page renders inline bold on the discovery cells",
+    nudgesSection.includes("renderInlineBold") &&
+      nudgesSection.includes("renderInlineBold(row.ask)") &&
+      nudgesSection.includes("renderInlineBold(row.listenFor)") &&
+      nudgesSection.includes("renderInlineBold(row.offer)") &&
+      nudgesSection.includes("renderInlineBold(brief.description)") &&
+      nudgesSection.includes("renderInlineBold(nudge.whyNow)") &&
+      nudgesSection.includes("renderInlineBold(nudge.accountAction)")
+  );
+  ok(
+    "Member Sales Nudges page leaves data keys (category, account names, titles) un-bolded",
+    nudgesSection.includes("{brief.category}") &&
+      nudgesSection.includes("nudge.accountNames.join") &&
+      !nudgesSection.includes("renderInlineBold(brief.category)") &&
+      !nudgesSection.includes("renderInlineBold(nudge.accountNames") &&
+      !nudgesSection.includes("renderInlineBold(brief.title)") &&
+      !nudgesSection.includes("renderInlineBold(nudge.title)")
+  );
+  ok(
+    "Admin Sales Nudges editor shows a live inline-bold preview",
+    nudgesEditor.includes("InlineBoldPreview") &&
+      nudgesEditor.includes("renderInlineBold") &&
+      nudgesEditor.includes("**double asterisks**")
   );
 }
 
