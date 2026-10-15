@@ -396,9 +396,14 @@ export function SalesMarketNudgesSection({
       {/* Not gated to the Active tab: an expired or archived weekly nudge must stay
           reachable under its matching tab, exactly like the briefs section below.
           `visibleWeeklyNudges` already carries the status filter, and the empty
-          state names the selected status. */}
+          state names the selected status.
+
+          The pale green tint is the only thing marking this section off from the
+          white Talking Points section below (owner request, 15 Oct 2026). It sits
+          on the container only — the nudge cards inside stay white, so the tint
+          reads as a band rather than filling the section. */}
       <section
-        className="rounded-xl border border-border bg-white p-5 sm:p-6 space-y-4"
+        className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 sm:p-6 space-y-4"
         aria-labelledby="weekly-nudges-heading"
       >
         <h2
