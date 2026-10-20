@@ -216,13 +216,6 @@ export function Nav() {
                       >
                         My Progress
                       </Link>
-                      <Link
-                        href="/account"
-                        onClick={closeMenus}
-                        className="block px-3.5 py-2.5 text-[13.5px] font-medium text-[#4a5568] rounded-[7px] hover:bg-[#f0f6ff] hover:text-[#3280ff] transition-colors"
-                      >
-                        Settings
-                      </Link>
                       {isAdmin(user?.role) && (
                         <Link
                           href="/admin"

@@ -2828,6 +2828,57 @@ async function verifyPdfStampWrites() {
       tierGrid.includes("{label.separator}") &&
       tierGrid.includes("{label.caption}")
   );
+
+  // ── Account menu + Billing card (owner request, 20 Oct 2026) ──────────────
+  // "My Account" and "Settings" were two dropdown entries pointing at the same
+  // /account route — a pure duplicate. The Billing card also lost its
+  // monthly/annually toggle and now hands the plan choice to /pricing.
+  {
+    const navSrc = fs.readFileSync(path.join(process.cwd(), "src/components/nav.tsx"), "utf8");
+
+    ok(
+      "Account dropdown has no duplicate Settings entry",
+      // Matches a JSX text node only, so an unrelated comment or import named
+      // "Settings" would not fail this, and re-adding the menu item would.
+      !/>\s*Settings\s*</.test(navSrc)
+    );
+
+    // One /account link in the desktop dropdown, one in the mobile menu. The
+    // duplicate made this three; a removed mobile entry would make it one.
+    ok(
+      "Account menu has exactly one /account link per menu (desktop + mobile)",
+      (navSrc.match(/href="\/account"/g) ?? []).length === 2
+    );
+
+    const billingSrc = fs.readFileSync(
+      path.join(process.cwd(), "src/components/account/account-billing-section.tsx"),
+      "utf8"
+    );
+
+    // Structural, not a loose substring: the label must sit inside a Link to
+    // /pricing. Changing the href, the label, or reverting to an onClick breaks it.
+    ok(
+      "Billing card's upgrade CTA is a Link to /pricing labelled Upgrade Plan",
+      /<Link\s+href="\/pricing"\s*>\s*<Button[^>]*>\s*Upgrade Plan/.test(billingSrc)
+    );
+
+    ok(
+      "Billing card no longer renders the monthly/annually term selector",
+      !billingSrc.includes("PlanTermSelector")
+    );
+
+    ok(
+      "Billing card no longer starts checkout itself — /pricing owns it",
+      !billingSrc.includes("startCheckout")
+    );
+
+    // The old helper text promised cancellation "from this page", which stopped
+    // being true once the button only navigates.
+    ok(
+      "Billing card no longer claims you can cancel from this page",
+      !billingSrc.includes("Cancel anytime from this page")
+    );
+  }
 }
 
 void verifyPdfStampWrites()
