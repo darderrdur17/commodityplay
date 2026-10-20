@@ -195,7 +195,11 @@ export function AccountBillingSection({
 
         {canUpgrade && paymentsEnabled && (
           <Link href="/pricing">
-            <Button size="sm" className={LANDING_CTA}>
+            {/* No size override: deliberately the default, so this matches the
+                "Save profile" button on the Personal info card above (owner
+                request, 20 Oct 2026). It used to be `size="sm"`, which rendered
+                it visibly smaller. */}
+            <Button className={LANDING_CTA}>
               Upgrade Plan
               <ArrowRight className="w-4 h-4" />
             </Button>
