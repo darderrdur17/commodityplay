@@ -131,6 +131,28 @@ const membersStripSchema = z.object({
   companies: z.array(z.string().min(1)).min(1),
 });
 
+const waitlistBenefitSchema = z.object({
+  title: z.string().min(1),
+  desc: z.string().min(1),
+});
+
+/** Job Board Waitlist copy on `/waitlist` (see `LandingWaitlist` in landing-content.ts). */
+const waitlistSchema = z.object({
+  pill: z.string().min(1),
+  title: z.string().min(1),
+  subheadline: z.string().min(1),
+  signedInTitle: z.string().min(1),
+  signedInBody: z.string().min(1),
+  signedOutTitle: z.string().min(1),
+  signedOutBody: z.string().min(1),
+  consentPrefix: z.string().min(1),
+  consentSuffix: z.string().min(1),
+  submitSignedIn: z.string().min(1),
+  submitSignedOut: z.string().min(1),
+  benefits: z.array(waitlistBenefitSchema).min(1),
+  gdprNote: z.string().min(1),
+});
+
 export const landingContentSchema = z.object({
   career: z.object({
     eyebrow: z.string().min(1),
@@ -377,6 +399,14 @@ export const landingContentSchema = z.object({
       accountIntelligence: trackFeatureSchema,
     })
     .default(() => DEFAULT_LANDING_CONTENT.salesFeatures),
+  /**
+   * Job Board Waitlist copy. `.default(...)` is load-bearing and NOT optional: a
+   * payload saved before this group existed has no `waitlist` key, so without the
+   * default the next save of ANY other landing field would fail validation here
+   * and the owner's edit would be rejected. This is the same trap the `comparison`
+   * group (line ~200) hit before it was given a default.
+   */
+  waitlist: waitlistSchema.default(() => DEFAULT_LANDING_CONTENT.waitlist),
   mentorSection: mentorSectionSchema.default(() => DEFAULT_LANDING_CONTENT.mentorSection),
 }).transform((data) => {
   const legacy = data.membersStrip;

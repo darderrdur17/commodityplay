@@ -16,6 +16,8 @@ import { GradientOrbs, HeroParticles } from "@/components/animations";
 import { MAIN_MIN_HEIGHT_BELOW_NAV } from "@/lib/layout-constants";
 import { useGoogleSignInAvailable } from "@/hooks/use-google-sign-in";
 import { storeSignupConsent } from "@/lib/signup-consent";
+import { COUNTRIES, isCountryName } from "@/data/countries";
+import { cn } from "@/lib/utils";
 
 const schema = z.object({
   name: z.string().min(2, "Please enter your name"),
@@ -25,6 +27,13 @@ const schema = z.object({
     .min(8, "Password must be at least 8 characters")
     .regex(/[A-Z]/, "Must contain an uppercase letter")
     .regex(/[0-9]/, "Must contain a number"),
+  // REQUIRED — the owner asked for a country dropdown on signup. Defaults to
+  // nothing selected (the empty first option); Singapore is merely the first
+  // listed country, never preselected. Validated against the shared list so the
+  // value can never be an arbitrary string.
+  country: z
+    .string()
+    .refine(isCountryName, "Please select your country"),
   track: z.enum(["CAREER", "SALES"], { message: "Please select a track" }),
   // REQUIRED — the register API enforces `termsAccepted === true`, so this must be
   // ticked before the form can submit.
@@ -60,7 +69,7 @@ function SignupForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { terms: false, marketing: false, track: trackFromParam(trackParam) },
+    defaultValues: { terms: false, marketing: false, country: "", track: trackFromParam(trackParam) },
   });
 
   const password = watch("password", "");
@@ -91,6 +100,7 @@ function SignupForm() {
           password: data.password,
           plan,
           track: data.track,
+          country: data.country,
           termsAccepted: data.terms,
           marketingConsent: data.marketing,
         }),
@@ -278,6 +288,33 @@ function SignupForm() {
                 </div>
               </div>
             )}
+
+            {/* Country — a styled native <select> (there is no Select primitive in
+                components/ui). Required, and deliberately defaults to nothing
+                selected; Singapore is only the first option, not a preselection. */}
+            <div className="w-full space-y-1.5">
+              <label htmlFor="country" className="text-sm font-medium text-gray-700">
+                Country
+              </label>
+              <select
+                id="country"
+                className={cn(
+                  "flex h-10 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm",
+                  "focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400",
+                  "transition-all duration-200",
+                  errors.country && "border-red-400 focus:ring-red-400"
+                )}
+                {...register("country")}
+              >
+                <option value="">Select your country</option>
+                {COUNTRIES.map((country) => (
+                  <option key={country.code} value={country.name}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+              {errors.country && <p className="text-xs text-red-500">{errors.country.message}</p>}
+            </div>
 
             {/* Track selection */}
             <div>

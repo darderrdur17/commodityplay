@@ -416,4 +416,13 @@ DO $$ BEGIN
   ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "termsAcceptedAt" TIMESTAMP(3);
 EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
+
+-- 6. User.country — the member's country, captured from the signup dropdown.
+--    CORE, not CMS, for the same reason as the consent columns above:
+--    ensureCoreInfrastructure() runs on every cold start / request path, so a
+--    column added here after the first deploy is created on a live database.
+DO $$ BEGIN
+  ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "country" TEXT;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
 `

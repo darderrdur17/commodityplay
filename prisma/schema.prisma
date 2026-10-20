@@ -60,6 +60,7 @@ model User {
   passwordHash   String?
   company        String?
   profession     String?
+  country        String?
 
   // Business logic fields
   role           Role      @default(USER)

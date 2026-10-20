@@ -2830,7 +2830,167 @@ async function verifyPdfStampWrites() {
   );
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Country field + Job Board Waitlist CMS + CSV export (feat/country-and-waitlist-cms)
+//
+// Kept in its OWN function at the very end of the file so it never collides with
+// edits to the middle of this harness.
+// ───────────────────────────────────────────────────────────────────────────
+async function verifyCountryWaitlistCms() {
+  // ── PART 1: Job Board Waitlist copy is CMS-editable ──────────────────────
+  const waitlistDefault = DEFAULT_LANDING_CONTENT.waitlist;
+  const mergedWaitlist = mergeLandingContent(DEFAULT_LANDING_CONTENT, {
+    waitlist: { ...waitlistDefault, title: "Custom waitlist title" },
+  });
+  ok(
+    "waitlist copy resolves from the landing module",
+    mergedWaitlist.waitlist.title === "Custom waitlist title" &&
+      mergedWaitlist.waitlist.pill === waitlistDefault.pill &&
+      mergedWaitlist.waitlist.benefits.length === waitlistDefault.benefits.length
+  );
+
+  // The `.default()` on the waitlist group is the load-bearing bit: without it a
+  // payload saved before the group existed fails validation on the next save of
+  // ANY other landing field. Assert it explicitly.
+  const schemaSrc = fs.readFileSync(
+    path.join(process.cwd(), "src/lib/content/landing-schema.ts"),
+    "utf8"
+  );
+  ok(
+    "landing schema's waitlist group carries a .default() (the CMS save trap)",
+    /\.default\(\s*\(\)\s*=>\s*DEFAULT_LANDING_CONTENT\.waitlist\s*\)/.test(schemaSrc)
+  );
+
+  const waitlistPage = fs.readFileSync(
+    path.join(process.cwd(), "src/app/waitlist/page.tsx"),
+    "utf8"
+  );
+  const waitlistClient = fs.readFileSync(
+    path.join(process.cwd(), "src/app/waitlist/waitlist-client.tsx"),
+    "utf8"
+  );
+  ok(
+    "the 'Alerts will go to' line is removed from the waitlist page",
+    !`${waitlistPage}\n${waitlistClient}`.includes("Alerts will go to")
+  );
+  ok(
+    "the waitlist route is a server component that renders the client",
+    !waitlistPage.includes('"use client"') && waitlistPage.includes("WaitlistClient")
+  );
+
+  // ── PART 2: Country on signup ────────────────────────────────────────────
+  const { COUNTRIES } = await import("../src/data/countries");
+  ok("the country list starts with Singapore", COUNTRIES[0]?.name === "Singapore");
+  const remainder = COUNTRIES.slice(1).map((country) => country.name);
+  ok(
+    "every country after Singapore is in alphabetical order",
+    JSON.stringify(remainder) === JSON.stringify([...remainder].sort())
+  );
+  ok("the country list is a full standard list", COUNTRIES.length >= 150);
+
+  const prismaSchema = fs.readFileSync(path.join(process.cwd(), "prisma/schema.prisma"), "utf8");
+  ok(
+    "User.country exists in prisma/schema.prisma",
+    /model User\s*\{[\s\S]*?country\s+String\?/.test(prismaSchema)
+  );
+
+  const migrationSrc = fs.readFileSync(
+    path.join(process.cwd(), "src/lib/db-schema-migrations.ts"),
+    "utf8"
+  );
+  ok(
+    "User.country is added by CORE_MIGRATION_SQL",
+    migrationSrc.includes('ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "country" TEXT;')
+  );
+
+  const signupSrc = fs.readFileSync(
+    path.join(process.cwd(), "src/app/(auth)/signup/page.tsx"),
+    "utf8"
+  );
+  ok(
+    "the signup form registers a required country field",
+    signupSrc.includes('register("country")') && signupSrc.includes("country: z")
+  );
+
+  const registerSrc = fs.readFileSync(
+    path.join(process.cwd(), "src/app/api/auth/register/route.ts"),
+    "utf8"
+  );
+  ok(
+    "the register API validates and persists country",
+    // `refine(isCountryName` (not just the import) proves the value is actually
+    // checked against the country list, and the multi-line `track,\n country,`
+    // proves it reaches the create data rather than only the destructure.
+    registerSrc.includes("refine(isCountryName") &&
+      registerSrc.includes("country: z") &&
+      registerSrc.includes("track,\n        country,")
+  );
+
+  // ── PART 3: Country in both admin lists ──────────────────────────────────
+  const adminUsersSrc = fs.readFileSync(
+    path.join(process.cwd(), "src/app/api/admin/users/route.ts"),
+    "utf8"
+  );
+  ok("the admin users API selects country", adminUsersSrc.includes("country: true"));
+
+  const adminDatabaseSrc = fs.readFileSync(
+    path.join(process.cwd(), "src/lib/admin-database.ts"),
+    "utf8"
+  );
+  ok(
+    "the admin database members query selects and maps country",
+    adminDatabaseSrc.includes("country: true") &&
+      adminDatabaseSrc.includes("country: user.country")
+  );
+
+  const adminClientSrc = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/admin-client.tsx"),
+    "utf8"
+  );
+  ok("the Customers table shows a Country column", adminClientSrc.includes(">Country<"));
+  ok(
+    "the Customers tab has an Export CSV control",
+    adminClientSrc.includes("Export CSV") && adminClientSrc.includes("/api/admin/users/export")
+  );
+
+  const adminDatabasePageSrc = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/database/page.tsx"),
+    "utf8"
+  );
+  ok(
+    "the database members table shows a Country column",
+    adminDatabasePageSrc.includes(">Country<") && adminDatabasePageSrc.includes("user.country")
+  );
+
+  // ── PART 4: CSV export route ─────────────────────────────────────────────
+  const exportPath = path.join(process.cwd(), "src/app/api/admin/users/export/route.ts");
+  const exportExists = fs.existsSync(exportPath);
+  ok("the customers CSV export route exists", exportExists);
+  if (exportExists) {
+    const exportSrc = fs.readFileSync(exportPath, "utf8");
+    ok(
+      "the CSV export route is gated by requireSoleAdmin (403)",
+      // ⚠️ Assert the GUARD CALL, not just the identifier. The `import` line and
+      // the doc comment both contain "requireSoleAdmin" and "403", so a bare
+      // substring test still passes with the entire guard block deleted — which
+      // is exactly how this check first false-passed. Verified by deleting the
+      // guard and confirming this line goes red.
+      exportSrc.includes("await requireSoleAdmin()") && exportSrc.includes("status: 403")
+    );
+    ok(
+      "the CSV export sets a CSV download header",
+      exportSrc.includes("text/csv") && exportSrc.includes("Content-Disposition")
+    );
+    ok(
+      "the CSV export escapes embedded quotes and commas",
+      exportSrc.includes('replace(/"/g') && exportSrc.includes("csvEscape")
+    );
+    ok("the CSV export includes the Country column", exportSrc.includes('"Country"'));
+  }
+}
+
 void verifyPdfStampWrites()
+  .then(() => verifyCountryWaitlistCms())
   .then(() => {
     console.log(failed === 0 ? "\n✅ All feedback/CMS checks passed." : `\n❌ ${failed} check(s) failed.`);
     process.exit(failed === 0 ? 0 : 1);

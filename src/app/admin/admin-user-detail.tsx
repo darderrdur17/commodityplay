@@ -16,6 +16,7 @@ export interface AdminUserDetail {
   email: string;
   company?: string | null;
   profession?: string | null;
+  country?: string | null;
   role: string;
   tier: string;
   track: string;

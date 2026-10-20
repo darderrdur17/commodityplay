@@ -2544,6 +2544,143 @@ export function AdminLandingEditor({
           />
         </Field>
       </Section>
+
+      {/* Job Board Waitlist copy. The page is /waitlist, not a landing page, but it
+          lives in this module (like the pricing groups above) so the owner edits it
+          from the same "Landing Pages" card. One set of words — there is no
+          per-track split. */}
+      <Section
+        title="Job Board Waitlist (both landing pages)"
+        description="Copy for the /waitlist page. The account-status line and error messages stay in code."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Pill label">
+            <TextInput
+              value={content.waitlist.pill}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, pill: v })}
+            />
+          </Field>
+          <Field label="Page heading (h1)">
+            <TextInput
+              value={content.waitlist.title}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, title: v })}
+            />
+          </Field>
+        </div>
+        <Field label="Sub-headline">
+          <TextInput
+            multiline
+            value={content.waitlist.subheadline}
+            onChange={(v) => patch("waitlist", { ...content.waitlist, subheadline: v })}
+          />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Signed-in card — title">
+            <TextInput
+              value={content.waitlist.signedInTitle}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, signedInTitle: v })}
+            />
+          </Field>
+          <Field label="Signed-out card — title">
+            <TextInput
+              value={content.waitlist.signedOutTitle}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, signedOutTitle: v })}
+            />
+          </Field>
+          <Field label="Signed-in card — body">
+            <TextInput
+              multiline
+              value={content.waitlist.signedInBody}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, signedInBody: v })}
+            />
+          </Field>
+          <Field label="Signed-out card — body">
+            <TextInput
+              multiline
+              value={content.waitlist.signedOutBody}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, signedOutBody: v })}
+            />
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Consent line — before the Privacy Policy link">
+            <TextInput
+              multiline
+              value={content.waitlist.consentPrefix}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, consentPrefix: v })}
+            />
+          </Field>
+          <Field label="Consent line — after the Privacy Policy link">
+            <TextInput
+              multiline
+              value={content.waitlist.consentSuffix}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, consentSuffix: v })}
+            />
+          </Field>
+          <Field label="Submit button — signed in">
+            <TextInput
+              value={content.waitlist.submitSignedIn}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, submitSignedIn: v })}
+            />
+          </Field>
+          <Field label="Submit button — signed out">
+            <TextInput
+              value={content.waitlist.submitSignedOut}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, submitSignedOut: v })}
+            />
+          </Field>
+        </div>
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-gray-700">Benefit cards</p>
+          {content.waitlist.benefits.map((benefit, i) => (
+            <div key={`waitlist-benefit-${benefit.title}-${i}`} className="grid gap-4 sm:grid-cols-2">
+              <Field label={`Benefit ${i + 1} — title`}>
+                <TextInput
+                  value={benefit.title}
+                  onChange={(v) => {
+                    const benefits = [...content.waitlist.benefits];
+                    benefits[i] = { ...benefit, title: v };
+                    patch("waitlist", { ...content.waitlist, benefits });
+                  }}
+                />
+              </Field>
+              <Field label={`Benefit ${i + 1} — description`}>
+                <TextInput
+                  multiline
+                  value={benefit.desc}
+                  onChange={(v) => {
+                    const benefits = [...content.waitlist.benefits];
+                    benefits[i] = { ...benefit, desc: v };
+                    patch("waitlist", { ...content.waitlist, benefits });
+                  }}
+                />
+              </Field>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() =>
+              patch("waitlist", {
+                ...content.waitlist,
+                benefits: [...content.waitlist.benefits, { title: "", desc: "" }],
+              })
+            }
+            className={smallButtonClass}
+          >
+            <Plus className="w-3.5 h-3.5" /> Add benefit card
+          </button>
+        </div>
+        <Field
+          label="GDPR footer note — before the privacy policy link"
+          hint="The “privacy policy” hyperlink and its full stop stay in code."
+        >
+          <TextInput
+            multiline
+            value={content.waitlist.gdprNote}
+            onChange={(v) => patch("waitlist", { ...content.waitlist, gdprNote: v })}
+          />
+        </Field>
+      </Section>
     </div>
   );
 }

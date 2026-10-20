@@ -14,6 +14,7 @@ export type AdminDatabaseUserRow = {
   name: string | null;
   email: string;
   company: string | null;
+  country: string | null;
   role: string;
   tier: string;
   track: string;
@@ -130,6 +131,7 @@ export async function searchAdminDatabaseUsers(query: string): Promise<AdminData
       name: true,
       email: true,
       company: true,
+      country: true,
       role: true,
       tier: true,
       track: true,
@@ -144,6 +146,7 @@ export async function searchAdminDatabaseUsers(query: string): Promise<AdminData
     name: user.name,
     email: user.email,
     company: user.company,
+    country: user.country,
     role: user.role,
     tier: user.tier,
     track: user.track,
