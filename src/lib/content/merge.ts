@@ -288,6 +288,36 @@ export function resolvePricingFreePanel(
 }
 
 /**
+ * Job Board Waitlist copy on `/waitlist`. Lives in the `landing` module (like the
+ * pricing groups above) even though the page is not the landing page.
+ *
+ * Same `cmsString` rule as the pricing groups — an intentionally-cleared line
+ * stays cleared rather than being silently restored from the defaults. The
+ * `benefits` list is CMS-owned once the admin saves it (`resolveEditableList`):
+ * renaming, reordering, adding or removing a card all stick.
+ */
+export function resolveWaitlistCopy(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["waitlist"]>
+): LandingContent["waitlist"] {
+  return {
+    pill: cmsString(cms?.pill, defaults.waitlist.pill),
+    title: cmsString(cms?.title, defaults.waitlist.title),
+    subheadline: cmsString(cms?.subheadline, defaults.waitlist.subheadline),
+    signedInTitle: cmsString(cms?.signedInTitle, defaults.waitlist.signedInTitle),
+    signedInBody: cmsString(cms?.signedInBody, defaults.waitlist.signedInBody),
+    signedOutTitle: cmsString(cms?.signedOutTitle, defaults.waitlist.signedOutTitle),
+    signedOutBody: cmsString(cms?.signedOutBody, defaults.waitlist.signedOutBody),
+    consentPrefix: cmsString(cms?.consentPrefix, defaults.waitlist.consentPrefix),
+    consentSuffix: cmsString(cms?.consentSuffix, defaults.waitlist.consentSuffix),
+    submitSignedIn: cmsString(cms?.submitSignedIn, defaults.waitlist.submitSignedIn),
+    submitSignedOut: cmsString(cms?.submitSignedOut, defaults.waitlist.submitSignedOut),
+    benefits: resolveEditableList(defaults.waitlist.benefits, cms?.benefits),
+    gdprNote: cmsString(cms?.gdprNote, defaults.waitlist.gdprNote),
+  };
+}
+
+/**
  * One sales-track feature section. Arrays are replaced wholesale once non-empty
  * (`deepMerge` does not merge arrays element-wise, so an admin deleting a row must
  * not have it silently restored from defaults).
@@ -686,6 +716,7 @@ export function mergeLandingContent(
   merged.mentorConnect = resolveMentorConnect(defaults, cms.mentorConnect);
   merged.pricingCtaBand = resolvePricingCtaBand(defaults, cms.pricingCtaBand);
   merged.pricingFreePanel = resolvePricingFreePanel(defaults, cms.pricingFreePanel);
+  merged.waitlist = resolveWaitlistCopy(defaults, cms.waitlist);
   merged.salesFeatures = resolveSalesFeatures(defaults, cms.salesFeatures);
   merged.mentorSection = resolveMentorSection(defaults, cms.mentorSection);
   merged.career = resolveCareerContent(defaults, cms.career);

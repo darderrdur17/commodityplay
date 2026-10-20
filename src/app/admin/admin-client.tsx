@@ -6,7 +6,7 @@ import {
   Users, Shield, MessageSquare, Mail, Crown, TrendingUp,
   CheckCircle, Clock, ArrowLeft, RefreshCw, FileJson, Pencil, Trash2,
   ChevronUp, ChevronDown, RotateCcw,
-  BarChart2, UserCheck, CreditCard, Copy, ExternalLink, Database,
+  BarChart2, UserCheck, CreditCard, Copy, ExternalLink, Database, Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -646,6 +646,18 @@ export function AdminClient({
         {/* ── Customers tab ── */}
         {activeTab === "users" && (
           <div className="space-y-4">
+            <div className="flex items-center justify-end">
+              {/* A plain anchor (not fetch): the route replies with
+                  `Content-Disposition: attachment`, so the browser downloads the
+                  file in place without navigating away from the admin panel. The
+                  admin session cookie rides along automatically. */}
+              <a href="/api/admin/users/export">
+                <Button variant="outline" size="sm">
+                  <Download className="w-4 h-4" />
+                  Export CSV
+                </Button>
+              </a>
+            </div>
             <AdminTableFilters
               search={customerSearch}
               onSearchChange={setCustomerSearch}
@@ -700,6 +712,7 @@ export function AdminClient({
                     <th className="px-4 py-3 font-semibold text-muted-fg">Tier</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg">Persona</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg">Track</th>
+                    <th className="px-4 py-3 font-semibold text-muted-fg">Country</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg">Mentor / Resume</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg">Joined</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg" />
@@ -708,7 +721,7 @@ export function AdminClient({
                 <tbody>
                   {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-muted-fg">
+                      <td colSpan={9} className="px-4 py-8 text-center text-muted-fg">
                         No customers match your filters.
                       </td>
                     </tr>
@@ -741,6 +754,7 @@ export function AdminClient({
                         {u.persona ? PERSONA_LABELS[u.persona]?.label : "-"}
                       </td>
                       <td className="px-4 py-3 text-xs">{u.track}</td>
+                      <td className="px-4 py-3 text-xs">{u.country || "-"}</td>
                       <td className="px-4 py-3 text-xs text-muted-fg">
                         {formatAdminMentorCreditsCell(u)} / R:{u.resumeCredits}
                       </td>

@@ -177,6 +177,59 @@ export interface LandingPricingFreePanel {
   note: string;
 }
 
+/** One benefit card in the row beneath the Job Board Waitlist form. */
+export interface LandingWaitlistBenefit {
+  title: string;
+  desc: string;
+}
+
+/**
+ * Job Board Waitlist copy on `/waitlist`.
+ *
+ * The page is not the landing page, but this group lives in the `landing` module
+ * for the same reason `pricingFreePanel` and `pricingCtaBand` do — the landing
+ * module already carries copy groups that feed OTHER pages (`/pricing`), so the
+ * owner edits it from the same "Landing Pages" card she already knows. Creating a
+ * 22nd top-level module for one page would fragment the admin panel for no gain.
+ *
+ * ⚠️ Two lines are deliberately NOT here because they are not editorial copy:
+ *   - the "Checking your account…" status line (a transient UI state), and
+ *   - the form's error messages (validation feedback, not marketing wording).
+ * The success card ("You're on the list!") is likewise left in code.
+ *
+ * The consent line and the GDPR footer note each keep a live `/privacy` link, so
+ * the sentence is split into a prefix and (for the consent line) a suffix around
+ * that link — a single editable string would drop the hyperlink.
+ */
+export interface LandingWaitlist {
+  /** Small pill above the heading, e.g. "Coming Soon". */
+  pill: string;
+  /** Page h1. */
+  title: string;
+  /** Sub-headline under the h1. */
+  subheadline: string;
+  /** Card heading shown to a signed-in member. */
+  signedInTitle: string;
+  /** Card body shown to a signed-in member. */
+  signedInBody: string;
+  /** Card heading shown to a signed-out visitor. */
+  signedOutTitle: string;
+  /** Card body shown to a signed-out visitor. */
+  signedOutBody: string;
+  /** Consent sentence up to the "Privacy Policy" link. */
+  consentPrefix: string;
+  /** Consent sentence after the "Privacy Policy" link. */
+  consentSuffix: string;
+  /** Submit button label for a signed-in member. */
+  submitSignedIn: string;
+  /** Submit button label for a signed-out visitor. */
+  submitSignedOut: string;
+  /** The three benefit cards under the form. */
+  benefits: LandingWaitlistBenefit[];
+  /** GDPR footer note up to the "privacy policy" link. */
+  gdprNote: string;
+}
+
 /** One "NOW / ACTION / TARGET"-style row in a track feature section. */
 export interface LandingFeaturePoint {
   /** Short uppercase label rendered in the left gutter. */
@@ -386,6 +439,11 @@ export interface LandingContent {
    * "Pricing plans" admin card rather than the landing editor.
    */
   pricingFreePanel: LandingPricingFreePanel;
+  /**
+   * Job Board Waitlist copy on `/waitlist` — edited from the "Landing Pages" card,
+   * even though the page is not the landing page (see `LandingWaitlist`).
+   */
+  waitlist: LandingWaitlist;
   /** Sales-track tool sections shown on the sales landing, above the pricing band. */
   salesFeatures: {
     marketNudges: LandingTrackFeature;
@@ -936,6 +994,31 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
     line2: PRICING_FREE_PANEL.line2,
     cta: PRICING_FREE_PANEL.cta,
     note: PRICING_FREE_PANEL.note,
+  },
+  // Job Board Waitlist copy. Seeded from the wording that used to be hardcoded in
+  // `src/app/waitlist/page.tsx`, so shipping the CMS group changes nothing on the
+  // live page until the owner edits it.
+  waitlist: {
+    pill: "Coming Soon",
+    title: "Job Board Waitlist",
+    subheadline:
+      "This is not a product waitlist — signup already creates your CommodityPlay account. Join here only if you want an email when the curated job board launches.",
+    signedInTitle: "Get job board alerts",
+    signedInBody:
+      "You're already a member. Opt in and we'll use your account email — one launch notification, no extra signup.",
+    signedOutTitle: "Join the job board waitlist",
+    signedOutBody:
+      "No account needed for job alerts. To use Playbook and Mentor Connect, create an account from Sign up.",
+    consentPrefix: "I agree to receive waitlist updates and accept the",
+    consentSuffix: ". I can unsubscribe at any time.",
+    submitSignedIn: "Get job alerts with my account",
+    submitSignedOut: "Join Job Board Waitlist",
+    benefits: [
+      { title: "Curated roles", desc: "Hand-picked from trading firms, not generic job boards" },
+      { title: "Early access", desc: "See roles before they're posted publicly" },
+      { title: "Persona-matched", desc: "Filtered to your track and experience level" },
+    ],
+    gdprNote: "GDPR-compliant. Your email is stored securely and never sold. See our",
   },
   salesFeatures: {
     marketNudges: {

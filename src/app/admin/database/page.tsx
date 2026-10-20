@@ -164,13 +164,14 @@ export default async function AdminDatabasePage({ searchParams }: PageProps) {
               </p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[880px]">
+              <table className="w-full text-sm min-w-[960px]">
                 <thead>
                   <tr className="border-b border-border bg-secondary text-left">
                     <th className="px-4 py-3 font-semibold text-muted-fg">Member</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg">Role</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg">Tier</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg">Track</th>
+                    <th className="px-4 py-3 font-semibold text-muted-fg">Country</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg">Password</th>
                     <th className="px-4 py-3 font-semibold text-muted-fg">Joined</th>
                   </tr>
@@ -178,7 +179,7 @@ export default async function AdminDatabasePage({ searchParams }: PageProps) {
                 <tbody>
                   {users.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-muted-fg">
+                      <td colSpan={7} className="px-4 py-8 text-center text-muted-fg">
                         No members match that search.
                       </td>
                     </tr>
@@ -197,6 +198,7 @@ export default async function AdminDatabasePage({ searchParams }: PageProps) {
                           <Badge variant={tierVariant(user.tier)}>{user.tier}</Badge>
                         </td>
                         <td className="px-4 py-3">{user.track}</td>
+                        <td className="px-4 py-3">{user.country || "—"}</td>
                         <td className="px-4 py-3">{user.hasPassword ? "Set" : "Not set"}</td>
                         <td className="px-4 py-3 text-muted-fg">{formatDate(user.createdAt)}</td>
                       </tr>
