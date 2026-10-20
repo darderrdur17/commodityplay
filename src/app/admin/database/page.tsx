@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Database } from "lucide-react";
+import { ArrowLeft, Database, Download } from "lucide-react";
 import { requireSoleAdminPage } from "@/lib/admin-access";
 import { loadAdminDatabasePage, type AdminDatabaseTableCount } from "@/lib/admin-database";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,17 @@ function viewHref(view: ViewId, q: string) {
   if (q) params.set("q", q);
   const query = params.toString();
   return query ? `/admin/database?${query}` : "/admin/database";
+}
+
+/**
+ * Download link for the Members view. `scope=members` tells the export route to
+ * use the same loader this page uses (mentors included, 200-row cap), and `q` is
+ * forwarded so a filtered table exports the filtered rows — not everyone.
+ */
+function membersExportHref(q: string) {
+  const params = new URLSearchParams({ scope: "members" });
+  if (q) params.set("q", q);
+  return `/api/admin/users/export?${params.toString()}`;
 }
 
 function CountGrid({ tables }: { tables: AdminDatabaseTableCount[] }) {
@@ -156,12 +167,23 @@ export default async function AdminDatabasePage({ searchParams }: PageProps) {
 
         {view === "members" && (
           <section className="bg-white rounded-xl border border-border overflow-hidden">
-            <div className="px-4 py-3 border-b border-border bg-secondary">
-              <p className="text-sm text-muted-fg">
+            <div className="px-4 py-3 border-b border-border bg-secondary flex flex-wrap items-center gap-3">
+              <p className="text-sm text-muted-fg flex-1 min-w-[16rem]">
                 Showing {users.length}
                 {users.length === 200 ? " of first 200" : ""} {q ? `matching “${q}”` : "members"}. Edit a person from
                 Customers if you need to change tier or role.
               </p>
+              {/* A plain anchor, not fetch: the route replies with
+                  `Content-Disposition: attachment`, so the browser downloads in
+                  place without navigating away. `q` rides along so the file
+                  matches the filtered table above rather than silently
+                  exporting everyone. */}
+              <a href={membersExportHref(q)}>
+                <Button variant="outline" size="sm">
+                  <Download className="w-4 h-4" />
+                  Export CSV
+                </Button>
+              </a>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[960px]">

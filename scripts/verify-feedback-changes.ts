@@ -3109,7 +3109,22 @@ async function verifyCountryWaitlistCms() {
       exportSrc.includes('replace(/"/g') && exportSrc.includes("csvEscape")
     );
     ok("the CSV export includes the Country column", exportSrc.includes('"Country"'));
+    ok(
+      "the CSV export supports a members scope",
+      exportSrc.includes('"members"') && exportSrc.includes("searchAdminDatabaseUsers")
+    );
+    ok(
+      "the CSV export members branch includes Mentor and Has password columns",
+      exportSrc.includes('"Mentor"') && exportSrc.includes('"Has password"')
+    );
   }
+
+  ok(
+    "the Members view has an Export CSV button",
+    adminDatabasePageSrc.includes("Export CSV") &&
+      adminDatabasePageSrc.includes('scope: "members"') &&
+      adminDatabasePageSrc.includes("membersExportHref")
+  );
 }
 
 void verifyPdfStampWrites()
