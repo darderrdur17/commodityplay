@@ -650,9 +650,12 @@ export function AdminClient({
               {/* A plain anchor (not fetch): the route replies with
                   `Content-Disposition: attachment`, so the browser downloads the
                   file in place without navigating away from the admin panel. The
-                  admin session cookie rides along automatically. */}
+                  admin session cookie rides along automatically.
+                  Filled rather than `outline`: the owner reported not being able
+                  to find this, and an outlined button alone on its own row reads
+                  as chrome. */}
               <a href="/api/admin/users/export">
-                <Button variant="outline" size="sm">
+                <Button size="sm">
                   <Download className="w-4 h-4" />
                   Export CSV
                 </Button>
