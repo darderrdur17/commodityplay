@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
   CreditCard,
@@ -18,10 +19,7 @@ import {
   type BillingTrack,
 } from "@/lib/billing";
 import { startBillingPortal, type BillingPortalFlow } from "@/lib/start-billing-portal";
-import { startCheckout, type CheckoutPlan } from "@/lib/start-checkout";
 import { cn, formatDate } from "@/lib/utils";
-import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
-import type { BillingCadence, PlanTerm } from "@/data/pricing-shared";
 
 interface AccountBillingSectionProps {
   tier: BillingTier;
@@ -43,14 +41,14 @@ export function AccountBillingSection({
 }: AccountBillingSectionProps) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [term, setTerm] = useState<PlanTerm>("monthly");
 
   const statusTone = subscriptionStatusTone(stripeStatus);
   const isPastDue = stripeStatus === "past_due";
   const showRenewal = tier !== "STARTER" && stripeCurrentPeriodEnd;
   const canManageBilling = hasStripeCustomer && tier !== "STARTER";
-  const upgradePlan: CheckoutPlan | null =
-    tier === "STARTER" ? "pro" : tier === "PRO" ? "elite" : null;
+  // Only whether an upgrade exists matters here now — the button hands off to
+  // /pricing, which owns the plan choice, the term toggle and the checkout call.
+  const canUpgrade = tier === "STARTER" || tier === "PRO";
 
   async function openPortal(flow: BillingPortalFlow, actionKey: string) {
     setLoadingAction(actionKey);
@@ -60,24 +58,6 @@ export function AccountBillingSection({
       if (url) window.location.href = url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not open billing portal.");
-    } finally {
-      setLoadingAction(null);
-    }
-  }
-
-  async function handleUpgrade(
-    plan: CheckoutPlan,
-    term: PlanTerm = "monthly",
-    cadence: BillingCadence = "monthly"
-  ) {
-    setLoadingAction(`upgrade-${plan}`);
-    setError(null);
-    try {
-      // The track is NOT sent — the server reads User.track from the DB.
-      const url = await startCheckout(plan, term, cadence);
-      if (url) window.location.href = url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start checkout.");
     } finally {
       setLoadingAction(null);
     }
@@ -212,38 +192,19 @@ export function AccountBillingSection({
           </div>
         )}
 
-        {upgradePlan && paymentsEnabled && (
-          <div className="space-y-2">
-            <PlanTermSelector
-              track={track === "SALES" ? "SALES" : "CAREER"}
-              tier={upgradePlan === "elite" ? "ELITE" : "PRO"}
-              value={term}
-              onChange={setTerm}
-            />
-            <Button
-              size="sm"
-              // Cadence is DERIVED from the term: Annually always bills annually.
-              onClick={() =>
-                handleUpgrade(upgradePlan, term, term === "12" ? "annual" : "monthly")
-              }
-              disabled={Boolean(loadingAction)}
-            >
-              {loadingAction === `upgrade-${upgradePlan}` ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  {tier === "STARTER" ? "Upgrade to Pro" : "Upgrade to Elite"}
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
+        {canUpgrade && paymentsEnabled && (
+          <Link href="/pricing">
+            <Button size="sm">
+              Upgrade Plan
+              <ArrowRight className="w-4 h-4" />
             </Button>
-          </div>
+          </Link>
         )}
 
         {tier === "STARTER" && !hasStripeCustomer && paymentsEnabled && (
           <p className="text-xs text-muted-fg">
-            Upgrade to Pro or Elite to start a subscription. Checkout opens in a secure Stripe
-            window with card-on-file support (Stripe Link). Cancel anytime from this page.
+            Compare Pro and Elite on the pricing page. Checkout opens in a secure Stripe window
+            with card-on-file support (Stripe Link).
           </p>
         )}
 
