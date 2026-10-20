@@ -20,6 +20,7 @@ import {
 } from "@/lib/billing";
 import { startBillingPortal, type BillingPortalFlow } from "@/lib/start-billing-portal";
 import { cn, formatDate } from "@/lib/utils";
+import { LANDING_CTA } from "@/lib/landing-cta";
 
 interface AccountBillingSectionProps {
   tier: BillingTier;
@@ -194,7 +195,7 @@ export function AccountBillingSection({
 
         {canUpgrade && paymentsEnabled && (
           <Link href="/pricing">
-            <Button size="sm">
+            <Button size="sm" className={LANDING_CTA}>
               Upgrade Plan
               <ArrowRight className="w-4 h-4" />
             </Button>

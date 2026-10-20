@@ -2879,6 +2879,51 @@ async function verifyPdfStampWrites() {
       !billingSrc.includes("Cancel anytime from this page")
     );
   }
+
+  // ── Account buttons carry the landing CTA treatment (owner request, 20 Oct 2026) ─
+  // The owner asked that "Save profile" (both the member and mentor variants) and
+  // the billing card's "Upgrade Plan" get the same round shape and green->blue
+  // hover gradient as every CTA on the landing pages. The shared constant is
+  // `LANDING_CTA` in `src/lib/landing-cta.ts`, so the correct implementation is to
+  // import it — not to re-spell `rounded-full hover:from-emerald-500 ...` inline,
+  // which would silently fork if the landing treatment ever changes.
+  {
+    const memberSettingsSrc = fs.readFileSync(
+      path.join(process.cwd(), "src/components/account/member-account-settings.tsx"),
+      "utf8"
+    );
+    const mentorSettingsSrc = fs.readFileSync(
+      path.join(process.cwd(), "src/components/account/mentor-account-settings.tsx"),
+      "utf8"
+    );
+
+    // Both submit buttons must import the constant AND pass it as className —
+    // importing without using it would compile and render nothing.
+    for (const [name, src] of [
+      ["member", memberSettingsSrc],
+      ["mentor", mentorSettingsSrc],
+    ] as const) {
+      ok(
+        `${name[0].toUpperCase()}${name.slice(1)} "Save profile" imports LANDING_CTA`,
+        src.includes('from "@/lib/landing-cta"')
+      );
+      ok(
+        `${name[0].toUpperCase()}${name.slice(1)} "Save profile" applies LANDING_CTA`,
+        /<Button[^>]*type="submit"[^>]*className=\{LANDING_CTA\}/.test(src)
+      );
+    }
+
+    // The Upgrade Plan button, which was reworked earlier today. Its class goes
+    // on the <Button>, not the wrapping <Link> — the pill shape is the button's.
+    const billingSrc = fs.readFileSync(
+      path.join(process.cwd(), "src/components/account/account-billing-section.tsx"),
+      "utf8"
+    );
+    ok(
+      "Billing card's Upgrade Plan button applies LANDING_CTA",
+      /<Button[^>]*size="sm"[^>]*className=\{LANDING_CTA\}/.test(billingSrc)
+    );
+  }
 }
 
 // ───────────────────────────────────────────────────────────────────────────

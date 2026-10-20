@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { Building2, Briefcase, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LANDING_CTA } from "@/lib/landing-cta";
 
 export function MentorAccountSettings({
   initialEmail,
@@ -98,7 +99,7 @@ export function MentorAccountSettings({
         {success && (
           <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">{success}</p>
         )}
-        <Button type="submit" loading={saving} disabled={!email.trim()}>
+        <Button type="submit" loading={saving} disabled={!email.trim()} className={LANDING_CTA}>
           Save profile
         </Button>
       </div>
