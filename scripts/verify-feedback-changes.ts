@@ -2859,7 +2859,11 @@ async function verifyPdfStampWrites() {
     // /pricing. Changing the href, the label, or reverting to an onClick breaks it.
     ok(
       "Billing card's upgrade CTA is a Link to /pricing labelled Upgrade Plan",
-      /<Link\s+href="\/pricing"\s*>\s*<Button[^>]*>\s*Upgrade Plan/.test(billingSrc)
+      // An explanatory JSX comment may sit between the <Link> and its <Button>,
+      // so the gap is not whitespace-only.
+      /<Link\s+href="\/pricing"[^>]*>\s*(?:\{\/\*[\s\S]*?\*\/\}\s*)?<Button[^>]*>\s*Upgrade Plan/.test(
+        billingSrc
+      )
     );
 
     ok(
@@ -2921,8 +2925,31 @@ async function verifyPdfStampWrites() {
     );
     ok(
       "Billing card's Upgrade Plan button applies LANDING_CTA",
-      /<Button[^>]*size="sm"[^>]*className=\{LANDING_CTA\}/.test(billingSrc)
+      /<Button[^>]*className=\{LANDING_CTA\}/.test(billingSrc)
     );
+
+    // Both buttons must render at the SAME size (owner request, 20 Oct 2026:
+    // "both buttons to be same size"). Upgrade Plan used to carry size="sm",
+    // which made it visibly smaller than "Save profile" on the Personal info
+    // card. The strongest form of this check is that the <Button> carries NO
+    // size attribute at all — so it falls through to the default variant, the
+    // same one "Save profile" relies on. That fails if a size override is
+    // re-added, or if "Save profile" is given one.
+    const upgradeBtn = billingSrc.match(/<Button[^>]*>\s*Upgrade Plan/);
+    ok(
+      "Upgrade Plan has no size override — it matches Save profile's default size",
+      upgradeBtn !== null && !/\ssize=/.test(upgradeBtn[0])
+    );
+
+    for (const src of [memberSettingsSrc, mentorSettingsSrc]) {
+      const saveBtn = src.match(/<Button[^>]*>\s*Save profile/);
+      if (saveBtn !== null) {
+        ok(
+          "Save profile has no size override — it keeps the default size",
+          !/\ssize=/.test(saveBtn[0])
+        );
+      }
+    }
   }
 }
 
