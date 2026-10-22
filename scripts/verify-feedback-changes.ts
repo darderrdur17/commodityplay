@@ -143,6 +143,7 @@ import {
   parseSalesMarketNudgesPayload,
 } from "../src/lib/content/sales-market-nudges-schema";
 import { parseInlineBold } from "../src/lib/inline-bold";
+import { parseMultilineText } from "../src/lib/multiline-text";
 import {
   PDF_COPYRIGHT_FOOTER,
   formatMemberWatermarkLine,
@@ -1913,7 +1914,10 @@ ok("PLAYBOOK_TOTAL_CHAPTERS is 9", PLAYBOOK_TOTAL_CHAPTERS === 9);
       nudgesSection.includes("renderInlineBold(row.listenFor)") &&
       nudgesSection.includes("renderInlineBold(row.offer)") &&
       nudgesSection.includes("renderInlineBold(brief.description)") &&
-      nudgesSection.includes("renderInlineBold(nudge.whyNow)") &&
+      // `whyNow` moved from the single inline span to the multiline renderer (bullets,
+      // owner request). The renderer feeds every line back through `renderInlineBold`,
+      // so bold still applies — see the "renderMultilineText keeps **bold**" check.
+      nudgesSection.includes("renderMultilineText(nudge.whyNow)") &&
       nudgesSection.includes("renderInlineBold(nudge.accountAction)")
   );
   ok(
@@ -3127,8 +3131,171 @@ async function verifyCountryWaitlistCms() {
   );
 }
 
+/**
+ * Sales Market Nudges tweaks (owner requests from Frances, 21 Oct 2026):
+ *
+ *   1. Talking points collapse into accordions — a `CATEGORY / title / date` row that
+ *      opens on click, so a month folder is scannable instead of a long card wall.
+ *   2. A brief set to expired/archive stays reachable inside its month folder; only
+ *      Active is featured. The briefs therefore need their own status tabs, defaulting
+ *      to All, separate from the weekly-nudge chips.
+ *   3. The weekly nudge "Now" field takes 2000 characters and renders bullets.
+ *
+ * The pure-function checks pin the multiline parser and the schema cap (the cap is the
+ * silent-save trap: a textarea that allows more than the schema accepts makes Save look
+ * like a no-op). The source greps pin the decisions that need a DOM to exercise —
+ * native `<details>`, the single-column list, and the matching textarea cap.
+ */
+async function verifySalesNudgesTweaks() {
+  // ── PART 1: multiline text (paragraphs + bullets) ────────────────────────
+  const bulletBlocks = parseMultilineText("- Diesel cracks widened\n- ARA stocks at a 5-year low");
+  ok(
+    "Multiline text groups consecutive '- ' lines into one bullets block and strips the marker",
+    bulletBlocks.length === 1 &&
+      bulletBlocks[0]?.kind === "bullets" &&
+      JSON.stringify(bulletBlocks[0]?.lines) ===
+        JSON.stringify(["Diesel cracks widened", "ARA stocks at a 5-year low"])
+  );
+
+  const boldBullets = parseMultilineText("- **Diesel** cracks widened\n- ARA stocks low");
+  ok(
+    "Multiline text keeps **bold** markers in the bullet text for the inline-bold pass",
+    boldBullets[0]?.lines[0] === "**Diesel** cracks widened" &&
+      parseInlineBold(boldBullets[0]?.lines[0] ?? "").some((segment) => segment.bold)
+  );
+
+  const separated = parseMultilineText("Diesel cracks widened.\n\n- ARA stocks low\n- Gasoil tight");
+  ok(
+    "Multiline text treats a blank line as a block separator",
+    separated.length === 2 &&
+      separated[0]?.kind === "paragraph" &&
+      separated[1]?.kind === "bullets" &&
+      separated[1]?.lines.length === 2
+  );
+
+  const prose = parseMultilineText("Diesel cracks widened this week.");
+  ok(
+    "Multiline text leaves unmarked prose as one paragraph (bullets never swallow plain lines)",
+    prose.length === 1 &&
+      prose[0]?.kind === "paragraph" &&
+      prose[0]?.lines.join(" ") === "Diesel cracks widened this week."
+  );
+
+  const mixedKinds = parseMultilineText("- a\nplain line\n- b");
+  ok(
+    "Multiline text starts a new block when the kind changes (bullets, paragraph, bullets)",
+    mixedKinds.map((block) => block.kind).join(",") === "bullets,paragraph,bullets"
+  );
+
+  // ── PART 2: the 2000-character "Now" cap ─────────────────────────────────
+  const firstNudge = DEFAULT_SALES_MARKET_NUDGES_CONTENT.weeklyNudges[0]!;
+  const longWhyNow = "Diesel cracks widened on Russian export bans. ".repeat(26).trim();
+  const nudgesWithWhyNow = (whyNow: string) => ({
+    ...DEFAULT_SALES_MARKET_NUDGES_CONTENT,
+    weeklyNudges: [{ ...firstNudge, whyNow }],
+  });
+
+  ok(
+    "The schema accepts a ~1200-character 'Now' value (the old 500 cap is gone)",
+    longWhyNow.length > 500 &&
+      longWhyNow.length < 2000 &&
+      parseSalesMarketNudgesPayload(nudgesWithWhyNow(longWhyNow)).success
+  );
+  ok(
+    "The schema still rejects a 'Now' value over 2000 characters",
+    !parseSalesMarketNudgesPayload(nudgesWithWhyNow("y".repeat(2001))).success
+  );
+  ok(
+    "The legacy `text` alias shares the 2000 cap so one long row cannot poison the payload",
+    parseSalesMarketNudgesPayload({
+      ...DEFAULT_SALES_MARKET_NUDGES_CONTENT,
+      weeklyNudges: [{ id: firstNudge.id, text: longWhyNow }],
+    }).success === true &&
+      !parseSalesMarketNudgesPayload({
+        ...DEFAULT_SALES_MARKET_NUDGES_CONTENT,
+        weeklyNudges: [{ id: firstNudge.id, text: "y".repeat(2001) }],
+      }).success
+  );
+  ok(
+    "Normalising keeps a bulleted 'Now' string byte-for-byte (no trim, filter or reshape)",
+    normalizeSalesMarketNudgesPayload(
+      nudgesWithWhyNow("- **Diesel** cracks widened\n- ARA stocks low")
+    ).weeklyNudges[0]?.whyNow === "- **Diesel** cracks widened\n- ARA stocks low"
+  );
+
+  // ── PART 3: source greps ─────────────────────────────────────────────────
+  const nudgesSectionSrc = fs.readFileSync(
+    path.join(process.cwd(), "src/components/dashboard/sales-market-nudges-section.tsx"),
+    "utf8"
+  );
+  const nudgesEditorSrc = fs.readFileSync(
+    path.join(process.cwd(), "src/app/admin/editors/sales-market-nudges-editor.tsx"),
+    "utf8"
+  );
+  const multilineModuleSrc = fs.readFileSync(
+    path.join(process.cwd(), "src/lib/multiline-text.tsx"),
+    "utf8"
+  );
+
+  ok(
+    "The admin 'Now' textarea is 6 rows and maxLength={2000}, matching the schema cap",
+    /rows=\{6\}[\s\S]{0,80}maxLength=\{2000\}[\s\S]{0,80}value=\{nudge\.whyNow\}/.test(nudgesEditorSrc)
+  );
+  ok(
+    "The multiline helper is server-safe and never uses dangerouslySetInnerHTML",
+    // The doc comment *mentions* `"use client"` to explain why it is absent, so this
+    // asserts the directive form (leading position / trailing semicolon) rather than a
+    // bare substring — the same distinction the inline-bold check makes.
+    !multilineModuleSrc.trimStart().startsWith('"use client"') &&
+      !multilineModuleSrc.includes('"use client";') &&
+      !multilineModuleSrc.includes("dangerouslySetInnerHTML=") &&
+      multilineModuleSrc.includes("export function parseMultilineText") &&
+      multilineModuleSrc.includes("renderInlineBold(line)")
+  );
+  ok(
+    "Member briefs render as native <details>/<summary> accordions with a rotating chevron",
+    nudgesSectionSrc.includes("<details") &&
+      nudgesSectionSrc.includes("<summary") &&
+      nudgesSectionSrc.includes("group-open:rotate-180") &&
+      nudgesSectionSrc.includes("[&::-webkit-details-marker]:hidden")
+  );
+  ok(
+    "A bookmark deep-link forces the collapsed brief open (open={highlighted || undefined})",
+    nudgesSectionSrc.includes("open={highlighted || undefined}") &&
+      nudgesSectionSrc.includes("BOOKMARK_HIGHLIGHT_RING") &&
+      nudgesSectionSrc.includes("marketNudgeElementId(brief.id)")
+  );
+  ok(
+    "Talking Points is a single-column list, not the ragged sm:grid-cols-2 grid",
+    !nudgesSectionSrc.includes("sm:grid-cols-2") &&
+      !nudgesSectionSrc.includes("grid-cols-1 sm:grid") &&
+      nudgesSectionSrc.includes("monthBriefs.map(")
+  );
+  ok(
+    "Briefs have their own status tabs defaulting to All, separate from the weekly chips",
+    nudgesSectionSrc.includes('useState<BriefStatusFilter>("all")') &&
+      nudgesSectionSrc.includes('label="Filter briefs by status"') &&
+      nudgesSectionSrc.includes('label="Filter weekly nudges by status"') &&
+      nudgesSectionSrc.includes('{ id: "all", label: "All", count: content.intelligenceBriefs.length }')
+  );
+  ok(
+    "Expired and archived briefs sort after Active inside a month folder",
+    /const BRIEF_STATUS_ORDER[\s\S]{0,200}active: 0[\s\S]{0,80}expired: 1[\s\S]{0,80}archive: 2/.test(
+      nudgesSectionSrc
+    ) && nudgesSectionSrc.includes('BRIEF_STATUS_ORDER[a.status ?? "active"]')
+  );
+  ok(
+    "Only Active briefs are featured — expired/archive rows dim and carry a status pill",
+    nudgesSectionSrc.includes('!isFeatured && "opacity-75"') &&
+      nudgesSectionSrc.includes("BRIEF_STATUS_PILL_CLASS[status]") &&
+      nudgesSectionSrc.includes("MEMBER_NUDGE_STATUS_LABELS.EXPIRED") &&
+      nudgesSectionSrc.includes("MEMBER_NUDGE_STATUS_LABELS.ARCHIVED")
+  );
+}
+
 void verifyPdfStampWrites()
   .then(() => verifyCountryWaitlistCms())
+  .then(() => verifySalesNudgesTweaks())
   .then(() => {
     console.log(failed === 0 ? "\n✅ All feedback/CMS checks passed." : `\n❌ ${failed} check(s) failed.`);
     process.exit(failed === 0 ? 0 : 1);

@@ -83,13 +83,29 @@ function coerceStatus(status: unknown, archived?: boolean): NudgeLifecycleStatus
   return "active";
 }
 
+/**
+ * The "Now" field cap (owner request, Frances — she hit the old 500 and asked for
+ * room to write bulleted context). `whyNow` and its legacy alias `text` are capped
+ * at 2000 characters.
+ *
+ * ⚠️ The admin textarea's `maxLength={2000}` MUST stay in step with these two caps.
+ * If the textarea allowed more than the schema accepts, a long value would fail
+ * validation, `parseSalesMarketNudgesPayload` would return `success: false`, and
+ * `normalizeSalesMarketNudgesPayload` would silently fall through to its `partial`
+ * branch — so Save would look like a no-op instead of reporting an error.
+ *
+ * The legacy alias gets the same cap on purpose: a stored row holding a long `text`
+ * would otherwise fail the whole payload and drag every other field down with it.
+ *
+ * `accountAction` keeps its original 500 — out of scope for this request.
+ */
 const marketNudgeSchema = z
   .object({
     id: z.string().min(1).max(80),
     title: z.string().max(120).optional(),
-    whyNow: z.string().max(500).optional(),
+    whyNow: z.string().max(2000).optional(),
     accountAction: z.string().max(500).optional(),
-    text: z.string().max(500).optional(),
+    text: z.string().max(2000).optional(),
     accountNames: z.array(z.string().min(1).max(120)).default([]),
     archived: z.boolean().optional(),
     status: z.union([lifecycleStatus, z.literal("archived")]).optional(),

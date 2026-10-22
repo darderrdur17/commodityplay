@@ -408,11 +408,14 @@ export function SalesMarketNudgesEditor({
                   onChange={(e) => updateNudge(i, { title: e.target.value })}
                 />
               </EditorField>
-              <EditorField label="Now">
+              <EditorField
+                label="Now"
+                hint="Line breaks are kept. Start a line with - , * or • to make it a bullet on the member page."
+              >
                 <textarea
                   className={textareaClass}
-                  rows={2}
-                  maxLength={500}
+                  rows={6}
+                  maxLength={2000}
                   value={nudge.whyNow}
                   onChange={(e) => updateNudge(i, { whyNow: e.target.value })}
                 />
