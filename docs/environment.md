@@ -56,7 +56,9 @@ address.
 
 ## Stripe
 
-Checkout stays closed until `NEXT_PUBLIC_PAYMENTS_ENABLED=true`.
+Checkout stays closed until `NEXT_PUBLIC_PAYMENTS_ENABLED=true` **and** the secret **and** all eight
+`STRIPE_PRICE_*` vars are present — see [`payments-go-live.md`](./payments-go-live.md) for the ordered
+procedure, the verification checklist and the rollback.
 
 | Variable | Required | Notes |
 |---|---|---|

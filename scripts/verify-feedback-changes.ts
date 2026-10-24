@@ -188,6 +188,10 @@ import {
   getReferralRewardConfig,
 } from "../src/lib/referral-reward";
 import { classifyExistingRedemption, isOwnPendingHold } from "../src/lib/referral-redemption";
+import {
+  REQUIRED_PRICE_VARS,
+  paymentsReadiness,
+} from "../src/lib/payments";
 
 let failed = 0;
 function ok(name: string, pass: boolean, detail?: string) {
@@ -3756,10 +3760,157 @@ async function verifyReferralCodes() {
   );
 }
 
+/**
+ * Payments gate.
+ *
+ * The rule under test: paid checkout may only be reachable when the deployment can
+ * actually charge. "The flag is set" is NOT the same as "chargeable" — production was
+ * in exactly that state, flag true with all eight price vars absent, so a member could
+ * press Pay and get a generic "Checkout failed" from a path that had never been
+ * configured. Worse, adding price vars alone would have gone live with no deliberate
+ * flip, because the flag was already true.
+ *
+ * These checks are pure (they pass an env literal) so they never depend on the
+ * developer's own environment, and they never print a value.
+ */
+function verifyPaymentsGate() {
+  const read = (relativePath: string) =>
+    fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
+  const paymentsSrc = read("src/lib/payments.ts");
+  const stripeSrc = read("src/lib/stripe.ts");
+  const checkoutSrc = read("src/app/api/stripe/checkout/route.ts");
+
+  const ALL: Record<string, string> = {
+    NEXT_PUBLIC_PAYMENTS_ENABLED: "true",
+    STRIPE_SECRET_KEY: "sk_test_fixture",
+    ...Object.fromEntries(REQUIRED_PRICE_VARS.map((key) => [key, "price_fixture"])),
+  };
+
+  ok(
+    "Payments: a fully configured environment is ready",
+    paymentsReadiness(ALL).ready === true
+  );
+
+  ok(
+    "Payments: the intent flag plus a secret is NOT enough on its own",
+    // This is the exact production state that made Pay button a dead end.
+    paymentsReadiness({
+      NEXT_PUBLIC_PAYMENTS_ENABLED: "true",
+      STRIPE_SECRET_KEY: "sk_test_fixture",
+    }).ready === false
+  );
+
+  ok(
+    "Payments: flag false closes checkout even when everything else is set",
+    paymentsReadiness({ ...ALL, NEXT_PUBLIC_PAYMENTS_ENABLED: "false" }).ready === false
+  );
+
+  ok(
+    "Payments: the flag must be the literal string 'true'",
+    paymentsReadiness({ ...ALL, NEXT_PUBLIC_PAYMENTS_ENABLED: "1" }).ready === false
+  );
+
+  ok(
+    "Payments: a missing secret closes checkout",
+    paymentsReadiness({ ...ALL, STRIPE_SECRET_KEY: "" }).ready === false
+  );
+
+  ok(
+    "Payments: every missing price var is reported by name (never by value)",
+    (() => {
+      const r = paymentsReadiness({
+        NEXT_PUBLIC_PAYMENTS_ENABLED: "true",
+        STRIPE_SECRET_KEY: "sk_test_fixture",
+      });
+      return (
+        r.missingPriceVars.length === REQUIRED_PRICE_VARS.length &&
+        r.missingPriceVars.every((name) => REQUIRED_PRICE_VARS.includes(name as never))
+      );
+    })()
+  );
+
+  ok(
+    "Payments: one missing ANNUAL price var still closes checkout",
+    // The half-configured launch: monthly would sell, annual would 503 in front of a
+    // paying member. Fail closed instead.
+    (() => {
+      const env = { ...ALL };
+      delete env.STRIPE_PRICE_CAREER_PRO_ANNUAL;
+      const r = paymentsReadiness(env);
+      return (
+        r.ready === false &&
+        r.missingPriceVars.join() === "STRIPE_PRICE_CAREER_PRO_ANNUAL"
+      );
+    })()
+  );
+
+  ok(
+    "Payments: eight price vars are required, exactly four of them annual",
+    REQUIRED_PRICE_VARS.length === 8 &&
+      REQUIRED_PRICE_VARS.filter((key) => key.endsWith("_ANNUAL")).length === 4
+  );
+
+  ok(
+    "Payments: the required var names are the ones stripe.ts actually reads",
+    // A rename on one side only would silently disable checkout at launch.
+    REQUIRED_PRICE_VARS.every((key) => stripeSrc.includes(`process.env.${key}`))
+  );
+
+  ok(
+    "Payments: isCheckoutConfigured is the readiness verdict, not a second rule",
+    /export function isCheckoutConfigured\(\): boolean \{\s*return paymentsReadiness\(\)\.ready;/.test(
+      paymentsSrc
+    )
+  );
+
+  ok(
+    "Payments: isPaymentsLive reads the env literally so Next can inline it",
+    // Next only replaces a STATIC member expression. Routing this through a helper or a
+    // destructured `process.env` leaves the lookup dynamic and the client bundle gets
+    // `undefined` — which would silently close checkout no matter what Vercel says.
+    /export function isPaymentsLive\(\): boolean \{\s*return process\.env\.NEXT_PUBLIC_PAYMENTS_ENABLED === "true";/.test(
+      paymentsSrc
+    )
+  );
+
+  ok(
+    "Payments: payments.ts has no imports, so it cannot pull the Stripe SDK into a client bundle",
+    // `isPaymentsLive` is imported by client components. One `import { getStripe }`
+    // here would ship the whole SDK to the browser.
+    !/^import\s/m.test(paymentsSrc)
+  );
+
+  ok(
+    "Payments: checkout refuses BEFORE resolving a price",
+    // If the gate ran after price resolution, an unconfigured deployment would 503 from
+    // inside the resolver with a misleading "Checkout failed" instead of the real reason.
+    (() => {
+      const gate = checkoutSrc.indexOf("isCheckoutConfigured()");
+      const price = checkoutSrc.indexOf("resolveStripePriceId(");
+      return gate !== -1 && price !== -1 && gate < price;
+    })()
+  );
+
+  ok(
+    "Payments: the closed-checkout response carries a machine-readable reason",
+    checkoutSrc.includes('reason: "PAYMENTS_NOT_CONFIGURED"')
+  );
+
+  ok(
+    "Payments: the closed path logs which prerequisite is missing, never a value",
+    checkoutSrc.includes("missingPriceVars: readiness.missingPriceVars") &&
+      !/console\.error\([^)]*STRIPE_SECRET_KEY/.test(checkoutSrc)
+  );
+}
+
 void verifyPdfStampWrites()
   .then(() => verifyCountryWaitlistCms())
   .then(() => verifySalesNudgesTweaks())
   .then(() => verifyReferralCodes())
+  .then(() => {
+    verifyPaymentsGate();
+  })
   .then(() => {
     console.log(failed === 0 ? "\n✅ All feedback/CMS checks passed." : `\n❌ ${failed} check(s) failed.`);
     process.exit(failed === 0 ? 0 : 1);
