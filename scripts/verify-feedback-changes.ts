@@ -18,6 +18,14 @@ import {
   canonicalPublicUrl,
   isNonCanonicalHost,
 } from "../src/lib/canonical-host";
+import {
+  CANONICAL_ORIGIN,
+  CANONICAL_PATHS,
+  ORGANIZATION_ID,
+  WEBSITE_ID,
+  canonicalAlternates,
+  siteJsonLd,
+} from "../src/lib/seo";
 import { BRAND_EMAIL_SUPPORT } from "../src/lib/brand";
 import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import playbookSections from "../src/data/playbook-sections.json";
@@ -3871,10 +3879,166 @@ async function verifyReferralCodes() {
   );
 }
 
+/**
+ * Search discovery (canonicals, structured data, manifest).
+ *
+ * These decide whether a crawler can tell what this site IS, and they fail
+ * silently: a missing canonical or an invalid `SearchAction` does not throw, it
+ * just quietly costs visibility. So each one is pinned.
+ *
+ * The rule that matters most: a canonical (and a sitemap entry) may only point at
+ * a URL that returns 200 to an anonymous crawler. Every gated route 307s to
+ * `/login`, so advertising one would consolidate signals onto a URL Google cannot
+ * fetch — worse than having no canonical at all.
+ */
+async function verifySeoDiscovery() {
+  const read = (relativePath: string) =>
+    fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
+  const layoutSrc = read("src/app/layout.tsx");
+  const sitemapSrc = read("src/app/sitemap.ts");
+  const robotsSrc = read("src/app/robots.ts");
+  const manifestSrc = read("src/app/manifest.ts");
+
+  ok(
+    "SEO: every public page declares a canonical pointing at itself",
+    CANONICAL_PATHS.every((publicPath) => {
+      const file = publicPath === "/" ? "src/app/page.tsx" : `src/app${publicPath}/page.tsx`;
+      return read(file).includes(`canonicalAlternates("${publicPath}")`);
+    })
+  );
+
+  ok(
+    "SEO: canonicalAlternates returns a RELATIVE path (resolved by metadataBase)",
+    // Absolute canonicals would pin preview deployments to production.
+    canonicalAlternates("/pricing").canonical === "/pricing"
+  );
+
+  ok(
+    "SEO: the canonical set matches the sitemap's public routes exactly",
+    // Two lists that must not drift: one feeds canonicals, the other the sitemap.
+    (() => {
+      const sitemapPaths = [...sitemapSrc.matchAll(/\{\s*path:\s*"([^"]+)"/g)].map((m) => m[1]);
+      return (
+        sitemapPaths.length === CANONICAL_PATHS.length &&
+        CANONICAL_PATHS.every((p) => sitemapPaths.includes(p))
+      );
+    })()
+  );
+
+  ok(
+    "SEO: no page title re-interpolates the brand the layout template already appends",
+    // The root layout sets `title.template: "%s | CommodityPlay."`, and a template
+    // applies to CHILD segments. A page that ALSO writes `${BRAND_NAME}` into its own
+    // title therefore renders doubled — "Pricing — CommodityPlay. | CommodityPlay.".
+    // That was live in production on /pricing and /starter-pack until this change,
+    // confirmed by reading the served <title>. Pages supply their own name only.
+    (() => {
+      const template = /template:\s*`([^`]*)`/.exec(layoutSrc)?.[1] ?? "";
+      if (!template.includes("%s")) return false; // template gone → guard is meaningless
+      const offenders = fs
+        .readdirSync(path.join(process.cwd(), "src/app"), { recursive: true })
+        .map((entry) => `src/app/${String(entry)}`)
+        .filter((file) => file.endsWith("page.tsx"))
+        .filter((file) => {
+          // Strip comments so the ⚠️ notes that MENTION ${BRAND_NAME} don't trip it.
+          const src = read(file)
+            .replace(/\/\*[\s\S]*?\*\//g, "")
+            .replace(/\/\/.*$/gm, "");
+          return /title:\s*`[^`]*BRAND_NAME/.test(src);
+        });
+      return offenders.length === 0;
+    })()
+  );
+
+  ok(
+    "SEO: no GATED route is ever advertised as canonical",
+    // These 307 to /login (or 404) for an anonymous crawler.
+    !CANONICAL_PATHS.some((p) =>
+      ["/playbook", "/glossary", "/account", "/dashboard", "/admin", "/checkout", "/login"].includes(p)
+    )
+  );
+
+  ok(
+    "SEO: the root layout emits Organization + WebSite JSON-LD once per document",
+    layoutSrc.includes('type="application/ld+json"') &&
+      layoutSrc.includes("JSON.stringify(siteJsonLd())")
+  );
+
+  ok(
+    "SEO: the JSON-LD entities are well-formed and share one @id namespace",
+    (() => {
+      const [org, site] = siteJsonLd();
+      return (
+        org["@type"] === "Organization" &&
+        site["@type"] === "WebSite" &&
+        org["@id"] === ORGANIZATION_ID &&
+        site["@id"] === WEBSITE_ID &&
+        org.url === CANONICAL_ORIGIN &&
+        (site.publisher as { "@id": string })["@id"] === ORGANIZATION_ID
+      );
+    })()
+  );
+
+  ok(
+    "SEO: no SearchAction is declared while the site has no search endpoint",
+    // A SearchAction asserts `…?q={search_term_string}` exists. There is no site
+    // search yet, so claiming one is invalid structured data. This check is the
+    // guard that stops someone adding it "for the sitelinks box" prematurely.
+    !/potentialAction|SearchAction/.test(JSON.stringify(siteJsonLd())) &&
+      !/SearchAction/.test(
+        read("src/lib/seo.ts").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "")
+      )
+  );
+
+  ok(
+    "SEO: robots.txt declares the sitemap and disallows the gated surfaces",
+    robotsSrc.includes("sitemap: `${SITE_URL}/sitemap.xml`") &&
+      robotsSrc.includes('"/admin"') &&
+      robotsSrc.includes('"/api/"')
+  );
+
+  ok(
+    "SEO: a web manifest exists with a name, start_url and icons",
+    manifestSrc.includes("start_url:") &&
+      manifestSrc.includes("short_name:") &&
+      manifestSrc.includes("icons:") &&
+      manifestSrc.includes("display: \"standalone\"")
+  );
+
+  ok(
+    "SEO: manifest icon sizes match the real PNG dimensions on disk",
+    // A manifest that claims 192×192 for a 184px file is a lie the browser can
+    // detect, and it fails the PWA installability check either way. Read the IHDR
+    // width/height straight out of the PNG header instead of trusting the string.
+    (() => {
+      const declared = [...manifestSrc.matchAll(/src:\s*"([^"]+)"[\s\S]*?sizes:\s*"(\d+)x(\d+)"/g)].map(
+        (m) => ({ src: m[1], w: Number(m[2]), h: Number(m[3]) })
+      );
+      if (declared.length === 0) return false;
+      return declared.every(({ src, w, h }) => {
+        const file = path.join(process.cwd(), "public", src.replace(/^\//, ""));
+        if (!fs.existsSync(file)) return false;
+        const header = fs.readFileSync(file).subarray(0, 24);
+        if (header.subarray(1, 4).toString("ascii") !== "PNG") return false;
+        return header.readUInt32BE(16) === w && header.readUInt32BE(20) === h;
+      });
+    })()
+  );
+
+  ok(
+    "SEO: the manifest is not an app-store listing and claims no Play Store presence",
+    // Guards against a future "just point the manifest at a store listing" edit:
+    // a Play Store entry is a separate artefact (package id, signing key, review).
+    !/play\.google\.com|itunes\.apple\.com/.test(manifestSrc)
+  );
+}
+
 void verifyPdfStampWrites()
   .then(() => verifyCountryWaitlistCms())
   .then(() => verifySalesNudgesTweaks())
   .then(() => verifyReferralCodes())
+  .then(() => verifySeoDiscovery())
   .then(() => {
     console.log(failed === 0 ? "\n✅ All feedback/CMS checks passed." : `\n❌ ${failed} check(s) failed.`);
     process.exit(failed === 0 ? 0 : 1);

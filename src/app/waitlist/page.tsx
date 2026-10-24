@@ -1,5 +1,5 @@
 import { getLandingContent } from "@/lib/content/accessors";
-import { BRAND_NAME } from "@/lib/brand";
+import { canonicalAlternates } from "@/lib/seo";
 import { WaitlistClient } from "./waitlist-client";
 
 /**
@@ -15,9 +15,11 @@ import { WaitlistClient } from "./waitlist-client";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: `Job Board Waitlist — ${BRAND_NAME}`,
+  // ⚠️ No `${BRAND_NAME}`: the layout's `title.template` appends "| CommodityPlay.".
+  title: "Job Board Waitlist",
   description:
     "Join the waitlist for the curated commodity trading job board — get an email when it launches.",
+  alternates: canonicalAlternates("/waitlist"),
 };
 
 export default async function WaitlistPage() {

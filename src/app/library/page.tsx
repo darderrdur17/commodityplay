@@ -4,13 +4,13 @@ import { getLibraryContent } from "@/lib/content/accessors";
 import { hasAccess } from "@/lib/utils";
 import { getEntitlements } from "@/lib/entitlements";
 import { LibraryClient } from "./library-client";
-import { BRAND_NAME } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata = {
-  title: `Resource Library — ${BRAND_NAME}`,
+  // ⚠️ No `${BRAND_NAME}`: the layout's `title.template` appends "| CommodityPlay.".
+  title: "Resource Library",
   description: "Free and Elite library resources — guides, reference PDFs, and desk materials.",
 };
 
