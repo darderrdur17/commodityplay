@@ -19,6 +19,7 @@ import {
 } from "@/components/landing/sales-feature-mocks";
 import { MentorConnectSection } from "@/components/landing/mentor-connect-section";
 import { PricingCtaBand } from "@/components/landing/pricing-cta-band";
+import { ClientAdsSection } from "@/components/landing/client-ads-section";
 import { cn } from "@/lib/utils";
 import {
   LANDING_HERO_TOP,
@@ -118,6 +119,11 @@ interface Props {
   salesFeatures: LandingContent["salesFeatures"];
   /** Mentor Connect — shared words, sales palette. */
   mentorSection: LandingContent["mentorSection"];
+  /**
+   * Client ads & shoutouts. Top-level on LandingContent (one list for both
+   * tracks), so it does not arrive with `content`, which is the sales slice.
+   */
+  clientAds: LandingContent["clientAds"];
 }
 
 export function SalesLandingPanel({
@@ -130,6 +136,7 @@ export function SalesLandingPanel({
   pricingCtaBand,
   salesFeatures,
   mentorSection,
+  clientAds,
 }: Props) {
   const learnRef = useRef<HTMLElement>(null);
 
@@ -424,6 +431,12 @@ export function SalesLandingPanel({
           ))}
         </StaggerChildren>
       </section>
+
+      {/* Client ads & shoutouts — rows targeting `sales` (or `both`). Tinted here
+          because the section above it (testimonials) is white and the band below
+          it is `bg-primary-soft`; without the tint the sales page would run three
+          pale blocks together. */}
+      <ClientAdsSection content={clientAds} track="sales" tinted />
 
       {/* Centered "choose a plan" band. Moved BELOW the testimonials at the
           owner's request (11 Oct 2026) — it previously sat above the Free Starter
