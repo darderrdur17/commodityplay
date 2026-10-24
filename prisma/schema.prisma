@@ -523,3 +523,21 @@ model ReferralRedemption {
   @@unique([userId])
   @@index([status])
 }
+
+/// Shared fixed-window counter for rate limiting.
+///
+/// Exists because Upstash Redis is not configured in production, and the
+/// in-process Map fallback multiplies every limit by the number of warm lambdas.
+/// Postgres is already shared by every lambda, so one atomic upsert per check
+/// gives a genuinely distributed limit with no new credential.
+///
+/// Not a domain table: rows are transient and swept an hour after expiry. Written
+/// by raw SQL in `src/lib/rate-limit.ts` (see `PG_WINDOW_SQL`) because the
+/// increment-and-reset must happen in a single statement to be race-free.
+model RateLimitCounter {
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
