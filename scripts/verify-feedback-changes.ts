@@ -8,8 +8,14 @@ import { hydrateLandingCaseStudyCards } from "../src/lib/content/landing-case-st
 import {
   prepareLandingContentForSave,
   formatLandingValidationErrors,
+  landingContentSchema,
 } from "../src/lib/content/landing-schema";
 import { resolveMemberPersonaLabel } from "../src/lib/persona-display";
+import {
+  CLIENT_AD_TRACK_LABELS,
+  clientAdInitials,
+  selectClientAds,
+} from "../src/lib/content/client-ads";
 import { getDemoAccountDisplayPersona } from "../src/data/demo-accounts";
 import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
 import { canAccessInternalDemo, FRANCES_DEMO_LOGIN_EMAIL } from "../src/lib/demo-access";
@@ -3871,10 +3877,234 @@ async function verifyReferralCodes() {
   );
 }
 
+/**
+ * Client ads & shoutouts — the landing section that carries company banners and
+ * client quotes on BOTH tracks.
+ *
+ * Two kinds of check here, and they are not interchangeable:
+ *   - EXECUTED checks against `selectClientAds()`, because the visibility rules are
+ *     the only thing keeping a hidden or wrong-track row off the live page. A grep
+ *     for `.filter(` would pass while the filter was inverted.
+ *   - EXECUTED checks against `prepareLandingContentForSave()`, because the
+ *     `.default()` on the new CMS group is load-bearing: without it, saving any
+ *     OTHER landing field on a payload written before this group existed fails
+ *     validation and the owner's edit is rejected.
+ */
+function verifyClientAds() {
+  const read = (relativePath: string) =>
+    fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
+  const section = DEFAULT_LANDING_CONTENT.clientAds;
+  const seeded = section.entries;
+
+  ok("Client ads: the shipped section is populated", seeded.length >= 3, `${seeded.length} rows`);
+
+  ok(
+    "Client ads: both card shapes ship, so the owner sees each one",
+    seeded.some((e) => e.kind === "ad") && seeded.some((e) => e.kind === "shoutout")
+  );
+
+  // 🔴 The legal guard. A fabricated endorsement is a claim, not copy. Every seeded
+  // row is invented, so every seeded row must still carry the "Example" tag.
+  ok(
+    "Client ads: every seeded row is still flagged as a placeholder",
+    seeded.every((e) => e.sample === true),
+    `${seeded.filter((e) => e.sample === true).length}/${seeded.length} flagged`
+  );
+
+  // 🔴 And the specific version of that risk: the members strips name REAL firms.
+  // Reusing one of those names here would publish an invented endorsement of a real
+  // company, which is worse than any wording bug.
+  const realFirms = [
+    ...DEFAULT_LANDING_CONTENT.careerMembersStrip.companies,
+    ...DEFAULT_LANDING_CONTENT.salesMembersStrip.companies,
+  ].map((name) => name.trim().toLowerCase());
+  const collisions = seeded
+    .map((e) => e.company.trim().toLowerCase())
+    .filter((name) => realFirms.includes(name));
+  ok(
+    "Client ads: no placeholder row reuses a real firm from the members strip",
+    collisions.length === 0,
+    collisions.length ? collisions.join(", ") : `${realFirms.length} real names avoided`
+  );
+
+  const ids = seeded.map((e) => e.id);
+  ok(
+    "Client ads: row ids are present and unique",
+    ids.every((id) => id.trim().length > 0) && new Set(ids).size === ids.length
+  );
+
+  // Neither persona may open the page to an empty section out of the box.
+  ok(
+    "Client ads: the shipped rows cover career, sales and both",
+    (["career", "sales", "both"] as const).every((track) =>
+      seeded.some((e) => e.track === track)
+    )
+  );
+
+  const careerRows = selectClientAds(section, "career");
+  const salesRows = selectClientAds(section, "sales");
+
+  ok(
+    "Client ads: the career track gets only career and both rows",
+    careerRows.length > 0 && careerRows.every((e) => e.track === "career" || e.track === "both"),
+    `${careerRows.length} rows`
+  );
+  ok(
+    "Client ads: the sales track gets only sales and both rows",
+    salesRows.length > 0 && salesRows.every((e) => e.track === "sales" || e.track === "both"),
+    `${salesRows.length} rows`
+  );
+  ok(
+    "Client ads: a sales-only row never leaks onto the career page",
+    !careerRows.some((e) => e.track === "sales") && !salesRows.some((e) => e.track === "career")
+  );
+
+  // Named separately from the leak checks above, because "no sales row on the career
+  // page" is satisfied by a filter that drops `both` rows too — it would hide the
+  // shared row from BOTH pages and still pass every leak assertion.
+  ok(
+    "Client ads: a both-tracks row appears on both pages",
+    seeded.some((e) => e.track === "both" && e.visible) &&
+      careerRows.some((e) => e.track === "both") &&
+      salesRows.some((e) => e.track === "both")
+  );
+
+  // Order is the admin's order — a reorder in the panel must survive selection.
+  ok(
+    "Client ads: selection preserves CMS order",
+    careerRows.map((e) => e.id).join(",") ===
+      seeded.filter((e) => e.track === "career" || e.track === "both").map((e) => e.id).join(",")
+  );
+
+  const withHidden = {
+    ...section,
+    entries: seeded.map((e) => (e.id === seeded[0].id ? { ...e, visible: false } : e)),
+  };
+  ok(
+    "Client ads: an unticked row renders on NEITHER track",
+    !selectClientAds(withHidden, "career").some((e) => e.id === seeded[0].id) &&
+      !selectClientAds(withHidden, "sales").some((e) => e.id === seeded[0].id)
+  );
+
+  ok(
+    "Client ads: removing every row retires the section instead of throwing",
+    selectClientAds({ ...section, entries: [] }, "career").length === 0 &&
+      selectClientAds({ ...section, entries: [] }, "sales").length === 0 &&
+      selectClientAds(undefined, "career").length === 0
+  );
+
+  ok(
+    "Client ads: the admin track dropdown offers exactly the three track values",
+    Object.keys(CLIENT_AD_TRACK_LABELS).sort().join(",") === "both,career,sales"
+  );
+
+  ok(
+    "Client ads: monogram never exceeds two characters",
+    ["Meridian Agri Group", "Sable & Co. Commodities", "Vitol", "—"].every(
+      (name) => clientAdInitials(name).length >= 1 && clientAdInitials(name).length <= 2
+    ),
+    ["Meridian Agri Group", "Sable & Co. Commodities", "Vitol", "—"]
+      .map((n) => clientAdInitials(n))
+      .join(" / ")
+  );
+
+  // ── The CMS save path ────────────────────────────────────────────────────
+  const legacyPayload = { ...DEFAULT_LANDING_CONTENT } as Record<string, unknown>;
+  delete legacyPayload.clientAds;
+
+  // ⚠️ Parse with the SCHEMA, not `prepareLandingContentForSave`. That wrapper runs
+  // a repair loop which backfills a missing group from the defaults, so it passes
+  // whether or not the group is declared with `.default()`. Only the raw parse
+  // isolates the invariant the schema comment claims.
+  const rawLegacy = landingContentSchema.safeParse(legacyPayload);
+  ok(
+    "Client ads: the group is declared with .default(), so an old payload parses",
+    rawLegacy.success && rawLegacy.data.clientAds.entries.length === seeded.length,
+    rawLegacy.success
+      ? undefined
+      : formatLandingValidationErrors(rawLegacy) ?? "schema rejected the payload"
+  );
+
+  const legacySave = prepareLandingContentForSave(legacyPayload);
+  ok(
+    "Client ads: saving any other field on a pre-existing payload still succeeds",
+    legacySave.success && legacySave.data.clientAds.entries.length === seeded.length,
+    legacySave.success ? undefined : formatLandingValidationErrors(legacySave) ?? undefined
+  );
+
+  const emptied = prepareLandingContentForSave({
+    ...DEFAULT_LANDING_CONTENT,
+    clientAds: { ...section, entries: [] },
+  });
+  ok(
+    "Client ads: deleting every row is a valid save, not a validation error",
+    emptied.success && emptied.data.clientAds.entries.length === 0,
+    emptied.success ? undefined : formatLandingValidationErrors(emptied) ?? undefined
+  );
+
+  const badTrack = prepareLandingContentForSave({
+    ...DEFAULT_LANDING_CONTENT,
+    clientAds: {
+      ...section,
+      entries: [{ ...seeded[0], track: "enterprise" }],
+    },
+  });
+  ok(
+    "Client ads: an unknown track value is rejected rather than rendered everywhere",
+    badTrack.success === false
+  );
+
+  // ── Render wiring ────────────────────────────────────────────────────────
+  const sectionSrc = read("src/components/landing/client-ads-section.tsx");
+  const careerSrc = read("src/components/landing/landing-page-client.tsx");
+  const salesSrc = read("src/components/landing/sales-landing-panel.tsx");
+  const adminSrc = read("src/app/admin/admin-landing-editor.tsx");
+
+  ok(
+    "Client ads: the section filters through selectClientAds, never over raw entries",
+    // Mapping `content.entries` directly would bypass `visible` and `track` in one
+    // line and still look correct in the source.
+    sectionSrc.includes("selectClientAds(content, track)") &&
+      !sectionSrc.includes("content.entries.map(")
+  );
+
+  ok(
+    "Client ads: the career page renders the section with its own track",
+    careerSrc.includes("<ClientAdsSection") && careerSrc.includes('track="career"')
+  );
+  ok(
+    "Client ads: the sales page renders the section with its own track",
+    salesSrc.includes("<ClientAdsSection") && salesSrc.includes('track="sales"')
+  );
+  ok(
+    "Client ads: the sales panel actually receives the shared list",
+    careerSrc.includes("clientAds={content.clientAds}") &&
+      salesSrc.includes("clientAds: LandingContent[\"clientAds\"]")
+  );
+
+  ok(
+    "Client ads: the admin panel can add, remove and hide rows",
+    adminSrc.includes("function ClientAdsEditor") &&
+      adminSrc.includes("Add ad") &&
+      adminSrc.includes("Add shoutout") &&
+      adminSrc.includes("removeEntry") &&
+      adminSrc.includes("{ visible: e.target.checked }")
+  );
+
+  ok(
+    "Client ads: the placeholder flag is editable, so the tag can be removed",
+    adminSrc.includes("Placeholder (shows an") && adminSrc.includes("{ sample: e.target.checked }")
+  );
+}
+
 void verifyPdfStampWrites()
   .then(() => verifyCountryWaitlistCms())
   .then(() => verifySalesNudgesTweaks())
   .then(() => verifyReferralCodes())
+  .then(() => {
+    verifyClientAds();
+  })
   .then(() => {
     console.log(failed === 0 ? "\n✅ All feedback/CMS checks passed." : `\n❌ ${failed} check(s) failed.`);
     process.exit(failed === 0 ? 0 : 1);
