@@ -7,12 +7,14 @@ import {
   CheckCircle, Clock, ArrowLeft, RefreshCw, FileJson, Pencil, Trash2,
   ChevronUp, ChevronDown, RotateCcw,
   BarChart2, UserCheck, CreditCard, Copy, ExternalLink, Database, Download,
+  Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/animations";
 import { PERSONA_LABELS, formatDate, cn } from "@/lib/utils";
 import { AdminContentTab } from "./admin-content-tab";
+import { ReferralCodesTab } from "./referral-codes-tab";
 import { AdminUserDetailPanel, type AdminUserDetail } from "./admin-user-detail";
 import { AdminMentorDetailPanel, type AdminMentorDetail, type MentorSegmentOption } from "./admin-mentor-detail";
 import { MENTOR_COUNT, MENTOR_SEGMENTS, UNASSIGNED_SEGMENT_ID, type MentorStatus } from "@/data/mentors";
@@ -138,9 +140,9 @@ interface HiddenMentorRow {
 
 const CHAPTERS = ["a", "b", "c", "d", "e"];
 
-type AdminTab = "users" | "content" | "mentor" | "waitlist" | "progress" | "mentors" | "billing" | "emails";
+type AdminTab = "users" | "content" | "mentor" | "waitlist" | "progress" | "mentors" | "billing" | "emails" | "referrals";
 
-const VALID_TABS: AdminTab[] = ["users", "content", "mentor", "waitlist", "progress", "mentors", "billing", "emails"];
+const VALID_TABS: AdminTab[] = ["users", "content", "mentor", "waitlist", "progress", "mentors", "billing", "emails", "referrals"];
 
 export function AdminClient({
   adminName,
@@ -619,6 +621,7 @@ export function AdminClient({
             ["mentors", `Mentors (${totalMentorCount})`, UserCheck],
             ["mentor", `Q&A (${pendingCount} pending${queueCount ? ` · ${queueCount} queue` : ""})`, MessageSquare],
             ["billing", "Billing & Invoice", CreditCard],
+            ["referrals", "Referral Codes", Tag],
             ["waitlist", `Job Board Waitlist (${waitlist.length})`, Mail],
             ["emails", "Email Log", Mail],
             ["content", "Content CMS", FileJson],
@@ -773,6 +776,12 @@ export function AdminClient({
           </div>
           </div>
         )}
+
+        {/* ── Referral codes tab ── */}
+        {/* Codes are generated server-side; nothing here (or behind it) touches
+            Stripe — the discount is an existing coupon the owner created in the
+            Dashboard and referenced via STRIPE_REFERRAL_COUPON_ID. */}
+        {activeTab === "referrals" && <ReferralCodesTab />}
 
         {/* ── Content CMS tab ── */}
         {activeTab === "content" && (

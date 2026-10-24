@@ -11,7 +11,6 @@ import { MarketNoteStrip } from "@/components/landing/market-note-strip";
 import type { StarterInfographic, StarterPackHero, StarterUpgradeCta } from "@/data/starter-pack";
 import { attachmentHref, resolveAttachmentUrl } from "@/lib/content/attachments";
 import { StarterPackModal } from "@/components/landing/starter-pack-modal";
-import { startCheckout } from "@/lib/start-checkout";
 import { isPaymentsLive } from "@/lib/payments";
 import { PAGE_HERO_TOP, PAGE_HERO_BOTTOM, PAGE_CTA_PY } from "@/lib/layout-constants";
 import { CAREER_PLAN_HREF } from "@/lib/pricing-routes";
@@ -56,7 +55,7 @@ export function StarterPackClient({
     setModalOpen(true);
   }
 
-  async function handleUpgradePro() {
+  function handleUpgradePro() {
     if (!isPaymentsLive()) {
       if (!session?.user) {
         router.push(`/signup?plan=pro&callbackUrl=${encodeURIComponent("/account")}`);
@@ -69,16 +68,13 @@ export function StarterPackClient({
       router.push(`/signup?plan=pro&callbackUrl=${encodeURIComponent(CAREER_PLAN_HREF("pro"))}`);
       return;
     }
+    // Payments are live: go through the in-app `/checkout` step so the member can
+    // review the plan and optionally enter a referral code before Stripe. Pro,
+    // billed monthly — the same plan `startCheckout("pro")` used to open directly.
+    //
+    // The spinner stays on while the server-rendered /checkout route loads.
     setLoadingPro(true);
-    try {
-      const url = await startCheckout("pro");
-      if (url) window.location.href = url;
-      else router.push(CAREER_PLAN_HREF("pro"));
-    } catch {
-      router.push(CAREER_PLAN_HREF("pro"));
-    } finally {
-      setLoadingPro(false);
-    }
+    router.push("/checkout?plan=pro&term=monthly&cadence=monthly");
   }
 
   return (

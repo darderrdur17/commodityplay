@@ -171,6 +171,23 @@ import {
 } from "../src/lib/dashboard-file-deliverables";
 import fs from "node:fs";
 import path from "node:path";
+import {
+  CONSUMER_EMAIL_DOMAINS,
+  UNIVERSITY_DOMAIN_SUFFIXES,
+  classifyReferralAccount,
+  isReferralEligible,
+} from "../src/lib/referral-eligibility";
+import {
+  REFERRAL_CODE_PATTERN,
+  generateReferralCode,
+  normalizeReferralCode,
+} from "../src/lib/referral-codes";
+import {
+  REFERRAL_REWARD_PENDING_MESSAGE,
+  REFERRAL_REWARD_PLACEHOLDER,
+  getReferralRewardConfig,
+} from "../src/lib/referral-reward";
+import { classifyExistingRedemption, isOwnPendingHold } from "../src/lib/referral-redemption";
 
 let failed = 0;
 function ok(name: string, pass: boolean, detail?: string) {
@@ -3293,9 +3310,456 @@ async function verifySalesNudgesTweaks() {
   );
 }
 
+/**
+ * Referral codes (feat/referral-codes).
+ *
+ * The feature has three moving parts that must not drift:
+ *
+ *   1. ELIGIBILITY is derived from the member's email domain (university and
+ *      corporate are eligible, consumer mailboxes are not). Pure function, so it
+ *      is pinned directly.
+ *   2. The REWARD is deliberately undecided — a placeholder plus a coupon id in
+ *      `STRIPE_REFERRAL_COUPON_ID`. `configured` must be false while that is
+ *      unset, or the feature would try to attach a coupon that does not exist.
+ *   3. SINGLE-USE is enforced by two UNIQUE indexes, not by application code.
+ *      Those are schema/SQL decisions that no unit test can execute here, so they
+ *      are pinned as source assertions — along with the two rules that would be a
+ *      production incident if broken: the checkout route must never send
+ *      `allow_promotion_codes` together with `discounts`, and nothing may ever
+ *      create a coupon/price/product in Stripe.
+ */
+async function verifyReferralCodes() {
+  // ── PART 1: eligibility from the email domain ────────────────────────────
+  ok(
+    "Referral: a .edu address classifies as UNIVERSITY",
+    classifyReferralAccount("maya@mit.edu") === "UNIVERSITY"
+  );
+  ok(
+    "Referral: a .edu SUBDOMAIN still classifies as UNIVERSITY",
+    classifyReferralAccount("maya@mail.mit.edu") === "UNIVERSITY"
+  );
+  ok(
+    "Referral: .edu.sg classifies as UNIVERSITY (the Singapore case)",
+    classifyReferralAccount("maya@nus.edu.sg") === "UNIVERSITY"
+  );
+  ok(
+    "Referral: an .edu.sg subdomain classifies as UNIVERSITY",
+    classifyReferralAccount("maya@student.nus.edu.sg") === "UNIVERSITY"
+  );
+  ok(
+    "Referral: .ac.uk classifies as UNIVERSITY",
+    classifyReferralAccount("maya@imperial.ac.uk") === "UNIVERSITY"
+  );
+  ok(
+    "Referral: an .ac.uk subdomain classifies as UNIVERSITY",
+    classifyReferralAccount("maya@mail.imperial.ac.uk") === "UNIVERSITY"
+  );
+  ok(
+    "Referral: .ac.nz classifies as UNIVERSITY",
+    classifyReferralAccount("maya@auckland.ac.nz") === "UNIVERSITY"
+  );
+  ok(
+    "Referral: gmail.com classifies as PERSONAL",
+    classifyReferralAccount("maya@gmail.com") === "PERSONAL"
+  );
+  ok(
+    "Referral: a gmail.com SUBDOMAIN is PERSONAL — it must never sneak through as corporate",
+    classifyReferralAccount("maya@mail.gmail.com") === "PERSONAL"
+  );
+  ok(
+    "Referral: a real corporate domain classifies as CORPORATE",
+    classifyReferralAccount("maya@glencore.com") === "CORPORATE"
+  );
+  ok(
+    "Referral: a malformed string is PERSONAL (fail closed)",
+    classifyReferralAccount("not-an-email") === "PERSONAL"
+  );
+  ok(
+    "Referral: an address with no domain is PERSONAL",
+    classifyReferralAccount("maya@") === "PERSONAL"
+  );
+  ok(
+    "Referral: an address with two @ is PERSONAL",
+    classifyReferralAccount("maya@@mit.edu") === "PERSONAL"
+  );
+  ok(
+    "Referral: classification is case- and whitespace-insensitive",
+    classifyReferralAccount("  MAYA@NUS.EDU.SG  ") === "UNIVERSITY"
+  );
+  ok(
+    "Referral: the consumer mailbox list is exported and covers the majors",
+    ["gmail.com", "outlook.com", "yahoo.com", "hotmail.com", "icloud.com"].every((domain) =>
+      CONSUMER_EMAIL_DOMAINS.includes(domain)
+    )
+  );
+  ok(
+    "Referral: the academic suffix list is exported and includes .edu.sg and .ac.uk",
+    UNIVERSITY_DOMAIN_SUFFIXES.includes(".edu.sg") &&
+      UNIVERSITY_DOMAIN_SUFFIXES.includes(".ac.uk")
+  );
+  ok(
+    "Referral: university and corporate are eligible, consumer is not",
+    isReferralEligible("maya@nus.edu.sg") &&
+      isReferralEligible("maya@glencore.com") &&
+      !isReferralEligible("maya@gmail.com")
+  );
+  ok("Referral: a malformed address is never eligible", !isReferralEligible("nope"));
+
+  // ── PART 2: code normalisation and generation ────────────────────────────
+  ok(
+    "Referral: normalise uppercases a lowercase code",
+    normalizeReferralCode("cp-ab12-cd34") === "CP-AB12-CD34"
+  );
+  ok(
+    "Referral: normalise strips whitespace and punctuation",
+    normalizeReferralCode("  cp ab12/cd34!  ") === "CPAB12CD34"
+  );
+  ok(
+    "Referral: normalise returns an empty string when nothing usable is left",
+    normalizeReferralCode("") === "" && normalizeReferralCode("   ") === ""
+  );
+  ok(
+    "Referral: normalise collapses repeated hyphens and trims the edges",
+    normalizeReferralCode("--cp--ab12--") === "CP-AB12"
+  );
+
+  const sampleCode = generateReferralCode();
+  ok(
+    "Referral: generateReferralCode matches REFERRAL_CODE_PATTERN",
+    REFERRAL_CODE_PATTERN.test(sampleCode),
+    sampleCode
+  );
+
+  const generated = Array.from({ length: 200 }, () => generateReferralCode());
+  ok(
+    "Referral: 200 generated codes are all unique",
+    new Set(generated).size === 200,
+    `${new Set(generated).size} unique`
+  );
+  ok(
+    "Referral: generated codes never contain 0, O, 1 or I (members retype them by hand)",
+    generated.every((code) => !/[0O1I]/.test(code))
+  );
+  ok(
+    "Referral: the pattern rejects an ambiguous code of the right length",
+    !REFERRAL_CODE_PATTERN.test("CP-0000-0000") && !REFERRAL_CODE_PATTERN.test("CP-OOOO-IIII")
+  );
+
+  // ── PART 3: the reward is a placeholder until the coupon exists ───────────
+  const savedCouponId = process.env.STRIPE_REFERRAL_COUPON_ID;
+  delete process.env.STRIPE_REFERRAL_COUPON_ID;
+  const unconfigured = getReferralRewardConfig();
+  ok(
+    "Referral: the reward is NOT configured while STRIPE_REFERRAL_COUPON_ID is unset",
+    unconfigured.configured === false && unconfigured.couponId === null
+  );
+  ok(
+    "Referral: the placeholder reward carries no decided value",
+    REFERRAL_REWARD_PLACEHOLDER.value === null
+  );
+
+  process.env.STRIPE_REFERRAL_COUPON_ID = "coupon_referral_test";
+  const configured = getReferralRewardConfig();
+  ok(
+    "Referral: the reward is configured once a coupon id is present",
+    configured.configured === true && configured.couponId === "coupon_referral_test"
+  );
+  if (savedCouponId === undefined) delete process.env.STRIPE_REFERRAL_COUPON_ID;
+  else process.env.STRIPE_REFERRAL_COUPON_ID = savedCouponId;
+
+  // ── PART 4: source assertions for the decisions that need a runtime ──────
+  const readSrc = (relativePath: string): string =>
+    fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
+  const checkoutSrc = readSrc("src/app/api/stripe/checkout/route.ts");
+  const referralValidationSrc = readSrc("src/lib/referral-validation.ts");
+  const referralValidateRouteSrc = readSrc("src/app/api/referral/validate/route.ts");
+  const adminCreateSrc = readSrc("src/app/api/admin/referral-codes/route.ts");
+  const adminIdSrc = readSrc("src/app/api/admin/referral-codes/[id]/route.ts");
+  const schemaSrc = readSrc("prisma/schema.prisma");
+  const migrationSrc = readSrc("src/lib/db-schema-migrations.ts");
+  const checkoutPageSrc = readSrc("src/app/checkout/page.tsx");
+  const checkoutClientSrc = readSrc("src/app/checkout/checkout-client.tsx");
+  const adminClientSrc = readSrc("src/app/admin/admin-client.tsx");
+  const adminTabSrc = readSrc("src/app/admin/referral-codes-tab.tsx");
+  const webhookSrc = readSrc("src/app/api/stripe/webhook/route.ts");
+
+  ok(
+    "Referral: the checkout route accepts an optional referralCode",
+    checkoutSrc.includes("referralCode: z.string().max(64).optional()")
+  );
+  ok(
+    "Referral: the checkout route re-validates the code server-side (it never calls /validate)",
+    // Assert the CALL, not the identifier: the route's own comment explains why it
+    // does not rely on /api/referral/validate, so a bare substring test would fail
+    // on the documentation alone.
+    checkoutSrc.includes("validateReferralCodeForMember(") &&
+      !checkoutSrc.includes('fetch("/api/referral/validate"')
+  );
+  ok(
+    "Referral: the eligibility check itself runs server-side, not only in /validate",
+    referralValidationSrc.includes("isReferralEligible(input.email)") &&
+      referralValidationSrc.includes("classifyReferralAccount(input.email)")
+  );
+  // 🔴 The two gates must read the SAME email. `PATCH /api/account/profile` changes
+  // the address without re-verification and the JWT keeps the old one until it is
+  // refreshed, so a session-supplied email let a member whose STORED address is a
+  // gmail inbox pass checkout while /validate refused them (QA reproduced exactly
+  // that). The domain is what decides eligibility, so it has to come from the row.
+  ok(
+    "Referral: checkout derives the eligibility email from the DB row, never the JWT",
+    checkoutSrc.includes("email: true") &&
+      !checkoutSrc.includes("const email = session.user.email!") &&
+      /select: \{ track: true, email: true \}/.test(checkoutSrc) &&
+      /const email = row\?\.email \?\? session\.user\.email!/.test(checkoutSrc)
+  );
+  ok(
+    "Referral: the two gates read the email the same way (DB first, session as fallback)",
+    /const email = row\?\.email \?\? session\.user\.email!/.test(checkoutSrc) &&
+      /if \(row\?\.email\) email = row\.email/.test(referralValidateRouteSrc)
+  );
+  ok(
+    "Referral: a failed session create RELEASES the reservation instead of burning the code",
+    // The window is generous because the release is preceded by a long comment
+    // explaining WHEN releasing is correct (see the guarded-release check below).
+    /catch \(err\) \{[\s\S]{0,1400}releaseReferralReservation\(referralReservationId\)[\s\S]{0,140}throw err;/.test(
+      checkoutSrc
+    )
+  );
+  ok(
+    "Referral: stale RESERVED rows are cleared BEFORE the new reservation is inserted",
+    // Order, not distance: the cleanup must run first, and the comments between the
+    // two calls are long enough that a fixed-width window is the wrong assertion.
+    checkoutSrc.indexOf("releaseStaleReferralReservations(userId)") >= 0 &&
+      checkoutSrc.indexOf("referralRedemption.create") >
+        checkoutSrc.indexOf("releaseStaleReferralReservations(userId)")
+  );
+  ok(
+    "Referral: a P2002 race on the reserve INSERT becomes a 409",
+    checkoutSrc.includes("isUniqueViolation(err)") &&
+      checkoutSrc.includes("This referral code has just been used") &&
+      checkoutSrc.includes("{ status: 409 }")
+  );
+  ok(
+    "Referral: allow_promotion_codes is set in exactly ONE place — the no-discount branch",
+    (checkoutSrc.match(/allow_promotion_codes: true/g) ?? []).length === 1 &&
+      checkoutSrc.includes("{ discounts: [effectiveDiscount] }")
+  );
+  ok(
+    "Referral: the referral discount replaces the promo-code field, never both",
+    /\.\.\.\(effectiveDiscount\s*\?\s*\{ discounts: \[effectiveDiscount\] \}\s*:\s*\{ allow_promotion_codes: true \}\)/.test(
+      checkoutSrc
+    )
+  );
+  ok(
+    "Referral: referralCodeId rides in BOTH session and subscription metadata",
+    (checkoutSrc.match(/\.\.\.referralMetadata/g) ?? []).length === 2
+  );
+  ok(
+    "Referral: 🔴 nothing in the checkout route creates a coupon, price or product in Stripe",
+    !checkoutSrc.includes("coupons.create") &&
+      !checkoutSrc.includes("prices.create") &&
+      !checkoutSrc.includes("products.create") &&
+      !referralValidationSrc.includes("coupons.create")
+  );
+  ok(
+    "Referral: /api/referral/validate requires auth and is rate limited",
+    referralValidateRouteSrc.includes("status: 401") &&
+      referralValidateRouteSrc.includes("RATE_LIMITS.referralValidate")
+  );
+  ok(
+    "Referral: the admin create route GENERATES the code server-side",
+    adminCreateSrc.includes("code: generateReferralCode()")
+  );
+  ok(
+    "Referral: both admin referral routes are guarded by the ADMIN_EMAILS allowlist",
+    adminCreateSrc.includes("await requireSoleAdmin()") &&
+      adminCreateSrc.includes("status: 403") &&
+      adminIdSrc.includes("await requireSoleAdmin()") &&
+      adminIdSrc.includes("status: 403")
+  );
+  ok(
+    "Referral: a redeemed code cannot be deleted (the redemption is the audit trail)",
+    adminIdSrc.includes("existing.redemption") && adminIdSrc.includes("{ status: 409 }")
+  );
+  ok(
+    "Referral: ReferralRedemption carries BOTH unique constraints in schema.prisma",
+    /model ReferralRedemption \{[\s\S]*?@@unique\(\[referralCodeId\]\)[\s\S]*?@@unique\(\[userId\]\)[\s\S]*?\}/.test(
+      schemaSrc
+    )
+  );
+  ok(
+    "Referral: CORE_MIGRATION_SQL creates both unique indexes (production has no migrations dir)",
+    migrationSrc.includes('"ReferralRedemption_referralCodeId_key"') &&
+      migrationSrc.includes('"ReferralRedemption_userId_key"') &&
+      migrationSrc.includes('CREATE TABLE IF NOT EXISTS "ReferralCode"') &&
+      migrationSrc.includes('CREATE TABLE IF NOT EXISTS "ReferralRedemption"')
+  );
+  ok(
+    "Referral: the /checkout page exists, is auth-gated and renders the client step",
+    checkoutPageSrc.includes('redirect(`/login?callbackUrl=') &&
+      checkoutPageSrc.includes("<CheckoutClient")
+  );
+  ok(
+    "Referral: the /checkout client starts the Stripe session with the code",
+    checkoutClientSrc.includes('from "@/lib/start-checkout"') &&
+      checkoutClientSrc.includes("startCheckout(plan, term, cadence, code.trim() || undefined)")
+  );
+  ok(
+    "Referral: the /checkout page shows no Pay button while payments are not live",
+    checkoutClientSrc.includes("paymentsLive ?") && checkoutClientSrc.includes("<ContactModal")
+  );
+  ok(
+    "Referral: the admin tab is wired into admin-client as its own tab",
+    adminClientSrc.includes('"referrals"') &&
+      adminClientSrc.includes("<ReferralCodesTab />") &&
+      adminClientSrc.includes('["referrals", "Referral Codes", Tag]')
+  );
+  ok(
+    "Referral: the admin tab is a client component",
+    adminTabSrc.trimStart().startsWith('"use client"')
+  );
+  ok(
+    "Referral: the webhook CONFIRMS a paid reservation (so it is never swept as stale)",
+    webhookSrc.includes("await confirmReferralRedemption(session)") &&
+      webhookSrc.includes('status: "CONFIRMED"')
+  );
+
+  // ── PART 5: an abandoned checkout must not block the member ──────────────
+  // Regression guard. The first version rejected on ANY existing row, so a member
+  // who reached Stripe and clicked "back" was told "You have already used a
+  // referral code on this account" for 30 minutes — false, on a payment page, for
+  // the most common user action. A RESERVED row is the member's own pending hold
+  // and must be REUSED, not treated as a prior use.
+  ok(
+    "Referral: a member's own RESERVED hold is REUSED, never treated as a prior use",
+    classifyExistingRedemption({ status: "RESERVED" }) === "REUSE"
+  );
+  ok(
+    "Referral: a CONFIRMED redemption still blocks the member permanently",
+    classifyExistingRedemption({ status: "CONFIRMED" }) === "BLOCKED"
+  );
+  ok(
+    "Referral: no existing row means nothing to reuse and nothing to block",
+    classifyExistingRedemption(null) === "NONE" &&
+      classifyExistingRedemption(undefined) === "NONE"
+  );
+  ok(
+    "Referral: an unknown redemption status fails CLOSED (blocks)",
+    classifyExistingRedemption({ status: "SOMETHING_NEW" }) === "BLOCKED"
+  );
+  // The per-CODE half of the rule. Without this exception the validator rejects at
+  // step 4 ("that code has already been used") BEFORE the per-member check, so a
+  // same-code retry — the dominant case — would still be blocked and the whole
+  // reuse path would be unreachable.
+  ok(
+    "Referral: a code held by THIS member's own pending hold is not 'already redeemed'",
+    isOwnPendingHold({ userId: "u1", status: "RESERVED" }, "u1") === true
+  );
+  ok(
+    "Referral: a code held by ANOTHER member is still 'already redeemed'",
+    isOwnPendingHold({ userId: "u2", status: "RESERVED" }, "u1") === false
+  );
+  ok(
+    "Referral: this member's own CONFIRMED redemption is not a reusable hold",
+    isOwnPendingHold({ userId: "u1", status: "CONFIRMED" }, "u1") === false
+  );
+  ok(
+    "Referral: an unheld code is not anybody's hold",
+    isOwnPendingHold(null, "u1") === false && isOwnPendingHold(undefined, "u1") === false
+  );
+  ok(
+    "Referral: the validator applies that exception at the per-code step",
+    referralValidationSrc.includes("isOwnPendingHold(row.redemption, input.userId)") &&
+      /if \(row\.redemption && !heldByThisMember\) return reject\("ALREADY_REDEEMED"\)/.test(
+        referralValidationSrc
+      )
+  );
+  ok(
+    "Referral: the validator consults that verdict instead of blocking on any row",
+    referralValidationSrc.includes("classifyExistingRedemption(existing)") &&
+      !referralValidationSrc.includes('if (existing) return reject("ALREADY_USED_BY_MEMBER")')
+  );
+  ok(
+    "Referral: the validator hands back the reusable reservation id",
+    referralValidationSrc.includes("reservationId: string | null") &&
+      referralValidationSrc.includes("reservationId: verdict === \"REUSE\"")
+  );
+  ok(
+    "Referral: checkout reassigns a reused hold with ONE updateMany (no delete-then-insert)",
+    checkoutSrc.includes("referralRedemption.updateMany(") &&
+      // Formatting-tolerant: the `where` block is multi-line now that the lock
+      // condition lives in it.
+      /referralRedemption\.updateMany\(\{[\s\S]{0,400}?where: \{[\s\S]{0,200}?id: check\.reservationId,[\s\S]{0,200}?status: "RESERVED"/.test(
+        checkoutSrc
+      ) &&
+      /referralCodeId,\s*reservedAt: new Date\(\),\s*stripeSessionId: null/.test(checkoutSrc) &&
+      !checkoutSrc.includes("referralRedemption.deleteMany({ where: { id: check.reservationId")
+  );
+  ok(
+    "Referral: a zero-count reassignment (concurrently confirmed) becomes a 409",
+    /if \(count === 0\)[\s\S]{0,400}CHECKOUT_IN_PROGRESS[\s\S]{0,80}\{ status: 409 \}/.test(
+      checkoutSrc
+    )
+  );
+  // The optimistic lock. Without it two concurrent submits from the same member
+  // each reassign the same row and each open a discounted session, so a single-use
+  // code would be applied twice — a real leak of "can only be redeemed once".
+  ok(
+    "Referral: reuse is conditional on the hold being older than the 10s lock window",
+    checkoutSrc.includes("REFERRAL_REUSE_LOCK_MS = 10_000") &&
+      /referralRedemption\.updateMany\(\{[\s\S]{0,400}reservedAt: \{ lt: lockCutoff \}/.test(
+        checkoutSrc
+      )
+  );
+  ok(
+    "Referral: the lock is computed from the current time, not a fixed date",
+    /const lockCutoff = new Date\(Date\.now\(\) - REFERRAL_REUSE_LOCK_MS\)/.test(checkoutSrc)
+  );
+  ok(
+    "Referral: CHECKOUT_IN_PROGRESS exists in the one message map, with member-facing copy",
+    /CHECKOUT_IN_PROGRESS:\s*\n?\s*"A checkout is already in progress for this code\. Wait a moment and try again\."/.test(
+      referralValidationSrc
+    )
+  );
+  ok(
+    "Referral: the lock rejection never falls through to applying the discount unreserved",
+    /if \(count === 0\) \{[\s\S]{0,600}return NextResponse\.json/.test(checkoutSrc) &&
+      /count === 0[\s\S]{0,600}\{ status: 409 \}/.test(checkoutSrc)
+  );
+  ok(
+    "Referral: the Pay button cannot fire a second POST while one is in flight",
+    checkoutClientSrc.includes("const payInFlight = useRef(false)") &&
+      checkoutClientSrc.includes("if (payInFlight.current) return") &&
+      /loading=\{paying\}/.test(checkoutClientSrc)
+  );
+  ok(
+    "Referral: a failed session create only releases a hold THIS request created",
+    /if \(!reusedReservation\) await releaseReferralReservation\(referralReservationId\)/.test(
+      checkoutSrc
+    )
+  );
+
+  // ── PART 6: the UI must not overstate an undecided reward ────────────────
+  ok(
+    "Referral: the pending-reward copy never claims a discount was applied",
+    !/has been applied/i.test(REFERRAL_REWARD_PENDING_MESSAGE) &&
+      /No discount is applied to this order yet/.test(REFERRAL_REWARD_PENDING_MESSAGE)
+  );
+  ok(
+    "Referral: /checkout says 'accepted' for the code, and only claims a discount when one exists",
+    checkoutClientSrc.includes("{result.code} accepted.") &&
+      /rewardConfigured[\s\S]{0,140}Your referral discount will be applied on your first invoice\./.test(
+        checkoutClientSrc
+      ) &&
+      checkoutClientSrc.includes(": rewardPendingMessage")
+  );
+}
+
 void verifyPdfStampWrites()
   .then(() => verifyCountryWaitlistCms())
   .then(() => verifySalesNudgesTweaks())
+  .then(() => verifyReferralCodes())
   .then(() => {
     console.log(failed === 0 ? "\n✅ All feedback/CMS checks passed." : `\n❌ ${failed} check(s) failed.`);
     process.exit(failed === 0 ? 0 : 1);
