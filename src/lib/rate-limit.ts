@@ -44,6 +44,14 @@ export const RATE_LIMITS = {
   /** Stripe Checkout session creation: 8 / 15 min per member. */
   stripeCheckout: { limit: 8, windowMs: 15 * 60 * 1000 },
   /**
+   * Referral-code validation: 20 / 15 min per member.
+   *
+   * A member types one code, maybe mistypes it twice. The cap exists so the
+   * endpoint is not a free oracle for guessing codes: `CP-XXXX-XXXX` has ~1.1e12
+   * combinations, so 20 tries per quarter hour is nowhere near enough to walk it.
+   */
+  referralValidate: { limit: 20, windowMs: 15 * 60 * 1000 },
+  /**
    * Stripe webhook deliveries. Generous so legitimate retries are not dropped;
    * still bounds a forged-flood if the signing secret were ever leaked.
    */

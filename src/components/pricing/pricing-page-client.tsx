@@ -22,7 +22,6 @@ import type { LandingContent, LandingTier } from "@/data/landing-content";
 import type { FaqContent } from "@/data/faq";
 import { CAREER_PRICING_PATH, SALES_PLAN_HREF, SALES_PRICING_PATH } from "@/lib/pricing-routes";
 import { isPaymentsLive } from "@/lib/payments";
-import { startCheckout } from "@/lib/start-checkout";
 import { PAGE_SECTION_PY } from "@/lib/layout-constants";
 import { LANDING_CTA } from "@/lib/landing-cta";
 import { starterSignupHref } from "@/lib/signup-routes";
@@ -197,7 +196,7 @@ export function PricingPageClient({
     return () => window.clearTimeout(timer);
   }, [searchParams, track]);
 
-  async function handlePurchase(
+  function handlePurchase(
     plan: "pro" | "elite",
     selectedTerm: PlanTerm,
     selectedCadence: BillingCadence
@@ -219,16 +218,16 @@ export function PricingPageClient({
       router.push(`/signup?plan=${plan}&track=${track}&callbackUrl=${callback}`);
       return;
     }
+    // Payments are live: hand off to the in-app `/checkout` step, which shows the
+    // plan summary and collects an optional referral code before starting the
+    // Stripe session. The track is still NOT sent — the server reads `User.track`
+    // from the DB, and `/checkout` shows the price for that same track.
+    //
+    // `loadingPlan` stays set on purpose: /checkout is a server-rendered route that
+    // reads the session and the member's track, so the card shows its spinner for
+    // the moment the navigation takes.
     setLoadingPlan(plan);
-    try {
-      // The track is NOT sent — the server reads User.track from the DB.
-      const url = await startCheckout(plan, selectedTerm, selectedCadence);
-      if (url) window.location.href = url;
-    } catch {
-      // A failed checkout leaves the member on /pricing; there is nothing to undo.
-    } finally {
-      setLoadingPlan(null);
-    }
+    router.push(`/checkout?plan=${plan}&term=${selectedTerm}&cadence=${selectedCadence}`);
   }
 
   const tiers = toLandingTiers(track, content);

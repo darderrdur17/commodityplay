@@ -425,4 +425,62 @@ DO $$ BEGIN
   ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "country" TEXT;
 EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
+
+-- 7. Referral codes (member acquisition). Two tables, and the two UNIQUE indexes
+--    on "ReferralRedemption" ARE the single-use rule: a code can be claimed once
+--    and a member can claim once, enforced atomically by the database rather than
+--    by an application-level read-then-write check that two concurrent checkouts
+--    would both pass.
+--
+--    "status" is TEXT (not an enum) so this block needs no CREATE TYPE guard and
+--    stays safe to re-run on every cold start — the same reasoning that made
+--    User.stripeStatus a String.
+CREATE TABLE IF NOT EXISTS "ReferralCode" (
+  "id" TEXT NOT NULL,
+  "code" TEXT NOT NULL,
+  "label" TEXT,
+  "rewardKind" TEXT NOT NULL DEFAULT 'percent_off',
+  "rewardValue" INTEGER,
+  "expiresAt" TIMESTAMP(3),
+  "disabled" BOOLEAN NOT NULL DEFAULT false,
+  "createdById" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "ReferralCode_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "ReferralCode_code_key" ON "ReferralCode"("code");
+CREATE INDEX IF NOT EXISTS "ReferralCode_createdAt_idx" ON "ReferralCode"("createdAt");
+
+CREATE TABLE IF NOT EXISTS "ReferralRedemption" (
+  "id" TEXT NOT NULL,
+  "referralCodeId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'RESERVED',
+  "stripeSessionId" TEXT,
+  "reservedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "confirmedAt" TIMESTAMP(3),
+  CONSTRAINT "ReferralRedemption_pkey" PRIMARY KEY ("id")
+);
+
+-- 🔴 These two are the single-use enforcement. Do not drop or relax them.
+CREATE UNIQUE INDEX IF NOT EXISTS "ReferralRedemption_referralCodeId_key" ON "ReferralRedemption"("referralCodeId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ReferralRedemption_userId_key" ON "ReferralRedemption"("userId");
+CREATE INDEX IF NOT EXISTS "ReferralRedemption_status_idx" ON "ReferralRedemption"("status");
+
+DO $$ BEGIN
+  ALTER TABLE "ReferralRedemption" ADD CONSTRAINT "ReferralRedemption_referralCodeId_fkey"
+    FOREIGN KEY ("referralCodeId") REFERENCES "ReferralCode"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "ReferralRedemption" ADD CONSTRAINT "ReferralRedemption_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+END $$;
 `

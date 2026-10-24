@@ -113,6 +113,42 @@ function subscriptionId(sub: Stripe.Subscription | string | null | undefined): s
 }
 
 /**
+ * Confirm the referral redemption this checkout reserved.
+ *
+ * The checkout route reserves a code with `status: "RESERVED"` BEFORE the member
+ * is handed to Stripe, and deliberately releases it again if session creation
+ * fails. A code that was actually PAID FOR must therefore be promoted to
+ * `CONFIRMED` here — otherwise it would stay RESERVED, and the 30-minute
+ * stale-reservation cleanup in the checkout route would eventually delete it and
+ * quietly free a single-use code.
+ *
+ * `updateMany` (not `update`) on purpose: no reservation row is a normal
+ * non-event (e.g. a checkout with no referral code), not an error.
+ *
+ * Failure is logged, never thrown: a bookkeeping write must not make Stripe retry
+ * a payment event that was otherwise fully applied.
+ */
+async function confirmReferralRedemption(
+  session: Stripe.Checkout.Session
+): Promise<void> {
+  const referralCodeId = session.metadata?.referralCodeId;
+  if (!referralCodeId) return;
+
+  try {
+    await prisma.referralRedemption.updateMany({
+      where: { referralCodeId, status: "RESERVED" },
+      data: {
+        status: "CONFIRMED",
+        confirmedAt: new Date(),
+        stripeSessionId: session.id,
+      },
+    });
+  } catch (err) {
+    console.error("[webhook] failed to confirm referral redemption", referralCodeId, err);
+  }
+}
+
+/**
  * Emails Frances about a billing lapse.
  *
  * `operator_billing_lapse` is added to BOTH OperatorLeadKind (src/lib/email.ts) and
@@ -219,6 +255,11 @@ export async function POST(req: NextRequest) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.payment_status !== "paid") break;
+
+        // Referral bookkeeping runs FIRST and unconditionally on a paid session:
+        // it must happen even if the tier/price below cannot be resolved, or the
+        // reservation would be left to the stale-cleanup sweep. It never throws.
+        await confirmReferralRedemption(session);
 
         const stripe = getStripe();
         const priceId = await resolveCheckoutPriceId(stripe, session.id);
