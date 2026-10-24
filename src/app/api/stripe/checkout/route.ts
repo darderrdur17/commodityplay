@@ -9,7 +9,7 @@ import {
   getStripeCoupon,
   createOrRetrieveCustomer,
 } from "@/lib/stripe";
-import { isCheckoutConfigured } from "@/lib/payments";
+import { isCheckoutConfigured, paymentsReadiness } from "@/lib/payments";
 import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { normalizeReferralCode } from "@/lib/referral-codes";
@@ -68,8 +68,20 @@ export async function POST(req: NextRequest) {
   if (!limit.allowed) return rateLimitResponse(limit);
 
   if (!isCheckoutConfigured()) {
+    // Log WHICH prerequisite is missing (names only, never values) so a go-live check
+    // is one look at the logs rather than a guess. The member sees the honest reason;
+    // the reason code lets the verification script tell this apart from a real fault.
+    const readiness = paymentsReadiness();
+    console.error("[stripe/checkout] checkout is closed", {
+      live: readiness.live,
+      hasSecret: readiness.hasSecret,
+      missingPriceVars: readiness.missingPriceVars,
+    });
     return NextResponse.json(
-      { error: "Payments are not live yet. Checkout will open when paid files are ready." },
+      {
+        error: "Payments are not live yet. Checkout will open when paid files are ready.",
+        reason: "PAYMENTS_NOT_CONFIGURED",
+      },
       { status: 503 }
     );
   }

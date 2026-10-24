@@ -11,6 +11,7 @@ in this folder is a dated design artifact, kept for history.
 | [`architecture.md`](./architecture.md) | …understand how the pieces fit together |
 | [`environment.md`](./environment.md) | …set up env vars, or debug "why is this blank in production" |
 | [`billing-and-pricing.md`](./billing-and-pricing.md) | …touch anything about plans, prices or Stripe |
+| [`payments-go-live.md`](./payments-go-live.md) | …turn paid checkout on (or off), or verify it after a launch |
 | [`runbook.md`](./runbook.md) | …build, deploy, verify a change, or debug a failed build |
 
 ## Proposed — designed, not built
