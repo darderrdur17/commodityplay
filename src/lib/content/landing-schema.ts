@@ -136,6 +136,38 @@ const waitlistBenefitSchema = z.object({
   desc: z.string().min(1),
 });
 
+/**
+ * One client ad / shoutout row (see `ClientAdEntry` in landing-content.ts).
+ *
+ * `attribution`, `imageAssetId` and `sample` are optional on purpose: a shoutout
+ * may carry no attribution, an ad may have no banner yet (the renderer generates a
+ * placeholder tile), and `sample` is absent on any row the owner has made real.
+ *
+ * ⚠️ `entries` is deliberately NOT `.min(1)`. Removing every row is a supported way
+ * to retire the section — the component renders nothing for an empty list — so a
+ * minimum here would reject the owner's own edit.
+ */
+const clientAdEntrySchema = z.object({
+  id: z.string().min(1),
+  kind: z.enum(["ad", "shoutout"]),
+  company: z.string().min(1),
+  eyebrow: z.string().min(1),
+  headline: z.string().min(1),
+  body: z.string().min(1),
+  attribution: z.string().optional(),
+  imageAssetId: z.string().optional(),
+  track: z.enum(["career", "sales", "both"]),
+  visible: z.boolean(),
+  sample: z.boolean().optional(),
+});
+
+const clientAdsSchema = z.object({
+  eyebrow: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  entries: z.array(clientAdEntrySchema),
+});
+
 /** Job Board Waitlist copy on `/waitlist` (see `LandingWaitlist` in landing-content.ts). */
 const waitlistSchema = z.object({
   pill: z.string().min(1),
@@ -408,6 +440,13 @@ export const landingContentSchema = z.object({
    */
   waitlist: waitlistSchema.default(() => DEFAULT_LANDING_CONTENT.waitlist),
   mentorSection: mentorSectionSchema.default(() => DEFAULT_LANDING_CONTENT.mentorSection),
+  /**
+   * Client ads & shoutouts. `.default(...)` is load-bearing for the same reason as
+   * `waitlist` above: a payload saved before this group existed has no `clientAds`
+   * key, so without the default the next save of ANY other landing field would
+   * fail validation here and the owner's edit would be rejected.
+   */
+  clientAds: clientAdsSchema.default(() => DEFAULT_LANDING_CONTENT.clientAds),
 }).transform((data) => {
   const legacy = data.membersStrip;
   const careerFallback = legacy ?? DEFAULT_LANDING_CONTENT.careerMembersStrip;
