@@ -309,6 +309,71 @@ export interface MembersStripContent {
   companies: string[];
 }
 
+/** Which landing track(s) a client ad or shoutout appears on. */
+export type ClientAdTrack = "career" | "sales" | "both";
+
+/**
+ * One card in the "Client ads & shoutouts" section on the two landing pages.
+ *
+ * Two shapes share one row type because they share one editor and one list:
+ *   - `"ad"` is image-led — an uploaded banner with a headline beneath it;
+ *   - `"shoutout"` is quote-led — a short client quote plus attribution.
+ *
+ * ⚠️ `sample` is load-bearing, not decoration. The shipped rows are invented, and
+ * a fabricated client endorsement is a legal exposure rather than a copy problem.
+ * Every seeded row therefore carries `sample: true` and renders a visible
+ * "Example" tag; clearing that tick in the admin is the deliberate act that turns
+ * a placeholder into a claim. The verification harness asserts the seeded rows are
+ * still flagged, so no invented endorsement can reach production by accident.
+ */
+export interface ClientAdEntry {
+  /** Stable row id — the React key and the admin row identity. */
+  id: string;
+  kind: "ad" | "shoutout";
+  /** Client company name. */
+  company: string;
+  /** Small uppercase label above the company name, e.g. "Enterprise client". */
+  eyebrow: string;
+  /** Ad headline, or the lead line of a shoutout. */
+  headline: string;
+  /** Supporting line for an ad, or the body of a shoutout. */
+  body: string;
+  /** Shoutout attribution, e.g. "Head of Metals Trading, <company>". */
+  attribution?: string;
+  /**
+   * Optional uploaded banner. Holds a `ContentAsset` id and renders as
+   * `/api/content/assets/<id>` — the same mechanism as
+   * `career.finalCtaImageAssetId`. Absent renders a generated placeholder tile:
+   * no image file is shipped, and no client logo is faked.
+   */
+  imageAssetId?: string;
+  /** Which track(s) render this row. */
+  track: ClientAdTrack;
+  /** Unticked hides the row without deleting it. */
+  visible: boolean;
+  /** True while the row is invented placeholder content (see the docblock). */
+  sample?: boolean;
+}
+
+/**
+ * "Client ads & shoutouts" — company ads and client quotes for BOTH landing
+ * pages.
+ *
+ * One shared heading for both tracks, because the two audiences are asked the same
+ * thing here ("who else uses this"); the persona work is done per ROW by
+ * `track`, which is what lets a career-only shoutout and a sales-only ad live in
+ * one editable list instead of two parallel groups.
+ *
+ * An empty `entries` list renders nothing at all — removing every row is a valid
+ * way to retire the section without touching code.
+ */
+export interface LandingClientAds {
+  eyebrow: string;
+  title: string;
+  description: string;
+  entries: ClientAdEntry[];
+}
+
 export interface LandingContent {
   career: {
     eyebrow: string;
@@ -452,6 +517,12 @@ export interface LandingContent {
   };
   /** Shared Mentor Connect section — same words on both landing pages. */
   mentorSection: LandingMentorSection;
+  /**
+   * Client ads & shoutouts — company banners and client quotes. One shared
+   * heading; each ROW carries its own `track` so the same list serves both
+   * personas. Edited from Content → Landing → "Client ads & shoutouts".
+   */
+  clientAds: LandingClientAds;
   trackSelection: TrackSelectionContent;
 }
 
@@ -1107,6 +1178,81 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
         title: "Market Risk Lead — Ex-Energy Major",
         category: "Risk Management",
         bio: "Built and ran position-limit and VaR frameworks for a multi-commodity trading book.",
+      },
+    ],
+  },
+  /**
+   * Placeholder rows for the client ads & shoutouts section.
+   *
+   * Every company here is invented and every row carries `sample: true`, which
+   * renders an "Example" tag on the live card. That is deliberate: the real
+   * members strips name actual firms (Vitol, Trafigura, …), so inventing an
+   * endorsement for a real firm — even as filler — would put a false claim on the
+   * live site. The owner replaces these from Content → Landing → "Client ads &
+   * shoutouts", and unticks "Placeholder" on each row she makes real.
+   */
+  clientAds: {
+    eyebrow: "Clients & partners",
+    title: "Where this is already on the desk.",
+    description:
+      "Ads and shoutouts from the companies and enterprise teams using the Playbook. Replace these examples from the admin panel.",
+    entries: [
+      {
+        id: "meridian-agri-ad",
+        kind: "ad",
+        company: "Meridian Agri Group",
+        eyebrow: "Enterprise client",
+        headline: "Grains and oilseeds, from origin to port.",
+        body: "Meridian runs the Playbook chapters as the onboarding reference for its graduate trade analysts.",
+        track: "career",
+        visible: true,
+        sample: true,
+      },
+      {
+        id: "northbridge-metals-shoutout",
+        kind: "shoutout",
+        company: "Northbridge Metals",
+        eyebrow: "Client shoutout",
+        headline: "The clearest explanation of concentrate pricing we have found.",
+        body: "New hires read the metals chapters before their first desk rotation, so the terminology is settled before anyone has to ask.",
+        attribution: "Head of Metals Trading, Northbridge Metals",
+        track: "career",
+        visible: true,
+        sample: true,
+      },
+      {
+        id: "kestrel-energy-ad",
+        kind: "ad",
+        company: "Kestrel Energy Trading",
+        eyebrow: "Enterprise client",
+        headline: "Every account conversation starts on the same page.",
+        body: "The commercial team preps utility and industrial accounts from the weekly edge note.",
+        track: "sales",
+        visible: true,
+        sample: true,
+      },
+      {
+        id: "harbourline-logistics-shoutout",
+        kind: "shoutout",
+        company: "Harbourline Logistics",
+        eyebrow: "Client shoutout",
+        headline: "It answers the question our prospects actually ask.",
+        body: "Freight and LNG come up in every first call. This is the first thing we have found that gets both right without a specialist in the room.",
+        attribution: "Commercial Director, Harbourline Logistics",
+        track: "sales",
+        visible: true,
+        sample: true,
+      },
+      {
+        id: "sable-co-ad",
+        kind: "ad",
+        company: "Sable & Co. Commodities",
+        eyebrow: "Enterprise client",
+        headline: "Onboarding that does not need a trainer in the room.",
+        body: "Joiners work through the chapters in their first month, whichever desk they land on.",
+        track: "both",
+        visible: true,
+        sample: true,
       },
     ],
   },

@@ -94,8 +94,46 @@ export interface ReferralValidationResult {
   reward: { configured: boolean; kind: string; value: number | null } | null;
 }
 
-/** How long a RESERVED redemption may sit before it is treated as abandoned. */
-export const REFERRAL_RESERVATION_TTL_MS = 30 * 60 * 1000;
+/**
+ * How long a Stripe Checkout Session stays payable.
+ *
+ * Stripe only accepts `expires_at` between **30 minutes and 24 hours** from
+ * creation, so 30 is the hard floor; the extra minute absorbs clock skew between
+ * this server and Stripe, which would otherwise be able to reject a session for
+ * being a second too short.
+ *
+ * Without this, Stripe's default is 24 HOURS — far longer than the reservation
+ * lives — which opened a double-use window (see REFERRAL_RESERVATION_TTL_MS).
+ */
+export const REFERRAL_SESSION_TTL_MS = 31 * 60 * 1000;
+
+/**
+ * How long a RESERVED redemption may sit before it is treated as abandoned.
+ *
+ * 🔴 THE INVARIANT: this MUST stay **strictly greater** than
+ * {@link REFERRAL_SESSION_TTL_MS}. It is the difference between "a stale session
+ * cannot be paid" and "a stale session can be paid after its redemption row was
+ * deleted, so a single-use code reads as unused and can be redeemed twice".
+ *
+ * The failure sequence, with the TTL SHORTER than the session life:
+ *   1. Member reserves code A and is sent to Stripe.
+ *   2. They abandon the tab for longer than the TTL.
+ *   3. They start a DIFFERENT checkout. The stale sweep deletes the code-A row
+ *      (scoped to this member), so code A is now unclaimed.
+ *   4. They go back to the stale tab and pay it. Stripe honours the discount
+ *      baked into that session, but there is no row left to confirm — so code A
+ *      still looks unused and a second member can redeem it.
+ *
+ * Making the session expire FIRST closes this by construction: by the time the
+ * sweep would delete the row, the session is already unpayable. The gap between
+ * the two (31 min vs 40 min) is deliberate — a tie would leave the ordering to
+ * clock skew.
+ *
+ * Consequence to be aware of: a member now has ~31 minutes to complete payment,
+ * not 24 hours. That is the intended trade — a payable session outliving its
+ * reservation is a correctness bug, not a convenience feature.
+ */
+export const REFERRAL_RESERVATION_TTL_MS = 40 * 60 * 1000;
 
 /**
  * Clear a member's abandoned reservations.
