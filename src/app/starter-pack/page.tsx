@@ -3,13 +3,15 @@ import { getStarterPackAssetUrls, getStarterPackContent } from "@/lib/content/ac
 import { resolveStarterMarketNote } from "@/data/starter-pack";
 import { getContentStats, formatContentPlaceholders } from "@/lib/content/content-stats";
 import { StarterPackClient } from "./starter-pack-client";
-import { BRAND_NAME } from "@/lib/brand";
+import { canonicalAlternates } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: `Starter Pack — ${BRAND_NAME}`,
+  // ⚠️ No `${BRAND_NAME}`: the layout's `title.template` appends "| CommodityPlay.".
+  title: "Starter Pack",
   description: "Free starter pack — desk infographics, weekly community email, Chapter A preview, and Desk Glossary.",
+  alternates: canonicalAlternates("/starter-pack"),
 };
 
 export default async function StarterPackPage() {

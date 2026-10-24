@@ -41,13 +41,54 @@ const createSchema = z.object({
 /** How many times to retry a generated code that collides with an existing row. */
 const GENERATE_ATTEMPTS = 5;
 
-export async function GET() {
+/**
+ * Page size bounds for the list endpoint.
+ *
+ * 🔴 The list used to be `findMany()` with no `take` and a nested
+ * `redemption → user` on every row, i.e. the whole table plus a join per row in
+ * one response. That is fine at ten codes and untenable at ten thousand: the
+ * response grows without bound and the admin tab has to render all of it.
+ *
+ * `MAX_PAGE_SIZE` is a hard cap, not a hint — a caller asking for 10000 gets 100.
+ */
+const DEFAULT_PAGE_SIZE = 25;
+const MAX_PAGE_SIZE = 100;
+
+export async function GET(req: NextRequest) {
   const admin = await requireSoleAdmin();
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const url = new URL(req.url);
+  const requestedPage = Number.parseInt(url.searchParams.get("page") ?? "1", 10);
+  const requestedSize = Number.parseInt(
+    url.searchParams.get("pageSize") ?? String(DEFAULT_PAGE_SIZE),
+    10
+  );
+
+  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const pageSize = Number.isFinite(requestedSize)
+    ? Math.min(MAX_PAGE_SIZE, Math.max(1, requestedSize))
+    : DEFAULT_PAGE_SIZE;
+
   try {
+    const total = await prisma.referralCode.count();
+
+    // Clamp so a stale page number (e.g. after deleting the last row on the last
+    // page) returns the final page instead of an empty table that looks like data
+    // loss.
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(page, totalPages);
+
+    // 🔴 Step 1: the codes, bounded. No relation is included here — a nested
+    // include is what made this a per-row join.
     const codes = await prisma.referralCode.findMany({
-      orderBy: { createdAt: "desc" },
+      // 🔴 `id` is the TIEBREAKER, not decoration. Codes generated in the same
+      // millisecond share a `createdAt`, and `ORDER BY createdAt DESC` alone leaves
+      // their relative order unspecified — so offset pagination could show one row
+      // on two pages and skip another. The second key makes the order total.
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (safePage - 1) * pageSize,
+      take: pageSize,
       select: {
         id: true,
         code: true,
@@ -57,22 +98,70 @@ export async function GET() {
         expiresAt: true,
         disabled: true,
         createdAt: true,
-        // A code has at most one redemption (unique index), so this is 1:1.
-        // The member's email is included because the operator needs to know WHO
-        // used a code — that is the whole point of the audit trail.
-        redemption: {
+      },
+    });
+
+    const codeIds = codes.map((row) => row.id);
+
+    // Step 2: ONE batched query for this page's redemptions. A code has at most
+    // one redemption (unique index), so this returns ≤ pageSize rows.
+    const redemptions = codeIds.length
+      ? await prisma.referralRedemption.findMany({
+          where: { referralCodeId: { in: codeIds } },
           select: {
+            referralCodeId: true,
             status: true,
             reservedAt: true,
             confirmedAt: true,
             stripeSessionId: true,
-            user: { select: { id: true, email: true, name: true } },
+            userId: true,
           },
-        },
-      },
+        })
+      : [];
+
+    // Step 3: ONE batched query for the members those redemptions point at —
+    // only the fields the table renders, and only for ids actually referenced.
+    const userIds = [...new Set(redemptions.map((row) => row.userId))];
+    const users = userIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, email: true, name: true },
+        })
+      : [];
+
+    const userById = new Map(users.map((user) => [user.id, user]));
+    const redemptionByCodeId = new Map(
+      redemptions.map((redemption) => [redemption.referralCodeId, redemption])
+    );
+
+    // Step 4: stitch in memory. Same shape the tab already consumes, so the UI's
+    // `row.redemption.user.email` keeps working unchanged.
+    const items = codes.map((row) => {
+      const redemption = redemptionByCodeId.get(row.id) ?? null;
+      const user = redemption ? userById.get(redemption.userId) : null;
+
+      return {
+        ...row,
+        redemption:
+          redemption && user
+            ? {
+                status: redemption.status,
+                reservedAt: redemption.reservedAt,
+                confirmedAt: redemption.confirmedAt,
+                stripeSessionId: redemption.stripeSessionId,
+                user: { id: user.id, email: user.email, name: user.name },
+              }
+            : null,
+      };
     });
 
-    return NextResponse.json(codes);
+    return NextResponse.json({
+      items,
+      page: safePage,
+      pageSize,
+      total,
+      totalPages,
+    });
   } catch (err) {
     console.error("[admin/referral-codes] list failed", err);
     return NextResponse.json({ error: "Could not load referral codes" }, { status: 500 });

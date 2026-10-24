@@ -14,6 +14,15 @@ in this folder is a dated design artifact, kept for history.
 | [`payments-go-live.md`](./payments-go-live.md) | …turn paid checkout on (or off), or verify it after a launch |
 | [`runbook.md`](./runbook.md) | …build, deploy, verify a change, or debug a failed build |
 
+## Proposed — designed, not built
+
+Specs for work that has been agreed in principle but not implemented. **The product does not behave
+this way yet**; read these as plans, not as descriptions.
+
+| Doc | Status |
+|---|---|
+| [`site-search-spec-2026-10-24.md`](./site-search-spec-2026-10-24.md) | Site search (`/search`). Nothing exists today — no route, no API, no filter control anywhere. Deferred until the Stripe work is settled. |
+
 ## Historical artifacts
 
 Dated design documents. Useful for *why*, unreliable for *what* — several describe designs that were

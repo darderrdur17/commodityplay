@@ -8,6 +8,7 @@ import {
   getClientIp,
   rateLimitKey,
   rateLimitResponse,
+  rateLimitUnavailableResponse,
 } from "@/lib/rate-limit";
 import { validateReferralCodeForMember } from "@/lib/referral-validation";
 
@@ -35,11 +36,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // 🔴 FAIL CLOSED here, unlike every other rate-limited route.
+  //
+  // The 20-per-15-minutes cap is the only thing standing between a `CP-XXXX-XXXX`
+  // space and an attacker walking it, so it is a SECURITY control, not a fairness
+  // one. Before the Postgres store existed, an unset Upstash silently degraded this
+  // to a per-lambda counter — 20 × N warm lambdas — which is not that control.
+  //
+  // If no shared store can be reached, refuse the request (503) rather than let it
+  // through on an inflated limit. `/api/stripe/checkout` re-validates the code
+  // anyway, so a member is inconvenienced for a moment, never overcharged.
   const limit = await checkRateLimit(
     rateLimitKey("referral-validate", getClientIp(req), session.user.id),
-    RATE_LIMITS.referralValidate
+    RATE_LIMITS.referralValidate,
+    Date.now(),
+    { onSharedStoreUnavailable: "deny" }
   );
-  if (!limit.allowed) return rateLimitResponse(limit);
+  if (!limit.allowed) {
+    // `degraded` means the limiter could not count, not that the member over-tried.
+    if (limit.degraded) return rateLimitUnavailableResponse(limit);
+    return rateLimitResponse(limit);
+  }
 
   let body: unknown;
   try {

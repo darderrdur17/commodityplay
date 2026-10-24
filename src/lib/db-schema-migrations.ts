@@ -483,4 +483,29 @@ EXCEPTION
   WHEN duplicate_object THEN NULL;
   WHEN undefined_table THEN NULL;
 END $$;
+
+-- 8. RateLimitCounter — the SHARED fixed-window store for rate limiting.
+--
+--    Why this table exists: src/lib/rate-limit.ts prefers Upstash Redis, but
+--    Upstash is not configured in production, so the limiter used to fall back to
+--    a per-lambda in-memory Map. On Vercel that silently multiplies every limit by
+--    the number of warm lambdas — for referralValidate (20 / 15 min, whose whole
+--    purpose is to stop code guessing) the real ceiling became 20 x N.
+--
+--    Postgres is already a shared, durable store that every lambda reaches, so a
+--    single atomic upsert gives a genuinely distributed counter with no new
+--    infrastructure and no new credential. "count" and "expiresAt" are maintained
+--    in ONE statement (see PG_WINDOW_SQL), so two concurrent lambdas cannot both
+--    read the same value and write back the same increment.
+--
+--    Rows are transient: a periodic sweep deletes anything an hour past its
+--    window, so the table stays small and never needs manual pruning.
+CREATE TABLE IF NOT EXISTS "RateLimitCounter" (
+  "key" TEXT NOT NULL,
+  "count" INTEGER NOT NULL DEFAULT 0,
+  "expiresAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "RateLimitCounter_pkey" PRIMARY KEY ("key")
+);
+
+CREATE INDEX IF NOT EXISTS "RateLimitCounter_expiresAt_idx" ON "RateLimitCounter"("expiresAt");
 `
