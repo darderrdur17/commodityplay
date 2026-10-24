@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   subscriptionPlanLabel,
   subscriptionStatusLabel,
@@ -18,6 +19,7 @@ import {
   type BillingTier,
   type BillingTrack,
 } from "@/lib/billing";
+import { PAYMENTS_STATUS_COPY, PAYMENTS_STATUS_LABEL } from "@/lib/payments";
 import { startBillingPortal, type BillingPortalFlow } from "@/lib/start-billing-portal";
 import { cn, formatDate } from "@/lib/utils";
 import { LANDING_CTA } from "@/lib/landing-cta";
@@ -105,14 +107,16 @@ export function AccountBillingSection({
         <p className="text-xs text-muted-fg mt-1">
           {paymentsEnabled
             ? "Manage your plan, payment method, and invoices via our secure checkout."
-            : "View your plan here. Online card and PayNow checkout will be enabled before go-live."}
+            : PAYMENTS_STATUS_COPY.accountSubtitle}
         </p>
       </div>
 
       {!paymentsEnabled && (
-        <div className="mx-6 mt-4 rounded-xl border border-primary-line bg-primary-soft px-4 py-3 text-sm text-primary-800">
-          Payments are not live yet — this page is ready for when Stripe / PayNow is connected. You
-          can still review your tier and billing status below.
+        <div className="mx-6 mt-4 flex items-start gap-2 rounded-xl border border-primary-line bg-primary-soft px-4 py-3 text-sm text-primary-800">
+          <Badge variant="warning" className="mt-0.5 flex-shrink-0">
+            {PAYMENTS_STATUS_LABEL}
+          </Badge>
+          <span>{PAYMENTS_STATUS_COPY.accountNote}</span>
         </div>
       )}
 

@@ -39,7 +39,11 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "What payment methods are accepted?",
-    a: "We accept all major credit and debit cards via Stripe. Pro and Elite are billed monthly on the same date each month.",
+    // ⚠️ Status is "Coming soon" while the Stripe integration is finished — this
+    // answer must not claim cards are accepted today. ⚠️ This is only the DEFAULT:
+    // `getFaqContent()` prefers the CMS payload, so production shows whatever is
+    // saved in Admin → Content unless it is edited there too.
+    a: `Card payment is coming soon. Until it opens, reach out to ${BRAND_EMAIL_HELLO} and we'll set you up directly. When checkout goes live we'll accept all major credit and debit cards, billed monthly on the same date each month.`,
   },
   {
     q: "Is there a student or team discount?",
