@@ -3489,6 +3489,8 @@ async function verifyReferralCodes() {
   const adminClientSrc = readSrc("src/app/admin/admin-client.tsx");
   const adminTabSrc = readSrc("src/app/admin/referral-codes-tab.tsx");
   const webhookSrc = readSrc("src/app/api/stripe/webhook/route.ts");
+  const rateLimitSrc = readSrc("src/lib/rate-limit.ts");
+  const rateLimitSharedSrc = readSrc("src/lib/rate-limit-shared.ts");
 
   ok(
     "Referral: the checkout route accepts an optional referralCode",
@@ -3629,6 +3631,119 @@ async function verifyReferralCodes() {
     "Referral: the webhook CONFIRMS a paid reservation (so it is never swept as stale)",
     webhookSrc.includes("await confirmReferralRedemption(session)") &&
       webhookSrc.includes('status: "CONFIRMED"')
+  );
+
+  /* ── PART 6: the three post-deploy hardening fixes ─────────────────────────
+   * Each of these guards a failure that is invisible in normal use:
+   *   1. a rate limit that is really "limit x warm lambdas",
+   *   2. an admin list that grows without bound,
+   *   3. a payable session that outlives the reservation it was priced under.
+   */
+
+  // 1. Distributed rate limiting.
+  ok(
+    "Rate limit: a Postgres-backed shared store exists (not just per-instance memory)",
+    rateLimitSrc.includes("async function checkPostgres(") &&
+      rateLimitSrc.includes('windowResult(Number(row.count), Number(row.ttl), rule, "postgres")')
+  );
+  ok(
+    "Rate limit: the shared store is tried BEFORE the in-memory fallback",
+    rateLimitSrc.indexOf("const postgres = await checkPostgres(") > 0 &&
+      rateLimitSrc.indexOf("const postgres = await checkPostgres(") <
+        rateLimitSrc.indexOf("return checkMemory(key, rule, now)")
+  );
+  ok(
+    "Rate limit: the counter increment is ONE atomic upsert, not read-then-write",
+    // A SELECT-then-UPDATE would let two lambdas both read 3 and both write 4.
+    rateLimitSharedSrc.includes('ON CONFLICT ("key") DO UPDATE') &&
+      rateLimitSharedSrc.includes('"RateLimitCounter"."count" + 1') &&
+      !/SELECT[\s\S]{0,200}?FROM "RateLimitCounter"/i.test(rateLimitSharedSrc)
+  );
+  ok(
+    "Rate limit: CORE_MIGRATION_SQL creates RateLimitCounter (no migrations dir)",
+    migrationSrc.includes('CREATE TABLE IF NOT EXISTS "RateLimitCounter"') &&
+      schemaSrc.includes("model RateLimitCounter {")
+  );
+  ok(
+    "Rate limit: every result reports WHICH store answered, and degradation is flagged",
+    rateLimitSharedSrc.includes('export type RateLimitStore = "redis" | "postgres" | "memory"') &&
+      rateLimitSharedSrc.includes("degraded: true") &&
+      rateLimitSrc.includes("function warnDegraded(")
+  );
+  ok(
+    "Rate limit: referralValidate FAILS CLOSED when no shared store is available",
+    // The 20/15min cap is the anti-guessing control; an inflated cap is not it.
+    referralValidateRouteSrc.includes('onSharedStoreUnavailable: "deny"') &&
+      referralValidateRouteSrc.includes("rateLimitUnavailableResponse(limit)") &&
+      rateLimitSrc.includes('export function rateLimitUnavailableResponse(')
+  );
+  ok(
+    "Rate limit: a degraded refusal is 503, not a false 429 'too many attempts'",
+    /status: 503[\s\S]{0,200}RATE_LIMIT_UNAVAILABLE|RATE_LIMIT_UNAVAILABLE[\s\S]{0,200}status: 503/.test(
+      rateLimitSrc
+    )
+  );
+
+  // 2. Bounded admin list.
+  ok(
+    "Referral admin list: paginated with a HARD page-size cap",
+    adminCreateSrc.includes("const MAX_PAGE_SIZE = 100") &&
+      adminCreateSrc.includes("take: pageSize") &&
+      adminCreateSrc.includes("skip: (safePage - 1) * pageSize") &&
+      adminCreateSrc.includes("Math.min(MAX_PAGE_SIZE, Math.max(1, requestedSize))")
+  );
+  ok(
+    "Referral admin list: no per-row redemption join (batched queries instead)",
+    !adminCreateSrc.includes("redemption: {") &&
+      adminCreateSrc.includes("referralRedemption.findMany(") &&
+      adminCreateSrc.includes("referralCodeId: { in: codeIds }")
+  );
+  ok(
+    "Referral admin list: the member lookup is batched and only for referenced ids",
+    // `prisma.user.findMany` over the distinct ids the page's redemptions point
+    // at — not a `user` include hanging off every code row.
+    adminCreateSrc.includes("select: { id: true, email: true, name: true }") &&
+      adminCreateSrc.includes("id: { in: userIds }") &&
+      adminCreateSrc.includes("new Set(redemptions.map((row) => row.userId))")
+  );
+  ok(
+    "Referral admin list: response envelope still feeds the tab's row shape",
+    adminCreateSrc.includes("items,") &&
+      adminCreateSrc.includes("totalPages,") &&
+      adminTabSrc.includes("data.items") &&
+      adminTabSrc.includes("row.redemption.user.email")
+  );
+
+  // 3. Session expiry vs reservation TTL.
+  ok(
+    "Checkout: the Stripe session carries expires_at derived from the session TTL",
+    checkoutSrc.includes("expires_at: Math.floor((Date.now() + REFERRAL_SESSION_TTL_MS) / 1000)")
+  );
+  ok(
+    "Checkout: REFERRAL_SESSION_TTL_MS is within Stripe's 30min–24h window",
+    (() => {
+      const minutes = Number(
+        /export const REFERRAL_SESSION_TTL_MS = (\d+) \* 60 \* 1000;/.exec(referralValidationSrc)?.[1]
+      );
+      return Number.isFinite(minutes) && minutes >= 30 && minutes <= 24 * 60;
+    })()
+  );
+  ok(
+    "Checkout: the reservation TTL is STRICTLY greater than the session TTL",
+    // 🔴 This ordering is the whole fix. If the reservation is released first, a
+    // stale session can still be paid after its row is gone — discount honoured,
+    // single-use code unclaimed, redeemable again.
+    (() => {
+      const session = Number(
+        /export const REFERRAL_SESSION_TTL_MS = (\d+) \* 60 \* 1000;/.exec(referralValidationSrc)?.[1]
+      );
+      const reservation = Number(
+        /export const REFERRAL_RESERVATION_TTL_MS = (\d+) \* 60 \* 1000;/.exec(
+          referralValidationSrc
+        )?.[1]
+      );
+      return Number.isFinite(session) && Number.isFinite(reservation) && reservation > session;
+    })()
   );
 
   // ── PART 5: an abandoned checkout must not block the member ──────────────

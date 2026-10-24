@@ -38,6 +38,20 @@ interface ReferralCodeRow {
 
 type CodeStatus = "Active" | "Disabled" | "Redeemed" | "Expired";
 
+/**
+ * The list endpoint is paginated, so the response is an envelope rather than a
+ * bare array. `pageSize` is capped server-side (100); this UI asks for 25.
+ */
+interface ReferralCodePage {
+  items: ReferralCodeRow[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+const PAGE_SIZE = 25;
+
 const STATUS_BADGE: Record<CodeStatus, "success" | "secondary" | "pro" | "warning"> = {
   Active: "success",
   Redeemed: "pro",
@@ -62,6 +76,9 @@ const inputClass =
 
 export function ReferralCodesTab() {
   const [rows, setRows] = useState<ReferralCodeRow[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,17 +90,28 @@ export function ReferralCodesTab() {
   const [customCode, setCustomCode] = useState("");
   const [expiresOn, setExpiresOn] = useState("");
 
-  const load = useCallback(async () => {
+  /**
+   * Load one page. `targetPage` is explicit rather than read from state so the
+   * create/refresh paths can pin themselves to page 1 without racing a `setPage`
+   * that has not rendered yet.
+   */
+  const load = useCallback(async (targetPage = 1) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/referral-codes", { cache: "no-store" });
+      const res = await fetch(
+        `/api/admin/referral-codes?page=${targetPage}&pageSize=${PAGE_SIZE}`,
+        { cache: "no-store" }
+      );
       if (!res.ok) {
         setError("Could not load referral codes.");
         return;
       }
-      const data = (await res.json()) as ReferralCodeRow[];
-      setRows(Array.isArray(data) ? data : []);
+      const data = (await res.json()) as ReferralCodePage;
+      setRows(Array.isArray(data.items) ? data.items : []);
+      setPage(data.page ?? targetPage);
+      setTotal(data.total ?? 0);
+      setTotalPages(data.totalPages ?? 1);
     } catch {
       setError("Could not load referral codes.");
     } finally {
@@ -92,7 +120,7 @@ export function ReferralCodesTab() {
   }, []);
 
   useEffect(() => {
-    void load();
+    void load(1);
   }, [load]);
 
   /** A `<input type="date">` yields `YYYY-MM-DD`; the API wants an ISO instant. */
@@ -134,7 +162,8 @@ export function ReferralCodesTab() {
         setCustomCode("");
         setExpiresOn("");
       }
-      await load();
+      // A new code sorts to the top, so go back to page 1 to show it.
+      await load(1);
     } catch {
       setError("Could not create the code.");
     } finally {
@@ -157,7 +186,7 @@ export function ReferralCodesTab() {
         setError(data.error || "Could not update the code.");
         return;
       }
-      await load();
+      await load(page);
     } catch {
       setError("Could not update the code.");
     } finally {
@@ -179,7 +208,7 @@ export function ReferralCodesTab() {
         return;
       }
       setNotice(`Deleted ${row.code}.`);
-      await load();
+      await load(page);
     } catch {
       setError("Could not delete the code.");
     } finally {
@@ -258,7 +287,7 @@ export function ReferralCodesTab() {
           >
             Create with these details
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => void load()} disabled={loading}>
+          <Button size="sm" variant="ghost" onClick={() => void load(page)} disabled={loading}>
             <RefreshCw className="w-4 h-4" /> Refresh
           </Button>
         </div>
@@ -269,12 +298,35 @@ export function ReferralCodesTab() {
 
       {/* ── List ───────────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-secondary">
+        <div className="px-4 py-3 border-b border-border bg-secondary flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-fg">
             {loading
               ? "Loading referral codes…"
-              : `${rows.length} code${rows.length === 1 ? "" : "s"}. Labels are internal and never shown to members.`}
+              : `${total} code${total === 1 ? "" : "s"}. Labels are internal and never shown to members.`}
           </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void load(page - 1)}
+                disabled={loading || page <= 1}
+              >
+                Previous
+              </Button>
+              <span className="text-xs text-muted-fg">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void load(page + 1)}
+                disabled={loading || page >= totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[860px]">

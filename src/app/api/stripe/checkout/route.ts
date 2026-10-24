@@ -16,6 +16,7 @@ import { normalizeReferralCode } from "@/lib/referral-codes";
 import { getReferralRewardConfig } from "@/lib/referral-reward";
 import {
   REFERRAL_REJECTION_MESSAGES,
+  REFERRAL_SESSION_TTL_MS,
   releaseReferralReservation,
   releaseStaleReferralReservations,
   validateReferralCodeForMember,
@@ -348,6 +349,19 @@ export async function POST(req: NextRequest) {
           : { allow_promotion_codes: true }),
         billing_address_collection: "required",
         customer_update: { address: "auto", name: "auto" },
+        // 🔴 The session must NOT outlive the referral reservation.
+        //
+        // Stripe's default is 24 HOURS, but a RESERVED redemption is released by
+        // the stale sweep after REFERRAL_RESERVATION_TTL_MS. With the default, a
+        // member could reserve a code, abandon for an hour, start a different
+        // checkout (deleting the old row), then pay the stale session — Stripe
+        // honours the discount baked into it while the redemption row is gone, so
+        // the single-use code reads as unused and can be redeemed again.
+        //
+        // Pinning `expires_at` makes the session unpayable before its reservation
+        // can be released. `REFERRAL_RESERVATION_TTL_MS` is deliberately the
+        // larger of the two constants; see the invariant documented next to it.
+        expires_at: Math.floor((Date.now() + REFERRAL_SESSION_TTL_MS) / 1000),
         // Now for every plan, not just Elite: every plan is recurring.
         saved_payment_method_options: { payment_method_save: "enabled" },
         payment_method_types: ["card"],
