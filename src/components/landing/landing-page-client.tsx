@@ -27,6 +27,7 @@ import { CaseStudiesSection } from "@/components/landing/case-studies-section";
 import { MarketNoteStrip } from "@/components/landing/market-note-strip";
 import { MentorConnectSection } from "@/components/landing/mentor-connect-section";
 import { PricingCtaBand } from "@/components/landing/pricing-cta-band";
+import { ClientAdsSection } from "@/components/landing/client-ads-section";
 import {
   LANDING_HERO_TOP,
   LANDING_HERO_BOTTOM,
@@ -118,6 +119,7 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
           pricingCtaBand={pricingCtaBand}
           salesFeatures={content.salesFeatures}
           mentorSection={content.mentorSection}
+          clientAds={content.clientAds}
         />
       ) : (
         <>
@@ -312,6 +314,13 @@ export function LandingPageClient({ content, edgeNotes, starterPackItems, starte
               ))}
             </StaggerChildren>
           </section>
+
+          {/* Client ads & shoutouts — company banners and client quotes, filtered
+              to this track by each row's own `track` field. Sits after the member
+              testimonials so the page closes on external proof before the
+              "choose a plan" band. Renders nothing when no row targets this
+              track. */}
+          <ClientAdsSection content={content.clientAds} track="career" />
 
           {/* Centered "choose a plan" band. Moved BELOW the testimonials at the
               owner's request (11 Oct 2026) — it previously sat directly above

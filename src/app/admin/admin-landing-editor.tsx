@@ -9,7 +9,10 @@ import type {
   LandingContent,
   LandingTrackFeature,
   CaseStudyPreviewCard,
+  ClientAdEntry,
+  LandingClientAds,
 } from "@/data/landing-content";
+import { CLIENT_AD_TRACK_LABELS } from "@/lib/content/client-ads";
 
 interface Props {
   content: LandingContent;
@@ -444,9 +447,16 @@ function TrackFeatureFields({
 function ImageAssetField({
   value,
   onChange,
+  assetKey = "landing/final-cta-image",
+  hint = "Optional. Renders centred under the closing band\u2019s title. PNG or JPG, max 4MB.",
+  previewClassName = "h-24 w-auto rounded-lg border border-border object-cover",
 }: {
   value?: string;
   onChange: (assetId: string | undefined) => void;
+  /** ContentAsset key for this slot — one per upload position, never shared. */
+  assetKey?: string;
+  hint?: string;
+  previewClassName?: string;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -459,7 +469,7 @@ function ImageAssetField({
       file,
       moduleSlug: "landing",
       requiredTier: "PRO",
-      assetKey: "landing/final-cta-image",
+      assetKey,
     });
     setBusy(false);
     if ("error" in result) {
@@ -504,18 +514,257 @@ function ImageAssetField({
       </div>
       {value ? (
         // eslint-disable-next-line @next/next/no-img-element -- CMS asset of unknown dimensions
-        <img
-          src={`/api/content/assets/${value}`}
-          alt=""
-          className="h-24 w-auto rounded-lg border border-border object-cover"
-        />
+        <img src={`/api/content/assets/${value}`} alt="" className={previewClassName} />
       ) : (
-        <p className="text-[11px] text-muted-fg">
-          Optional. Renders centred under the closing band&rsquo;s title. PNG or JPG, max 4MB.
-        </p>
+        <p className="text-[11px] text-muted-fg">{hint}</p>
       )}
       {error && <p className="text-[11px] text-red-600">{error}</p>}
     </div>
+  );
+}
+
+const selectClass =
+  "w-full h-9 px-2 rounded-lg border border-border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-400";
+
+/** Blank row for "Add ad" / "Add shoutout". `id` must be unique — it is the React key. */
+function newClientAdEntry(kind: ClientAdEntry["kind"]): ClientAdEntry {
+  const stamp = `${kind}-${Date.now().toString(36)}`;
+  return {
+    id: stamp,
+    kind,
+    company: kind === "ad" ? "New client" : "New client",
+    eyebrow: kind === "ad" ? "Enterprise client" : "Client shoutout",
+    headline: kind === "ad" ? "Ad headline" : "What the client said",
+    body:
+      kind === "ad"
+        ? "One or two lines of supporting copy for this advertisement."
+        : "The short quote or comment this client gave permission to publish.",
+    attribution: kind === "ad" ? undefined : "Name, role",
+    track: "both",
+    visible: true,
+    // A row the owner creates starts as a placeholder too: the "Example" tag comes
+    // off only when she consciously unticks it, so nothing invented goes live by
+    // default.
+    sample: true,
+  };
+}
+
+/**
+ * Editor for the "Client ads & shoutouts" section — one shared list feeding BOTH
+ * landing pages.
+ *
+ * Add / update / remove / hide are all here, and nothing is destroyed by hiding:
+ * `visible: false` keeps the row in the CMS so it can be brought back, while
+ * deleting removes it outright. The `track` dropdown is what makes one list serve
+ * two personas.
+ */
+function ClientAdsEditor({
+  content,
+  onChange,
+}: {
+  content: LandingClientAds;
+  onChange: (next: LandingClientAds) => void;
+}) {
+  function patchEntry(index: number, next: Partial<ClientAdEntry>) {
+    const entries = content.entries.map((entry, i) => (i === index ? { ...entry, ...next } : entry));
+    onChange({ ...content, entries });
+  }
+
+  function removeEntry(index: number) {
+    onChange({ ...content, entries: content.entries.filter((_, i) => i !== index) });
+  }
+
+  function moveEntry(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= content.entries.length) return;
+    const entries = [...content.entries];
+    const [row] = entries.splice(index, 1);
+    entries.splice(target, 0, row);
+    onChange({ ...content, entries });
+  }
+
+  function addEntry(kind: ClientAdEntry["kind"]) {
+    onChange({ ...content, entries: [...content.entries, newClientAdEntry(kind)] });
+  }
+
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Eyebrow">
+          <TextInput
+            value={content.eyebrow}
+            onChange={(v) => onChange({ ...content, eyebrow: v })}
+          />
+        </Field>
+        <Field label="Heading">
+          <TextInput value={content.title} onChange={(v) => onChange({ ...content, title: v })} />
+        </Field>
+      </div>
+      <Field label="Description">
+        <TextInput
+          value={content.description}
+          onChange={(v) => onChange({ ...content, description: v })}
+          multiline
+          rows={2}
+        />
+      </Field>
+
+      <p className="text-[11px] text-muted-fg">
+        {content.entries.length === 0
+          ? "No entries — the section is hidden on both landing pages. Add a row to bring it back."
+          : `${content.entries.length} entr${content.entries.length === 1 ? "y" : "ies"}. Untick Visible to hide one without deleting it; the section disappears from a track when no visible row targets it.`}
+      </p>
+
+      <div className="space-y-3">
+        {content.entries.map((entry, index) => (
+          <div key={entry.id} className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
+                  {entry.kind === "ad" ? "Ad" : "Shoutout"}
+                </span>
+                <span className="text-sm font-semibold text-gray-900">{entry.company}</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => moveEntry(index, -1)}
+                  disabled={index === 0}
+                  className={cn(smallButtonClass, "disabled:opacity-40")}
+                  aria-label="Move up"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveEntry(index, 1)}
+                  disabled={index === content.entries.length - 1}
+                  className={cn(smallButtonClass, "disabled:opacity-40")}
+                  aria-label="Move down"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeEntry(index)}
+                  className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Remove
+                </button>
+              </span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Kind">
+                <select
+                  value={entry.kind}
+                  onChange={(e) => patchEntry(index, { kind: e.target.value as ClientAdEntry["kind"] })}
+                  className={selectClass}
+                >
+                  <option value="ad">Ad (image-led)</option>
+                  <option value="shoutout">Shoutout (quote-led)</option>
+                </select>
+              </Field>
+              <Field label="Shown on">
+                <select
+                  value={entry.track}
+                  onChange={(e) => patchEntry(index, { track: e.target.value as ClientAdEntry["track"] })}
+                  className={selectClass}
+                >
+                  {(Object.keys(CLIENT_AD_TRACK_LABELS) as ClientAdEntry["track"][]).map((key) => (
+                    <option key={key} value={key}>
+                      {CLIENT_AD_TRACK_LABELS[key]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Company">
+                <TextInput
+                  value={entry.company}
+                  onChange={(v) => patchEntry(index, { company: v })}
+                />
+              </Field>
+              <Field label="Label" hint='Small caps line, e.g. "Enterprise client".'>
+                <TextInput
+                  value={entry.eyebrow}
+                  onChange={(v) => patchEntry(index, { eyebrow: v })}
+                />
+              </Field>
+            </div>
+
+            <Field label={entry.kind === "ad" ? "Ad headline" : "Shoutout lead line"}>
+              <TextInput
+                value={entry.headline}
+                onChange={(v) => patchEntry(index, { headline: v })}
+                multiline
+                rows={2}
+              />
+            </Field>
+            <Field label={entry.kind === "ad" ? "Ad body" : "Shoutout body"}>
+              <TextInput
+                value={entry.body}
+                onChange={(v) => patchEntry(index, { body: v })}
+                multiline
+                rows={3}
+              />
+            </Field>
+
+            {entry.kind === "shoutout" && (
+              <Field label="Attribution" hint='Optional, e.g. "Head of Metals Trading, <company>".'>
+                <TextInput
+                  value={entry.attribution ?? ""}
+                  onChange={(v) => patchEntry(index, { attribution: v })}
+                />
+              </Field>
+            )}
+
+            {/* Only an ad card renders a banner — `ShoutoutCard` is quote-led and
+                ignores `imageAssetId`. Offering the uploader on a shoutout row would
+                let the owner upload an image that never appears. */}
+            {entry.kind === "ad" && (
+              <div className="space-y-1.5">
+                <span className="block text-xs font-semibold text-gray-700">Ad image</span>
+                <ImageAssetField
+                  value={entry.imageAssetId}
+                  onChange={(id) => patchEntry(index, { imageAssetId: id })}
+                  assetKey={`landing/client-ad-${entry.id}`}
+                  hint="Optional. With no image, a generated placeholder tile is shown instead."
+                  previewClassName="h-20 w-auto rounded-lg border border-border object-cover"
+                />
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-4 pt-1">
+              <label className="inline-flex items-center gap-2 text-xs font-semibold text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={entry.visible}
+                  onChange={(e) => patchEntry(index, { visible: e.target.checked })}
+                />
+                Visible
+              </label>
+              <label className="inline-flex items-center gap-2 text-xs font-semibold text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={entry.sample ?? false}
+                  onChange={(e) => patchEntry(index, { sample: e.target.checked })}
+                />
+                Placeholder (shows an &ldquo;Example&rdquo; tag)
+              </label>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => addEntry("ad")} className={smallButtonClass}>
+          <Plus className="w-3.5 h-3.5" /> Add ad
+        </button>
+        <button type="button" onClick={() => addEntry("shoutout")} className={smallButtonClass}>
+          <Plus className="w-3.5 h-3.5" /> Add shoutout
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -2184,6 +2433,20 @@ export function AdminLandingEditor({
             </Field>
           </>
         )}
+      </Section>
+
+      {/* Shared by BOTH landing pages — the persona split is per row (the "Shown
+          on" dropdown), so this card is not wrapped in showCareer/showSales the way
+          the track-specific sections are. Hiding it behind a track filter would
+          make the sales-only rows unreachable while editing the career track. */}
+      <Section
+        title="Client ads & shoutouts (both landing pages)"
+        description="Company ads and client quotes. One list for both tracks — each row picks where it appears."
+      >
+        <ClientAdsEditor
+          content={content.clientAds}
+          onChange={(next) => patch("clientAds", next)}
+        />
       </Section>
 
       {showSales && (

@@ -7,6 +7,7 @@ import { SiteChrome } from "@/components/site-chrome";
 import { SessionProvider } from "@/components/session-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { BRAND_NAME, BRAND_SITE_URL } from "@/lib/brand";
+import { SITE_DESCRIPTION, siteJsonLd } from "@/lib/seo";
 
 // Inter and Roboto are self-hosted as latin-subset *variable* fonts (wght 100-900).
 //
@@ -58,8 +59,7 @@ export const metadata: Metadata = {
     default: `${BRAND_NAME} — Build Your Career in Commodity Trading`,
     template: `%s | ${BRAND_NAME}`,
   },
-  description:
-    "The definitive career and sales guide for commodity trading. Starter, Pro, and Elite resources for anyone building a desk, breaking in, or selling into trading firms.",
+  description: SITE_DESCRIPTION,
   keywords: [
     "commodity trading",
     "career guide",
@@ -118,6 +118,24 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${roboto.variable}`}>
       <body className="font-sans antialiased bg-white text-gray-800 min-h-screen flex flex-col overflow-x-hidden">
+        {/*
+          Structured data — `Organization` + `WebSite`, emitted once per document
+          from the root layout.
+
+          This is what lets Google treat "CommodityPlay" as a brand ENTITY rather
+          than a string that happens to appear on a page; it is a prerequisite for
+          a brand-name query resolving at all. The entities are built in
+          `src/lib/seo.ts` so the canonical origin and identity have one source.
+
+          Rendered as a plain <script type="application/ld+json"> because that is
+          exactly what the crawler reads — Next's metadata API has no JSON-LD slot.
+          `JSON.stringify` on our own constant objects, never user input.
+        */}
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd()) }}
+        />
         {/*
           No-JS fallback. The scroll-reveal wrappers (`Reveal`, `StaggerItem` in
           components/animations.tsx) render framer-motion's `initial="hidden"` as an

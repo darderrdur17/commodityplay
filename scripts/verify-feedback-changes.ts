@@ -8,8 +8,14 @@ import { hydrateLandingCaseStudyCards } from "../src/lib/content/landing-case-st
 import {
   prepareLandingContentForSave,
   formatLandingValidationErrors,
+  landingContentSchema,
 } from "../src/lib/content/landing-schema";
 import { resolveMemberPersonaLabel } from "../src/lib/persona-display";
+import {
+  CLIENT_AD_TRACK_LABELS,
+  clientAdInitials,
+  selectClientAds,
+} from "../src/lib/content/client-ads";
 import { getDemoAccountDisplayPersona } from "../src/data/demo-accounts";
 import { DEMO_ACCOUNTS } from "../src/data/demo-accounts";
 import { canAccessInternalDemo, FRANCES_DEMO_LOGIN_EMAIL } from "../src/lib/demo-access";
@@ -18,6 +24,14 @@ import {
   canonicalPublicUrl,
   isNonCanonicalHost,
 } from "../src/lib/canonical-host";
+import {
+  CANONICAL_ORIGIN,
+  CANONICAL_PATHS,
+  ORGANIZATION_ID,
+  WEBSITE_ID,
+  canonicalAlternates,
+  siteJsonLd,
+} from "../src/lib/seo";
 import { BRAND_EMAIL_SUPPORT } from "../src/lib/brand";
 import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import playbookSections from "../src/data/playbook-sections.json";
@@ -3483,6 +3497,8 @@ async function verifyReferralCodes() {
   const adminClientSrc = readSrc("src/app/admin/admin-client.tsx");
   const adminTabSrc = readSrc("src/app/admin/referral-codes-tab.tsx");
   const webhookSrc = readSrc("src/app/api/stripe/webhook/route.ts");
+  const rateLimitSrc = readSrc("src/lib/rate-limit.ts");
+  const rateLimitSharedSrc = readSrc("src/lib/rate-limit-shared.ts");
 
   ok(
     "Referral: the checkout route accepts an optional referralCode",
@@ -3625,6 +3641,119 @@ async function verifyReferralCodes() {
       webhookSrc.includes('status: "CONFIRMED"')
   );
 
+  /* ── PART 6: the three post-deploy hardening fixes ─────────────────────────
+   * Each of these guards a failure that is invisible in normal use:
+   *   1. a rate limit that is really "limit x warm lambdas",
+   *   2. an admin list that grows without bound,
+   *   3. a payable session that outlives the reservation it was priced under.
+   */
+
+  // 1. Distributed rate limiting.
+  ok(
+    "Rate limit: a Postgres-backed shared store exists (not just per-instance memory)",
+    rateLimitSrc.includes("async function checkPostgres(") &&
+      rateLimitSrc.includes('windowResult(Number(row.count), Number(row.ttl), rule, "postgres")')
+  );
+  ok(
+    "Rate limit: the shared store is tried BEFORE the in-memory fallback",
+    rateLimitSrc.indexOf("const postgres = await checkPostgres(") > 0 &&
+      rateLimitSrc.indexOf("const postgres = await checkPostgres(") <
+        rateLimitSrc.indexOf("return checkMemory(key, rule, now)")
+  );
+  ok(
+    "Rate limit: the counter increment is ONE atomic upsert, not read-then-write",
+    // A SELECT-then-UPDATE would let two lambdas both read 3 and both write 4.
+    rateLimitSharedSrc.includes('ON CONFLICT ("key") DO UPDATE') &&
+      rateLimitSharedSrc.includes('"RateLimitCounter"."count" + 1') &&
+      !/SELECT[\s\S]{0,200}?FROM "RateLimitCounter"/i.test(rateLimitSharedSrc)
+  );
+  ok(
+    "Rate limit: CORE_MIGRATION_SQL creates RateLimitCounter (no migrations dir)",
+    migrationSrc.includes('CREATE TABLE IF NOT EXISTS "RateLimitCounter"') &&
+      schemaSrc.includes("model RateLimitCounter {")
+  );
+  ok(
+    "Rate limit: every result reports WHICH store answered, and degradation is flagged",
+    rateLimitSharedSrc.includes('export type RateLimitStore = "redis" | "postgres" | "memory"') &&
+      rateLimitSharedSrc.includes("degraded: true") &&
+      rateLimitSrc.includes("function warnDegraded(")
+  );
+  ok(
+    "Rate limit: referralValidate FAILS CLOSED when no shared store is available",
+    // The 20/15min cap is the anti-guessing control; an inflated cap is not it.
+    referralValidateRouteSrc.includes('onSharedStoreUnavailable: "deny"') &&
+      referralValidateRouteSrc.includes("rateLimitUnavailableResponse(limit)") &&
+      rateLimitSrc.includes('export function rateLimitUnavailableResponse(')
+  );
+  ok(
+    "Rate limit: a degraded refusal is 503, not a false 429 'too many attempts'",
+    /status: 503[\s\S]{0,200}RATE_LIMIT_UNAVAILABLE|RATE_LIMIT_UNAVAILABLE[\s\S]{0,200}status: 503/.test(
+      rateLimitSrc
+    )
+  );
+
+  // 2. Bounded admin list.
+  ok(
+    "Referral admin list: paginated with a HARD page-size cap",
+    adminCreateSrc.includes("const MAX_PAGE_SIZE = 100") &&
+      adminCreateSrc.includes("take: pageSize") &&
+      adminCreateSrc.includes("skip: (safePage - 1) * pageSize") &&
+      adminCreateSrc.includes("Math.min(MAX_PAGE_SIZE, Math.max(1, requestedSize))")
+  );
+  ok(
+    "Referral admin list: no per-row redemption join (batched queries instead)",
+    !adminCreateSrc.includes("redemption: {") &&
+      adminCreateSrc.includes("referralRedemption.findMany(") &&
+      adminCreateSrc.includes("referralCodeId: { in: codeIds }")
+  );
+  ok(
+    "Referral admin list: the member lookup is batched and only for referenced ids",
+    // `prisma.user.findMany` over the distinct ids the page's redemptions point
+    // at — not a `user` include hanging off every code row.
+    adminCreateSrc.includes("select: { id: true, email: true, name: true }") &&
+      adminCreateSrc.includes("id: { in: userIds }") &&
+      adminCreateSrc.includes("new Set(redemptions.map((row) => row.userId))")
+  );
+  ok(
+    "Referral admin list: response envelope still feeds the tab's row shape",
+    adminCreateSrc.includes("items,") &&
+      adminCreateSrc.includes("totalPages,") &&
+      adminTabSrc.includes("data.items") &&
+      adminTabSrc.includes("row.redemption.user.email")
+  );
+
+  // 3. Session expiry vs reservation TTL.
+  ok(
+    "Checkout: the Stripe session carries expires_at derived from the session TTL",
+    checkoutSrc.includes("expires_at: Math.floor((Date.now() + REFERRAL_SESSION_TTL_MS) / 1000)")
+  );
+  ok(
+    "Checkout: REFERRAL_SESSION_TTL_MS is within Stripe's 30min–24h window",
+    (() => {
+      const minutes = Number(
+        /export const REFERRAL_SESSION_TTL_MS = (\d+) \* 60 \* 1000;/.exec(referralValidationSrc)?.[1]
+      );
+      return Number.isFinite(minutes) && minutes >= 30 && minutes <= 24 * 60;
+    })()
+  );
+  ok(
+    "Checkout: the reservation TTL is STRICTLY greater than the session TTL",
+    // 🔴 This ordering is the whole fix. If the reservation is released first, a
+    // stale session can still be paid after its row is gone — discount honoured,
+    // single-use code unclaimed, redeemable again.
+    (() => {
+      const session = Number(
+        /export const REFERRAL_SESSION_TTL_MS = (\d+) \* 60 \* 1000;/.exec(referralValidationSrc)?.[1]
+      );
+      const reservation = Number(
+        /export const REFERRAL_RESERVATION_TTL_MS = (\d+) \* 60 \* 1000;/.exec(
+          referralValidationSrc
+        )?.[1]
+      );
+      return Number.isFinite(session) && Number.isFinite(reservation) && reservation > session;
+    })()
+  );
+
   // ── PART 5: an abandoned checkout must not block the member ──────────────
   // Regression guard. The first version rejected on ANY existing row, so a member
   // who reached Stripe and clicked "back" was told "You have already used a
@@ -3756,10 +3885,390 @@ async function verifyReferralCodes() {
   );
 }
 
+/**
+ * Search discovery (canonicals, structured data, manifest).
+ *
+ * These decide whether a crawler can tell what this site IS, and they fail
+ * silently: a missing canonical or an invalid `SearchAction` does not throw, it
+ * just quietly costs visibility. So each one is pinned.
+ *
+ * The rule that matters most: a canonical (and a sitemap entry) may only point at
+ * a URL that returns 200 to an anonymous crawler. Every gated route 307s to
+ * `/login`, so advertising one would consolidate signals onto a URL Google cannot
+ * fetch — worse than having no canonical at all.
+ */
+async function verifySeoDiscovery() {
+  const read = (relativePath: string) =>
+    fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
+  const layoutSrc = read("src/app/layout.tsx");
+  const sitemapSrc = read("src/app/sitemap.ts");
+  const robotsSrc = read("src/app/robots.ts");
+  const manifestSrc = read("src/app/manifest.ts");
+
+  ok(
+    "SEO: every public page declares a canonical pointing at itself",
+    CANONICAL_PATHS.every((publicPath) => {
+      const file = publicPath === "/" ? "src/app/page.tsx" : `src/app${publicPath}/page.tsx`;
+      return read(file).includes(`canonicalAlternates("${publicPath}")`);
+    })
+  );
+
+  ok(
+    "SEO: canonicalAlternates returns a RELATIVE path (resolved by metadataBase)",
+    // Absolute canonicals would pin preview deployments to production.
+    canonicalAlternates("/pricing").canonical === "/pricing"
+  );
+
+  ok(
+    "SEO: the canonical set matches the sitemap's public routes exactly",
+    // Two lists that must not drift: one feeds canonicals, the other the sitemap.
+    (() => {
+      const sitemapPaths = [...sitemapSrc.matchAll(/\{\s*path:\s*"([^"]+)"/g)].map((m) => m[1]);
+      return (
+        sitemapPaths.length === CANONICAL_PATHS.length &&
+        CANONICAL_PATHS.every((p) => sitemapPaths.includes(p))
+      );
+    })()
+  );
+
+  ok(
+    "SEO: no page title re-interpolates the brand the layout template already appends",
+    // The root layout sets `title.template: "%s | CommodityPlay."`, and a template
+    // applies to CHILD segments. A page that ALSO writes `${BRAND_NAME}` into its own
+    // title therefore renders doubled — "Pricing — CommodityPlay. | CommodityPlay.".
+    // That was live in production on /pricing and /starter-pack until this change,
+    // confirmed by reading the served <title>. Pages supply their own name only.
+    (() => {
+      const template = /template:\s*`([^`]*)`/.exec(layoutSrc)?.[1] ?? "";
+      if (!template.includes("%s")) return false; // template gone → guard is meaningless
+      const offenders = fs
+        .readdirSync(path.join(process.cwd(), "src/app"), { recursive: true })
+        .map((entry) => `src/app/${String(entry)}`)
+        .filter((file) => file.endsWith("page.tsx"))
+        .filter((file) => {
+          // Strip comments so the ⚠️ notes that MENTION ${BRAND_NAME} don't trip it.
+          const src = read(file)
+            .replace(/\/\*[\s\S]*?\*\//g, "")
+            .replace(/\/\/.*$/gm, "");
+          return /title:\s*`[^`]*BRAND_NAME/.test(src);
+        });
+      return offenders.length === 0;
+    })()
+  );
+
+  ok(
+    "SEO: no GATED route is ever advertised as canonical",
+    // These 307 to /login (or 404) for an anonymous crawler.
+    !CANONICAL_PATHS.some((p) =>
+      ["/playbook", "/glossary", "/account", "/dashboard", "/admin", "/checkout", "/login"].includes(p)
+    )
+  );
+
+  ok(
+    "SEO: the root layout emits Organization + WebSite JSON-LD once per document",
+    layoutSrc.includes('type="application/ld+json"') &&
+      layoutSrc.includes("JSON.stringify(siteJsonLd())")
+  );
+
+  ok(
+    "SEO: the JSON-LD entities are well-formed and share one @id namespace",
+    (() => {
+      const [org, site] = siteJsonLd();
+      return (
+        org["@type"] === "Organization" &&
+        site["@type"] === "WebSite" &&
+        org["@id"] === ORGANIZATION_ID &&
+        site["@id"] === WEBSITE_ID &&
+        org.url === CANONICAL_ORIGIN &&
+        (site.publisher as { "@id": string })["@id"] === ORGANIZATION_ID
+      );
+    })()
+  );
+
+  ok(
+    "SEO: no SearchAction is declared while the site has no search endpoint",
+    // A SearchAction asserts `…?q={search_term_string}` exists. There is no site
+    // search yet, so claiming one is invalid structured data. This check is the
+    // guard that stops someone adding it "for the sitelinks box" prematurely.
+    !/potentialAction|SearchAction/.test(JSON.stringify(siteJsonLd())) &&
+      !/SearchAction/.test(
+        read("src/lib/seo.ts").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "")
+      )
+  );
+
+  ok(
+    "SEO: robots.txt declares the sitemap and disallows the gated surfaces",
+    robotsSrc.includes("sitemap: `${SITE_URL}/sitemap.xml`") &&
+      robotsSrc.includes('"/admin"') &&
+      robotsSrc.includes('"/api/"')
+  );
+
+  ok(
+    "SEO: a web manifest exists with a name, start_url and icons",
+    manifestSrc.includes("start_url:") &&
+      manifestSrc.includes("short_name:") &&
+      manifestSrc.includes("icons:") &&
+      manifestSrc.includes("display: \"standalone\"")
+  );
+
+  ok(
+    "SEO: manifest icon sizes match the real PNG dimensions on disk",
+    // A manifest that claims 192×192 for a 184px file is a lie the browser can
+    // detect, and it fails the PWA installability check either way. Read the IHDR
+    // width/height straight out of the PNG header instead of trusting the string.
+    (() => {
+      const declared = [...manifestSrc.matchAll(/src:\s*"([^"]+)"[\s\S]*?sizes:\s*"(\d+)x(\d+)"/g)].map(
+        (m) => ({ src: m[1], w: Number(m[2]), h: Number(m[3]) })
+      );
+      if (declared.length === 0) return false;
+      return declared.every(({ src, w, h }) => {
+        const file = path.join(process.cwd(), "public", src.replace(/^\//, ""));
+        if (!fs.existsSync(file)) return false;
+        const header = fs.readFileSync(file).subarray(0, 24);
+        if (header.subarray(1, 4).toString("ascii") !== "PNG") return false;
+        return header.readUInt32BE(16) === w && header.readUInt32BE(20) === h;
+      });
+    })()
+  );
+
+  ok(
+    "SEO: the manifest is not an app-store listing and claims no Play Store presence",
+    // Guards against a future "just point the manifest at a store listing" edit:
+    // a Play Store entry is a separate artefact (package id, signing key, review).
+    !/play\.google\.com|itunes\.apple\.com/.test(manifestSrc)
+  );
+}
+
+/**
+ * Client ads & shoutouts — the landing section that carries company banners and
+ * client quotes on BOTH tracks.
+ *
+ * Two kinds of check here, and they are not interchangeable:
+ *   - EXECUTED checks against `selectClientAds()`, because the visibility rules are
+ *     the only thing keeping a hidden or wrong-track row off the live page. A grep
+ *     for `.filter(` would pass while the filter was inverted.
+ *   - EXECUTED checks against `prepareLandingContentForSave()`, because the
+ *     `.default()` on the new CMS group is load-bearing: without it, saving any
+ *     OTHER landing field on a payload written before this group existed fails
+ *     validation and the owner's edit is rejected.
+ */
+function verifyClientAds() {
+  const read = (relativePath: string) =>
+    fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
+  const section = DEFAULT_LANDING_CONTENT.clientAds;
+  const seeded = section.entries;
+
+  ok("Client ads: the shipped section is populated", seeded.length >= 3, `${seeded.length} rows`);
+
+  ok(
+    "Client ads: both card shapes ship, so the owner sees each one",
+    seeded.some((e) => e.kind === "ad") && seeded.some((e) => e.kind === "shoutout")
+  );
+
+  // 🔴 The legal guard. A fabricated endorsement is a claim, not copy. Every seeded
+  // row is invented, so every seeded row must still carry the "Example" tag.
+  ok(
+    "Client ads: every seeded row is still flagged as a placeholder",
+    seeded.every((e) => e.sample === true),
+    `${seeded.filter((e) => e.sample === true).length}/${seeded.length} flagged`
+  );
+
+  // 🔴 And the specific version of that risk: the members strips name REAL firms.
+  // Reusing one of those names here would publish an invented endorsement of a real
+  // company, which is worse than any wording bug.
+  const realFirms = [
+    ...DEFAULT_LANDING_CONTENT.careerMembersStrip.companies,
+    ...DEFAULT_LANDING_CONTENT.salesMembersStrip.companies,
+  ].map((name) => name.trim().toLowerCase());
+  const collisions = seeded
+    .map((e) => e.company.trim().toLowerCase())
+    .filter((name) => realFirms.includes(name));
+  ok(
+    "Client ads: no placeholder row reuses a real firm from the members strip",
+    collisions.length === 0,
+    collisions.length ? collisions.join(", ") : `${realFirms.length} real names avoided`
+  );
+
+  const ids = seeded.map((e) => e.id);
+  ok(
+    "Client ads: row ids are present and unique",
+    ids.every((id) => id.trim().length > 0) && new Set(ids).size === ids.length
+  );
+
+  // Neither persona may open the page to an empty section out of the box.
+  ok(
+    "Client ads: the shipped rows cover career, sales and both",
+    (["career", "sales", "both"] as const).every((track) =>
+      seeded.some((e) => e.track === track)
+    )
+  );
+
+  const careerRows = selectClientAds(section, "career");
+  const salesRows = selectClientAds(section, "sales");
+
+  ok(
+    "Client ads: the career track gets only career and both rows",
+    careerRows.length > 0 && careerRows.every((e) => e.track === "career" || e.track === "both"),
+    `${careerRows.length} rows`
+  );
+  ok(
+    "Client ads: the sales track gets only sales and both rows",
+    salesRows.length > 0 && salesRows.every((e) => e.track === "sales" || e.track === "both"),
+    `${salesRows.length} rows`
+  );
+  ok(
+    "Client ads: a sales-only row never leaks onto the career page",
+    !careerRows.some((e) => e.track === "sales") && !salesRows.some((e) => e.track === "career")
+  );
+
+  // Named separately from the leak checks above, because "no sales row on the career
+  // page" is satisfied by a filter that drops `both` rows too — it would hide the
+  // shared row from BOTH pages and still pass every leak assertion.
+  ok(
+    "Client ads: a both-tracks row appears on both pages",
+    seeded.some((e) => e.track === "both" && e.visible) &&
+      careerRows.some((e) => e.track === "both") &&
+      salesRows.some((e) => e.track === "both")
+  );
+
+  // Order is the admin's order — a reorder in the panel must survive selection.
+  ok(
+    "Client ads: selection preserves CMS order",
+    careerRows.map((e) => e.id).join(",") ===
+      seeded.filter((e) => e.track === "career" || e.track === "both").map((e) => e.id).join(",")
+  );
+
+  const withHidden = {
+    ...section,
+    entries: seeded.map((e) => (e.id === seeded[0].id ? { ...e, visible: false } : e)),
+  };
+  ok(
+    "Client ads: an unticked row renders on NEITHER track",
+    !selectClientAds(withHidden, "career").some((e) => e.id === seeded[0].id) &&
+      !selectClientAds(withHidden, "sales").some((e) => e.id === seeded[0].id)
+  );
+
+  ok(
+    "Client ads: removing every row retires the section instead of throwing",
+    selectClientAds({ ...section, entries: [] }, "career").length === 0 &&
+      selectClientAds({ ...section, entries: [] }, "sales").length === 0 &&
+      selectClientAds(undefined, "career").length === 0
+  );
+
+  ok(
+    "Client ads: the admin track dropdown offers exactly the three track values",
+    Object.keys(CLIENT_AD_TRACK_LABELS).sort().join(",") === "both,career,sales"
+  );
+
+  ok(
+    "Client ads: monogram never exceeds two characters",
+    ["Meridian Agri Group", "Sable & Co. Commodities", "Vitol", "—"].every(
+      (name) => clientAdInitials(name).length >= 1 && clientAdInitials(name).length <= 2
+    ),
+    ["Meridian Agri Group", "Sable & Co. Commodities", "Vitol", "—"]
+      .map((n) => clientAdInitials(n))
+      .join(" / ")
+  );
+
+  // ── The CMS save path ────────────────────────────────────────────────────
+  const legacyPayload = { ...DEFAULT_LANDING_CONTENT } as Record<string, unknown>;
+  delete legacyPayload.clientAds;
+
+  // ⚠️ Parse with the SCHEMA, not `prepareLandingContentForSave`. That wrapper runs
+  // a repair loop which backfills a missing group from the defaults, so it passes
+  // whether or not the group is declared with `.default()`. Only the raw parse
+  // isolates the invariant the schema comment claims.
+  const rawLegacy = landingContentSchema.safeParse(legacyPayload);
+  ok(
+    "Client ads: the group is declared with .default(), so an old payload parses",
+    rawLegacy.success && rawLegacy.data.clientAds.entries.length === seeded.length,
+    rawLegacy.success
+      ? undefined
+      : formatLandingValidationErrors(rawLegacy) ?? "schema rejected the payload"
+  );
+
+  const legacySave = prepareLandingContentForSave(legacyPayload);
+  ok(
+    "Client ads: saving any other field on a pre-existing payload still succeeds",
+    legacySave.success && legacySave.data.clientAds.entries.length === seeded.length,
+    legacySave.success ? undefined : formatLandingValidationErrors(legacySave) ?? undefined
+  );
+
+  const emptied = prepareLandingContentForSave({
+    ...DEFAULT_LANDING_CONTENT,
+    clientAds: { ...section, entries: [] },
+  });
+  ok(
+    "Client ads: deleting every row is a valid save, not a validation error",
+    emptied.success && emptied.data.clientAds.entries.length === 0,
+    emptied.success ? undefined : formatLandingValidationErrors(emptied) ?? undefined
+  );
+
+  const badTrack = prepareLandingContentForSave({
+    ...DEFAULT_LANDING_CONTENT,
+    clientAds: {
+      ...section,
+      entries: [{ ...seeded[0], track: "enterprise" }],
+    },
+  });
+  ok(
+    "Client ads: an unknown track value is rejected rather than rendered everywhere",
+    badTrack.success === false
+  );
+
+  // ── Render wiring ────────────────────────────────────────────────────────
+  const sectionSrc = read("src/components/landing/client-ads-section.tsx");
+  const careerSrc = read("src/components/landing/landing-page-client.tsx");
+  const salesSrc = read("src/components/landing/sales-landing-panel.tsx");
+  const adminSrc = read("src/app/admin/admin-landing-editor.tsx");
+
+  ok(
+    "Client ads: the section filters through selectClientAds, never over raw entries",
+    // Mapping `content.entries` directly would bypass `visible` and `track` in one
+    // line and still look correct in the source.
+    sectionSrc.includes("selectClientAds(content, track)") &&
+      !sectionSrc.includes("content.entries.map(")
+  );
+
+  ok(
+    "Client ads: the career page renders the section with its own track",
+    careerSrc.includes("<ClientAdsSection") && careerSrc.includes('track="career"')
+  );
+  ok(
+    "Client ads: the sales page renders the section with its own track",
+    salesSrc.includes("<ClientAdsSection") && salesSrc.includes('track="sales"')
+  );
+  ok(
+    "Client ads: the sales panel actually receives the shared list",
+    careerSrc.includes("clientAds={content.clientAds}") &&
+      salesSrc.includes("clientAds: LandingContent[\"clientAds\"]")
+  );
+
+  ok(
+    "Client ads: the admin panel can add, remove and hide rows",
+    adminSrc.includes("function ClientAdsEditor") &&
+      adminSrc.includes("Add ad") &&
+      adminSrc.includes("Add shoutout") &&
+      adminSrc.includes("removeEntry") &&
+      adminSrc.includes("{ visible: e.target.checked }")
+  );
+
+  ok(
+    "Client ads: the placeholder flag is editable, so the tag can be removed",
+    adminSrc.includes("Placeholder (shows an") && adminSrc.includes("{ sample: e.target.checked }")
+  );
+}
+
 void verifyPdfStampWrites()
   .then(() => verifyCountryWaitlistCms())
   .then(() => verifySalesNudgesTweaks())
   .then(() => verifyReferralCodes())
+  .then(() => verifySeoDiscovery())
+  .then(() => {
+    verifyClientAds();
+  })
   .then(() => {
     console.log(failed === 0 ? "\n✅ All feedback/CMS checks passed." : `\n❌ ${failed} check(s) failed.`);
     process.exit(failed === 0 ? 0 : 1);
