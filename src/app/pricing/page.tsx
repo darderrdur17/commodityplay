@@ -3,7 +3,7 @@ import { requireSoleAdmin } from "@/lib/admin-access";
 import { getFaqContent, getLandingContent, getStarterPackContent } from "@/lib/content/accessors";
 import { applyContentStatsToLandingContent, getContentStats } from "@/lib/content/content-stats";
 import { PricingPageClient } from "@/components/pricing/pricing-page-client";
-import { BRAND_NAME } from "@/lib/brand";
+import { canonicalAlternates } from "@/lib/seo";
 
 /**
  * The dedicated pricing page. `force-dynamic` because it reads the session (to pin
@@ -21,9 +21,13 @@ import { BRAND_NAME } from "@/lib/brand";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: `Pricing — ${BRAND_NAME}`,
+  // ⚠️ No `${BRAND_NAME}` here: the root layout's `title.template` already appends
+  // "| CommodityPlay." to every child segment. Interpolating it too produced
+  // "Pricing — CommodityPlay. | CommodityPlay." in the live <title>.
+  title: "Pricing",
   description:
     "Compare Career and Sales plans side by side — billed monthly, or annually and save 15%. Start free with the Starter Pack.",
+  alternates: canonicalAlternates("/pricing"),
 };
 
 export default async function PricingPage() {
