@@ -92,3 +92,48 @@ export function isPaymentsLive(): boolean {
 export function isCheckoutConfigured(): boolean {
   return paymentsReadiness().ready;
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Member-facing status copy
+ *
+ * Paid checkout is not open while the Stripe integration is still being finished,
+ * and the public status for that is **"Coming soon"** — not "on hold", not "not
+ * live yet", not "before go-live". Those are internal engineering words; a member
+ * reading them cannot tell whether they did something wrong.
+ *
+ * Kept here, in one place, because the same status is stated on four surfaces
+ * (account billing, the checkout page, and two API error responses). Four copies of
+ * one sentence is how a status ends up contradicting itself, so every surface reads
+ * these constants and the audit harness asserts none of them is re-typed inline.
+ *
+ * ⚠️ No vendor names in member-facing copy. "We're still setting up card payments"
+ * is what a member needs to know; which processor is behind it is not their problem.
+ * ⚠️ No import may be added to this module — it is imported by client components and
+ * must never pull the Stripe SDK into the browser bundle.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** The status label itself. Short, and the same word everywhere. */
+export const PAYMENTS_STATUS_LABEL = "Coming soon";
+
+export const PAYMENTS_STATUS_COPY = {
+  /** Sub-line under the Billing section heading on /account. */
+  accountSubtitle: "View your plan here. Card checkout is coming soon.",
+
+  /** Inline note on /account while checkout is closed. */
+  accountNote:
+    "Paid plans are coming soon. You can still review your tier and billing status below.",
+
+  /** Headline of the closed-checkout block on /checkout. */
+  checkoutTitle: "Paid plans are coming soon",
+
+  /** Body of that block. Offers the thing that DOES work today. */
+  checkoutBody:
+    "We're still setting up card payments. In the meantime, talk to us and we'll set you up directly.",
+
+  /** 503 from POST /api/stripe/checkout while closed. */
+  checkoutApiError: "Payments are coming soon. Card checkout is not available yet.",
+
+  /** 503 from POST /api/stripe/portal while closed. */
+  portalApiError: "Payments are coming soon.",
+} as const;
+

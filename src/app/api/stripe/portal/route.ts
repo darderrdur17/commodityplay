@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { isCheckoutConfigured } from "@/lib/payments";
+import { isCheckoutConfigured, PAYMENTS_STATUS_COPY } from "@/lib/payments";
 import { z } from "zod";
 
 const schema = z.object({
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
   if (!isCheckoutConfigured()) {
     return NextResponse.json(
-      { error: "Payments are not live yet." },
+      { error: PAYMENTS_STATUS_COPY.portalApiError },
       { status: 503 }
     );
   }

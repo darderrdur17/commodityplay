@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ContactModal } from "@/components/landing/contact-modal";
 import { startCheckout } from "@/lib/start-checkout";
+import { PAYMENTS_STATUS_COPY, PAYMENTS_STATUS_LABEL } from "@/lib/payments";
 import {
   PLAN_TERMS,
   formatMoney,
@@ -184,10 +185,16 @@ export function CheckoutClient({
         </h1>
         <p className="mt-2 text-sm text-muted-fg">
           {/* An ineligible member has no referral field, so inviting them to "add a
-              referral code" would point at something that is not on the page. */}
-          {eligible
-            ? "Review your plan, add a referral code if you have one, then continue to secure payment."
-            : "Review your plan, then continue to secure payment."}
+              referral code" would point at something that is not on the page.
+              ⚠️ "then continue to secure payment" is only true while payments are
+              LIVE — with checkout closed it promises a step that does not exist. */}
+          {paymentsLive
+            ? eligible
+              ? "Review your plan, add a referral code if you have one, then continue to secure payment."
+              : "Review your plan, then continue to secure payment."
+            : eligible
+              ? "Review your plan and add a referral code if you have one."
+              : "Review your plan."}
         </p>
 
         {/* ── Plan summary ─────────────────────────────────────────────────── */}
@@ -348,14 +355,15 @@ export function CheckoutClient({
             </p>
           </div>
         ) : (
-          // Payments are not live yet: the same "contact us" affordance the pricing
-          // page uses, rather than a dead Pay button.
+          // Checkout is closed while the Stripe integration is finished, so the status
+          // reads "Coming soon" rather than an internal phrase like "not live yet" —
+          // and rather than a dead Pay button. The contact route is what DOES work.
           <div className="mt-6 rounded-xl border border-border bg-primary-soft p-5">
-            <p className="text-sm font-semibold text-gray-900">Paid plans are not open yet.</p>
-            <p className="mt-1 text-sm text-muted-fg">
-              Checkout will open when the paid files are ready. In the meantime, talk to us and we
-              will set you up directly.
+            <Badge variant="warning">{PAYMENTS_STATUS_LABEL}</Badge>
+            <p className="mt-2 text-sm font-semibold text-gray-900">
+              {PAYMENTS_STATUS_COPY.checkoutTitle}
             </p>
+            <p className="mt-1 text-sm text-muted-fg">{PAYMENTS_STATUS_COPY.checkoutBody}</p>
             <Button
               type="button"
               variant="gradient"

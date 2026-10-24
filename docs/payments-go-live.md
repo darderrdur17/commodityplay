@@ -3,6 +3,12 @@
 **Today paid checkout is CLOSED.** It opens only when the release green flag is given, and it is a
 two-part switch that cannot be flipped by accident.
 
+The **member-facing status is "Coming soon"** — not "on hold", not "not live yet". That wording is
+defined once in `PAYMENTS_STATUS_LABEL` / `PAYMENTS_STATUS_COPY` (`src/lib/payments.ts`) and read by
+the account billing section, the `/checkout` page and both Stripe API error responses, so those four
+surfaces cannot drift apart. When checkout opens, those constants are the only copy that needs
+changing.
+
 Read [`billing-and-pricing.md`](./billing-and-pricing.md) for the pricing model and
 [`environment.md`](./environment.md) for the full variable list. This page is the *procedure*.
 

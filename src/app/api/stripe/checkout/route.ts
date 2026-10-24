@@ -9,7 +9,7 @@ import {
   getStripeCoupon,
   createOrRetrieveCustomer,
 } from "@/lib/stripe";
-import { isCheckoutConfigured, paymentsReadiness } from "@/lib/payments";
+import { isCheckoutConfigured, paymentsReadiness, PAYMENTS_STATUS_COPY } from "@/lib/payments";
 import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { normalizeReferralCode } from "@/lib/referral-codes";
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(
       {
-        error: "Payments are not live yet. Checkout will open when paid files are ready.",
+        error: PAYMENTS_STATUS_COPY.checkoutApiError,
         reason: "PAYMENTS_NOT_CONFIGURED",
       },
       { status: 503 }

@@ -189,6 +189,8 @@ import {
 } from "../src/lib/referral-reward";
 import { classifyExistingRedemption, isOwnPendingHold } from "../src/lib/referral-redemption";
 import {
+  PAYMENTS_STATUS_COPY,
+  PAYMENTS_STATUS_LABEL,
   REQUIRED_PRICE_VARS,
   paymentsReadiness,
 } from "../src/lib/payments";
@@ -3901,6 +3903,81 @@ function verifyPaymentsGate() {
     "Payments: the closed path logs which prerequisite is missing, never a value",
     checkoutSrc.includes("missingPriceVars: readiness.missingPriceVars") &&
       !/console\.error\([^)]*STRIPE_SECRET_KEY/.test(checkoutSrc)
+  );
+
+  /* ── Status copy ──────────────────────────────────────────────────────────
+   * The public status for a closed checkout is "Coming soon". The four surfaces
+   * that state it must read the shared constants, because four hand-typed copies
+   * of one sentence is how a status ends up contradicting itself.
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  const accountBillingSrc = read("src/components/account/account-billing-section.tsx");
+  const checkoutClientSrc = read("src/app/checkout/checkout-client.tsx");
+  const portalSrc = read("src/app/api/stripe/portal/route.ts");
+
+  ok(
+    "Payments: the public status label is exactly 'Coming soon'",
+    PAYMENTS_STATUS_LABEL === "Coming soon"
+  );
+
+  ok(
+    "Payments: no status copy uses internal engineering wording",
+    // "on hold", "not live yet", "before go-live" and "paid files" all read as an
+    // internal note leaked into the UI — a member cannot tell what they should do.
+    !Object.values(PAYMENTS_STATUS_COPY).some((line) =>
+      /on hold|not live|not open yet|go-live|paid files|PayNow|Stripe/i.test(line)
+    )
+  );
+
+  ok(
+    "Payments: every status string is non-empty, and body copy is a whole sentence",
+    // A heading must NOT take a full stop; body and error copy must. One rule for both
+    // would either punctuate a heading wrongly or leave a sentence dangling.
+    Object.entries(PAYMENTS_STATUS_COPY).every(([key, line]) => {
+      const text = line.trim();
+      if (text.length < 10) return false;
+      const isBody = /Body|Note|Error/.test(key);
+      return isBody ? /[.!]$/.test(text) : true;
+    })
+  );
+
+  ok(
+    "Payments: all four surfaces read the shared status copy",
+    accountBillingSrc.includes("PAYMENTS_STATUS_COPY.accountSubtitle") &&
+      accountBillingSrc.includes("PAYMENTS_STATUS_COPY.accountNote") &&
+      checkoutClientSrc.includes("PAYMENTS_STATUS_COPY.checkoutTitle") &&
+      checkoutClientSrc.includes("PAYMENTS_STATUS_COPY.checkoutBody") &&
+      checkoutSrc.includes("PAYMENTS_STATUS_COPY.checkoutApiError") &&
+      portalSrc.includes("PAYMENTS_STATUS_COPY.portalApiError")
+  );
+
+  ok(
+    "Payments: the old status wording is gone from the surfaces that showed it",
+    // A leftover copy would be the single most confusing outcome of this change.
+    [accountBillingSrc, checkoutClientSrc, checkoutSrc, portalSrc].every(
+      (src) =>
+        !src.includes("Payments are not live yet") &&
+        !src.includes("Paid plans are not open yet") &&
+        !src.includes("will be enabled before go-live") &&
+        !src.includes("when the paid files are ready")
+    )
+  );
+
+  ok(
+    "Payments: the label is RENDERED as a badge, not merely imported",
+    // Importing the constant and not showing it would pass a weaker check.
+    accountBillingSrc.includes("<Badge") &&
+      accountBillingSrc.includes("{PAYMENTS_STATUS_LABEL}") &&
+      checkoutClientSrc.includes("<Badge") &&
+      checkoutClientSrc.includes("{PAYMENTS_STATUS_LABEL}")
+  );
+
+  ok(
+    "Payments: /checkout only promises a payment step when payments are live",
+    // "then continue to secure payment" is a lie while checkout is closed — there is
+    // no next step. The phrase must live inside the `paymentsLive` branch.
+    /\{paymentsLive\s*\?\s*eligible\s*\?/.test(checkoutClientSrc) &&
+      checkoutClientSrc.includes(': "Review your plan."')
   );
 }
 
