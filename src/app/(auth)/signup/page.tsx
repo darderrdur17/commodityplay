@@ -254,10 +254,18 @@ function SignupForm() {
               />
               <button
                 type="button"
+                // Icon-only, so the accessible name has to come from aria-label;
+                // without it screen readers announce a nameless "button".
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
                 className="absolute right-3 top-8 h-10 w-8 p-0 flex items-center justify-center text-muted-fg hover:text-gray-600 transition-colors"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="w-4 h-4" aria-hidden="true" />
+                )}
               </button>
             </div>
 

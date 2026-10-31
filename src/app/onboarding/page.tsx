@@ -175,9 +175,9 @@ function OnboardingContent() {
             <div className="flex justify-center mb-4">
               <Logo variant="horizontal" href={false} />
             </div>
-            <h2 className="font-serif text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="font-serif text-2xl font-bold text-gray-900 mb-2">
               Welcome to {BRAND_NAME}
-            </h2>
+            </h1>
             <p className="text-muted-fg text-sm max-w-sm mx-auto">
               Let&apos;s personalise your experience. Which track are you on?
             </p>

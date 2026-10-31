@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { BRAND_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { LANDING_CTA } from "@/lib/landing-cta";
+import { useEscapeToClose } from "@/lib/use-escape-to-close";
 
 interface Props {
   open: boolean;
@@ -52,6 +53,14 @@ export function ContactModal({ open, onClose }: Props) {
     setTimeout(() => setSubmitted(false), 300);
   }
 
+  /**
+   * Escape dismisses the dialog. Without this the only exit was the small
+   * "Close" button, and the overlay swallows every click behind it. The
+   * `role="dialog"` + `aria-modal` on the panel below are what let a screen
+   * reader announce it as a dialog; this is what gives a keyboard user a way out.
+   */
+  useEscapeToClose(open, handleClose);
+
   return (
     <AnimatePresence>
       {open && (
@@ -69,6 +78,9 @@ export function ContactModal({ open, onClose }: Props) {
             transition={{ duration: 0.25 }}
             className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-8"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contact-modal-title"
           >
             <button
               type="button"
@@ -84,7 +96,7 @@ export function ContactModal({ open, onClose }: Props) {
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-400 mb-2">
                   Contact Us
                 </p>
-                <h2 className="font-serif text-2xl font-bold text-gray-900 mb-2">
+                <h2 id="contact-modal-title" className="font-serif text-2xl font-bold text-gray-900 mb-2">
                   Get in touch.
                 </h2>
                 <p className="text-sm text-muted-fg mb-5">

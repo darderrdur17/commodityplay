@@ -460,9 +460,28 @@ export function SalesMarketNudgesSection({
     matchesMemberStatusFilter(nudge.status, statusFilter)
   );
 
+  /**
+   * The page heading renders OUTSIDE the access gate. The locked branch returns
+   * early, so keeping the <h1> inside the unlocked branch left a Starter member
+   * with a page that had no top-level heading at all — the same defect that was
+   * fixed in `prep-library-section.tsx`. The lock card still gates the content.
+   */
+  const pageHeading = (
+    <>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#065F46]">
+        {content.eyebrow}
+      </p>
+      <h1 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">{content.title}</h1>
+      <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">
+        {renderInlineBold(content.description)}
+      </p>
+    </>
+  );
+
   if (!unlocked) {
     return (
-      <Reveal>
+      <Reveal className="space-y-8">
+        <header className="space-y-4">{pageHeading}</header>
         <div className="relative rounded-xl border border-border bg-white overflow-hidden">
           <div className="blur-sm pointer-events-none select-none p-6 space-y-6" aria-hidden>
             <div className="rounded-xl p-6 text-white bg-[#065F46]">
@@ -492,13 +511,7 @@ export function SalesMarketNudgesSection({
   return (
     <Reveal className="space-y-8">
       <header className="space-y-4">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#065F46]">
-          {content.eyebrow}
-        </p>
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">{content.title}</h1>
-        <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">
-          {renderInlineBold(content.description)}
-        </p>
+        {pageHeading}
         {/* These chips now scope the weekly nudges only. The briefs have their own
             status tabs inside the Talking Points section, because a brief must stay
             reachable under its month folder whatever its status. */}

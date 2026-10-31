@@ -6,7 +6,7 @@ import { Logo } from "@/components/brand/logo";
 import { FooterNewsletter } from "@/components/footer-newsletter";
 import { ContactModal } from "@/components/landing/contact-modal";
 import { FOOTER_BOTTOM_SAFE_PADDING } from "@/lib/layout-constants";
-import { BRAND_NAME } from "@/lib/brand";
+import { BRAND_NAME, normalizeBrandReferences } from "@/lib/brand";
 import type { FooterLinkItem, SiteFooterContent } from "@/data/footer-content";
 
 interface Props {
@@ -38,8 +38,19 @@ export function Footer({ content }: Props) {
     }
 
     if (link.action === "mailto" || link.href.startsWith("mailto:")) {
+      /**
+       * Normalise before rendering.
+       *
+       * CMS values beat repo defaults, so a saved `site-footer` payload can still
+       * carry a retired address — the legacy `@commodityplay.com` is the known
+       * case, and mail sent there goes nowhere. `normalizeBrandReferences` already
+       * rewrites those legacy domains; the footer simply never applied it to the
+       * href. Doing it at render time means no CMS payload, however old, can put a
+       * dead address in front of a reader.
+       */
+      const href = normalizeBrandReferences(link.href);
       return (
-        <a href={link.href} className={className.replace("text-left", "")}>
+        <a href={href} className={className.replace("text-left", "")}>
           {link.label}
         </a>
       );

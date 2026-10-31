@@ -63,6 +63,20 @@ export function mergeGlossaryHero(
   };
 }
 
+/**
+ * A stat chip is "the term count" when it is either the bare placeholder
+ * `"Terms"` (what the defaults carry) or a baked count such as `"196 Terms"`.
+ *
+ * The baked form is the dangerous one: `mergeGlossaryHero` keeps whatever the
+ * CMS holds, so a chip saved as "197 Terms" renders verbatim next to the
+ * live "Showing all 196 terms" line further down the page. Rewriting the chip
+ * from `terms.length` at render makes the claim self-correcting no matter what
+ * the CMS payload contains.
+ */
+export function isTermCountChip(label: string): boolean {
+  return /^(?:\d[\d,]*\s+)?terms$/i.test(label.trim());
+}
+
 export function mergeGlossaryUpgradeCta(
   cms: Partial<GlossaryUpgradeCta> | null | undefined,
   defaults: GlossaryUpgradeCta = DEFAULT_GLOSSARY_UPGRADE_CTA
