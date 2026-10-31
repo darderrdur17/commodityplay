@@ -194,6 +194,15 @@ export function GlossaryClient({
                   key={cat}
                   type="button"
                   onClick={() => setActiveCategory(cat)}
+                  /**
+                   * The visible label and the count are separate nodes whose only
+                   * separator is a CSS margin, so the computed accessible name came
+                   * out as "All196" / "Physical24". A screen reader reads that as one
+                   * token. The explicit label fixes the spoken form without changing
+                   * a single pixel of the layout.
+                   */
+                  aria-label={`${cat === "All" ? "All" : GLOSSARY_CATEGORY_BADGES[cat] ?? cat} — ${count} terms`}
+                  aria-pressed={active}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
                     active
                       ? "bg-primary-800 text-white border-primary-800"

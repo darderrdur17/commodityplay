@@ -74,6 +74,23 @@ export const RATE_LIMITS = {
   stripeWebhook: { limit: 120, windowMs: 60 * 1000 },
   /** setup-db POST: 5 per hour per IP. */
   setupDb: { limit: 5, windowMs: 60 * 60 * 1000 },
+  /**
+   * Contact form: 5 per hour per IP.
+   *
+   * Every accepted POST writes a `ContactMessage`, upserts an `EmailSubscriber` AND
+   * sends one operator email, so without a cap the endpoint is a free email-bombing
+   * primitive aimed at the operator's own inbox. A real visitor sends one message.
+   */
+  contactMessage: { limit: 5, windowMs: 60 * 60 * 1000 },
+  /**
+   * Public lead-capture forms (newsletter, job-board waitlist, Starter Pack lead):
+   * 10 per hour per IP.
+   *
+   * These are lower-harm than `contactMessage` — they only write rows — but they are
+   * still unauthenticated and were previously unbounded. 10/hour is comfortably above
+   * any human pattern (one signup, maybe a correction) and caps automated fill.
+   */
+  leadCapture: { limit: 10, windowMs: 60 * 60 * 1000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 const buckets = new Map<string, number[]>();
