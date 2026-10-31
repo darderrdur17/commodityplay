@@ -903,10 +903,17 @@ export function PrepLibraryBody({
   track,
   userTier,
   onTopicCountChange,
+  primaryHeading = true,
 }: {
   track: PrepLibraryTrack;
   userTier: string;
   onTopicCountChange?: (count: number) => void;
+  /**
+   * False for the SECOND track on screen. An administrator previews both tracks
+   * at once, which rendered two <h1>s on one page; the secondary section keeps
+   * the same id (so its aria-labelledby still resolves) but as an <h2>.
+   */
+  primaryHeading?: boolean;
 }) {
   const segment = PREP_LIBRARY_SEGMENTS[track];
   const theme = TRACK_THEMES[track];
@@ -1325,6 +1332,8 @@ export function PrepLibraryBody({
   // with no top-level heading at all AND a dangling aria-labelledby pointing at
   // an id that was never rendered. The locked card still gates the content.
   const heroAccent = track === "SALES" ? SALES_HERO_GREEN : segment.color;
+  const headingId = `prep-library-heading-${track}`;
+  const headingClass = "font-serif text-3xl sm:text-4xl font-bold text-gray-900";
   const sectionHero = (
     <div className="space-y-4 mb-6">
       <p
@@ -1335,12 +1344,15 @@ export function PrepLibraryBody({
       >
         {segment.eyebrow}
       </p>
-      <h1
-        id={`prep-library-heading-${track}`}
-        className="font-serif text-3xl sm:text-4xl font-bold text-gray-900"
-      >
-        {segment.pageTitle}
-      </h1>
+      {primaryHeading ? (
+        <h1 id={headingId} className={headingClass}>
+          {segment.pageTitle}
+        </h1>
+      ) : (
+        <h2 id={headingId} className={headingClass}>
+          {segment.pageTitle}
+        </h2>
+      )}
       <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">{segment.pageDescription}</p>
     </div>
   );

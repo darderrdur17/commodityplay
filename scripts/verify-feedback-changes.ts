@@ -4635,16 +4635,43 @@ function verifyAuditFixes() {
     "Audit: both prep-library tracks render the shared hero outside the access gate",
     (prepSrc.match(/\{sectionHero\}/g) ?? []).length === 2
   );
-  // Exactly one heading id: a second copy inside the unlocked branch would
-  // duplicate the id and put two <h1>s on the page.
+  // Exactly one heading element carries the id: a second copy inside the
+  // unlocked branch would duplicate the id and put two <h1>s on the page.
   ok(
     "Audit: the prep-library heading id is declared exactly once",
-    (prepSrc.match(/id=\{`prep-library-heading-\$\{track\}`\}/g) ?? []).length === 1
+    (prepSrc.match(/const headingId = `prep-library-heading-\$\{track\}`;/g) ?? []).length === 1
   );
   ok(
     "Audit: the prep-library section still points aria-labelledby at that heading",
     (prepSrc.match(/aria-labelledby=\{`prep-library-heading-\$\{track\}`\}/g) ?? []).length === 2
   );
+  // An admin previews both tracks at once; the secondary section must not be an <h1>.
+  ok(
+    "Audit: only the primary prep-library track renders an <h1>",
+    prepSrc.includes("primaryHeading ? (") &&
+      prepSrc.includes("<h2 id={headingId}") &&
+      prepSrc.includes("primaryHeading = true")
+  );
+  ok(
+    "Audit: the prep-library page gives the second visible track an <h2>",
+    read("src/app/dashboard/prep-library/prep-library-page-client.tsx").includes(
+      'primaryHeading={!showCareer}'
+    )
+  );
+
+  // The same locked-branch defect existed in two more dashboard sections.
+  for (const [name, file] of [
+    ["sales market nudges", "src/components/dashboard/sales-market-nudges-section.tsx"],
+    ["account intelligence", "src/components/dashboard/account-intelligence-section.tsx"],
+  ] as Array<[string, string]>) {
+    const src = read(file);
+    const gate = src.indexOf("if (!unlocked) {");
+    const heading = src.indexOf("const pageHeading = (");
+    ok(
+      `Audit: the ${name} heading is hoisted above the access gate`,
+      heading > 0 && gate > 0 && heading < gate && (src.match(/\{pageHeading\}/g) ?? []).length === 2
+    );
+  }
 
   ok("Audit: the onboarding page uses an <h1> for its heading", read("src/app/onboarding/page.tsx").includes("<h1"));
   ok(

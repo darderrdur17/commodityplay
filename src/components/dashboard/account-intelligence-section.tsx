@@ -670,9 +670,26 @@ export function AccountIntelligenceSection({
     }
   }
 
+  /**
+   * The page heading renders OUTSIDE the access gate. The locked branch returns
+   * early, so keeping the <h1> inside the unlocked branch left a Starter member
+   * with a page that had no top-level heading at all — the same defect that was
+   * fixed in `prep-library-section.tsx`. The lock card still gates the content.
+   */
+  const pageHeading = (
+    <>
+      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: FOREST_GREEN }}>
+        {content.eyebrow}
+      </p>
+      <h1 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">{content.title}</h1>
+      <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">{content.description}</p>
+    </>
+  );
+
   if (!unlocked) {
     return (
-      <Reveal>
+      <Reveal className="space-y-8">
+        <header className="space-y-4">{pageHeading}</header>
         <div className="relative rounded-xl border border-border bg-white overflow-hidden">
           <div className="blur-sm pointer-events-none select-none p-6 space-y-6" aria-hidden>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -696,15 +713,7 @@ export function AccountIntelligenceSection({
   return (
     <Reveal className="space-y-8">
       <header className="space-y-4">
-        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: FOREST_GREEN }}>
-          {content.eyebrow}
-        </p>
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">
-          {content.title}
-        </h1>
-        <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">
-          {content.description}
-        </p>
+        {pageHeading}
       </header>
 
       <section className="rounded-xl border border-border bg-white p-5 sm:p-6 space-y-5">
