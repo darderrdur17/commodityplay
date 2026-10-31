@@ -1,25 +1,61 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { GradientOrbs, Reveal } from "@/components/animations";
-import { SectionCategoryLabel } from "@/components/landing/section-category-label";
+import { Reveal } from "@/components/animations";
+import { Button } from "@/components/ui/button";
 import { StarterPackModal } from "@/components/landing/starter-pack-modal";
 import { ContactModal } from "@/components/landing/contact-modal";
 import { PricingTierGrid } from "@/components/pricing/pricing-tier-grid";
 import { PlanTermSelector } from "@/components/pricing/plan-term-selector";
 import { TrackSwitcher } from "@/components/pricing/track-switcher";
-import { PricingComparisonTable } from "@/components/pricing/pricing-comparison-table";
-import { PRICING_HERO } from "@/data/pricing-shared";
+import { FaqSection } from "@/components/faq/faq-section";
+import {
+  PRICING_CONTENT_FOOTNOTE,
+  PRICING_FREE_PANEL,
+  PRICING_TRACK_HEADINGS,
+} from "@/data/pricing-shared";
 import type { BillingCadence, PlanTerm, PlanTrack } from "@/data/pricing-shared";
 import type { LandingContent, LandingTier } from "@/data/landing-content";
+import type { FaqContent } from "@/data/faq";
 import { CAREER_PRICING_PATH, SALES_PLAN_HREF, SALES_PRICING_PATH } from "@/lib/pricing-routes";
 import { isPaymentsLive } from "@/lib/payments";
-import { startCheckout } from "@/lib/start-checkout";
 import { PAGE_SECTION_PY } from "@/lib/layout-constants";
+import { LANDING_CTA } from "@/lib/landing-cta";
+import { starterSignupHref } from "@/lib/signup-routes";
+import { cn } from "@/lib/utils";
 
 type Track = "career" | "sales";
+
+/**
+ * The page background behind the plan grid — WHITE for BOTH tracks, matching
+ * `body { bg-white }` (globals.css) and every other page on the site.
+ *
+ * This has moved four times, and the Record below is what made every move a
+ * one-liner:
+ *
+ *   1. The tints (#050b1d navy for career, #04130f dark green for sales) went
+ *      first. Against the black free-plan panel directly above they read as
+ *      "dark blue or grey" — two shades stacked on each other — so both tracks
+ *      went pure black.
+ *   2. The black itself went next. /pricing was then the only page with a dark
+ *      body while its own nav was white, and the brief was that its background
+ *      should follow the same colorway as the rest of the site. The plan cards
+ *      deliberately KEEP their track fills (navy / green) — only the page
+ *      background changed, so the cards now carry the track colour on their own.
+ *   3. The white went next — the owner reversed that call ("change it back to
+ *      fully black"), so both tracks are pure black again. The type scale and
+ *      the embossed track toggle from the same pass are KEPT.
+ *   4. The white came back — the owner reversed the reversal ("put the white
+ *      version back"), so both tracks are white again. Nothing else moves: the
+ *      type scale and the embossed track toggle are still the ones from item 2.
+ */
+const TRACK_BACKGROUNDS: Record<Track, string> = {
+  career: "#ffffff",
+  sales: "#ffffff",
+};
 
 export interface PricingPageClientProps {
   /** CMS-merged landing content (career + sales tiers + comparison tables). */
@@ -33,27 +69,38 @@ export interface PricingPageClientProps {
    * sends.
    */
   userTrack?: PlanTrack | null;
+  /**
+   * True when the caller is on the `ADMIN_EMAILS` allowlist (resolved server-side
+   * via `requireSoleAdmin()`). Administrators are NOT pinned (R-1 exception): they
+   * may preview both tracks, because the rest of the admin surface already allows
+   * this. Their `User.track` is never modified, and on the track that is not their
+   * own the paid CTA is replaced by a note so no price is shown that the server
+   * will not charge. Non-admins keep the existing pin untouched.
+   */
+  isAdmin?: boolean;
+  /**
+   * The FAQ, moved here from its own `/faq` route at the owner's request
+   * (11 Oct 2026). Rendered as the last section on the page, under `id="faq"`,
+   * which is what the footer link and the `/faq` redirect both point at.
+   */
+  faq: FaqContent;
 }
-
-const CAREER_COLUMNS: Array<{ key: "starter" | "pro" | "elite"; label: string }> = [
-  { key: "starter", label: "Starter" },
-  { key: "pro", label: "Pro" },
-  { key: "elite", label: "Elite" },
-];
-
-const SALES_COLUMNS: Array<{ key: "starter" | "pro" | "elite"; label: string }> = [
-  { key: "pro", label: "Pro" },
-  { key: "elite", label: "Elite" },
-];
 
 /**
  * Adapter: render both tracks through the one `LandingTier` grid (design C-2).
  * Career tiers are already `LandingTier`; Sales tiers are `SalesPricingTier` and
  * are mapped across. Prices are carried over verbatim from the CMS content — the
  * grid derives the term-specific figures itself.
+ *
+ * The free Starter tier is FILTERED OUT here, not in the CMS defaults: the free
+ * plan is now the "Free, until you're ready" top panel, and saved CMS content
+ * overrides repo defaults, so a filter at the CMS layer would leave the column
+ * visible on the live site.
  */
 function toLandingTiers(track: Track, content: LandingContent): LandingTier[] {
-  if (track === "career") return content.pricing.tiers;
+  if (track === "career") {
+    return content.pricing.tiers.filter((t) => t.badge !== "starter");
+  }
   return content.sales.pricing.map((t) => ({
     name: t.name,
     price: t.price,
@@ -73,52 +120,91 @@ export function PricingPageClient({
   starterPackItems,
   starterPackHeadline,
   userTrack = null,
+  isAdmin = false,
+  faq,
 }: PricingPageClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
 
-  // R-1: a signed-in member is pinned to their own track; the other segment is
-  // disabled so they never see prices the server will not charge.
-  const lockedTrack: Track | null =
+  // The member's OWN track, derived from the session. Separate from the track they
+  // are allowed to VIEW: they differ only for an administrator.
+  const ownTrack: Track | null =
     userTrack === "SALES" ? "sales" : userTrack === "CAREER" ? "career" : null;
+
+  // R-1: a signed-in member is pinned to their own track; the other segment is
+  // disabled so they never see prices the server will not charge. Administrators
+  // are exempt — they preview both tracks (see `previewingOtherTrack` below).
+  const lockedTrack: Track | null = isAdmin ? null : ownTrack;
   const disabledTrack: PlanTrack | undefined =
     lockedTrack === "sales" ? "CAREER" : lockedTrack === "career" ? "SALES" : undefined;
 
-  const [track, setTrack] = useState<Track>(lockedTrack ?? "career");
+  // The initial view is always the member's OWN track — an admin whose account is
+  // on Sales still lands on Sales and can switch away from there.
+  const [track, setTrack] = useState<Track>(ownTrack ?? "career");
   const [term, setTerm] = useState<PlanTerm>("monthly");
-  const [cadence, setCadence] = useState<BillingCadence>("monthly");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
 
+  // An administrator viewing a track that is NOT their own. On that track the paid
+  // CTAs are replaced by a note (below) and `handlePurchase` refuses — no code path
+  // may offer a price the server will not charge, since `/api/stripe/checkout` reads
+  // `User.track` from the DB.
+  const previewingOtherTrack = isAdmin && ownTrack !== null && track !== ownTrack;
+  const ownTrackLabel = ownTrack === "sales" ? "Sales" : ownTrack === "career" ? "Career" : null;
+  // ⚠️ There is deliberately NO admin note under the track toggle. It used to read
+  // "Admin view — both tracks are shown. Purchases follow your account's own track
+  // (Sales).", which the owner asked to remove. Nothing is lost by dropping it:
+  // the per-card `previewNotice` below already says "Purchases follow your
+  // account's own track (…)" on the track that is not the admin's own, which is
+  // the only place the warning actually applies.
+  //
+  // The `TrackSwitcher` still derives its OWN note from `disabledTrack`, and that
+  // one must stay: it is shown to a signed-in member pinned to their own track and
+  // is the only explanation for why the other segment is greyed out. An admin is
+  // never pinned (`lockedTrack` is null above), so `disabledTrack` is undefined for
+  // them and they now see no note at all.
+  const previewNotice = previewingOtherTrack
+    ? `Purchases follow your account's own track (${ownTrackLabel}).`
+    : undefined;
+
   // `?track=` drives the initial view for signed-out visitors; signed-in members
-  // stay pinned to their own track.
+  // stay pinned to their own track. Administrators are not pinned, so the param
+  // applies to them too.
   useEffect(() => {
     if (lockedTrack) return;
     const requested = searchParams.get("track");
     if (requested === "sales" || requested === "career") setTrack(requested);
   }, [searchParams, lockedTrack]);
 
-  // Deep links: `?plan=pro|elite` -> `#plan-{plan}`; otherwise honour the hash
-  // (`#pricing` / `#plan-*`). This is what keeps the old in-app anchors working.
+  // Deep links: a PLAN deep link (`?plan=pro|elite` or `#plan-pro` / `#plan-elite`)
+  // scrolls to that column, and `#faq` scrolls to the FAQ section at the foot of
+  // the page. This is what keeps the "Upgrade to Elite" flows working and what
+  // makes the footer's `/pricing#faq` link land on the FAQ rather than the top.
   useEffect(() => {
     const plan = searchParams.get("plan");
     const hash =
       typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : "";
-    const target = plan === "pro" || plan === "elite" ? `plan-${plan}` : hash || "pricing";
+    const target = plan === "pro" || plan === "elite" ? `plan-${plan}` : hash;
+    // The top of the page already shows the pricing, so a bare `/pricing` visit
+    // must not scroll — and the legacy `#pricing` anchor has nothing to point at.
+    if (target !== "plan-pro" && target !== "plan-elite" && target !== "faq") return;
     const timer = window.setTimeout(() => {
-      const el = document.getElementById(target);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 350);
     return () => window.clearTimeout(timer);
   }, [searchParams, track]);
 
-  async function handlePurchase(
+  function handlePurchase(
     plan: "pro" | "elite",
     selectedTerm: PlanTerm,
     selectedCadence: BillingCadence
   ) {
+    // Defence in depth: the CTA is already replaced by a note while previewing the
+    // other track, but a purchase must never start there — the server would charge
+    // the admin's own `User.track`, not the one on screen.
+    if (previewingOtherTrack) return;
     if (!isPaymentsLive()) {
       setContactOpen(true);
       return;
@@ -132,87 +218,133 @@ export function PricingPageClient({
       router.push(`/signup?plan=${plan}&track=${track}&callbackUrl=${callback}`);
       return;
     }
+    // Payments are live: hand off to the in-app `/checkout` step, which shows the
+    // plan summary and collects an optional referral code before starting the
+    // Stripe session. The track is still NOT sent — the server reads `User.track`
+    // from the DB, and `/checkout` shows the price for that same track.
+    //
+    // `loadingPlan` stays set on purpose: /checkout is a server-rendered route that
+    // reads the session and the member's track, so the card shows its spinner for
+    // the moment the navigation takes.
     setLoadingPlan(plan);
-    try {
-      // The track is NOT sent — the server reads User.track from the DB.
-      const url = await startCheckout(plan, selectedTerm, selectedCadence);
-      if (url) window.location.href = url;
-    } catch {
-      // A failed checkout leaves the member on /pricing; there is nothing to undo.
-    } finally {
-      setLoadingPlan(null);
-    }
+    router.push(`/checkout?plan=${plan}&term=${selectedTerm}&cadence=${selectedCadence}`);
   }
 
   const tiers = toLandingTiers(track, content);
   const comparisonGroups =
     track === "sales" ? content.sales.comparison.groups : content.pricing.comparison.groups;
-  const columns = track === "sales" ? SALES_COLUMNS : CAREER_COLUMNS;
 
   return (
     <div className="bg-white">
-      {/* Hero */}
-      <section className="relative bg-primary-800 section-dark overflow-hidden pt-14 pb-16 sm:pt-20 sm:pb-24">
-        <GradientOrbs />
-        <div className="relative z-10 page-container text-center">
-          <Reveal>
-            <SectionCategoryLabel colorClass="text-white/50">{PRICING_HERO.eyebrow}</SectionCategoryLabel>
-            <h1 className="font-serif text-[clamp(32px,5vw,52px)] font-bold tracking-tight text-white mb-4">
-              {PRICING_HERO.title}
-            </h1>
-            <p className="text-white/65 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-              {PRICING_HERO.subtitle}
-            </p>
-          </Reveal>
+      {/* Free plan — the top panel that REPLACED the old "Simple pricing" hero.
+          The free tier is no longer a column in the grid; this is where a visitor
+          signs up for the Starter Pack, via the same modal as before.
+
+          The band is `bg-primary-soft` (the site's faint-blue band token) rather
+          than white: it keeps the free plan reading as a distinct hero band now
+          that the page is light, and it gives the white price card an edge to sit
+          against. */}
+      <section className="bg-primary-soft">
+        <div className="page-container py-14 sm:py-20">
+          <div className="grid items-center gap-10 lg:grid-cols-2">
+            <div>
+              {/* Copy comes from the CMS (`pricingFreePanel`), so the owner can edit
+                  the heading and subheading from the "Pricing plans" admin card. The
+                  PRICE does not — `PRICING_FREE_PANEL.price` stays a code literal. */}
+              <h1 className="mb-5 font-serif text-[clamp(32px,5vw,52px)] font-bold tracking-tight text-gray-900">
+                {content.pricingFreePanel.title}
+              </h1>
+              <p className="max-w-xl text-base leading-relaxed text-muted-fg sm:text-lg">
+                {content.pricingFreePanel.line1}
+                <br />
+                {content.pricingFreePanel.line2}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8">
+              <div className="flex items-baseline justify-center gap-2">
+                <span className="font-serif text-5xl font-bold tracking-tight text-gray-900">
+                  {PRICING_FREE_PANEL.price}
+                </span>
+                <span className="text-sm text-muted-fg">{PRICING_FREE_PANEL.period}</span>
+              </div>
+              {/* The reference button for the whole page: pill shape + blue
+                  gradient. Every other CTA on /pricing matches this — see
+                  `Button variant="gradient"`.
+
+                  HISTORY: this used to open the Starter Pack pop-up, which only
+                  captured an email and never created an account. At the owner's
+                  request (11 Oct 2026) a free signup now goes to the real
+                  `/signup` flow so it actually produces a Starter account. The
+                  track comes from the toggle above, so the visitor lands on the
+                  signup form with the track they were already looking at. */}
+              <Link
+                href={starterSignupHref(track)}
+                className="mt-6 block w-full rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2"
+              >
+                <Button variant="gradient" size="lg" className="w-full rounded-full">
+                  {content.pricingFreePanel.cta}
+                </Button>
+              </Link>
+              <p className="mt-3 text-center text-xs text-muted-fg">{content.pricingFreePanel.note}</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Track + term controls and the tier columns. `id="pricing"` is the anchor
-          the old `#pricing` deep links resolve to. */}
-      <section id="pricing" className={`${PAGE_SECTION_PY} page-container scroll-mt-24`}>
-        <Reveal className="flex flex-col items-center gap-5 mb-10 sm:mb-12">
-          <TrackSwitcher
-            value={track === "sales" ? "SALES" : "CAREER"}
-            onChange={(next) => setTrack(next === "SALES" ? "sales" : "career")}
-            disabledTrack={disabledTrack}
-          />
-          <div className="w-full max-w-sm">
-            <PlanTermSelector
-              value={term}
-              onChange={setTerm}
-              cadence={cadence}
-              onCadenceChange={setCadence}
+      {/* Track heading, term control and the tier columns, on the page's white
+          background. Deliberately has NO `id="pricing"`: `/pricing` IS the pricing
+          page, so the top already shows this — keeping the id made the browser's
+          native fragment scroll jump past the free-plan hero on load. The legacy
+          `#pricing` fragment is now a no-op.
+
+          Everything here is the LIGHT palette (`tone="light"`, `text-gray-900`,
+          `text-muted-fg`). The plan cards below keep their own dark track fills,
+          which is why `PricingTierGrid` still renders them with the dark in-card
+          palette — the cards are a dark surface on a light page. */}
+      <section
+        className={`${PAGE_SECTION_PY} scroll-mt-24`}
+        style={{ backgroundColor: TRACK_BACKGROUNDS[track] }}
+      >
+        <div className="page-container">
+          <Reveal className="mb-10 flex flex-col items-center gap-5 sm:mb-12">
+            <TrackSwitcher
+              value={track === "sales" ? "SALES" : "CAREER"}
+              onChange={(next) => setTrack(next === "SALES" ? "sales" : "career")}
+              disabledTrack={disabledTrack}
               tone="light"
-              showRate={false}
             />
-          </div>
-        </Reveal>
+            {/* Same clamp as the free-plan `h1` above — the two section headings are
+                deliberately identical in size, weight and tracking. */}
+            <h2 className="text-center font-serif text-[clamp(32px,5vw,52px)] font-bold tracking-tight text-gray-900">
+              {PRICING_TRACK_HEADINGS[track === "sales" ? "SALES" : "CAREER"]}
+            </h2>
+            <PlanTermSelector value={term} onChange={setTerm} tone="light" showRate={false} />
+          </Reveal>
 
-        <PricingTierGrid
-          tiers={tiers}
-          variant="page"
-          track={track === "sales" ? "SALES" : "CAREER"}
-          term={term}
-          cadence={cadence}
-          onTermChange={setTerm}
-          onCadenceChange={setCadence}
-          showTermSelector={false}
-          onStarterModal={() => setModalOpen(true)}
-          onPurchase={handlePurchase}
-          loadingPlan={loadingPlan}
-        />
+          <PricingTierGrid
+            tiers={tiers}
+            variant="page"
+            track={track === "sales" ? "SALES" : "CAREER"}
+            term={term}
+            onTermChange={setTerm}
+            showTermSelector={false}
+            onStarterModal={() => setModalOpen(true)}
+            onPurchase={handlePurchase}
+            loadingPlan={loadingPlan}
+            comparisonGroups={comparisonGroups}
+            previewNotice={previewNotice}
+          />
+          {/* Rendered once for the whole column row rather than inside every card. */}
+          <p className="mt-6 text-center text-xs italic text-muted-fg">
+            {PRICING_CONTENT_FOOTNOTE}
+          </p>
+        </div>
       </section>
 
-      {/* Feature comparison */}
-      <section className="pb-16 sm:pb-24 page-container">
-        <Reveal className="text-center mb-8 sm:mb-10">
-          <h2 className="font-serif text-[clamp(24px,3.5vw,36px)] font-bold tracking-tight text-gray-900">
-            Feature Comparison
-          </h2>
-          <p className="text-xs text-muted-fg mt-2 sm:hidden">Swipe to compare plans →</p>
-        </Reveal>
-        <PricingComparisonTable groups={comparisonGroups} columns={columns} tone="light" />
-      </section>
+      {/* The FAQ. Moved here from its own `/faq` route at the owner's request
+          (11 Oct 2026) — it is the last section on the page, and `#faq` is the
+          anchor both the footer link and the `/faq` redirect resolve to. */}
+      <FaqSection hero={faq.hero} items={faq.items} footerCta={faq.footerCta} />
 
       <StarterPackModal
         open={modalOpen}

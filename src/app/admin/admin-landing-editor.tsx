@@ -1,9 +1,18 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { FeatureComparisonTable, LandingContent, CaseStudyPreviewCard } from "@/data/landing-content";
+import { LinesTextarea, uploadContentAssetFile } from "./editors/shared";
+import type {
+  FeatureComparisonTable,
+  LandingContent,
+  LandingTrackFeature,
+  CaseStudyPreviewCard,
+  ClientAdEntry,
+  LandingClientAds,
+} from "@/data/landing-content";
+import { CLIENT_AD_TRACK_LABELS } from "@/lib/content/client-ads";
 
 interface Props {
   content: LandingContent;
@@ -212,7 +221,7 @@ function FeaturesList({
   );
 }
 
-type ComparisonColumn = { key: "starter" | "pro" | "elite"; label: string };
+export type ComparisonColumn = { key: "starter" | "pro" | "elite"; label: string };
 
 const smallButtonClass =
   "inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-border hover:bg-secondary/60 transition-colors";
@@ -221,8 +230,13 @@ const smallButtonClass =
  * Editable Feature Comparison / pricing comparison table — same table rendered on the live
  * landing page. Admins can edit group titles, colors, row (feature) names, and which plans
  * check the feature off, without touching code.
+ *
+ * EXPORTED because the focused "Pricing plans" card (`editors/pricing-plans-editor.tsx`)
+ * renders this exact component for its own track. Sharing the one implementation is what
+ * keeps the two entry points from drifting apart — there is only ever one editor for
+ * these rows.
  */
-function ComparisonTableEditor({
+export function ComparisonTableEditor({
   table,
   onChange,
   columns,
@@ -289,7 +303,7 @@ function ComparisonTableEditor({
               value={group.category}
               onChange={(e) => updateGroup(gi, { category: e.target.value })}
               className={cn(inputClass, "flex-1 min-w-[160px]")}
-              placeholder="Group / plan label (e.g. Pro — USD 19/month)"
+              placeholder="Group / plan label (e.g. Pro — S$19/month)"
             />
             <input
               type="color"
@@ -352,6 +366,408 @@ function ComparisonTableEditor({
   );
 }
 
+/**
+ * Eyebrow / headline / lede / three labelled points — the shape shared by the
+ * three Sales feature sections (Market Nudges, Prep Library, Account
+ * Intelligence). The product mock panel beside the copy is illustrative sample
+ * content and deliberately NOT editable here.
+ */
+function TrackFeatureFields({
+  feature,
+  onChange,
+}: {
+  feature: LandingTrackFeature;
+  onChange: (next: LandingTrackFeature) => void;
+}) {
+  return (
+    <>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Field label="Eyebrow">
+          <TextInput
+            value={feature.eyebrow}
+            onChange={(v) => onChange({ ...feature, eyebrow: v })}
+          />
+        </Field>
+        <Field label="Headline">
+          <TextInput
+            value={feature.headline}
+            onChange={(v) => onChange({ ...feature, headline: v })}
+          />
+        </Field>
+      </div>
+      <Field label="Lede">
+        <TextInput
+          multiline
+          value={feature.lede}
+          onChange={(v) => onChange({ ...feature, lede: v })}
+        />
+      </Field>
+      <div className="space-y-2">
+        {feature.points.map((point, i) => (
+          <div key={`point-${i}`} className="grid gap-2 sm:grid-cols-[130px_1fr]">
+            <Field label={`Point ${i + 1} label`}>
+              <TextInput
+                value={point.label}
+                onChange={(v) => {
+                  const points = [...feature.points];
+                  points[i] = { ...point, label: v };
+                  onChange({ ...feature, points });
+                }}
+              />
+            </Field>
+            <Field label="Text">
+              <TextInput
+                value={point.text}
+                onChange={(v) => {
+                  const points = [...feature.points];
+                  points[i] = { ...point, text: v };
+                  onChange({ ...feature, points });
+                }}
+              />
+            </Field>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/**
+ * Single-image picker for a CMS slot that holds ONE `ContentAsset` id.
+ *
+ * Uploads through the same `/api/admin/content/assets` endpoint every other
+ * admin surface uses, with a STABLE `assetKey` (`landing/final-cta-image`). That
+ * key is what makes re-uploading REPLACE the previous image rather than leave
+ * orphans behind in the asset table — `upsertContentAsset` upserts on it.
+ *
+ * Deliberately not wrapped in `Field`: that renders a `<label>`, and a label
+ * forwards clicks to its labelled control, so pressing "Remove" would pop the
+ * file dialog. The caller renders the heading itself.
+ */
+function ImageAssetField({
+  value,
+  onChange,
+  assetKey = "landing/final-cta-image",
+  hint = "Optional. Renders centred under the closing band\u2019s title. PNG or JPG, max 4MB.",
+  previewClassName = "h-24 w-auto rounded-lg border border-border object-cover",
+}: {
+  value?: string;
+  onChange: (assetId: string | undefined) => void;
+  /** ContentAsset key for this slot — one per upload position, never shared. */
+  assetKey?: string;
+  hint?: string;
+  previewClassName?: string;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function pick(file: File) {
+    setBusy(true);
+    setError("");
+    const result = await uploadContentAssetFile({
+      file,
+      moduleSlug: "landing",
+      requiredTier: "PRO",
+      assetKey,
+    });
+    setBusy(false);
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+    onChange(result.id);
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.heic,.heif,.tiff,.tif,image/*"
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void pick(f);
+            e.target.value = "";
+          }}
+        />
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => fileRef.current?.click()}
+          className="inline-flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs transition-colors hover:border-primary-400 hover:bg-secondary/40 disabled:opacity-50"
+        >
+          <Upload className="w-3.5 h-3.5 text-primary-400" />
+          {busy ? "Uploading…" : value ? "Replace image" : "Upload image"}
+        </button>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange(undefined)}
+            className="text-xs font-medium text-red-500 hover:text-red-700"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+      {value ? (
+        // eslint-disable-next-line @next/next/no-img-element -- CMS asset of unknown dimensions
+        <img src={`/api/content/assets/${value}`} alt="" className={previewClassName} />
+      ) : (
+        <p className="text-[11px] text-muted-fg">{hint}</p>
+      )}
+      {error && <p className="text-[11px] text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+const selectClass =
+  "w-full h-9 px-2 rounded-lg border border-border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-400";
+
+/** Blank row for "Add ad" / "Add shoutout". `id` must be unique — it is the React key. */
+function newClientAdEntry(kind: ClientAdEntry["kind"]): ClientAdEntry {
+  const stamp = `${kind}-${Date.now().toString(36)}`;
+  return {
+    id: stamp,
+    kind,
+    company: kind === "ad" ? "New client" : "New client",
+    eyebrow: kind === "ad" ? "Enterprise client" : "Client shoutout",
+    headline: kind === "ad" ? "Ad headline" : "What the client said",
+    body:
+      kind === "ad"
+        ? "One or two lines of supporting copy for this advertisement."
+        : "The short quote or comment this client gave permission to publish.",
+    attribution: kind === "ad" ? undefined : "Name, role",
+    track: "both",
+    visible: true,
+    // A row the owner creates starts as a placeholder too: the "Example" tag comes
+    // off only when she consciously unticks it, so nothing invented goes live by
+    // default.
+    sample: true,
+  };
+}
+
+/**
+ * Editor for the "Client ads & shoutouts" section — one shared list feeding BOTH
+ * landing pages.
+ *
+ * Add / update / remove / hide are all here, and nothing is destroyed by hiding:
+ * `visible: false` keeps the row in the CMS so it can be brought back, while
+ * deleting removes it outright. The `track` dropdown is what makes one list serve
+ * two personas.
+ */
+function ClientAdsEditor({
+  content,
+  onChange,
+}: {
+  content: LandingClientAds;
+  onChange: (next: LandingClientAds) => void;
+}) {
+  function patchEntry(index: number, next: Partial<ClientAdEntry>) {
+    const entries = content.entries.map((entry, i) => (i === index ? { ...entry, ...next } : entry));
+    onChange({ ...content, entries });
+  }
+
+  function removeEntry(index: number) {
+    onChange({ ...content, entries: content.entries.filter((_, i) => i !== index) });
+  }
+
+  function moveEntry(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= content.entries.length) return;
+    const entries = [...content.entries];
+    const [row] = entries.splice(index, 1);
+    entries.splice(target, 0, row);
+    onChange({ ...content, entries });
+  }
+
+  function addEntry(kind: ClientAdEntry["kind"]) {
+    onChange({ ...content, entries: [...content.entries, newClientAdEntry(kind)] });
+  }
+
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Eyebrow">
+          <TextInput
+            value={content.eyebrow}
+            onChange={(v) => onChange({ ...content, eyebrow: v })}
+          />
+        </Field>
+        <Field label="Heading">
+          <TextInput value={content.title} onChange={(v) => onChange({ ...content, title: v })} />
+        </Field>
+      </div>
+      <Field label="Description">
+        <TextInput
+          value={content.description}
+          onChange={(v) => onChange({ ...content, description: v })}
+          multiline
+          rows={2}
+        />
+      </Field>
+
+      <p className="text-[11px] text-muted-fg">
+        {content.entries.length === 0
+          ? "No entries — the section is hidden on both landing pages. Add a row to bring it back."
+          : `${content.entries.length} entr${content.entries.length === 1 ? "y" : "ies"}. Untick Visible to hide one without deleting it; the section disappears from a track when no visible row targets it.`}
+      </p>
+
+      <div className="space-y-3">
+        {content.entries.map((entry, index) => (
+          <div key={entry.id} className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-fg">
+                  {entry.kind === "ad" ? "Ad" : "Shoutout"}
+                </span>
+                <span className="text-sm font-semibold text-gray-900">{entry.company}</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => moveEntry(index, -1)}
+                  disabled={index === 0}
+                  className={cn(smallButtonClass, "disabled:opacity-40")}
+                  aria-label="Move up"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveEntry(index, 1)}
+                  disabled={index === content.entries.length - 1}
+                  className={cn(smallButtonClass, "disabled:opacity-40")}
+                  aria-label="Move down"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeEntry(index)}
+                  className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Remove
+                </button>
+              </span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Kind">
+                <select
+                  value={entry.kind}
+                  onChange={(e) => patchEntry(index, { kind: e.target.value as ClientAdEntry["kind"] })}
+                  className={selectClass}
+                >
+                  <option value="ad">Ad (image-led)</option>
+                  <option value="shoutout">Shoutout (quote-led)</option>
+                </select>
+              </Field>
+              <Field label="Shown on">
+                <select
+                  value={entry.track}
+                  onChange={(e) => patchEntry(index, { track: e.target.value as ClientAdEntry["track"] })}
+                  className={selectClass}
+                >
+                  {(Object.keys(CLIENT_AD_TRACK_LABELS) as ClientAdEntry["track"][]).map((key) => (
+                    <option key={key} value={key}>
+                      {CLIENT_AD_TRACK_LABELS[key]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Company">
+                <TextInput
+                  value={entry.company}
+                  onChange={(v) => patchEntry(index, { company: v })}
+                />
+              </Field>
+              <Field label="Label" hint='Small caps line, e.g. "Enterprise client".'>
+                <TextInput
+                  value={entry.eyebrow}
+                  onChange={(v) => patchEntry(index, { eyebrow: v })}
+                />
+              </Field>
+            </div>
+
+            <Field label={entry.kind === "ad" ? "Ad headline" : "Shoutout lead line"}>
+              <TextInput
+                value={entry.headline}
+                onChange={(v) => patchEntry(index, { headline: v })}
+                multiline
+                rows={2}
+              />
+            </Field>
+            <Field label={entry.kind === "ad" ? "Ad body" : "Shoutout body"}>
+              <TextInput
+                value={entry.body}
+                onChange={(v) => patchEntry(index, { body: v })}
+                multiline
+                rows={3}
+              />
+            </Field>
+
+            {entry.kind === "shoutout" && (
+              <Field label="Attribution" hint='Optional, e.g. "Head of Metals Trading, <company>".'>
+                <TextInput
+                  value={entry.attribution ?? ""}
+                  onChange={(v) => patchEntry(index, { attribution: v })}
+                />
+              </Field>
+            )}
+
+            {/* Only an ad card renders a banner — `ShoutoutCard` is quote-led and
+                ignores `imageAssetId`. Offering the uploader on a shoutout row would
+                let the owner upload an image that never appears. */}
+            {entry.kind === "ad" && (
+              <div className="space-y-1.5">
+                <span className="block text-xs font-semibold text-gray-700">Ad image</span>
+                <ImageAssetField
+                  value={entry.imageAssetId}
+                  onChange={(id) => patchEntry(index, { imageAssetId: id })}
+                  assetKey={`landing/client-ad-${entry.id}`}
+                  hint="Optional. With no image, a generated placeholder tile is shown instead."
+                  previewClassName="h-20 w-auto rounded-lg border border-border object-cover"
+                />
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-4 pt-1">
+              <label className="inline-flex items-center gap-2 text-xs font-semibold text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={entry.visible}
+                  onChange={(e) => patchEntry(index, { visible: e.target.checked })}
+                />
+                Visible
+              </label>
+              <label className="inline-flex items-center gap-2 text-xs font-semibold text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={entry.sample ?? false}
+                  onChange={(e) => patchEntry(index, { sample: e.target.checked })}
+                />
+                Placeholder (shows an &ldquo;Example&rdquo; tag)
+              </label>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => addEntry("ad")} className={smallButtonClass}>
+          <Plus className="w-3.5 h-3.5" /> Add ad
+        </button>
+        <button type="button" onClick={() => addEntry("shoutout")} className={smallButtonClass}>
+          <Plus className="w-3.5 h-3.5" /> Add shoutout
+        </button>
+      </div>
+    </>
+  );
+}
+
 export function AdminLandingEditor({
   content,
   onChange,
@@ -374,7 +790,11 @@ export function AdminLandingEditor({
 
       {showCareer && (
       <>
-      <Section title="Career Track — Hero" description="Track 1 hero section" defaultOpen>
+      <Section
+        title="Career Track — Hero"
+        description="Track 1 hero section, plus the closing “Be part of industry community” band's buttons and image"
+        defaultOpen
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Eyebrow">
             <TextInput value={content.career.eyebrow} onChange={(v) => patch("career", { ...content.career, eyebrow: v })} />
@@ -414,6 +834,25 @@ export function AdminLandingEditor({
               onChange={(v) => patch("career", { ...content.career, finalCtaAccent: v })}
             />
           </Field>
+          <Field label="Bottom CTA primary button" hint="The closing band's main button.">
+            <TextInput
+              value={content.career.finalCtaPrimary}
+              onChange={(v) => patch("career", { ...content.career, finalCtaPrimary: v })}
+            />
+          </Field>
+          <Field label="Bottom CTA secondary button" hint="Sits beside it; opens the Contact form.">
+            <TextInput
+              value={content.career.finalCtaSecondary}
+              onChange={(v) => patch("career", { ...content.career, finalCtaSecondary: v })}
+            />
+          </Field>
+        </div>
+        <div className="space-y-1.5">
+          <span className="block text-xs font-semibold text-gray-700">Bottom CTA image</span>
+          <ImageAssetField
+            value={content.career.finalCtaImageAssetId}
+            onChange={(id) => patch("career", { ...content.career, finalCtaImageAssetId: id })}
+          />
         </div>
         <Field label="Description">
           <TextInput
@@ -876,6 +1315,24 @@ export function AdminLandingEditor({
                   />
                 </Field>
               </div>
+              {/* `highlight` drives the "Most Popular" badge on /pricing
+                  (`pricing-tier-grid.tsx` renders it when `tier.highlight`).
+                  It was previously WRITABLE BY NOTHING — no admin control
+                  touched it — so the badge could only be moved by a code change
+                  or a direct payload write. Exactly one tier should be checked;
+                  nothing enforces that, so two checks would render two badges. */}
+              <label className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={Boolean(tier.highlight)}
+                  onChange={(e) => {
+                    const tiers = [...content.pricing.tiers];
+                    tiers[i] = { ...tier, highlight: e.target.checked };
+                    patch("pricing", { ...content.pricing, tiers });
+                  }}
+                />
+                Most Popular — show the badge on this tier
+              </label>
               <Field label="Tier description">
                 <TextInput
                   value={tier.description}
@@ -1512,22 +1969,15 @@ export function AdminLandingEditor({
           />
         </Field>
         <Field label="Fallback items" hint="One per line. Only used when the Starter Pack is empty — the public landing always prefers the live Starter Pack titles, so edits here usually have no visible effect.">
-          <TextInput
-            value={content.sales.starterCard.items.join("\n")}
-            onChange={(v) =>
+          <LinesTextarea
+            rows={6}
+            value={content.sales.starterCard.items}
+            onChange={(items) =>
               patch("sales", {
                 ...content.sales,
-                starterCard: {
-                  ...content.sales.starterCard,
-                  items: v
-                    .split("\n")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                },
+                starterCard: { ...content.sales.starterCard, items },
               })
             }
-            multiline
-            rows={6}
           />
         </Field>
       </Section>
@@ -1667,6 +2117,21 @@ export function AdminLandingEditor({
                   />
                 </Field>
               </div>
+              {/* Sales spells the same flag `featured` — `pricing-page-client.tsx`
+                  maps it to `highlight` when it adapts these tiers for the grid.
+                  Two different field names for one badge; keep them in step. */}
+              <label className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={Boolean(tier.featured)}
+                  onChange={(e) => {
+                    const pricing = [...content.sales.pricing];
+                    pricing[i] = { ...tier, featured: e.target.checked };
+                    patch("sales", { ...content.sales, pricing });
+                  }}
+                />
+                Most Popular — show the badge on this tier
+              </label>
               <Field label="Description">
                 <TextInput
                   value={tier.description}
@@ -1968,6 +2433,516 @@ export function AdminLandingEditor({
             </Field>
           </>
         )}
+      </Section>
+
+      {/* Shared by BOTH landing pages — the persona split is per row (the "Shown
+          on" dropdown), so this card is not wrapped in showCareer/showSales the way
+          the track-specific sections are. Hiding it behind a track filter would
+          make the sales-only rows unreachable while editing the career track. */}
+      <Section
+        title="Client ads & shoutouts (both landing pages)"
+        description="Company ads and client quotes. One list for both tracks — each row picks where it appears."
+      >
+        <ClientAdsEditor
+          content={content.clientAds}
+          onChange={(next) => patch("clientAds", next)}
+        />
+      </Section>
+
+      {showSales && (
+        <Section
+          title="Sales Track — Feature Sections"
+          description="The three two-column sections on the sales landing: Market Nudges, Prep Library and Account Intelligence. The product panel beside each is a sample preview and is not editable here."
+        >
+          <div className="space-y-6">
+            <div className="p-3 rounded-lg border border-border space-y-3">
+              <p className="text-xs font-bold text-muted-fg uppercase">Sales Market Nudges</p>
+              <TrackFeatureFields
+                feature={content.salesFeatures.marketNudges}
+                onChange={(next) =>
+                  patch("salesFeatures", { ...content.salesFeatures, marketNudges: next })
+                }
+              />
+            </div>
+            <div className="p-3 rounded-lg border border-border space-y-3">
+              <p className="text-xs font-bold text-muted-fg uppercase">Prep Library</p>
+              <TrackFeatureFields
+                feature={content.salesFeatures.prepLibrary}
+                onChange={(next) =>
+                  patch("salesFeatures", { ...content.salesFeatures, prepLibrary: next })
+                }
+              />
+            </div>
+            <div className="p-3 rounded-lg border border-border space-y-3">
+              <p className="text-xs font-bold text-muted-fg uppercase">Account Intelligence</p>
+              <TrackFeatureFields
+                feature={content.salesFeatures.accountIntelligence}
+                onChange={(next) =>
+                  patch("salesFeatures", {
+                    ...content.salesFeatures,
+                    accountIntelligence: next,
+                  })
+                }
+              />
+            </div>
+          </div>
+        </Section>
+      )}
+
+      <Section
+        title="Mentor Connect (both landing pages)"
+        description="The “Ask the desk. Stay anonymous.” section and its interactive demo card. The same words appear on both tracks — only the accent colour differs."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Eyebrow">
+            <TextInput
+              value={content.mentorSection.eyebrow}
+              onChange={(v) =>
+                patch("mentorSection", { ...content.mentorSection, eyebrow: v })
+              }
+            />
+          </Field>
+          <Field label="Headline">
+            <TextInput
+              value={content.mentorSection.headline}
+              onChange={(v) =>
+                patch("mentorSection", { ...content.mentorSection, headline: v })
+              }
+            />
+          </Field>
+        </div>
+        <Field label="Lede">
+          <TextInput
+            multiline
+            value={content.mentorSection.lede}
+            onChange={(v) => patch("mentorSection", { ...content.mentorSection, lede: v })}
+          />
+        </Field>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-gray-700">Steps</p>
+          {content.mentorSection.steps.map((step, i) => (
+            <div key={`mentor-step-${i}`} className="p-3 rounded-lg border border-border space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-muted-fg uppercase">Step {i + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (content.mentorSection.steps.length <= 1) return;
+                    patch("mentorSection", {
+                      ...content.mentorSection,
+                      steps: content.mentorSection.steps.filter((_, idx) => idx !== i),
+                    });
+                  }}
+                  disabled={content.mentorSection.steps.length <= 1}
+                  className="text-xs text-muted-fg hover:text-red-600 disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[80px_1fr]">
+                <Field label="Number">
+                  <TextInput
+                    value={step.num}
+                    onChange={(v) => {
+                      const steps = [...content.mentorSection.steps];
+                      steps[i] = { ...step, num: v };
+                      patch("mentorSection", { ...content.mentorSection, steps });
+                    }}
+                  />
+                </Field>
+                <Field label="Title">
+                  <TextInput
+                    value={step.title}
+                    onChange={(v) => {
+                      const steps = [...content.mentorSection.steps];
+                      steps[i] = { ...step, title: v };
+                      patch("mentorSection", { ...content.mentorSection, steps });
+                    }}
+                  />
+                </Field>
+              </div>
+              <Field label="Body">
+                <TextInput
+                  multiline
+                  value={step.body}
+                  onChange={(v) => {
+                    const steps = [...content.mentorSection.steps];
+                    steps[i] = { ...step, body: v };
+                    patch("mentorSection", { ...content.mentorSection, steps });
+                  }}
+                />
+              </Field>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() =>
+              patch("mentorSection", {
+                ...content.mentorSection,
+                steps: [
+                  ...content.mentorSection.steps,
+                  {
+                    num: String(content.mentorSection.steps.length + 1).padStart(2, "0"),
+                    title: "",
+                    body: "",
+                  },
+                ],
+              })
+            }
+            className={smallButtonClass}
+          >
+            <Plus className="w-3.5 h-3.5" /> Add step
+          </button>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Primary button" hint="Scrolls to the demo card">
+            <TextInput
+              value={content.mentorSection.primaryCta}
+              onChange={(v) =>
+                patch("mentorSection", { ...content.mentorSection, primaryCta: v })
+              }
+            />
+          </Field>
+          <Field label="Secondary link" hint="Goes to /pricing for this track">
+            <TextInput
+              value={content.mentorSection.secondaryCta}
+              onChange={(v) =>
+                patch("mentorSection", { ...content.mentorSection, secondaryCta: v })
+              }
+            />
+          </Field>
+        </div>
+
+        {/* The "Demo footnote" input was removed with the footnote itself — the card
+            is inert, so the line is no longer rendered on either landing page. */}
+        <Field label="Demo label">
+          <TextInput
+            value={content.mentorSection.demoHint}
+            onChange={(v) => patch("mentorSection", { ...content.mentorSection, demoHint: v })}
+          />
+        </Field>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Roster title">
+            <TextInput
+              value={content.mentorSection.rosterTitle}
+              onChange={(v) =>
+                patch("mentorSection", { ...content.mentorSection, rosterTitle: v })
+              }
+            />
+          </Field>
+          <Field label="Roster subtitle">
+            <TextInput
+              value={content.mentorSection.rosterSub}
+              onChange={(v) => patch("mentorSection", { ...content.mentorSection, rosterSub: v })}
+            />
+          </Field>
+        </div>
+        <Field label="Roster footnote">
+          <TextInput
+            multiline
+            value={content.mentorSection.rosterNote}
+            onChange={(v) => patch("mentorSection", { ...content.mentorSection, rosterNote: v })}
+          />
+        </Field>
+        <Field label="Credit pill">
+          <TextInput
+            value={content.mentorSection.creditPill}
+            onChange={(v) => patch("mentorSection", { ...content.mentorSection, creditPill: v })}
+          />
+        </Field>
+
+        <Field label="Sample question" hint="Used by “Use a sample question” in the demo">
+          <TextInput
+            multiline
+            value={content.mentorSection.sampleQuestion}
+            onChange={(v) =>
+              patch("mentorSection", { ...content.mentorSection, sampleQuestion: v })
+            }
+          />
+        </Field>
+        <Field label="Sample reply" hint="Shown as “What a reply looks like”">
+          <TextInput
+            multiline
+            rows={5}
+            value={content.mentorSection.sampleAnswer}
+            onChange={(v) =>
+              patch("mentorSection", { ...content.mentorSection, sampleAnswer: v })
+            }
+          />
+        </Field>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-gray-700">Mentors</p>
+          {content.mentorSection.mentors.map((mentor, i) => (
+            <div key={`mentor-${i}`} className="p-3 rounded-lg border border-border space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-muted-fg uppercase">Mentor {i + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (content.mentorSection.mentors.length <= 1) return;
+                    patch("mentorSection", {
+                      ...content.mentorSection,
+                      mentors: content.mentorSection.mentors.filter((_, idx) => idx !== i),
+                    });
+                  }}
+                  disabled={content.mentorSection.mentors.length <= 1}
+                  className="text-xs text-muted-fg hover:text-red-600 disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[110px_100px_1fr]">
+                <Field label="Ref">
+                  <TextInput
+                    value={mentor.id}
+                    onChange={(v) => {
+                      const mentors = [...content.mentorSection.mentors];
+                      mentors[i] = { ...mentor, id: v };
+                      patch("mentorSection", { ...content.mentorSection, mentors });
+                    }}
+                  />
+                </Field>
+                <Field label="Years">
+                  <StatValueInput
+                    value={mentor.years}
+                    placeholder="Years"
+                    onChange={(years) => {
+                      const mentors = [...content.mentorSection.mentors];
+                      mentors[i] = { ...mentor, years };
+                      patch("mentorSection", { ...content.mentorSection, mentors });
+                    }}
+                  />
+                </Field>
+                <Field label="Title">
+                  <TextInput
+                    value={mentor.title}
+                    onChange={(v) => {
+                      const mentors = [...content.mentorSection.mentors];
+                      mentors[i] = { ...mentor, title: v };
+                      patch("mentorSection", { ...content.mentorSection, mentors });
+                    }}
+                  />
+                </Field>
+              </div>
+              <Field label="Category">
+                <TextInput
+                  value={mentor.category}
+                  onChange={(v) => {
+                    const mentors = [...content.mentorSection.mentors];
+                    mentors[i] = { ...mentor, category: v };
+                    patch("mentorSection", { ...content.mentorSection, mentors });
+                  }}
+                />
+              </Field>
+              <Field label="Bio">
+                <TextInput
+                  multiline
+                  value={mentor.bio}
+                  onChange={(v) => {
+                    const mentors = [...content.mentorSection.mentors];
+                    mentors[i] = { ...mentor, bio: v };
+                    patch("mentorSection", { ...content.mentorSection, mentors });
+                  }}
+                />
+              </Field>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() =>
+              patch("mentorSection", {
+                ...content.mentorSection,
+                mentors: [
+                  ...content.mentorSection.mentors,
+                  { id: "", years: 0, title: "", category: "", bio: "" },
+                ],
+              })
+            }
+            className={smallButtonClass}
+          >
+            <Plus className="w-3.5 h-3.5" /> Add mentor
+          </button>
+        </div>
+      </Section>
+
+      <Section
+        title="Plans & Pricing Band (both landing pages)"
+        description="The centered band that invites visitors to /pricing. One set of words for both tracks."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Eyebrow">
+            <TextInput
+              value={content.pricingCtaBand.eyebrow}
+              onChange={(v) =>
+                patch("pricingCtaBand", { ...content.pricingCtaBand, eyebrow: v })
+              }
+            />
+          </Field>
+          <Field label="Button">
+            <TextInput
+              value={content.pricingCtaBand.button}
+              onChange={(v) =>
+                patch("pricingCtaBand", { ...content.pricingCtaBand, button: v })
+              }
+            />
+          </Field>
+        </div>
+        <Field label="Headline">
+          <TextInput
+            value={content.pricingCtaBand.title}
+            onChange={(v) => patch("pricingCtaBand", { ...content.pricingCtaBand, title: v })}
+          />
+        </Field>
+        <Field label="Description">
+          <TextInput
+            multiline
+            value={content.pricingCtaBand.description}
+            onChange={(v) =>
+              patch("pricingCtaBand", { ...content.pricingCtaBand, description: v })
+            }
+          />
+        </Field>
+      </Section>
+
+      {/* Job Board Waitlist copy. The page is /waitlist, not a landing page, but it
+          lives in this module (like the pricing groups above) so the owner edits it
+          from the same "Landing Pages" card. One set of words — there is no
+          per-track split. */}
+      <Section
+        title="Job Board Waitlist (both landing pages)"
+        description="Copy for the /waitlist page. The account-status line and error messages stay in code."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Pill label">
+            <TextInput
+              value={content.waitlist.pill}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, pill: v })}
+            />
+          </Field>
+          <Field label="Page heading (h1)">
+            <TextInput
+              value={content.waitlist.title}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, title: v })}
+            />
+          </Field>
+        </div>
+        <Field label="Sub-headline">
+          <TextInput
+            multiline
+            value={content.waitlist.subheadline}
+            onChange={(v) => patch("waitlist", { ...content.waitlist, subheadline: v })}
+          />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Signed-in card — title">
+            <TextInput
+              value={content.waitlist.signedInTitle}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, signedInTitle: v })}
+            />
+          </Field>
+          <Field label="Signed-out card — title">
+            <TextInput
+              value={content.waitlist.signedOutTitle}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, signedOutTitle: v })}
+            />
+          </Field>
+          <Field label="Signed-in card — body">
+            <TextInput
+              multiline
+              value={content.waitlist.signedInBody}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, signedInBody: v })}
+            />
+          </Field>
+          <Field label="Signed-out card — body">
+            <TextInput
+              multiline
+              value={content.waitlist.signedOutBody}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, signedOutBody: v })}
+            />
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Consent line — before the Privacy Policy link">
+            <TextInput
+              multiline
+              value={content.waitlist.consentPrefix}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, consentPrefix: v })}
+            />
+          </Field>
+          <Field label="Consent line — after the Privacy Policy link">
+            <TextInput
+              multiline
+              value={content.waitlist.consentSuffix}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, consentSuffix: v })}
+            />
+          </Field>
+          <Field label="Submit button — signed in">
+            <TextInput
+              value={content.waitlist.submitSignedIn}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, submitSignedIn: v })}
+            />
+          </Field>
+          <Field label="Submit button — signed out">
+            <TextInput
+              value={content.waitlist.submitSignedOut}
+              onChange={(v) => patch("waitlist", { ...content.waitlist, submitSignedOut: v })}
+            />
+          </Field>
+        </div>
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-gray-700">Benefit cards</p>
+          {content.waitlist.benefits.map((benefit, i) => (
+            <div key={`waitlist-benefit-${benefit.title}-${i}`} className="grid gap-4 sm:grid-cols-2">
+              <Field label={`Benefit ${i + 1} — title`}>
+                <TextInput
+                  value={benefit.title}
+                  onChange={(v) => {
+                    const benefits = [...content.waitlist.benefits];
+                    benefits[i] = { ...benefit, title: v };
+                    patch("waitlist", { ...content.waitlist, benefits });
+                  }}
+                />
+              </Field>
+              <Field label={`Benefit ${i + 1} — description`}>
+                <TextInput
+                  multiline
+                  value={benefit.desc}
+                  onChange={(v) => {
+                    const benefits = [...content.waitlist.benefits];
+                    benefits[i] = { ...benefit, desc: v };
+                    patch("waitlist", { ...content.waitlist, benefits });
+                  }}
+                />
+              </Field>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() =>
+              patch("waitlist", {
+                ...content.waitlist,
+                benefits: [...content.waitlist.benefits, { title: "", desc: "" }],
+              })
+            }
+            className={smallButtonClass}
+          >
+            <Plus className="w-3.5 h-3.5" /> Add benefit card
+          </button>
+        </div>
+        <Field
+          label="GDPR footer note — before the privacy policy link"
+          hint="The “privacy policy” hyperlink and its full stop stay in code."
+        >
+          <TextInput
+            multiline
+            value={content.waitlist.gdprNote}
+            onChange={(v) => patch("waitlist", { ...content.waitlist, gdprNote: v })}
+          />
+        </Field>
       </Section>
     </div>
   );

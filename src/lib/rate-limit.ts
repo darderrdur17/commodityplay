@@ -1,30 +1,46 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import {
+  PG_WINDOW_SQL,
+  degradedResult,
+  windowResult,
+  type RateLimitOptions,
+  type RateLimitResult,
+  type RateLimitRule,
+  type RateLimitStore,
+} from "@/lib/rate-limit-shared";
 
 /**
  * Fixed-window rate limiting for unauthenticated (and a few paid) endpoints.
  *
- * Prefer Upstash Redis when `UPSTASH_REDIS_REST_URL` and
- * `UPSTASH_REDIS_REST_TOKEN` are set so every Vercel instance shares one
- * counter. When those vars are absent (or Redis errors), fall back to the
- * in-process Map so local builds and previews still run.
+ * THREE tiers, in order of preference, and the order is the point:
+ *
+ *   1. **Upstash Redis** (`UPSTASH_REDIS_REST_URL` + `_TOKEN`) — one counter for
+ *      every Vercel instance. Fastest and the intended production store.
+ *   2. **Postgres** (`RateLimitCounter`) — used when Upstash is absent. Every
+ *      lambda already reaches the database, so one atomic upsert gives a real
+ *      distributed limit. Slower than Redis, still CORRECT.
+ *   3. **In-process Map** — last resort only. Per-instance, so it silently
+ *      multiplies every limit by the number of warm lambdas.
+ *
+ * ⚠️ Tier 3 is a lie about the limit, which is why it is no longer silent. Every
+ * result carries the `store` that produced it, `warnDegraded()` says so once in
+ * the logs, and a call site that cannot tolerate an inflated limit can pass
+ * `onSharedStoreUnavailable: "deny"` to FAIL CLOSED instead. `referralValidate`
+ * does exactly that: its 20-per-15-minutes cap exists to stop referral-code
+ * guessing, and a cap of 20 × N lambdas is not that cap.
+ *
+ * History: before Postgres was added, Upstash being unset meant tier 3 in
+ * production, so `referralValidate` was effectively unbounded per code space.
+ *
+ * The counter SQL and the two decision functions live in `rate-limit-shared.ts`
+ * (a plain module) so a verification script can execute them against a real
+ * database — this file cannot be imported outside Next because of `server-only`.
  */
 
-export interface RateLimitRule {
-  /** Maximum number of hits allowed inside the window. */
-  limit: number;
-  /** Window length in milliseconds. */
-  windowMs: number;
-}
-
-export interface RateLimitResult {
-  allowed: boolean;
-  limit: number;
-  remaining: number;
-  /** Seconds until the oldest hit leaves the window. 0 when allowed. */
-  retryAfterSeconds: number;
-}
+export type { RateLimitOptions, RateLimitResult, RateLimitRule, RateLimitStore };
 
 /** Rules per surface. Keys are the call-site identifiers used below. */
 export const RATE_LIMITS = {
@@ -43,6 +59,14 @@ export const RATE_LIMITS = {
   register: { limit: 5, windowMs: 15 * 60 * 1000 },
   /** Stripe Checkout session creation: 8 / 15 min per member. */
   stripeCheckout: { limit: 8, windowMs: 15 * 60 * 1000 },
+  /**
+   * Referral-code validation: 20 / 15 min per member.
+   *
+   * A member types one code, maybe mistypes it twice. The cap exists so the
+   * endpoint is not a free oracle for guessing codes: `CP-XXXX-XXXX` has ~1.1e12
+   * combinations, so 20 tries per quarter hour is nowhere near enough to walk it.
+   */
+  referralValidate: { limit: 20, windowMs: 15 * 60 * 1000 },
   /**
    * Stripe webhook deliveries. Generous so legitimate retries are not dropped;
    * still bounds a forged-flood if the signing secret were ever leaked.
@@ -70,16 +94,29 @@ function redisConfigured(): boolean {
   return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }
 
-function warnVercelFallback(reason: string): void {
+/**
+ * Say, ONCE per lambda, that the limit in force is not the limit configured.
+ *
+ * The old message ("Falling back to in-memory counters") was true but told nobody
+ * what it cost. This one names the multiplier, because "20 per 15 minutes" and
+ * "20 per 15 minutes per warm lambda" are different security properties and the
+ * difference is invisible from the outside.
+ */
+function warnDegraded(reason: string): void {
   if (process.env.VERCEL !== "1" || vercelFallbackWarned) return;
   vercelFallbackWarned = true;
-  console.warn(`[rate-limit] ${reason} Falling back to in-memory counters.`);
+  console.warn(
+    `[rate-limit] DEGRADED: no shared counter store (${reason}). ` +
+      "Counting in this instance's memory only, so every limit is effectively " +
+      "multiplied by the number of warm lambdas. Set UPSTASH_REDIS_REST_URL and " +
+      "UPSTASH_REDIS_REST_TOKEN to make limits exact, or ensure the " +
+      "RateLimitCounter table exists so the Postgres store can be used."
+  );
 }
 
 async function getRedis(): Promise<RedisIncrClient | null> {
   if (redisClient !== undefined) return redisClient;
   if (!redisConfigured()) {
-    warnVercelFallback("UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are unset on Vercel.");
     redisClient = null;
     return null;
   }
@@ -89,7 +126,6 @@ async function getRedis(): Promise<RedisIncrClient | null> {
     return redisClient;
   } catch (err) {
     console.error("[rate-limit] Failed to initialise Upstash Redis.", err);
-    warnVercelFallback("Upstash client failed to load.");
     redisClient = null;
     return null;
   }
@@ -120,6 +156,8 @@ function checkMemory(key: string, rule: RateLimitRule, now: number): RateLimitRe
       limit: rule.limit,
       remaining: 0,
       retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1000)),
+      store: "memory",
+      degraded: true,
     };
   }
 
@@ -130,6 +168,8 @@ function checkMemory(key: string, rule: RateLimitRule, now: number): RateLimitRe
     limit: rule.limit,
     remaining: Math.max(0, rule.limit - hits.length),
     retryAfterSeconds: 0,
+    store: "memory",
+    degraded: true,
   };
 }
 
@@ -153,6 +193,7 @@ async function checkRedis(
       limit: rule.limit,
       remaining: 0,
       retryAfterSeconds: Math.max(1, retryAfterSeconds),
+      store: "redis",
     };
   }
 
@@ -161,28 +202,142 @@ async function checkRedis(
     limit: rule.limit,
     remaining: Math.max(0, rule.limit - count),
     retryAfterSeconds: 0,
+    store: "redis",
   };
+}
+
+/* ── Postgres store ───────────────────────────────────────────────────────────
+ * The shared counter used when Upstash is absent. Every lambda reaches the same
+ * database, so this is a REAL distributed limit rather than a per-instance one.
+ *
+ * The upsert itself (`PG_WINDOW_SQL`) lives in `rate-limit-shared.ts` so it can be
+ * executed by a verification script — see the note at the top of this file.
+ */
+const DB_SWEEP_INTERVAL_MS = 10 * 60 * 1000;
+let lastDbSweepAt = 0;
+let counterTableReady = false;
+
+function isMissingCounterTable(err: unknown): boolean {
+  const message = String(err);
+  return (
+    message.includes("42P01") ||
+    message.toLowerCase().includes('relation "ratelimitcounter" does not exist')
+  );
+}
+
+/**
+ * Create the counter table if it is somehow missing.
+ *
+ * Normally `src/instrumentation.ts` has already run `CORE_MIGRATION_SQL` on cold
+ * start, so this never fires. It exists for the ordering case where a rate-limited
+ * request is the very first thing to touch a brand-new database.
+ */
+async function ensureCounterTable(): Promise<void> {
+  const { applyCoreSchemaSql } = await import("@/lib/setup-database");
+  await applyCoreSchemaSql();
+  counterTableReady = true;
+}
+
+/** Best-effort cleanup so the table cannot grow without bound. */
+async function sweepPostgres(now: number): Promise<void> {
+  if (now - lastDbSweepAt < DB_SWEEP_INTERVAL_MS) return;
+  lastDbSweepAt = now;
+  try {
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "RateLimitCounter" WHERE "expiresAt" < NOW() - INTERVAL '1 hour'`
+    );
+  } catch {
+    // Housekeeping must never affect a request.
+  }
+}
+
+/**
+ * Count this hit in Postgres.
+ *
+ * @returns the result, or `null` when the store is unusable — the caller then
+ *   decides whether to degrade (in-memory) or fail closed.
+ */
+async function checkPostgres(
+  key: string,
+  rule: RateLimitRule,
+  now: number
+): Promise<RateLimitResult | null> {
+  const windowSec = Math.max(1, Math.ceil(rule.windowMs / 1000));
+
+  const run = async () =>
+    prisma.$queryRawUnsafe<Array<{ count: number; ttl: number }>>(
+      PG_WINDOW_SQL,
+      key,
+      String(windowSec)
+    );
+
+  try {
+    let rows: Array<{ count: number; ttl: number }>;
+    try {
+      rows = await run();
+    } catch (err) {
+      // A brand-new database may not have the table yet. Create it once, retry.
+      if (!counterTableReady && isMissingCounterTable(err)) {
+        await ensureCounterTable();
+        rows = await run();
+      } else {
+        throw err;
+      }
+    }
+
+    const row = rows[0];
+    if (!row) return null;
+
+    void sweepPostgres(now);
+
+    return windowResult(Number(row.count), Number(row.ttl), rule, "postgres");
+  } catch (err) {
+    console.error("[rate-limit] Postgres counter unavailable.", err);
+    return null;
+  }
 }
 
 /**
  * Record an attempt against `key` and report whether it is allowed.
  *
  * Counts the current call, so `limit: 5` permits exactly five attempts.
+ *
+ * Store preference is Redis → Postgres → memory. The `store` field on the result
+ * says which one answered, so a caller never has to guess whether its limit was
+ * real. Pass `onSharedStoreUnavailable: "deny"` to fail closed instead of
+ * accepting an inflated per-instance limit.
  */
 export async function checkRateLimit(
   key: string,
   rule: RateLimitRule,
-  now: number = Date.now()
+  now: number = Date.now(),
+  options: RateLimitOptions = {}
 ): Promise<RateLimitResult> {
   const redis = await getRedis();
   if (redis) {
     try {
       return await checkRedis(redis, key, rule);
     } catch (err) {
-      console.error("[rate-limit] Redis increment failed; using in-memory fallback.", err);
-      warnVercelFallback("Upstash increment failed.");
+      console.error("[rate-limit] Redis increment failed; trying Postgres.", err);
     }
   }
+
+  // Shared store #2. This is what makes the limit real in production today.
+  const postgres = await checkPostgres(key, rule, now);
+  if (postgres) return postgres;
+
+  // Neither shared store answered. This is the degraded path.
+  if (options.onSharedStoreUnavailable === "deny") {
+    // FAIL CLOSED. Reports `allowed: false` AND `degraded: true` so the call site
+    // can answer 503 ("cannot check right now") rather than 429 ("you have tried
+    // too often") — they are different facts and the member deserves the accurate
+    // one. The decision itself is pure, so it is pinned in rate-limit-shared.ts.
+    return degradedResult(rule, "deny");
+  }
+
+  warnDegraded(
+    redisConfigured() ? "Redis and Postgres both failed" : "Upstash unset and Postgres failed"
+  );
   return checkMemory(key, rule, now);
 }
 
@@ -238,6 +393,33 @@ export function rateLimitResponse(
         "Retry-After": String(result.retryAfterSeconds),
         "X-RateLimit-Limit": String(result.limit),
         "X-RateLimit-Remaining": "0",
+        // Which store enforced the limit. `memory` means it was per-instance, so
+        // the limit in force is `limit × warm lambdas` rather than `limit`.
+        "X-RateLimit-Store": result.store,
+      },
+    }
+  );
+}
+
+/**
+ * The answer when the limit could not be checked at all and the call site chose
+ * to fail closed.
+ *
+ * 503, not 429: nothing was exceeded. The service simply cannot decide right now,
+ * and telling a member "too many attempts" when they made one would be false.
+ */
+export function rateLimitUnavailableResponse(
+  result: RateLimitResult,
+  message = "This is temporarily unavailable. Please try again in a moment."
+): NextResponse {
+  return NextResponse.json(
+    { error: message, reason: "RATE_LIMIT_UNAVAILABLE" },
+    {
+      status: 503,
+      headers: {
+        "Retry-After": String(Math.max(1, result.retryAfterSeconds)),
+        "X-RateLimit-Limit": String(result.limit),
+        "X-RateLimit-Store": result.store,
       },
     }
   );

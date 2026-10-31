@@ -10,7 +10,7 @@ import {
   parseJobChatMessages,
   type JobChatMessage,
 } from "@/lib/job-chat";
-import { sendJobChatQuestionToHirer } from "@/lib/email";
+import { sendJobChatQuestionToHirer, notifyOperatorLead } from "@/lib/email";
 import { ensureJobChatInfrastructure } from "@/lib/setup-database";
 
 const postSchema = z.object({
@@ -196,6 +196,25 @@ export async function POST(req: NextRequest) {
     respondToken: thread.hirerToken,
     exchangeNumber: messages.filter((m) => m.role === "candidate").length,
   }).catch((err) => console.error("[job-chat] hirer notify failed", err));
+
+  // Operator visibility: a candidate's live-chat question previously notified
+  // only the hirer and never the operator. Mirror the other lead routes with a
+  // fire-and-forget notification so the single support inbox also sees the
+  // message. Destination resolves through `getOperatorNotifyEmails`.
+  void notifyOperatorLead({
+    kind: "operator_job_chat",
+    subject: "New job chat message",
+    lines: [
+      { label: "Job", value: listingHirer.jobTitle },
+      { label: "Company", value: listingHirer.company },
+      { label: "Candidate", value: user.name?.trim() || user.email },
+      { label: "Message", value: newMessage.text },
+      {
+        label: "Exchange",
+        value: String(messages.filter((m) => m.role === "candidate").length),
+      },
+    ],
+  });
 
   return NextResponse.json({ thread: serializeThread(thread, isAdmin) }, { status: 201 });
 }

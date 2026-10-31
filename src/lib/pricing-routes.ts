@@ -3,11 +3,17 @@
  *
  * These anchors used to point at the in-page `#pricing` sections on the two
  * landing pages. Pricing now lives on its own dedicated `/pricing` page, so every
- * helper points there. The `#pricing` / `#plan-*` fragments are PRESERVED so old
- * deep links (dashboard "Upgrade", footer "Be a Member", the in-app tier gates,
- * the Starter Pack signup callback) still land on the right column — `/pricing`
- * exposes `id="pricing"` on the controls wrapper and `id="plan-pro"` /
+ * helper points there. The `#plan-*` fragments are PRESERVED so plan deep links
+ * (dashboard "Upgrade", the in-app tier gates, the Starter Pack signup callback)
+ * still land on the right column — `/pricing` exposes `id="plan-pro"` /
  * `id="plan-elite"` / `id="plan-starter"` on the tier columns.
+ *
+ * The `#pricing` fragment in `CAREER_PRICING_HREF` / `SALES_PRICING_HREF` is
+ * deliberately a legacy NO-OP: `/pricing` IS the pricing page, so it carries no
+ * `id="pricing"` — the top of the page already shows the pricing, and scrolling to
+ * a grid anchor there would skip the free-plan hero. The fragment is retained only
+ * so old inbound URLs keep resolving instead of 404-ing or changing shape; it
+ * resolves to nothing and the page loads at the top.
  *
  * Never hardcode `"/pricing?track=…"` or `"/?track=…#plan-*"` anywhere else — this
  * file is the only place pricing URLs are constructed.

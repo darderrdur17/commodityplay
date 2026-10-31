@@ -9,6 +9,21 @@ export interface MarketNudgeItem {
   status: NudgeLifecycleStatus;
 }
 
+/**
+ * One row of a brief's discovery table.
+ *
+ * `ask` is the question the seller puts to the account; `listenFor` is what a
+ * useful answer sounds like; `offer` is what to bring back in response. Only
+ * `ask` is meaningful on its own — a brief saved before the table existed (or
+ * one whose owner left the other two columns blank) renders as a plain question
+ * list. See {@link hasStructuredDiscovery}.
+ */
+export interface DiscoveryPoint {
+  ask: string;
+  listenFor: string;
+  offer: string;
+}
+
 export interface IntelligenceBrief {
   id: string;
   title: string;
@@ -16,7 +31,8 @@ export interface IntelligenceBrief {
   month: number;
   year: number;
   description: string;
-  discoveryQuestions: string[];
+  /** Ask / Listen for / Offer rows. Rendered as a table, or as a list when unpaired. */
+  discoveryQuestions: DiscoveryPoint[];
   /** ISO calendar date `YYYY-MM-DD` shown on member cards as "3 Sep". */
   updatedAt?: string;
   /** Legacy free-text label; ignored on member cards when `updatedAt` is missing. */
@@ -43,7 +59,7 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
   title: "What's Moving, Briefed for You.",
   description:
     "Practitioner-framed market briefs, refreshed weekly — plus a nudge whenever a move affects one of your tracked accounts. This is your Intelligence layer.",
-  weeklyHeading: "This Week — Talking Points",
+  weeklyHeading: "This Week — Sales Nudges",
   briefsHeading: "Talking Points",
   briefCategories: ["Crude", "Gasoline", "Copper", "LNG"],
   weeklyNudges: [
@@ -75,8 +91,8 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
       description:
         "Brent held above $82 as OPEC+ compliance tightened and Atlantic basin differentials widened. Gulf Coast export flows remain the swing factor for WTI–Brent.",
       discoveryQuestions: [
-        "How is your desk adjusting hedge ratios with Brent at these levels?",
-        "Are you seeing any cargo diversion risk on Atlantic–Asia routes?",
+        { ask: "How is your desk adjusting hedge ratios with Brent at these levels?", listenFor: "", offer: "" },
+        { ask: "Are you seeing any cargo diversion risk on Atlantic–Asia routes?", listenFor: "", offer: "" },
       ],
       status: "active",
     },
@@ -90,8 +106,8 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
       description:
         "RBOB crack spreads compressed as refinery run rates climbed ahead of driving season. East Coast inventory builds are easing near-term tightness.",
       discoveryQuestions: [
-        "Where are you seeing the biggest margin pressure — flat price or crack?",
-        "How are you positioning ahead of the seasonal demand peak?",
+        { ask: "Where are you seeing the biggest margin pressure — flat price or crack?", listenFor: "", offer: "" },
+        { ask: "How are you positioning ahead of the seasonal demand peak?", listenFor: "", offer: "" },
       ],
       status: "active",
     },
@@ -105,8 +121,8 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
       description:
         "LME copper held firm on China stimulus signals and tight warehouse stocks in Asia. Time spreads are signalling immediate deliverability risk in key locations.",
       discoveryQuestions: [
-        "Are you watching warrant queues or focusing on flat-price exposure?",
-        "How is your coverage team framing the China demand narrative this week?",
+        { ask: "Are you watching warrant queues or focusing on flat-price exposure?", listenFor: "", offer: "" },
+        { ask: "How is your coverage team framing the China demand narrative this week?", listenFor: "", offer: "" },
       ],
       status: "active",
     },
@@ -120,8 +136,8 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
       description:
         "JKM–TTF spread compression accelerated as European storage filled and Asian buyers slowed spot procurement. Freight rates are the new swing variable.",
       discoveryQuestions: [
-        "How are LNG-exposed accounts adjusting their hedge coverage?",
-        "Is freight cost showing up in their cargo economics conversations yet?",
+        { ask: "How are LNG-exposed accounts adjusting their hedge coverage?", listenFor: "", offer: "" },
+        { ask: "Is freight cost showing up in their cargo economics conversations yet?", listenFor: "", offer: "" },
       ],
       status: "active",
     },
@@ -135,8 +151,8 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
       description:
         "WTI–Brent spread widened on strong US export flows. Gulf Coast differentials remain the key signal for Atlantic basin balance.",
       discoveryQuestions: [
-        "Are your accounts leaning into export-driven spread trades this month?",
-        "How are they framing OPEC+ compliance in client conversations?",
+        { ask: "Are your accounts leaning into export-driven spread trades this month?", listenFor: "", offer: "" },
+        { ask: "How are they framing OPEC+ compliance in client conversations?", listenFor: "", offer: "" },
       ],
       status: "active",
     },
@@ -150,8 +166,8 @@ export const DEFAULT_SALES_MARKET_NUDGES_CONTENT: SalesMarketNudgesContent = {
       description:
         "TTF rallied on unplanned maintenance while JKM lagged, widening the spread. Spot procurement slowed across North Asia.",
       discoveryQuestions: [
-        "Which accounts are most exposed to the JKM–TTF gap this week?",
-        "Are they asking about freight-adjusted economics yet?",
+        { ask: "Which accounts are most exposed to the JKM–TTF gap this week?", listenFor: "", offer: "" },
+        { ask: "Are they asking about freight-adjusted economics yet?", listenFor: "", offer: "" },
       ],
       status: "active",
     },
@@ -255,4 +271,28 @@ export function resolveBriefCategories(
   if (fromCms.length) return Array.from(new Set(fromCms));
   const fromBriefs = [...new Set((briefs ?? []).map((b) => b.category.trim()).filter(Boolean))];
   return fromBriefs.length ? fromBriefs : [...DEFAULT_BRIEF_CATEGORIES];
+}
+
+/**
+ * Rows worth rendering — drops the blank row an editor leaves behind when a
+ * question is deleted or a new one is added but never filled in.
+ *
+ * Deliberately a render-time filter rather than a schema-level one: the admin
+ * editor round-trips its payload through the schema on every keystroke, so
+ * dropping empty rows there would delete the row the user is about to type into.
+ */
+export function visibleDiscoveryRows(rows: DiscoveryPoint[]): DiscoveryPoint[] {
+  return rows.filter(
+    (row) => row.ask.trim() !== "" || row.listenFor.trim() !== "" || row.offer.trim() !== ""
+  );
+}
+
+/**
+ * True when at least one row carries a `listenFor` or `offer` cell, i.e. the
+ * brief was written for the Ask / Listen for / Offer table. A brief whose rows
+ * are questions only keeps the original bulleted list, so briefs authored before
+ * the table existed render exactly as they did.
+ */
+export function hasStructuredDiscovery(rows: DiscoveryPoint[]): boolean {
+  return rows.some((row) => row.listenFor.trim() !== "" || row.offer.trim() !== "");
 }

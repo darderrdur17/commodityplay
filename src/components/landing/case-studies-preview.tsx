@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import type { CaseStudyPreviewCard } from "@/data/landing-content";
 import { caseStudyCategoryPreviewStyle } from "@/lib/case-study-category-style";
 import { isCaseStudyComingSoon } from "@/lib/content/case-studies-payload";
+import { cn } from "@/lib/utils";
+import { LANDING_CTA } from "@/lib/landing-cta";
 
 interface Props {
   cards: CaseStudyPreviewCard[];
@@ -82,7 +84,7 @@ export function CaseStudiesPreview({
 
       <div className="flex flex-col items-center gap-6 mt-10 sm:mt-12">
         <Link href={viewMoreHref}>
-          <Button variant="outline" size="lg" className="rounded-full px-8">
+          <Button variant="outline" size="lg" className={cn("px-8", LANDING_CTA)}>
             View more <ArrowRight className="w-4 h-4" />
           </Button>
         </Link>

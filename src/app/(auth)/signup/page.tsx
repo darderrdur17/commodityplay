@@ -15,6 +15,9 @@ import { Input } from "@/components/ui/input";
 import { GradientOrbs, HeroParticles } from "@/components/animations";
 import { MAIN_MIN_HEIGHT_BELOW_NAV } from "@/lib/layout-constants";
 import { useGoogleSignInAvailable } from "@/hooks/use-google-sign-in";
+import { storeSignupConsent } from "@/lib/signup-consent";
+import { COUNTRIES, isCountryName } from "@/data/countries";
+import { cn } from "@/lib/utils";
 
 const schema = z.object({
   name: z.string().min(2, "Please enter your name"),
@@ -24,6 +27,13 @@ const schema = z.object({
     .min(8, "Password must be at least 8 characters")
     .regex(/[A-Z]/, "Must contain an uppercase letter")
     .regex(/[0-9]/, "Must contain a number"),
+  // REQUIRED — the owner asked for a country dropdown on signup. Defaults to
+  // nothing selected (the empty first option); Singapore is merely the first
+  // listed country, never preselected. Validated against the shared list so the
+  // value can never be an arbitrary string.
+  country: z
+    .string()
+    .refine(isCountryName, "Please select your country"),
   track: z.enum(["CAREER", "SALES"], { message: "Please select a track" }),
   // REQUIRED — the register API enforces `termsAccepted === true`, so this must be
   // ticked before the form can submit.
@@ -59,11 +69,15 @@ function SignupForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { terms: false, marketing: false, track: trackFromParam(trackParam) },
+    defaultValues: { terms: false, marketing: false, country: "", track: trackFromParam(trackParam) },
   });
 
   const password = watch("password", "");
   const selectedTrack = watch("track");
+  // The Google button leaves our origin before the form is ever submitted, so
+  // these two boxes are the ONLY place its consent can come from.
+  const termsAccepted = watch("terms", false);
+  const marketingAccepted = watch("marketing", false);
 
   const passwordStrength = {
     length: password.length >= 8,
@@ -86,6 +100,7 @@ function SignupForm() {
           password: data.password,
           plan,
           track: data.track,
+          country: data.country,
           termsAccepted: data.terms,
           marketingConsent: data.marketing,
         }),
@@ -169,9 +184,16 @@ function SignupForm() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full mb-6"
+                className="w-full"
+                disabled={!termsAccepted}
                 onClick={() => {
+                  // Both consents must survive the Google round trip: the account
+                  // is created by the OAuth callback, so `/api/auth/register`
+                  // never runs and would otherwise record neither. Stashed the
+                  // same way `signupTrack` already is, and collected by the
+                  // onboarding page.
                   sessionStorage.setItem("signupTrack", selectedTrack);
+                  storeSignupConsent(marketingAccepted);
                   signIn("google", { callbackUrl: onboardingUrl });
                 }}
               >
@@ -183,6 +205,11 @@ function SignupForm() {
                 </svg>
                 Continue with Google
               </Button>
+              {!termsAccepted && (
+                <p className="text-xs text-muted-fg text-center -mt-4 mb-6">
+                  Tick the Terms of Service box below to continue with Google.
+                </p>
+              )}
               <div className="flex items-center gap-3 mb-6">
                 <div className="flex-1 h-px bg-border" />
                 <span className="text-xs text-muted-fg">or with email</span>
@@ -261,6 +288,33 @@ function SignupForm() {
                 </div>
               </div>
             )}
+
+            {/* Country — a styled native <select> (there is no Select primitive in
+                components/ui). Required, and deliberately defaults to nothing
+                selected; Singapore is only the first option, not a preselection. */}
+            <div className="w-full space-y-1.5">
+              <label htmlFor="country" className="text-sm font-medium text-gray-700">
+                Country
+              </label>
+              <select
+                id="country"
+                className={cn(
+                  "flex h-10 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm",
+                  "focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400",
+                  "transition-all duration-200",
+                  errors.country && "border-red-400 focus:ring-red-400"
+                )}
+                {...register("country")}
+              >
+                <option value="">Select your country</option>
+                {COUNTRIES.map((country) => (
+                  <option key={country.code} value={country.name}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+              {errors.country && <p className="text-xs text-red-500">{errors.country.message}</p>}
+            </div>
 
             {/* Track selection */}
             <div>

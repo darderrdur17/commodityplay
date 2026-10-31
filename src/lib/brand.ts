@@ -8,13 +8,26 @@ export const BRAND_DOMAIN = "commodityplay.ai";
 
 export const BRAND_SITE_URL = "https://www.commodityplay.ai";
 
+/**
+ * The single public contact inbox.
+ *
+ * On 11 Oct 2026 the owner retired `frances@commodityplay.ai` and
+ * `support@commodityplay.ai` as contact addresses and consolidated every
+ * support, legal and privacy contact onto this one address, so there is exactly
+ * one inbox to monitor. This is the only literal; `BRAND_EMAIL_SUPPORT`,
+ * `BRAND_EMAIL_LEGAL` and `BRAND_EMAIL_PRIVACY` all alias it rather than
+ * spelling out their own addresses.
+ */
 export const BRAND_EMAIL_HELLO = `hello@${BRAND_DOMAIN}`;
 
-export const BRAND_EMAIL_SUPPORT = "frances@commodityplay.ai";
+/** Support contact — aliases {@link BRAND_EMAIL_HELLO} (see note above). */
+export const BRAND_EMAIL_SUPPORT = BRAND_EMAIL_HELLO;
 
-export const BRAND_EMAIL_LEGAL = `legal@${BRAND_DOMAIN}`;
+/** Legal contact — aliases {@link BRAND_EMAIL_HELLO} (see note above). */
+export const BRAND_EMAIL_LEGAL = BRAND_EMAIL_HELLO;
 
-export const BRAND_EMAIL_PRIVACY = `privacy@${BRAND_DOMAIN}`;
+/** Privacy contact — aliases {@link BRAND_EMAIL_HELLO} (see note above). */
+export const BRAND_EMAIL_PRIVACY = BRAND_EMAIL_HELLO;
 
 export const BRAND_TAGLINE = "Break in. Move up. Stay sharp.";
 

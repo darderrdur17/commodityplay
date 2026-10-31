@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { normalizeEmail } from "@/lib/admin-access";
+import { isCountryName } from "@/data/countries";
 import { prisma } from "@/lib/prisma";
 import { notifyOperatorLead } from "@/lib/email";
 import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
@@ -12,6 +13,12 @@ const schema = z.object({
   password: z.string().min(8),
   plan: z.enum(["starter", "pro", "elite"]).optional().default("starter"),
   track: z.enum(["CAREER", "SALES"]).default("CAREER"),
+  /**
+   * The member's country, chosen from the signup dropdown. Validated against the
+   * shared `COUNTRIES` list so an arbitrary string can never be persisted here.
+   * Required — the web signup form is the only caller of this route.
+   */
+  country: z.string().refine(isCountryName, "Please select a valid country"),
   /**
    * R-2 (team-lead override): terms acceptance is REQUIRED and must literally be
    * `true`. The web signup page is the only caller of this route (the mobile app
@@ -42,7 +49,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    const { name, password, track, marketingConsent } = parsed.data;
+    const { name, password, track, country, marketingConsent } = parsed.data;
     // `termsAccepted` is enforced by the schema (z.literal(true)); reaching this
     // point means it was `true`, so we can record acceptance unconditionally.
     // Store the normalised form so `Foo@X.com` and `foo@x.com` are one account.
@@ -78,6 +85,7 @@ export async function POST(req: NextRequest) {
         passwordHash,
         tier: "STARTER",
         track,
+        country,
         onboardingDone: false,
         termsAcceptedAt: now,
         marketingConsent,
@@ -99,6 +107,7 @@ export async function POST(req: NextRequest) {
       lines: [
         { label: "Name", value: name },
         { label: "Email", value: email },
+        { label: "Country", value: country },
         { label: "Track", value: track },
         { label: "Tier", value: "STARTER" },
       ],

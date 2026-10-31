@@ -9,7 +9,7 @@ import {
   mergeJobOpeningsHero,
   type JobOpeningsHero,
 } from "@/data/job-openings-content";
-import { EditorField, EditorRow, UploadSection, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, LinesTextarea, UploadSection, inputClass, textareaClass } from "./shared";
 
 interface JobOpening {
   id: string;
@@ -384,15 +384,12 @@ export function JobOpeningsEditor({
                   />
                 </EditorField>
                 <EditorField label="Requirements" hint="One per line">
-                  <textarea
-                    className={textareaClass}
-                    value={(item.requirements ?? []).join("\n")}
-                    onChange={(e) =>
-                      patchItem(i, {
-                        ...item,
-                        requirements: e.target.value.split("\n").filter(Boolean),
-                      })
-                    }
+                  <LinesTextarea
+                    rows={2}
+                    value={item.requirements ?? []}
+                    // Legacy normalisation kept: drop blank lines but do NOT trim (matches old behaviour).
+                    fromText={(text) => text.split("\n").filter(Boolean)}
+                    onChange={(requirements) => patchItem(i, { ...item, requirements })}
                   />
                 </EditorField>
                 <label className="flex items-center gap-2 text-xs cursor-pointer">

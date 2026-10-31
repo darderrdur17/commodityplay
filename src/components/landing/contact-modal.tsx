@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BRAND_NAME } from "@/lib/brand";
+import { cn } from "@/lib/utils";
+import { LANDING_CTA } from "@/lib/landing-cta";
 
 interface Props {
   open: boolean;
@@ -121,7 +123,7 @@ export function ContactModal({ open, onClose }: Props) {
                     />
                   </div>
                   {error && <p className="text-xs text-red-500">{error}</p>}
-                  <Button type="submit" className="w-full" size="lg" loading={loading}>
+                  <Button type="submit" className={cn("w-full", LANDING_CTA)} size="lg" loading={loading}>
                     <Send className="w-4 h-4" />
                     Send message
                   </Button>

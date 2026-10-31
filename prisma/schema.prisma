@@ -60,6 +60,7 @@ model User {
   passwordHash   String?
   company        String?
   profession     String?
+  country        String?
 
   // Business logic fields
   role           Role      @default(USER)
@@ -119,6 +120,9 @@ model User {
   accountBookmarks   AccountBookmark[]
   jobChatThreads     JobChatThread[]
   marketNudgeStatuses UserMarketNudgeStatus[]
+  /// A member may redeem AT MOST ONE referral code, ever. The uniqueness lives on
+  /// `ReferralRedemption.userId` (see that model) — this is only the back-relation.
+  referralRedemption ReferralRedemption?
 
   @@index([email])
   @@index([stripeCustomerId])
@@ -454,4 +458,86 @@ model UserMarketNudgeStatus {
 
   @@unique([userId, kind, sourceId])
   @@index([userId])
+}
+
+// ── Referral codes ───────────────────────────────────────────────────
+// `status` is a String rather than an enum, mirroring `User.stripeStatus`: the
+// project has no `prisma/migrations/` directory, so every schema change also has
+// to be written by hand as idempotent SQL in `src/lib/db-schema-migrations.ts`.
+// A plain TEXT column keeps that SQL trivially re-runnable, whereas a new enum
+// would need its own CREATE TYPE guard.
+//
+// ⚠️ The reward is NOT decided yet. `rewardKind` / `rewardValue` record what an
+// administrator intended so the decision can be honoured later; the discount that
+// is ACTUALLY applied comes from the Stripe coupon named by
+// `STRIPE_REFERRAL_COUPON_ID` (see `src/lib/referral-reward.ts`). This app never
+// creates or edits anything in Stripe — the owner creates coupons in the
+// Dashboard herself.
+model ReferralCode {
+  id          String    @id @default(cuid())
+  /// Stored UPPERCASE and normalised on both write and lookup — see
+  /// `normalizeReferralCode()` in `src/lib/referral-codes.ts`.
+  code        String    @unique
+  /// Administrator's internal note. NEVER shown to members.
+  label       String?
+  rewardKind  String    @default("percent_off")
+  /// Null = the reward has not been decided yet.
+  rewardValue Int?
+  expiresAt   DateTime?
+  disabled    Boolean   @default(false)
+  /// Plain scalar, deliberately not a relation: the creator is audit metadata,
+  /// never an access decision, and a relation would add a User back-relation plus
+  /// a foreign key that the bundled SQL would then have to maintain.
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  redemption ReferralRedemption?
+
+  @@index([createdAt])
+}
+
+/// One row per redemption attempt. Two unique constraints carry the whole
+/// single-use rule:
+///   * `referralCodeId` unique -> a code can be claimed exactly once
+///   * `userId` unique         -> a member can claim exactly once
+///
+/// They are enforced BY THE DATABASE on purpose. An application-level
+/// `count()` check is a read-then-write race: two concurrent checkouts both read
+/// "not redeemed yet" and both proceed. A second INSERT instead fails atomically
+/// with Prisma `P2002`, which the checkout route turns into a 409.
+model ReferralRedemption {
+  id              String    @id @default(cuid())
+  referralCodeId  String
+  userId          String
+  /// RESERVED (checkout session created, not yet paid) | CONFIRMED (paid)
+  status          String    @default("RESERVED")
+  stripeSessionId String?
+  reservedAt      DateTime  @default(now())
+  confirmedAt     DateTime?
+
+  referralCode ReferralCode @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([referralCodeId])
+  @@unique([userId])
+  @@index([status])
+}
+
+/// Shared fixed-window counter for rate limiting.
+///
+/// Exists because Upstash Redis is not configured in production, and the
+/// in-process Map fallback multiplies every limit by the number of warm lambdas.
+/// Postgres is already shared by every lambda, so one atomic upsert per check
+/// gives a genuinely distributed limit with no new credential.
+///
+/// Not a domain table: rows are transient and swept an hour after expiry. Written
+/// by raw SQL in `src/lib/rate-limit.ts` (see `PG_WINDOW_SQL`) because the
+/// increment-and-reset must happen in a single statement to be race-free.
+model RateLimitCounter {
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }

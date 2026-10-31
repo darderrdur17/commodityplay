@@ -15,6 +15,7 @@ import { CareerRoadmapEditor } from "./editors/career-roadmap-editor";
 import { JobOpeningsEditor } from "./editors/job-openings-editor";
 import { CaseStudiesEditor } from "./editors/case-studies-editor";
 import { LandingEditorWrapper } from "./editors/landing-editor";
+import { PricingPlansEditor } from "./editors/pricing-plans-editor";
 import { FaqEditor } from "./editors/faq-editor";
 import { StarterPackEditor } from "./editors/starter-pack-editor";
 import { ResumeEditor } from "./editors/resume-editor";
@@ -57,7 +58,8 @@ interface SidebarItem {
     | "sales-nav"
     | "industry-guide"
     | "track-captions"
-    | "mentor-apply";
+    | "mentor-apply"
+    | "pricing-plans";
   listSlug?: string;
 }
 
@@ -84,6 +86,23 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { slug: "site-footer", label: "Footer & alert emails", track: "Both", tier: "STARTER" },
       { slug: "faq", label: "FAQ", track: "Both", tier: "STARTER" },
       { slug: "member-dashboard", label: "Member Dashboard", track: "Both", tier: "STARTER" },
+    ],
+  },
+  {
+    // Edits the SAME `landing` payload as the two cards above — the plan feature rows
+    // live in it. Kept as its own card because it is the only place the pricing
+    // comparison rows are edited per plan, and hunting for them inside the full
+    // Landing editor is what prompted the request.
+    label: "Pricing",
+    tier: "STARTER",
+    items: [
+      {
+        slug: "landing",
+        label: "Pricing plans",
+        track: "Both",
+        tier: "STARTER",
+        editorVariant: "pricing-plans",
+      },
     ],
   },
   {
@@ -233,6 +252,9 @@ function ModuleEditor({
       case "landing":
         if (editorVariant === "track-captions") {
           return <TrackSelectionCaptionsEditor payload={payload} onChange={setPayload} contentVersion={version} />;
+        }
+        if (editorVariant === "pricing-plans") {
+          return <PricingPlansEditor payload={payload} onChange={setPayload} />;
         }
         return (
           <LandingEditorWrapper
@@ -451,8 +473,16 @@ export function AdminContentTab({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
-  async function loadModules() {
-    setLoading(true);
+  /**
+   * `silent` refreshes the module list without flipping `loading`, which is what
+   * the whole tab keys off — a non-silent refresh unmounts the editor panel and
+   * with it the SaveBar, destroying the very message (`Saved vN…` or a validation
+   * error) the refresh was meant to follow. Post-save refreshes are silent so the
+   * owner can actually read the outcome.
+   */
+  async function loadModules(options?: { silent?: boolean }) {
+    const silent = options?.silent ?? false;
+    if (!silent) setLoading(true);
     setLoadError("");
     try {
       const res = await fetch("/api/admin/content", { cache: "no-store" });
@@ -466,7 +496,7 @@ export function AdminContentTab({
     } catch {
       setLoadError("Network error loading content. Check database connection and run npm run db:seed.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
@@ -510,7 +540,7 @@ export function AdminContentTab({
         <p className="text-xs text-muted-fg mb-4">
           Sign in with an allowlisted administrator account, then open the Content CMS tab.
         </p>
-        <Button size="sm" onClick={loadModules}>
+        <Button size="sm" onClick={() => loadModules()}>
           <RefreshCw className="w-4 h-4" /> Retry
         </Button>
       </div>
@@ -525,7 +555,7 @@ export function AdminContentTab({
           <p className="text-xs font-bold uppercase tracking-wider text-muted-fg">Content CMS</p>
           <button
             type="button"
-            onClick={loadModules}
+            onClick={() => loadModules()}
             className="text-muted-fg hover:text-primary-400"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -570,7 +600,7 @@ export function AdminContentTab({
             track={selected.track}
             editorVariant={selected.editorVariant}
             modules={modules}
-            onRefresh={loadModules}
+            onRefresh={() => loadModules({ silent: true })}
           />
         )}
       </div>

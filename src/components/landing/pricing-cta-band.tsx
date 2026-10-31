@@ -5,6 +5,8 @@ import { Reveal } from "@/components/animations";
 import { SectionCategoryLabel } from "@/components/landing/section-category-label";
 import { PRICING_CTA_BAND } from "@/data/pricing-shared";
 import { PAGE_CTA_PY } from "@/lib/layout-constants";
+import { cn } from "@/lib/utils";
+import { LANDING_CTA } from "@/lib/landing-cta";
 
 export interface PricingCtaBandProps {
   eyebrow?: string;
@@ -38,14 +40,24 @@ export function PricingCtaBand({
       <div className="page-container text-center">
         <Reveal className="mx-auto max-w-2xl">
           <SectionCategoryLabel>{eyebrow}</SectionCategoryLabel>
-          <h2 className="font-serif text-[clamp(26px,4vw,40px)] font-bold tracking-tight text-gray-900 mb-4 leading-[1.1]">
+          {/* Type scale matches the site's standard section headline
+              (`clamp(28px,4vw,44px)` — see "What's Inside", "Chapter Coverage",
+              Case Studies and the testimonials). It used to run one step smaller
+              at `clamp(26px,4vw,40px)`, which the owner flagged (11 Oct 2026):
+              "Find the Plan that Fits your Desk." read lighter than every other
+              heading around it. */}
+          <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-bold tracking-tight text-gray-900 mb-4 leading-[1.1]">
             {title}
           </h2>
           <p className="text-muted-fg text-base sm:text-lg leading-relaxed mb-8 max-w-xl mx-auto">
             {description}
           </p>
           <Link href={href} className="inline-block">
-            <Button size="xl" variant="default" className="shadow-lg shadow-primary-400/20">
+            <Button
+              size="xl"
+              variant="default"
+              className={cn("shadow-lg shadow-primary-400/20", LANDING_CTA)}
+            >
               {button}
               <ArrowRight className="w-5 h-5" />
             </Button>

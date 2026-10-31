@@ -4,6 +4,17 @@ import { DEFAULT_LEGAL_PAGES, type FooterLegalPages } from "@/data/legal-content
 
 export type FooterLinkAction = "link" | "contact" | "mailto";
 
+/**
+ * The FAQ is a SECTION at the foot of `/pricing`, not its own page any more
+ * (owner request, 11 Oct 2026). `/faq` now 308-redirects here.
+ *
+ * Exported because the link is written in two places that must agree: this
+ * default, and the migration in `normalizeFooterLink` that repairs an already
+ * saved `site-footer` payload. CMS values beat repo defaults, so the default
+ * alone would never reach the live footer.
+ */
+export const FAQ_SECTION_HREF = "/pricing#faq";
+
 export interface FooterLinkItem {
   label: string;
   href: string;
@@ -52,7 +63,7 @@ export const DEFAULT_SITE_FOOTER: SiteFooterContent = {
       { label: "Desk Channel", href: "/desk-channel" },
       { label: "Job Board", href: "/waitlist" },
       { label: "Glossary", href: "/glossary" },
-      { label: "FAQ", href: "/faq" },
+      { label: "FAQ", href: FAQ_SECTION_HREF },
     ],
     access: [
       { label: "Be a Member", href: CAREER_PRICING_HREF },

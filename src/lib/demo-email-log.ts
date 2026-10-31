@@ -15,6 +15,8 @@ export type DemoEmailKind =
   | "operator_member_signup"
   | "operator_upgrade"
   | "operator_billing_lapse"
+  | "operator_mentor_connect"
+  | "operator_job_chat"
   | "password_reset"
   | "email_template_test";
 
@@ -26,12 +28,14 @@ const DEMO_EMAIL_KIND_LABELS: Record<DemoEmailKind, string> = {
   job_chat_answer: "Job chat answer to candidate",
   job_interview_offer: "Interview offer to both parties",
   billing_receipt: "Subscription payment receipt",
-  operator_newsletter: "Newsletter signup to Frances",
-  operator_contact: "Contact Us message to Frances",
-  operator_mentor_apply: "Mentor application to Frances",
-  operator_member_signup: "New member signup to Frances",
-  operator_upgrade: "Pro/Elite upgrade to Frances",
-  operator_billing_lapse: "Billing lapse to Frances",
+  operator_newsletter: "Newsletter signup to Support",
+  operator_contact: "Contact Us message to Support",
+  operator_mentor_apply: "Mentor application to Support",
+  operator_member_signup: "New member signup to Support",
+  operator_upgrade: "Pro/Elite upgrade to Support",
+  operator_billing_lapse: "Billing lapse to Support",
+  operator_mentor_connect: "Mentor Connect question to Support",
+  operator_job_chat: "Job chat message to Support",
   password_reset: "Password reset link",
   email_template_test: "Test send from Email Templates",
 };

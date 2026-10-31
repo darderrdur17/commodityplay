@@ -45,6 +45,21 @@ export function FaqEditor({
     patch({ ...content, items: content.items.filter((_, j) => j !== i) });
   }
 
+  /**
+   * Shift one question up or down by one slot. Order is meaningful on the public
+   * page — the accordion renders `items` in array order — so this is a plain
+   * splice-and-reinsert rather than a sort. Owner request, 11 Oct 2026: she
+   * wanted to rearrange questions without deleting and retyping them.
+   */
+  function moveItem(i: number, delta: -1 | 1) {
+    const target = i + delta;
+    if (target < 0 || target >= content.items.length) return;
+    const items = [...content.items];
+    const [moved] = items.splice(i, 1);
+    items.splice(target, 0, moved);
+    patch({ ...content, items });
+  }
+
   function addItem() {
     patch({ ...content, items: [...content.items, newItem()] });
   }
@@ -52,7 +67,9 @@ export function FaqEditor({
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-fg">
-        Edit FAQ page copy shown at <strong>/faq</strong>. Footer link only — not in main nav.
+        Edit the FAQ shown at the foot of <strong>/pricing</strong> (the footer
+        &ldquo;FAQ&rdquo; link deep-links to it). Use the ▲ ▼ arrows to reorder
+        questions — the page renders them in the order listed here.
       </p>
 
       <EditorSection title="Page hero" description="Top banner on the FAQ page" defaultOpen>
@@ -128,6 +145,10 @@ export function FaqEditor({
             <EditorRow
               key={i}
               summary={<span className="font-medium">{item.q || "(untitled question)"}</span>}
+              onMoveUp={() => moveItem(i, -1)}
+              onMoveDown={() => moveItem(i, 1)}
+              canMoveUp={i > 0}
+              canMoveDown={i < content.items.length - 1}
               onDelete={() => deleteItem(i)}
             >
               <EditorField label="Question">

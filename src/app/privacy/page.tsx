@@ -1,6 +1,7 @@
 import { getSiteFooterContent } from "@/lib/content/accessors";
 import { LegalDocument } from "@/components/legal-document";
 import { BRAND_NAME } from "@/lib/brand";
+import { canonicalAlternates } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -10,6 +11,7 @@ export async function generateMetadata() {
   return {
     title: footer.legal.privacy.pageTitle,
     description: `How ${BRAND_NAME} collects, uses, and protects your personal data.`,
+    alternates: canonicalAlternates("/privacy"),
   };
 }
 

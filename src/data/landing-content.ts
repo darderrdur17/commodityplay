@@ -1,9 +1,11 @@
 import { TRACK_SELECTION } from "@/data/track-selection";
 import { CAREER_PLAN_HREF, SALES_PLAN_HREF } from "@/lib/pricing-routes";
 import {
-  PLAN_BASE_USD,
-  formatUsd,
-  monthlyRateUsd,
+  PLAN_BASE_PRICE,
+  PRICING_CTA_BAND,
+  PRICING_FREE_PANEL,
+  formatMoney,
+  monthlyRate,
   priceLabel,
 } from "@/data/pricing-shared";
 
@@ -138,6 +140,160 @@ export interface LandingMentorConnect {
   title: string;
 }
 
+/**
+ * Centered "Plans & pricing" band on the two landing pages.
+ *
+ * Shared by BOTH tracks — it is one band with one set of words, not a per-track
+ * pair, because the copy itself speaks about both tracks ("Compare Career and
+ * Sales tracks side by side"). Defaults are seeded from `PRICING_CTA_BAND` so
+ * the band keeps a single source of truth with the rest of the pricing copy.
+ */
+export interface LandingPricingCtaBand {
+  eyebrow: string;
+  title: string;
+  description: string;
+  button: string;
+}
+
+/**
+ * The free-plan hero band at the top of `/pricing` — the one that used to read
+ * "Free, until you're ready".
+ *
+ * Editable because the owner treats the pricing page's wording as hers to change
+ * from the admin panel. The band was previously a hardcoded constant
+ * (`PRICING_FREE_PANEL`) that no admin surface could reach; the defaults are still
+ * seeded from that constant, so `pricing-shared.ts` stays the single source of
+ * truth for the shipped wording.
+ *
+ * ⚠️ `price` and `period` are deliberately NOT part of this group. `price` is a
+ * literal `$0` — a big `S$0` reads like a bug — and the pair is a price, not copy.
+ * See the docblock on `PRICING_FREE_PANEL`.
+ */
+export interface LandingPricingFreePanel {
+  title: string;
+  line1: string;
+  line2: string;
+  cta: string;
+  note: string;
+}
+
+/** One benefit card in the row beneath the Job Board Waitlist form. */
+export interface LandingWaitlistBenefit {
+  title: string;
+  desc: string;
+}
+
+/**
+ * Job Board Waitlist copy on `/waitlist`.
+ *
+ * The page is not the landing page, but this group lives in the `landing` module
+ * for the same reason `pricingFreePanel` and `pricingCtaBand` do — the landing
+ * module already carries copy groups that feed OTHER pages (`/pricing`), so the
+ * owner edits it from the same "Landing Pages" card she already knows. Creating a
+ * 22nd top-level module for one page would fragment the admin panel for no gain.
+ *
+ * ⚠️ Two lines are deliberately NOT here because they are not editorial copy:
+ *   - the "Checking your account…" status line (a transient UI state), and
+ *   - the form's error messages (validation feedback, not marketing wording).
+ * The success card ("You're on the list!") is likewise left in code.
+ *
+ * The consent line and the GDPR footer note each keep a live `/privacy` link, so
+ * the sentence is split into a prefix and (for the consent line) a suffix around
+ * that link — a single editable string would drop the hyperlink.
+ */
+export interface LandingWaitlist {
+  /** Small pill above the heading, e.g. "Coming Soon". */
+  pill: string;
+  /** Page h1. */
+  title: string;
+  /** Sub-headline under the h1. */
+  subheadline: string;
+  /** Card heading shown to a signed-in member. */
+  signedInTitle: string;
+  /** Card body shown to a signed-in member. */
+  signedInBody: string;
+  /** Card heading shown to a signed-out visitor. */
+  signedOutTitle: string;
+  /** Card body shown to a signed-out visitor. */
+  signedOutBody: string;
+  /** Consent sentence up to the "Privacy Policy" link. */
+  consentPrefix: string;
+  /** Consent sentence after the "Privacy Policy" link. */
+  consentSuffix: string;
+  /** Submit button label for a signed-in member. */
+  submitSignedIn: string;
+  /** Submit button label for a signed-out visitor. */
+  submitSignedOut: string;
+  /** The three benefit cards under the form. */
+  benefits: LandingWaitlistBenefit[];
+  /** GDPR footer note up to the "privacy policy" link. */
+  gdprNote: string;
+}
+
+/** One "NOW / ACTION / TARGET"-style row in a track feature section. */
+export interface LandingFeaturePoint {
+  /** Short uppercase label rendered in the left gutter. */
+  label: string;
+  text: string;
+}
+
+/**
+ * A two-column track feature section — Sales Market Nudges, Prep Library and
+ * Account Intelligence.
+ *
+ * The **mock panel** beside the copy is illustrative product content (dates,
+ * example accounts, sample nudges). It lives in `sales-feature-mocks.ts` rather
+ * than the CMS: it mirrors real product screens, so the words here are the
+ * editable ones and the mock is a picture of the product.
+ */
+export interface LandingTrackFeature {
+  eyebrow: string;
+  headline: string;
+  lede: string;
+  points: LandingFeaturePoint[];
+}
+
+/** One numbered step in the Mentor Connect "how it works" list. */
+export interface LandingMentorStep {
+  num: string;
+  title: string;
+  body: string;
+}
+
+/** A mentor shown in the interactive demo roster. */
+export interface LandingMentor {
+  id: string;
+  years: number;
+  title: string;
+  category: string;
+  bio: string;
+}
+
+/**
+ * "Mentor Connect — Ask the desk. Stay anonymous."
+ *
+ * One set of words for BOTH landing pages (career and sales); only the accent
+ * colour differs, driven by the component's `track` prop. Deliberately separate
+ * from `mentorConnect`, which is the `/mentor-connect` page hero fallback.
+ */
+export interface LandingMentorSection {
+  eyebrow: string;
+  headline: string;
+  lede: string;
+  steps: LandingMentorStep[];
+  primaryCta: string;
+  secondaryCta: string;
+  demoHint: string;
+  demoFoot: string;
+  rosterTitle: string;
+  rosterSub: string;
+  rosterNote: string;
+  creditPill: string;
+  sampleQuestion: string;
+  sampleAnswer: string;
+  mentors: LandingMentor[];
+}
+
 export interface TrackSelectionTrackCopy {
   title: string;
   caption: string;
@@ -153,6 +309,71 @@ export interface MembersStripContent {
   companies: string[];
 }
 
+/** Which landing track(s) a client ad or shoutout appears on. */
+export type ClientAdTrack = "career" | "sales" | "both";
+
+/**
+ * One card in the "Client ads & shoutouts" section on the two landing pages.
+ *
+ * Two shapes share one row type because they share one editor and one list:
+ *   - `"ad"` is image-led — an uploaded banner with a headline beneath it;
+ *   - `"shoutout"` is quote-led — a short client quote plus attribution.
+ *
+ * ⚠️ `sample` is load-bearing, not decoration. The shipped rows are invented, and
+ * a fabricated client endorsement is a legal exposure rather than a copy problem.
+ * Every seeded row therefore carries `sample: true` and renders a visible
+ * "Example" tag; clearing that tick in the admin is the deliberate act that turns
+ * a placeholder into a claim. The verification harness asserts the seeded rows are
+ * still flagged, so no invented endorsement can reach production by accident.
+ */
+export interface ClientAdEntry {
+  /** Stable row id — the React key and the admin row identity. */
+  id: string;
+  kind: "ad" | "shoutout";
+  /** Client company name. */
+  company: string;
+  /** Small uppercase label above the company name, e.g. "Enterprise client". */
+  eyebrow: string;
+  /** Ad headline, or the lead line of a shoutout. */
+  headline: string;
+  /** Supporting line for an ad, or the body of a shoutout. */
+  body: string;
+  /** Shoutout attribution, e.g. "Head of Metals Trading, <company>". */
+  attribution?: string;
+  /**
+   * Optional uploaded banner. Holds a `ContentAsset` id and renders as
+   * `/api/content/assets/<id>` — the same mechanism as
+   * `career.finalCtaImageAssetId`. Absent renders a generated placeholder tile:
+   * no image file is shipped, and no client logo is faked.
+   */
+  imageAssetId?: string;
+  /** Which track(s) render this row. */
+  track: ClientAdTrack;
+  /** Unticked hides the row without deleting it. */
+  visible: boolean;
+  /** True while the row is invented placeholder content (see the docblock). */
+  sample?: boolean;
+}
+
+/**
+ * "Client ads & shoutouts" — company ads and client quotes for BOTH landing
+ * pages.
+ *
+ * One shared heading for both tracks, because the two audiences are asked the same
+ * thing here ("who else uses this"); the persona work is done per ROW by
+ * `track`, which is what lets a career-only shoutout and a sales-only ad live in
+ * one editable list instead of two parallel groups.
+ *
+ * An empty `entries` list renders nothing at all — removing every row is a valid
+ * way to retire the section without touching code.
+ */
+export interface LandingClientAds {
+  eyebrow: string;
+  title: string;
+  description: string;
+  entries: ClientAdEntry[];
+}
+
 export interface LandingContent {
   career: {
     eyebrow: string;
@@ -163,6 +384,23 @@ export interface LandingContent {
     ctaSecondary: string;
     finalCtaTitle: string;
     finalCtaAccent: string;
+    /**
+     * The closing band's two button labels.
+     *
+     * They used to be `ctaPrimary` + a hardcoded "Contact Us", which meant the
+     * closing band could not be reworded without also rewording the hero above it.
+     * Split out at the owner's request (11 Oct 2026) so both are editable from
+     * Content → Landing → "Career Track — Hero".
+     */
+    finalCtaPrimary: string;
+    finalCtaSecondary: string;
+    /**
+     * Optional image shown directly beneath the closing band's title, above the
+     * buttons. Holds a `ContentAsset` id (uploaded from the same admin section via
+     * the shared content-asset endpoint) and is rendered as
+     * `/api/content/assets/<id>`. Undefined or empty renders nothing at all.
+     */
+    finalCtaImageAssetId?: string;
     heroStats: { value: number; suffix: string; label: string }[];
   };
   sales: {
@@ -259,6 +497,32 @@ export interface LandingContent {
   testimonials: LandingTestimonials;
   salesTestimonials: LandingTestimonials;
   mentorConnect: LandingMentorConnect;
+  /** Shared "Plans & pricing" CTA band — same words on both landing pages. */
+  pricingCtaBand: LandingPricingCtaBand;
+  /**
+   * Free-plan hero band on `/pricing` — one band for both tracks, edited from the
+   * "Pricing plans" admin card rather than the landing editor.
+   */
+  pricingFreePanel: LandingPricingFreePanel;
+  /**
+   * Job Board Waitlist copy on `/waitlist` — edited from the "Landing Pages" card,
+   * even though the page is not the landing page (see `LandingWaitlist`).
+   */
+  waitlist: LandingWaitlist;
+  /** Sales-track tool sections shown on the sales landing, above the pricing band. */
+  salesFeatures: {
+    marketNudges: LandingTrackFeature;
+    prepLibrary: LandingTrackFeature;
+    accountIntelligence: LandingTrackFeature;
+  };
+  /** Shared Mentor Connect section — same words on both landing pages. */
+  mentorSection: LandingMentorSection;
+  /**
+   * Client ads & shoutouts — company banners and client quotes. One shared
+   * heading; each ROW carries its own `track` so the same list serves both
+   * personas. Edited from Content → Landing → "Client ads & shoutouts".
+   */
+  clientAds: LandingClientAds;
   trackSelection: TrackSelectionContent;
 }
 
@@ -285,10 +549,10 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
   },
   {
     name: "Pro",
-    price: priceLabel(PLAN_BASE_USD.CAREER_PRO),
+    price: priceLabel(PLAN_BASE_PRICE.CAREER_PRO),
     billing: "per month · cancel anytime",
     badge: "pro",
-    highlight: true,
+    highlight: false,
     tooltip: "For professionals and learners going deeper into how commodity markets work.",
     description: "For professionals and learners going deeper into how commodity markets work.",
     features: [
@@ -301,15 +565,15 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
       "Resume Vetting (up to twice a year)",
       "Career Navigation Guide — move across the industry with confidence",
     ],
-    cta: "Get Started",
+    cta: "Start now",
     href: CAREER_PLAN_HREF("pro"),
   },
   {
     name: "Elite",
-    price: priceLabel(PLAN_BASE_USD.CAREER_ELITE),
+    price: priceLabel(PLAN_BASE_PRICE.CAREER_ELITE),
     billing: "per month · cancel anytime",
     badge: "elite",
-    highlight: false,
+    highlight: true,
     tooltip: "For long-term serious learners with long-term downstream careers.",
     description: "For long-term serious learners with long-term downstream careers.",
     features: [
@@ -319,7 +583,7 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
       "Anonymous Mentor Connect",
       "Market Job Openings Tracker (tailored to persona)",
     ],
-    cta: "Get Started",
+    cta: "Start now",
     href: CAREER_PLAN_HREF("elite"),
   },
 ];
@@ -328,7 +592,7 @@ const CAREER_PRICING_TIERS_DEFAULT: LandingTier[] = [
 const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
   {
     name: "Pro",
-    price: priceLabel(PLAN_BASE_USD.SALES_PRO),
+    price: priceLabel(PLAN_BASE_PRICE.SALES_PRO),
     billing: "per month",
     description: "The toolkit for selling smarter into commodity trading space.",
     features: [
@@ -338,13 +602,13 @@ const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
       "Sales Guide - key industry areas to look out for when selling",
       "Weekly Sales Edge Note - highlight interesting market happenings to note from sales perspectives",
     ],
-    cta: "Get Started",
+    cta: "Start now",
     href: SALES_PLAN_HREF("pro"),
     featured: false,
   },
   {
     name: "Elite",
-    price: priceLabel(PLAN_BASE_USD.SALES_ELITE),
+    price: priceLabel(PLAN_BASE_PRICE.SALES_ELITE),
     billing: "per month",
     description: "For sales professionals who need ongoing desk intelligence",
     features: [
@@ -354,7 +618,7 @@ const SALES_PRICING_TIERS_DEFAULT: SalesPricingTier[] = [
       "Anonymous Mentor Connect - ask your real sales preparation questions to practitioners directly",
       "Market Role Openings - track which firms are growing and hiring (your next target accounts)",
     ],
-    cta: "Get Started",
+    cta: "Start now",
     href: SALES_PLAN_HREF("elite"),
     featured: true,
   },
@@ -426,6 +690,8 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
     ctaSecondary: "Preview Content",
     finalCtaTitle: "Your career, driven right.",
     finalCtaAccent: "Join the desk community",
+    finalCtaPrimary: "Join Free",
+    finalCtaSecondary: "Contact Us",
     heroStats: [
       { value: 20, suffix: "+", label: "Years desk experience" },
       { value: 9, suffix: "", label: "Full playbook chapters" },
@@ -484,10 +750,10 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
       title: "One Deal Pays for",
       titleAccent: "a Year of Elite.",
       description:
-        `Elite is ${formatUsd(monthlyRateUsd("SALES", "ELITE", "monthly"))}/month. If understanding the commodity trading desk helps you close one additional deal per year — at even a fraction of typical contract values in this sector — the return is not close. The question is whether you can afford not to know this.`,
+        `Elite is ${formatMoney(monthlyRate("SALES", "ELITE", "monthly"))}/month. If understanding the commodity trading desk helps you close one additional deal per year — at even a fraction of typical contract values in this sector — the return is not close. The question is whether you can afford not to know this.`,
       stats: [
         { value: "$250K–$2M+", label: "Typical ETRM / data platform ACV" },
-        { value: formatUsd(monthlyRateUsd("SALES", "ELITE", "monthly") * 12), label: "Full year of Elite access" },
+        { value: formatMoney(monthlyRate("SALES", "ELITE", "monthly") * 12), label: "Full year of Elite access" },
         { value: "2 min", label: "How fast traders assess your credibility" },
         { value: "6 wks", label: "Reported reduction in deal cycle (user data)" },
       ],
@@ -786,6 +1052,209 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
   mentorConnect: {
     eyebrow: "Elite Access",
     title: "Mentor Connect",
+  },
+  pricingCtaBand: {
+    eyebrow: PRICING_CTA_BAND.eyebrow,
+    title: PRICING_CTA_BAND.title,
+    description: PRICING_CTA_BAND.description,
+    button: PRICING_CTA_BAND.button,
+  },
+  pricingFreePanel: {
+    title: PRICING_FREE_PANEL.title,
+    line1: PRICING_FREE_PANEL.line1,
+    line2: PRICING_FREE_PANEL.line2,
+    cta: PRICING_FREE_PANEL.cta,
+    note: PRICING_FREE_PANEL.note,
+  },
+  // Job Board Waitlist copy. Seeded from the wording that used to be hardcoded in
+  // `src/app/waitlist/page.tsx`, so shipping the CMS group changes nothing on the
+  // live page until the owner edits it.
+  waitlist: {
+    pill: "Coming Soon",
+    title: "Job Board Waitlist",
+    subheadline:
+      "This is not a product waitlist — signup already creates your CommodityPlay account. Join here only if you want an email when the curated job board launches.",
+    signedInTitle: "Get job board alerts",
+    signedInBody:
+      "You're already a member. Opt in and we'll use your account email — one launch notification, no extra signup.",
+    signedOutTitle: "Join the job board waitlist",
+    signedOutBody:
+      "No account needed for job alerts. To use Playbook and Mentor Connect, create an account from Sign up.",
+    consentPrefix: "I agree to receive waitlist updates and accept the",
+    consentSuffix: ". I can unsubscribe at any time.",
+    submitSignedIn: "Get job alerts with my account",
+    submitSignedOut: "Join Job Board Waitlist",
+    benefits: [
+      { title: "Curated roles", desc: "Hand-picked from trading firms, not generic job boards" },
+      { title: "Early access", desc: "See roles before they're posted publicly" },
+      { title: "Persona-matched", desc: "Filtered to your track and experience level" },
+    ],
+    gdprNote: "GDPR-compliant. Your email is stored securely and never sold. See our",
+  },
+  salesFeatures: {
+    marketNudges: {
+      eyebrow: "Sales Market Nudges",
+      headline: "Know what moved before you dial.",
+      lede: "Practitioner-framed market briefs, refreshed weekly, plus a nudge whenever a move touches one of your tracked accounts.",
+      points: [
+        { label: "Now", text: "What moved, in two lines, and why it matters." },
+        { label: "Action", text: "The conversation to open with this week." },
+        { label: "Target", text: "Which account types to call first." },
+      ],
+    },
+    prepLibrary: {
+      eyebrow: "Prep Library",
+      headline: "Walk in with a point of view.",
+      lede: "A private, growing set of market topics you can bring into a client conversation with confidence, ready to pull up before your next meeting.",
+      points: [
+        { label: "Save", text: "Keep topics from what you read, or add your own." },
+        { label: "Sort", text: "Tag by category and who you can use it for." },
+        { label: "Link", text: "Attach any topic to an account you track." },
+      ],
+    },
+    accountIntelligence: {
+      eyebrow: "Account Intelligence",
+      headline: "Your tracked accounts, with bookmarked topics.",
+      lede: "Add the accounts you cover, then link talking points from Prep Library or Sales Market Nudges. Everything you linked shows up here, in one place.",
+      points: [
+        { label: "Add", text: "Create a desk for each account you track." },
+        { label: "Link", text: "Pin nudges and prep topics to the right account." },
+        { label: "Prep", text: "Open one account and see every point you saved for it." },
+      ],
+    },
+  },
+  mentorSection: {
+    eyebrow: "Mentor Connect",
+    headline: "Ask the desk. Stay anonymous.",
+    lede: "Put one specific question to a working practitioner and get the answer only they can give, framed the way the desk actually thinks about the problem.",
+    steps: [
+      {
+        num: "01",
+        title: "Pick a mentor",
+        body: "Browse practitioners by function and years on the desk.",
+      },
+      {
+        num: "02",
+        title: "Ask one specific question",
+        body: "Give context, name the commodity or function. Each question uses 1 credit once sent.",
+      },
+      {
+        num: "03",
+        title: "Choose whether to share it",
+        body: "With your consent, and your mentor's, a Q&A can be published anonymously on Desk Channel after admin review.",
+      },
+    ],
+    primaryCta: "See demo",
+    secondaryCta: "Included in Pro and Elite",
+    demoHint: "Try it — pick a mentor",
+    demoFoot: "Interactive preview. Nothing you type here is sent anywhere.",
+    rosterTitle: "Choose a mentor",
+    rosterSub: "Practitioners by function and years on the desk",
+    rosterNote:
+      "Questions are asked anonymously. Pick the mentor closest to the problem you are preparing for.",
+    creditPill: "1 credit per question",
+    sampleQuestion:
+      "A refiner's buyer says they're hedged into Q4. What should I ask next to keep the conversation useful?",
+    sampleAnswer:
+      "\u201cHedged\u201d usually means flat price. Differentials and timing are often still open. Ask which grades and pricing windows are covered and how much of their freight is fixed versus floating. That tells you where they still have a decision to make.",
+    mentors: [
+      {
+        id: "PT-01",
+        years: 25,
+        title: "Crude Oil Trader — Ex-Supermajor",
+        category: "Physical & Paper Trading Markets",
+        bio: "Eighteen years on a global crude desk. Spent half that time on the Med/West African arbitrage book, the rest on US Gulf exports.",
+      },
+      {
+        id: "SL-01",
+        years: 20,
+        title: "Tanker Chartering Manager — Ex-Trading House",
+        category: "Shipping & Logistics",
+        bio: "Fifteen years fixing tankers across clean and dirty trades, from voyage economics to demurrage disputes.",
+      },
+      {
+        id: "RM-01",
+        years: 15,
+        title: "Market Risk Lead — Ex-Energy Major",
+        category: "Risk Management",
+        bio: "Built and ran position-limit and VaR frameworks for a multi-commodity trading book.",
+      },
+    ],
+  },
+  /**
+   * Placeholder rows for the client ads & shoutouts section.
+   *
+   * Every company here is invented and every row carries `sample: true`, which
+   * renders an "Example" tag on the live card. That is deliberate: the real
+   * members strips name actual firms (Vitol, Trafigura, …), so inventing an
+   * endorsement for a real firm — even as filler — would put a false claim on the
+   * live site. The owner replaces these from Content → Landing → "Client ads &
+   * shoutouts", and unticks "Placeholder" on each row she makes real.
+   */
+  clientAds: {
+    eyebrow: "Clients & partners",
+    title: "Where this is already on the desk.",
+    description:
+      "Ads and shoutouts from the companies and enterprise teams using the Playbook. Replace these examples from the admin panel.",
+    entries: [
+      {
+        id: "meridian-agri-ad",
+        kind: "ad",
+        company: "Meridian Agri Group",
+        eyebrow: "Enterprise client",
+        headline: "Grains and oilseeds, from origin to port.",
+        body: "Meridian runs the Playbook chapters as the onboarding reference for its graduate trade analysts.",
+        track: "career",
+        visible: true,
+        sample: true,
+      },
+      {
+        id: "northbridge-metals-shoutout",
+        kind: "shoutout",
+        company: "Northbridge Metals",
+        eyebrow: "Client shoutout",
+        headline: "The clearest explanation of concentrate pricing we have found.",
+        body: "New hires read the metals chapters before their first desk rotation, so the terminology is settled before anyone has to ask.",
+        attribution: "Head of Metals Trading, Northbridge Metals",
+        track: "career",
+        visible: true,
+        sample: true,
+      },
+      {
+        id: "kestrel-energy-ad",
+        kind: "ad",
+        company: "Kestrel Energy Trading",
+        eyebrow: "Enterprise client",
+        headline: "Every account conversation starts on the same page.",
+        body: "The commercial team preps utility and industrial accounts from the weekly edge note.",
+        track: "sales",
+        visible: true,
+        sample: true,
+      },
+      {
+        id: "harbourline-logistics-shoutout",
+        kind: "shoutout",
+        company: "Harbourline Logistics",
+        eyebrow: "Client shoutout",
+        headline: "It answers the question our prospects actually ask.",
+        body: "Freight and LNG come up in every first call. This is the first thing we have found that gets both right without a specialist in the room.",
+        attribution: "Commercial Director, Harbourline Logistics",
+        track: "sales",
+        visible: true,
+        sample: true,
+      },
+      {
+        id: "sable-co-ad",
+        kind: "ad",
+        company: "Sable & Co. Commodities",
+        eyebrow: "Enterprise client",
+        headline: "Onboarding that does not need a trainer in the room.",
+        body: "Joiners work through the chapters in their first month, whichever desk they land on.",
+        track: "both",
+        visible: true,
+        sample: true,
+      },
+    ],
   },
   trackSelection: {
     career: { ...TRACK_SELECTION.career },

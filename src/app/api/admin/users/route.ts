@@ -23,6 +23,7 @@ export async function GET() {
         email: true,
         company: true,
         profession: true,
+        country: true,
         role: true,
         tier: true,
         track: true,

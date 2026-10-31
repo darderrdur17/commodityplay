@@ -1,4 +1,8 @@
-import type { FeatureComparisonGroup, LandingContent } from "@/data/landing-content";
+import type {
+  FeatureComparisonGroup,
+  LandingContent,
+  LandingTrackFeature,
+} from "@/data/landing-content";
 import type { MentorOverride, MentorProfile, MentorSegment } from "@/data/mentors";
 import { UNASSIGNED_SEGMENT_ID } from "@/data/mentors";
 
@@ -246,6 +250,142 @@ export function resolveMentorConnect(
   };
 }
 
+/**
+ * Shared "Plans & pricing" CTA band — fully CMS-editable.
+ *
+ * One band for both tracks, so there is no per-track split here. `cmsString`
+ * (not `??`) keeps an intentionally-cleared string rather than silently
+ * restoring the default.
+ */
+export function resolvePricingCtaBand(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["pricingCtaBand"]>
+): LandingContent["pricingCtaBand"] {
+  return {
+    eyebrow: cmsString(cms?.eyebrow, defaults.pricingCtaBand.eyebrow),
+    title: cmsString(cms?.title, defaults.pricingCtaBand.title),
+    description: cmsString(cms?.description, defaults.pricingCtaBand.description),
+    button: cmsString(cms?.button, defaults.pricingCtaBand.button),
+  };
+}
+
+/**
+ * Free-plan hero band on `/pricing`. Same `cmsString` rule as the pricing band
+ * above — an intentionally-cleared line stays cleared rather than being silently
+ * restored from the defaults.
+ */
+export function resolvePricingFreePanel(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["pricingFreePanel"]>
+): LandingContent["pricingFreePanel"] {
+  return {
+    title: cmsString(cms?.title, defaults.pricingFreePanel.title),
+    line1: cmsString(cms?.line1, defaults.pricingFreePanel.line1),
+    line2: cmsString(cms?.line2, defaults.pricingFreePanel.line2),
+    cta: cmsString(cms?.cta, defaults.pricingFreePanel.cta),
+    note: cmsString(cms?.note, defaults.pricingFreePanel.note),
+  };
+}
+
+/**
+ * Job Board Waitlist copy on `/waitlist`. Lives in the `landing` module (like the
+ * pricing groups above) even though the page is not the landing page.
+ *
+ * Same `cmsString` rule as the pricing groups — an intentionally-cleared line
+ * stays cleared rather than being silently restored from the defaults. The
+ * `benefits` list is CMS-owned once the admin saves it (`resolveEditableList`):
+ * renaming, reordering, adding or removing a card all stick.
+ */
+export function resolveWaitlistCopy(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["waitlist"]>
+): LandingContent["waitlist"] {
+  return {
+    pill: cmsString(cms?.pill, defaults.waitlist.pill),
+    title: cmsString(cms?.title, defaults.waitlist.title),
+    subheadline: cmsString(cms?.subheadline, defaults.waitlist.subheadline),
+    signedInTitle: cmsString(cms?.signedInTitle, defaults.waitlist.signedInTitle),
+    signedInBody: cmsString(cms?.signedInBody, defaults.waitlist.signedInBody),
+    signedOutTitle: cmsString(cms?.signedOutTitle, defaults.waitlist.signedOutTitle),
+    signedOutBody: cmsString(cms?.signedOutBody, defaults.waitlist.signedOutBody),
+    consentPrefix: cmsString(cms?.consentPrefix, defaults.waitlist.consentPrefix),
+    consentSuffix: cmsString(cms?.consentSuffix, defaults.waitlist.consentSuffix),
+    submitSignedIn: cmsString(cms?.submitSignedIn, defaults.waitlist.submitSignedIn),
+    submitSignedOut: cmsString(cms?.submitSignedOut, defaults.waitlist.submitSignedOut),
+    benefits: resolveEditableList(defaults.waitlist.benefits, cms?.benefits),
+    gdprNote: cmsString(cms?.gdprNote, defaults.waitlist.gdprNote),
+  };
+}
+
+/**
+ * One sales-track feature section. Arrays are replaced wholesale once non-empty
+ * (`deepMerge` does not merge arrays element-wise, so an admin deleting a row must
+ * not have it silently restored from defaults).
+ */
+function resolveTrackFeature(
+  defaults: LandingTrackFeature,
+  cms?: Partial<LandingTrackFeature>
+): LandingTrackFeature {
+  return {
+    eyebrow: cmsString(cms?.eyebrow, defaults.eyebrow),
+    headline: cmsString(cms?.headline, defaults.headline),
+    lede: cmsString(cms?.lede, defaults.lede),
+    points: cms?.points?.length
+      ? cms.points.map((point) => ({ label: point.label, text: point.text }))
+      : defaults.points,
+  };
+}
+
+/** Sales-track feature sections — resolved per section so one edit cannot reset its siblings. */
+export function resolveSalesFeatures(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["salesFeatures"]>
+): LandingContent["salesFeatures"] {
+  return {
+    marketNudges: resolveTrackFeature(defaults.salesFeatures.marketNudges, cms?.marketNudges),
+    prepLibrary: resolveTrackFeature(defaults.salesFeatures.prepLibrary, cms?.prepLibrary),
+    accountIntelligence: resolveTrackFeature(
+      defaults.salesFeatures.accountIntelligence,
+      cms?.accountIntelligence
+    ),
+  };
+}
+
+/** Mentor Connect landing section — shared by both tracks, so no per-track split. */
+export function resolveMentorSection(
+  defaults: LandingContent,
+  cms?: Partial<LandingContent["mentorSection"]>
+): LandingContent["mentorSection"] {
+  const d = defaults.mentorSection;
+  return {
+    eyebrow: cmsString(cms?.eyebrow, d.eyebrow),
+    headline: cmsString(cms?.headline, d.headline),
+    lede: cmsString(cms?.lede, d.lede),
+    steps: cms?.steps?.length
+      ? cms.steps.map((step) => ({ num: step.num, title: step.title, body: step.body }))
+      : d.steps,
+    primaryCta: cmsString(cms?.primaryCta, d.primaryCta),
+    secondaryCta: cmsString(cms?.secondaryCta, d.secondaryCta),
+    demoHint: cmsString(cms?.demoHint, d.demoHint),
+    demoFoot: cmsString(cms?.demoFoot, d.demoFoot),
+    rosterTitle: cmsString(cms?.rosterTitle, d.rosterTitle),
+    rosterSub: cmsString(cms?.rosterSub, d.rosterSub),
+    rosterNote: cmsString(cms?.rosterNote, d.rosterNote),
+    creditPill: cmsString(cms?.creditPill, d.creditPill),
+    sampleQuestion: cmsString(cms?.sampleQuestion, d.sampleQuestion),
+    sampleAnswer: cmsString(cms?.sampleAnswer, d.sampleAnswer),
+    mentors: cms?.mentors?.length
+      ? cms.mentors.map((m) => ({
+          id: m.id,
+          years: m.years,
+          title: m.title,
+          category: m.category,
+          bio: m.bio,
+        }))
+      : d.mentors,
+  };
+}
+
 /** Career track pricing — CMS edits (price, tiers, feature comparison) apply; code fills any missing tiers. */
 export function resolvePricing(
   defaults: LandingContent,
@@ -314,7 +454,10 @@ export function resolveCareerContent(
 function resolveCareerFinalCta(
   defaults: LandingContent,
   cms?: Partial<LandingContent["career"]>
-): Pick<LandingContent["career"], "finalCtaTitle" | "finalCtaAccent"> {
+): Pick<
+  LandingContent["career"],
+  "finalCtaTitle" | "finalCtaAccent" | "finalCtaPrimary" | "finalCtaSecondary" | "finalCtaImageAssetId"
+> {
   const defaultTitle = defaults.career.finalCtaTitle;
   const defaultAccent = defaults.career.finalCtaAccent;
 
@@ -330,7 +473,18 @@ function resolveCareerFinalCta(
 
   if (!title) title = defaultTitle;
 
-  return { finalCtaTitle: title, finalCtaAccent: accent };
+  return {
+    finalCtaTitle: title,
+    finalCtaAccent: accent,
+    // `cmsString` keeps an intentionally-cleared label cleared (the owner can
+    // blank a button rather than have the default silently reappear).
+    finalCtaPrimary: cmsString(cms?.finalCtaPrimary, defaults.career.finalCtaPrimary),
+    finalCtaSecondary: cmsString(cms?.finalCtaSecondary, defaults.career.finalCtaSecondary),
+    // Unlike the labels, a blanked image must become `undefined`, not "": the
+    // renderer treats an empty string as "no image", but keeping it out of the
+    // payload entirely is what the schema's `.optional()` expects.
+    finalCtaImageAssetId: cms?.finalCtaImageAssetId?.trim() || undefined,
+  };
 }
 
 /** Sales track — CMS copy wins; repo defaults fill missing structure. */
@@ -560,6 +714,11 @@ export function mergeLandingContent(
   merged.salesTestimonials = resolveSalesTestimonials(defaults, cms.salesTestimonials);
   merged.trackSelection = resolveTrackSelection(defaults, cms.trackSelection);
   merged.mentorConnect = resolveMentorConnect(defaults, cms.mentorConnect);
+  merged.pricingCtaBand = resolvePricingCtaBand(defaults, cms.pricingCtaBand);
+  merged.pricingFreePanel = resolvePricingFreePanel(defaults, cms.pricingFreePanel);
+  merged.waitlist = resolveWaitlistCopy(defaults, cms.waitlist);
+  merged.salesFeatures = resolveSalesFeatures(defaults, cms.salesFeatures);
+  merged.mentorSection = resolveMentorSection(defaults, cms.mentorSection);
   merged.career = resolveCareerContent(defaults, cms.career);
 
   merged.stats = resolveEditableList(defaults.stats, cms.stats);

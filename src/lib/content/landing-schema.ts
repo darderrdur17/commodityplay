@@ -75,6 +75,50 @@ const featureComparisonTableSchema = z.object({
   groups: z.array(featureComparisonGroupSchema).min(1),
 });
 
+const featurePointSchema = z.object({
+  label: z.string().min(1),
+  text: z.string().min(1),
+});
+
+const trackFeatureSchema = z.object({
+  eyebrow: z.string().min(1),
+  headline: z.string().min(1),
+  lede: z.string().min(1),
+  points: z.array(featurePointSchema).min(1),
+});
+
+const mentorStepSchema = z.object({
+  num: z.string().min(1),
+  title: z.string().min(1),
+  body: z.string().min(1),
+});
+
+const mentorSchema = z.object({
+  id: z.string().min(1),
+  years: z.number(),
+  title: z.string().min(1),
+  category: z.string().min(1),
+  bio: z.string().min(1),
+});
+
+const mentorSectionSchema = z.object({
+  eyebrow: z.string().min(1),
+  headline: z.string().min(1),
+  lede: z.string().min(1),
+  steps: z.array(mentorStepSchema).min(1),
+  primaryCta: z.string().min(1),
+  secondaryCta: z.string().min(1),
+  demoHint: z.string().min(1),
+  demoFoot: z.string().min(1),
+  rosterTitle: z.string().min(1),
+  rosterSub: z.string().min(1),
+  rosterNote: z.string().min(1),
+  creditPill: z.string().min(1),
+  sampleQuestion: z.string().min(1),
+  sampleAnswer: z.string().min(1),
+  mentors: z.array(mentorSchema).min(1),
+});
+
 const whoCardSchema = z.object({
   role: z.string().min(1),
   title: z.string().min(1),
@@ -87,6 +131,60 @@ const membersStripSchema = z.object({
   companies: z.array(z.string().min(1)).min(1),
 });
 
+const waitlistBenefitSchema = z.object({
+  title: z.string().min(1),
+  desc: z.string().min(1),
+});
+
+/**
+ * One client ad / shoutout row (see `ClientAdEntry` in landing-content.ts).
+ *
+ * `attribution`, `imageAssetId` and `sample` are optional on purpose: a shoutout
+ * may carry no attribution, an ad may have no banner yet (the renderer generates a
+ * placeholder tile), and `sample` is absent on any row the owner has made real.
+ *
+ * ⚠️ `entries` is deliberately NOT `.min(1)`. Removing every row is a supported way
+ * to retire the section — the component renders nothing for an empty list — so a
+ * minimum here would reject the owner's own edit.
+ */
+const clientAdEntrySchema = z.object({
+  id: z.string().min(1),
+  kind: z.enum(["ad", "shoutout"]),
+  company: z.string().min(1),
+  eyebrow: z.string().min(1),
+  headline: z.string().min(1),
+  body: z.string().min(1),
+  attribution: z.string().optional(),
+  imageAssetId: z.string().optional(),
+  track: z.enum(["career", "sales", "both"]),
+  visible: z.boolean(),
+  sample: z.boolean().optional(),
+});
+
+const clientAdsSchema = z.object({
+  eyebrow: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  entries: z.array(clientAdEntrySchema),
+});
+
+/** Job Board Waitlist copy on `/waitlist` (see `LandingWaitlist` in landing-content.ts). */
+const waitlistSchema = z.object({
+  pill: z.string().min(1),
+  title: z.string().min(1),
+  subheadline: z.string().min(1),
+  signedInTitle: z.string().min(1),
+  signedInBody: z.string().min(1),
+  signedOutTitle: z.string().min(1),
+  signedOutBody: z.string().min(1),
+  consentPrefix: z.string().min(1),
+  consentSuffix: z.string().min(1),
+  submitSignedIn: z.string().min(1),
+  submitSignedOut: z.string().min(1),
+  benefits: z.array(waitlistBenefitSchema).min(1),
+  gdprNote: z.string().min(1),
+});
+
 export const landingContentSchema = z.object({
   career: z.object({
     eyebrow: z.string().min(1),
@@ -97,6 +195,19 @@ export const landingContentSchema = z.object({
     ctaSecondary: z.string().min(1),
     finalCtaTitle: z.string().min(1),
     finalCtaAccent: z.string().min(1),
+    /**
+     * ⚠️ `.default(...)` on both is load-bearing, exactly like the group-level
+     * defaults below. A payload saved BEFORE these fields existed has no
+     * `finalCtaPrimary`, so without a default the next save of ANY other landing
+     * field would fail validation here and the owner's edit would be rejected.
+     */
+    finalCtaPrimary: z.string().min(1).default(() => DEFAULT_LANDING_CONTENT.career.finalCtaPrimary),
+    finalCtaSecondary: z
+      .string()
+      .min(1)
+      .default(() => DEFAULT_LANDING_CONTENT.career.finalCtaSecondary),
+    /** Optional: absent means "no image", which is the shipped default. */
+    finalCtaImageAssetId: z.string().optional(),
     heroStats: z.array(heroStatSchema).min(1),
   }),
   sales: z.object({
@@ -287,6 +398,55 @@ export const landingContentSchema = z.object({
     eyebrow: z.string().min(1),
     title: z.string().min(1),
   }),
+  /**
+   * `.default(...)` keeps payloads saved BEFORE this group existed valid — without
+   * it, saving any other field on an old payload would fail validation here.
+   */
+  pricingCtaBand: z
+    .object({
+      eyebrow: z.string().min(1),
+      title: z.string().min(1),
+      description: z.string().min(1),
+      button: z.string().min(1),
+    })
+    .default(() => DEFAULT_LANDING_CONTENT.pricingCtaBand),
+  /**
+   * Free-plan hero band on `/pricing`. `.default(...)` for the same reason as the
+   * band above: a payload saved before this group existed must not fail
+   * validation on the next save of any other field.
+   */
+  pricingFreePanel: z
+    .object({
+      title: z.string().min(1),
+      line1: z.string().min(1),
+      line2: z.string().min(1),
+      cta: z.string().min(1),
+      note: z.string().min(1),
+    })
+    .default(() => DEFAULT_LANDING_CONTENT.pricingFreePanel),
+  salesFeatures: z
+    .object({
+      marketNudges: trackFeatureSchema,
+      prepLibrary: trackFeatureSchema,
+      accountIntelligence: trackFeatureSchema,
+    })
+    .default(() => DEFAULT_LANDING_CONTENT.salesFeatures),
+  /**
+   * Job Board Waitlist copy. `.default(...)` is load-bearing and NOT optional: a
+   * payload saved before this group existed has no `waitlist` key, so without the
+   * default the next save of ANY other landing field would fail validation here
+   * and the owner's edit would be rejected. This is the same trap the `comparison`
+   * group (line ~200) hit before it was given a default.
+   */
+  waitlist: waitlistSchema.default(() => DEFAULT_LANDING_CONTENT.waitlist),
+  mentorSection: mentorSectionSchema.default(() => DEFAULT_LANDING_CONTENT.mentorSection),
+  /**
+   * Client ads & shoutouts. `.default(...)` is load-bearing for the same reason as
+   * `waitlist` above: a payload saved before this group existed has no `clientAds`
+   * key, so without the default the next save of ANY other landing field would
+   * fail validation here and the owner's edit would be rejected.
+   */
+  clientAds: clientAdsSchema.default(() => DEFAULT_LANDING_CONTENT.clientAds),
 }).transform((data) => {
   const legacy = data.membersStrip;
   const careerFallback = legacy ?? DEFAULT_LANDING_CONTENT.careerMembersStrip;

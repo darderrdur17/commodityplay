@@ -11,7 +11,7 @@ import {
   type DeskChannelPageCopy,
 } from "@/data/desk-channel-content";
 import { CONTENT_STAT_PLACEHOLDER_HINT } from "@/lib/content/content-stat-placeholders";
-import { EditorField, EditorRow, EditorSection, TrackToggle, inputClass, textareaClass } from "./shared";
+import { EditorField, EditorRow, EditorSection, LinesTextarea, TrackToggle, inputClass, textareaClass } from "./shared";
 import { JsonImportSection } from "./json-import-section";
 
 interface DeskChannelPayload {
@@ -361,22 +361,10 @@ export function DeskChannelEditor({
           />
         </EditorField>
         <EditorField label="Bullet points" hint="One per line">
-          <textarea
-            className={textareaClass}
+          <LinesTextarea
             rows={3}
-            value={pageCopy.submit.bullets.join("\n")}
-            onChange={(e) =>
-              patchPageCopy({
-                ...pageCopy,
-                submit: {
-                  ...pageCopy.submit,
-                  bullets: e.target.value
-                    .split("\n")
-                    .map((line) => line.trim())
-                    .filter(Boolean),
-                },
-              })
-            }
+            value={pageCopy.submit.bullets}
+            onChange={(bullets) => patchPageCopy({ ...pageCopy, submit: { ...pageCopy.submit, bullets } })}
           />
         </EditorField>
         <div className="grid gap-4 sm:grid-cols-3">

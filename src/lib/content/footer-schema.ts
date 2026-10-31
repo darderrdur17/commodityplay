@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { DEFAULT_SITE_FOOTER, type FooterLinkItem, type SiteFooterContent } from "@/data/footer-content";
+import {
+  DEFAULT_SITE_FOOTER,
+  FAQ_SECTION_HREF,
+  type FooterLinkItem,
+  type SiteFooterContent,
+} from "@/data/footer-content";
 import { BRAND_EMAIL_SUPPORT } from "@/lib/brand";
 import { deepMerge } from "@/lib/content/merge";
 import { normalizeLegalPages } from "@/data/legal-content";
@@ -67,6 +72,20 @@ function normalizeFooterLink(link: FooterLinkItem): FooterLinkItem {
   const label = link.label.trim();
   if (/^job board$/i.test(label) && /job-openings/i.test(link.href)) {
     return { ...link, href: "/waitlist" };
+  }
+  /**
+   * The FAQ stopped being a page and became a section at the foot of `/pricing`
+   * (owner request, 11 Oct 2026). The live `site-footer` payload was saved while
+   * `/faq` was still a page, and CMS values beat repo defaults — so editing
+   * `DEFAULT_SITE_FOOTER` alone would leave the live footer pointing at a URL
+   * that only 308s, adding a redirect hop on every click. Rewrite it here, the
+   * same way the Job Board rule above repairs its own stale href.
+   *
+   * Idempotent by design: only an exact `/faq` (with or without a trailing
+   * slash) is touched, so a custom href the owner sets later is left alone.
+   */
+  if (/^faq$/i.test(label) && /^\/faq\/?$/.test(link.href.trim())) {
+    return { ...link, href: FAQ_SECTION_HREF };
   }
   // Always a real page — never inherit CMS "contact" action from Support/Partner copies.
   if (/^be a mentor$/i.test(label)) {

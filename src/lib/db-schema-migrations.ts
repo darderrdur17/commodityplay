@@ -416,4 +416,96 @@ DO $$ BEGIN
   ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "termsAcceptedAt" TIMESTAMP(3);
 EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
+
+-- 6. User.country — the member's country, captured from the signup dropdown.
+--    CORE, not CMS, for the same reason as the consent columns above:
+--    ensureCoreInfrastructure() runs on every cold start / request path, so a
+--    column added here after the first deploy is created on a live database.
+DO $$ BEGIN
+  ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "country" TEXT;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+
+-- 7. Referral codes (member acquisition). Two tables, and the two UNIQUE indexes
+--    on "ReferralRedemption" ARE the single-use rule: a code can be claimed once
+--    and a member can claim once, enforced atomically by the database rather than
+--    by an application-level read-then-write check that two concurrent checkouts
+--    would both pass.
+--
+--    "status" is TEXT (not an enum) so this block needs no CREATE TYPE guard and
+--    stays safe to re-run on every cold start — the same reasoning that made
+--    User.stripeStatus a String.
+CREATE TABLE IF NOT EXISTS "ReferralCode" (
+  "id" TEXT NOT NULL,
+  "code" TEXT NOT NULL,
+  "label" TEXT,
+  "rewardKind" TEXT NOT NULL DEFAULT 'percent_off',
+  "rewardValue" INTEGER,
+  "expiresAt" TIMESTAMP(3),
+  "disabled" BOOLEAN NOT NULL DEFAULT false,
+  "createdById" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "ReferralCode_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "ReferralCode_code_key" ON "ReferralCode"("code");
+CREATE INDEX IF NOT EXISTS "ReferralCode_createdAt_idx" ON "ReferralCode"("createdAt");
+
+CREATE TABLE IF NOT EXISTS "ReferralRedemption" (
+  "id" TEXT NOT NULL,
+  "referralCodeId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'RESERVED',
+  "stripeSessionId" TEXT,
+  "reservedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "confirmedAt" TIMESTAMP(3),
+  CONSTRAINT "ReferralRedemption_pkey" PRIMARY KEY ("id")
+);
+
+-- 🔴 These two are the single-use enforcement. Do not drop or relax them.
+CREATE UNIQUE INDEX IF NOT EXISTS "ReferralRedemption_referralCodeId_key" ON "ReferralRedemption"("referralCodeId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ReferralRedemption_userId_key" ON "ReferralRedemption"("userId");
+CREATE INDEX IF NOT EXISTS "ReferralRedemption_status_idx" ON "ReferralRedemption"("status");
+
+DO $$ BEGIN
+  ALTER TABLE "ReferralRedemption" ADD CONSTRAINT "ReferralRedemption_referralCodeId_fkey"
+    FOREIGN KEY ("referralCodeId") REFERENCES "ReferralCode"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "ReferralRedemption" ADD CONSTRAINT "ReferralRedemption_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+END $$;
+
+-- 8. RateLimitCounter — the SHARED fixed-window store for rate limiting.
+--
+--    Why this table exists: src/lib/rate-limit.ts prefers Upstash Redis, but
+--    Upstash is not configured in production, so the limiter used to fall back to
+--    a per-lambda in-memory Map. On Vercel that silently multiplies every limit by
+--    the number of warm lambdas — for referralValidate (20 / 15 min, whose whole
+--    purpose is to stop code guessing) the real ceiling became 20 x N.
+--
+--    Postgres is already a shared, durable store that every lambda reaches, so a
+--    single atomic upsert gives a genuinely distributed counter with no new
+--    infrastructure and no new credential. "count" and "expiresAt" are maintained
+--    in ONE statement (see PG_WINDOW_SQL), so two concurrent lambdas cannot both
+--    read the same value and write back the same increment.
+--
+--    Rows are transient: a periodic sweep deletes anything an hour past its
+--    window, so the table stays small and never needs manual pruning.
+CREATE TABLE IF NOT EXISTS "RateLimitCounter" (
+  "key" TEXT NOT NULL,
+  "count" INTEGER NOT NULL DEFAULT 0,
+  "expiresAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "RateLimitCounter_pkey" PRIMARY KEY ("key")
+);
+
+CREATE INDEX IF NOT EXISTS "RateLimitCounter_expiresAt_idx" ON "RateLimitCounter"("expiresAt");
 `

@@ -27,6 +27,14 @@ const buttonVariants = cva(
           "bg-white text-primary-800 hover:bg-accent hover:-translate-y-0.5",
         gold:
           "bg-amber-500 text-white hover:bg-amber-600 hover:-translate-y-0.5",
+        /**
+         * The /pricing CTA treatment: brand blue gradient, flipping to a green ->
+         * blue gradient on hover. Pair it with `rounded-full` at the call site for
+         * the pill shape — the radius lives in `size`, and twMerge lets a caller's
+         * `rounded-full` win.
+         */
+        gradient:
+          "bg-gradient-to-r from-primary-400 to-primary-700 text-white shadow-[0_10px_28px_-12px_rgba(50,128,255,0.85)] hover:from-emerald-500 hover:to-primary-400 hover:shadow-[0_10px_28px_-12px_rgba(16,185,129,0.8)] hover:-translate-y-0.5",
       },
       size: {
         default: "h-10 px-5 py-2 text-sm rounded-lg",
