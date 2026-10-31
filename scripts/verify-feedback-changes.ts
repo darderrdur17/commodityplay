@@ -33,6 +33,7 @@ import {
   siteJsonLd,
 } from "../src/lib/seo";
 import { BRAND_EMAIL_SUPPORT } from "../src/lib/brand";
+import { isTermCountChip } from "../src/data/glossary-content";
 import { CHAPTERS, PLAYBOOK_TOTAL_CHAPTERS } from "../src/data/playbook";
 import playbookSections from "../src/data/playbook-sections.json";
 import {
@@ -4486,6 +4487,180 @@ function verifyClientAds() {
   );
 }
 
+/**
+ * Guards for the 31 Oct 2026 full-site audit findings.
+ *
+ * Each check here corresponds to a defect that was actually observed in a
+ * browser, not a style preference. The ones that matter most:
+ *  - the playbook asset gate had a per-chapter exception that handed Starter
+ *    members clickable PRO downloads that 403'd;
+ *  - four modals were unreachable by keyboard and invisible to assistive tech;
+ *  - the glossary hero could contradict the live term count on the same page.
+ */
+function verifyAuditFixes() {
+  const read = (relativePath: string) =>
+    fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
+  // 🔴 HIGH — /playbook/a served Starter members clickable PRO download links.
+  // The gate must depend on access alone; a chapter-specific exception is the bug.
+  const chapterClient = read("src/app/playbook/[chapter]/chapter-client.tsx");
+  ok(
+    "Audit: the playbook asset gate depends on access only, with no chapter exception",
+    chapterClient.includes("locked={!hasPlaybookAccess}") &&
+      !chapterClient.includes('chapter.id === "a" && unlocked')
+  );
+
+  // --- Escape-to-close, one shared implementation for every modal ---
+  const escapeHook = read("src/lib/use-escape-to-close.ts");
+  ok(
+    "Audit: one shared Escape handler exists and cleans up its listener",
+    escapeHook.includes("export function useEscapeToClose") &&
+      escapeHook.includes('"Escape"') &&
+      escapeHook.includes("removeEventListener")
+  );
+
+  const modals: Array<[string, string, string]> = [
+    ["contact", "src/components/landing/contact-modal.tsx", "contact-modal-title"],
+    ["starter-pack", "src/components/landing/starter-pack-modal.tsx", "starter-pack-modal-title"],
+    ["bookmark", "src/components/dashboard/bookmark-under-account-modal.tsx", "bookmark-modal-title"],
+    ["add-account", "src/components/dashboard/account-intelligence-section.tsx", "add-account-modal-title"],
+  ];
+  for (const [name, file, labelId] of modals) {
+    const src = read(file);
+    ok(
+      `Audit: the ${name} modal closes on Escape and announces itself as a dialog`,
+      src.includes("useEscapeToClose(open, handleClose)") &&
+        src.includes('role="dialog"') &&
+        src.includes('aria-modal="true"') &&
+        src.includes(`aria-labelledby="${labelId}"`) &&
+        src.includes(`id="${labelId}"`)
+    );
+  }
+
+  // --- password toggles are icon-only, so the name must come from aria-label ---
+  const passwordToggles = [
+    "src/app/(auth)/login/login-form.tsx",
+    "src/app/(auth)/signup/page.tsx",
+    "src/app/(auth)/reset-password/page.tsx",
+  ];
+  ok(
+    "Audit: every icon-only password toggle exposes an accessible name and state",
+    passwordToggles.every((file) => {
+      const src = read(file);
+      return (
+        src.includes('aria-label={showPassword ? "Hide password" : "Show password"}') &&
+        src.includes("aria-pressed={showPassword}")
+      );
+    })
+  );
+
+  // --- response headers ---
+  const nextConfig = read("next.config.ts");
+  const requiredHeaders: Array<[string, string]> = [
+    ["X-Content-Type-Options", "nosniff"],
+    ["X-Frame-Options", "SAMEORIGIN"],
+    ["Referrer-Policy", "strict-origin-when-cross-origin"],
+  ];
+  ok(
+    "Audit: the baseline security headers are declared for every path",
+    nextConfig.includes("async headers()") &&
+      nextConfig.includes('source: "/:path*"') &&
+      requiredHeaders.every(
+        ([key, value]) => nextConfig.includes(`key: "${key}"`) && nextConfig.includes(`value: "${value}"`)
+      ) &&
+      nextConfig.includes("Permissions-Policy")
+  );
+
+  // --- error, 404 and loading boundaries ---
+  const errorSrc = read("src/app/error.tsx");
+  ok(
+    "Audit: a route error boundary exists and offers both reset and a way home",
+    errorSrc.includes('"use client"') &&
+      errorSrc.includes("reset") &&
+      errorSrc.includes('href="/"') &&
+      errorSrc.includes("<h1")
+  );
+  // A raw error message is a stack trace or a database string. Leaking it is worse
+  // than showing nothing, so only the digest may be rendered.
+  ok("Audit: the error boundary never renders the raw error message", !errorSrc.includes("error.message"));
+  ok(
+    "Audit: the error boundary shows the digest, the one token that maps to a log line",
+    errorSrc.includes("error.digest")
+  );
+
+  const globalErrorSrc = read("src/app/global-error.tsx");
+  ok(
+    "Audit: the last-resort boundary renders its own <html> and <body>",
+    globalErrorSrc.includes("<html") && globalErrorSrc.includes("<body")
+  );
+
+  const notFoundSrc = read("src/app/not-found.tsx");
+  ok(
+    "Audit: a branded 404 exists with a heading and a link home",
+    notFoundSrc.includes("<h1") && notFoundSrc.includes('href="/"')
+  );
+  ok("Audit: a route-level loading state exists and announces itself", read("src/app/loading.tsx").includes('role="status"'));
+
+  // --- glossary term-count chip ---
+  // A chip baked as "197 Terms" used to render verbatim next to the live
+  // "Showing all 196 terms" line. Both shapes must resolve to the live count.
+  ok(
+    "Audit: the bare 'Terms' chip and a baked count both resolve to the live count",
+    isTermCountChip("Terms") &&
+      isTermCountChip("196 Terms") &&
+      isTermCountChip("197 terms") &&
+      isTermCountChip(" 12 TERMS ")
+  );
+  ok(
+    "Audit: unrelated stat chips are left untouched",
+    !isTermCountChip("9 Categories") &&
+      !isTermCountChip("Trader explanations throughout") &&
+      !isTermCountChip("Always updated")
+  );
+  const glossaryClient = read("src/app/glossary/glossary-client.tsx");
+  ok(
+    "Audit: the glossary chip is rewritten from the live count, not matched literally",
+    glossaryClient.includes("isTermCountChip(label)") && !glossaryClient.includes('label === "Terms"')
+  );
+
+  // --- prep-library must render its <h1> even when the track is locked ---
+  const prepSrc = read("src/components/dashboard/prep-library-section.tsx");
+  const heroDecl = prepSrc.indexOf("const sectionHero = (");
+  const salesBranch = prepSrc.indexOf('if (track === "SALES")');
+  ok(
+    "Audit: the prep-library hero is declared once, before either track branch",
+    heroDecl > 0 && salesBranch > 0 && heroDecl < salesBranch
+  );
+  ok(
+    "Audit: both prep-library tracks render the shared hero outside the access gate",
+    (prepSrc.match(/\{sectionHero\}/g) ?? []).length === 2
+  );
+  // Exactly one heading id: a second copy inside the unlocked branch would
+  // duplicate the id and put two <h1>s on the page.
+  ok(
+    "Audit: the prep-library heading id is declared exactly once",
+    (prepSrc.match(/id=\{`prep-library-heading-\$\{track\}`\}/g) ?? []).length === 1
+  );
+  ok(
+    "Audit: the prep-library section still points aria-labelledby at that heading",
+    (prepSrc.match(/aria-labelledby=\{`prep-library-heading-\$\{track\}`\}/g) ?? []).length === 2
+  );
+
+  ok("Audit: the onboarding page uses an <h1> for its heading", read("src/app/onboarding/page.tsx").includes("<h1"));
+  ok(
+    "Audit: the expired job-chat link still renders an <h1>",
+    read("src/app/job-chat/respond/[token]/hirer-respond-client.tsx").includes(
+      "This chat link isn&apos;t available"
+    )
+  );
+
+  // --- a CMS mailto can still carry the retired .com address ---
+  ok(
+    "Audit: the footer normalises a CMS mailto before rendering it",
+    read("src/components/footer.tsx").includes("normalizeBrandReferences(link.href)")
+  );
+}
+
 void verifyPdfStampWrites()
   .then(() => verifyCountryWaitlistCms())
   .then(() => verifySalesNudgesTweaks())
@@ -4496,6 +4671,9 @@ void verifyPdfStampWrites()
   })
   .then(() => {
     verifyPaymentsGate();
+  })
+  .then(() => {
+    verifyAuditFixes();
   })
   .then(() => {
     console.log(failed === 0 ? "\n✅ All feedback/CMS checks passed." : `\n❌ ${failed} check(s) failed.`);

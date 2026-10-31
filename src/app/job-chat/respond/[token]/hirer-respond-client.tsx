@@ -117,6 +117,11 @@ export function JobHirerRespondClient({ token }: { token: string }) {
   if (!thread) {
     return (
       <div className="page-container py-16 text-center">
+        {/* This is a terminal state — the page has no hero to carry an <h1>, so
+            without this the document has no top-level heading at all. */}
+        <h1 className="font-serif text-2xl font-bold text-gray-900 mb-3">
+          This chat link isn&apos;t available
+        </h1>
         <p className="text-red-600 mb-4">{error || "This chat link is invalid or expired."}</p>
         <Link href="/login" className="text-primary-400 text-sm font-medium hover:underline">
           Sign in to CommodityPlay
