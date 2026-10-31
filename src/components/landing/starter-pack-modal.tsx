@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { TRACK_SELECTION } from "@/data/track-selection";
 import { cn } from "@/lib/utils";
 import { LANDING_CTA } from "@/lib/landing-cta";
+import { useEscapeToClose } from "@/lib/use-escape-to-close";
 
 const PACK_ITEMS = [
   "Ecosystem Map",
@@ -47,6 +48,9 @@ export function StarterPackModal({ open, onClose, items, headline }: Props) {
     resetForm();
     onClose();
   }
+
+  /** Escape dismisses the dialog — the "Close" button was the only exit before. */
+  useEscapeToClose(open, handleClose);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -99,6 +103,9 @@ export function StarterPackModal({ open, onClose, items, headline }: Props) {
             transition={{ duration: 0.25 }}
             className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="starter-pack-modal-title"
           >
             <button
               type="button"
@@ -114,7 +121,7 @@ export function StarterPackModal({ open, onClose, items, headline }: Props) {
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-400 mb-2">
                   Free Starter Pack
                 </p>
-                <h2 className="font-serif text-2xl font-bold text-gray-900 mb-2">
+                <h2 id="starter-pack-modal-title" className="font-serif text-2xl font-bold text-gray-900 mb-2">
                   {headline?.trim() ? headline : `Get ${packItems.length} Infographics Free`}
                 </h2>
                 <p className="text-sm text-muted-fg mb-5">

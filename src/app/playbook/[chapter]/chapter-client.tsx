@@ -320,7 +320,19 @@ export function ChapterClient({ chapter, sections, chapters, userTier = "STARTER
                       {assets.length > 0 && (
                         <AssetPanel
                           assets={assets}
-                          locked={!hasPlaybookAccess && !(chapter.id === "a" && unlocked)}
+                          /**
+                           * Gate on playbook ACCESS only — never on a section being
+                           * preview-unlocked.
+                           *
+                           * These attachments carry `requiredTier: "PRO"` in the DB,
+                           * and `/api/content/assets/<id>` enforces that server-side
+                           * (403 "Insufficient tier"). The previous expression also
+                           * subtracted the chapter-A preview unlock, so a Starter
+                           * member saw three "Download" links that all 403'd with a raw
+                           * JSON blob and no upgrade prompt. The UI must not offer an
+                           * action the API will refuse.
+                           */
+                          locked={!hasPlaybookAccess}
                           assetUrls={assetUrls}
                         />
                       )}

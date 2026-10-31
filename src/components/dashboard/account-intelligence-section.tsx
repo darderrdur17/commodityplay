@@ -10,6 +10,7 @@ import { Reveal } from "@/components/animations";
 import { hasAccess } from "@/lib/utils";
 import { FOR_ELITE_ACCESS, UPGRADE_TO_ACCESS } from "@/data/pricing-shared";
 import { SALES_PLAN_HREF } from "@/lib/pricing-routes";
+import { useEscapeToClose } from "@/lib/use-escape-to-close";
 import {
   ACCOUNT_STATUS_OPTIONS,
   FOREST_GREEN,
@@ -454,6 +455,9 @@ function AddAccountModal({
     setTimeout(resetForm, 250);
   }
 
+  /** Escape dismisses the dialog — the "Close" button was the only exit before. */
+  useEscapeToClose(open, handleClose);
+
   const labelClass = "text-[10px] font-bold uppercase tracking-widest text-[#065F46]/70";
 
   return (
@@ -473,6 +477,9 @@ function AddAccountModal({
             transition={{ duration: 0.25 }}
             className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-account-modal-title"
           >
             <button
               type="button"
@@ -483,7 +490,7 @@ function AddAccountModal({
               <X className="w-4 h-4" />
             </button>
 
-            <h2 className="font-semibold text-gray-900 mb-1">Add a new account</h2>
+            <h2 id="add-account-modal-title" className="font-semibold text-gray-900 mb-1">Add a new account</h2>
             <p className="text-sm text-muted-fg mb-5">
               Track a desk you&apos;re engaging and bookmark prep topics or market nudges to it.
             </p>
@@ -663,9 +670,26 @@ export function AccountIntelligenceSection({
     }
   }
 
+  /**
+   * The page heading renders OUTSIDE the access gate. The locked branch returns
+   * early, so keeping the <h1> inside the unlocked branch left a Starter member
+   * with a page that had no top-level heading at all — the same defect that was
+   * fixed in `prep-library-section.tsx`. The lock card still gates the content.
+   */
+  const pageHeading = (
+    <>
+      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: FOREST_GREEN }}>
+        {content.eyebrow}
+      </p>
+      <h1 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">{content.title}</h1>
+      <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">{content.description}</p>
+    </>
+  );
+
   if (!unlocked) {
     return (
-      <Reveal>
+      <Reveal className="space-y-8">
+        <header className="space-y-4">{pageHeading}</header>
         <div className="relative rounded-xl border border-border bg-white overflow-hidden">
           <div className="blur-sm pointer-events-none select-none p-6 space-y-6" aria-hidden>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -689,15 +713,7 @@ export function AccountIntelligenceSection({
   return (
     <Reveal className="space-y-8">
       <header className="space-y-4">
-        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: FOREST_GREEN }}>
-          {content.eyebrow}
-        </p>
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-gray-900">
-          {content.title}
-        </h1>
-        <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">
-          {content.description}
-        </p>
+        {pageHeading}
       </header>
 
       <section className="rounded-xl border border-border bg-white p-5 sm:p-6 space-y-5">

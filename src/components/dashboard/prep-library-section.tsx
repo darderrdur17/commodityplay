@@ -903,10 +903,17 @@ export function PrepLibraryBody({
   track,
   userTier,
   onTopicCountChange,
+  primaryHeading = true,
 }: {
   track: PrepLibraryTrack;
   userTier: string;
   onTopicCountChange?: (count: number) => void;
+  /**
+   * False for the SECOND track on screen. An administrator previews both tracks
+   * at once, which rendered two <h1>s on one page; the secondary section keeps
+   * the same id (so its aria-labelledby still resolves) but as an <h2>.
+   */
+  primaryHeading?: boolean;
 }) {
   const segment = PREP_LIBRARY_SEGMENTS[track];
   const theme = TRACK_THEMES[track];
@@ -1319,10 +1326,42 @@ export function PrepLibraryBody({
     </form>
   );
 
+  // The hero (eyebrow + <h1> + description) renders OUTSIDE the access gate.
+  // The surrounding <section> is labelled by this <h1> via aria-labelledby, so
+  // keeping it inside the `unlocked` branch meant a Starter user got a page
+  // with no top-level heading at all AND a dangling aria-labelledby pointing at
+  // an id that was never rendered. The locked card still gates the content.
+  const heroAccent = track === "SALES" ? SALES_HERO_GREEN : segment.color;
+  const headingId = `prep-library-heading-${track}`;
+  const headingClass = "font-serif text-3xl sm:text-4xl font-bold text-gray-900";
+  const sectionHero = (
+    <div className="space-y-4 mb-6">
+      <p
+        className={`text-[10px] font-bold uppercase tracking-widest ${
+          track === "SALES" ? "" : "text-primary-400"
+        }`}
+        style={{ color: heroAccent }}
+      >
+        {segment.eyebrow}
+      </p>
+      {primaryHeading ? (
+        <h1 id={headingId} className={headingClass}>
+          {segment.pageTitle}
+        </h1>
+      ) : (
+        <h2 id={headingId} className={headingClass}>
+          {segment.pageTitle}
+        </h2>
+      )}
+      <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">{segment.pageDescription}</p>
+    </div>
+  );
+
   if (track === "SALES") {
     return (
       <Reveal className="mb-6">
         <section id={segment.anchor} aria-labelledby={`prep-library-heading-${track}`}>
+          {sectionHero}
           {!unlocked ? (
             <div className="relative rounded-xl border border-border bg-white overflow-hidden">
               <div className="blur-sm pointer-events-none select-none px-5 sm:px-6 py-5 space-y-4" aria-hidden>
@@ -1340,29 +1379,11 @@ export function PrepLibraryBody({
             </div>
           ) : (
             <div className="space-y-8">
-              {/* Hero — forest green mockup */}
-              <div className="space-y-4">
-                <p
-                  className="text-[10px] font-bold uppercase tracking-widest"
-                  style={{ color: SALES_HERO_GREEN }}
-                >
-                  {segment.eyebrow}
-                </p>
-                <h1
-                  id={`prep-library-heading-${track}`}
-                  className="font-serif text-3xl sm:text-4xl font-bold text-gray-900"
-                >
-                  {segment.pageTitle}
-                </h1>
-                <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">
-                  {segment.pageDescription}
-                </p>
-                <TopicsSavedStatBox
-                  count={topics.length}
-                  loading={loading}
-                  accentColor={SALES_HERO_GREEN}
-                />
-              </div>
+              <TopicsSavedStatBox
+                count={topics.length}
+                loading={loading}
+                accentColor={SALES_HERO_GREEN}
+              />
 
               {/* Add form — light green solid box */}
               <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-4 sm:p-5 shadow-sm">
@@ -1449,6 +1470,7 @@ export function PrepLibraryBody({
   return (
     <Reveal className="mb-6">
       <section id={segment.anchor} aria-labelledby={`prep-library-heading-${track}`}>
+        {sectionHero}
         {!unlocked ? (
           <div className="relative rounded-xl border border-border bg-white overflow-hidden">
             <div
@@ -1469,25 +1491,11 @@ export function PrepLibraryBody({
           </div>
         ) : (
           <div className="space-y-8">
-            <div className="space-y-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-primary-400">
-                {segment.eyebrow}
-              </p>
-              <h1
-                id={`prep-library-heading-${track}`}
-                className="font-serif text-3xl sm:text-4xl font-bold text-gray-900"
-              >
-                {segment.pageTitle}
-              </h1>
-              <p className="text-sm text-muted-fg max-w-2xl leading-relaxed">
-                {segment.pageDescription}
-              </p>
-              <TopicsSavedStatBox
-                count={topics.length}
-                loading={loading}
-                accentColor={segment.color}
-              />
-            </div>
+            <TopicsSavedStatBox
+              count={topics.length}
+              loading={loading}
+              accentColor={segment.color}
+            />
 
             <div className="rounded-xl border-2 border-dashed border-primary-400 bg-primary-soft p-4 sm:p-5 shadow-sm">
               {careerAddTopicForm}

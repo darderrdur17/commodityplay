@@ -53,8 +53,11 @@ export function PrepLibraryPageClient({
 
   return (
     <>
-      {showCareer && <PrepLibraryBody track="CAREER" userTier={userTier} />}
-      {showSales && <PrepLibraryBody track="SALES" userTier={userTier} />}
+      {/* Career renders first, so it always owns the <h1>. Sales only becomes the
+          primary heading when Career is not on screen — otherwise an admin
+          previewing both tracks gets two <h1>s on one page. */}
+      {showCareer && <PrepLibraryBody track="CAREER" userTier={userTier} primaryHeading />}
+      {showSales && <PrepLibraryBody track="SALES" userTier={userTier} primaryHeading={!showCareer} />}
     </>
   );
 }

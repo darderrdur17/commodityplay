@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bookmark, Check, Loader2, X } from "lucide-react";
 import type { BookmarkSource } from "@prisma/client";
 import { AccountLinkedToast } from "@/components/dashboard/account-linked-toast";
+import { useEscapeToClose } from "@/lib/use-escape-to-close";
 
 interface TrackedAccountOption {
   id: string;
@@ -107,6 +108,9 @@ export function BookmarkUnderAccountModal({
     }, 250);
   }
 
+  /** Escape dismisses the dialog — the "Close" button was the only exit before. */
+  useEscapeToClose(open, handleClose);
+
   return (
     <AnimatePresence>
       {open && (
@@ -124,6 +128,9 @@ export function BookmarkUnderAccountModal({
             transition={{ duration: 0.25 }}
             className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bookmark-modal-title"
           >
             <button
               type="button"
@@ -136,7 +143,7 @@ export function BookmarkUnderAccountModal({
 
             <div className="flex items-center gap-2 mb-1">
               <Bookmark className="w-4 h-4 text-[#065F46]" />
-              <h2 className="font-semibold text-gray-900">Bookmark under account</h2>
+              <h2 id="bookmark-modal-title" className="font-semibold text-gray-900">Bookmark under account</h2>
             </div>
             <p className="text-sm text-muted-fg mb-4 pr-6 leading-relaxed">
               Link <span className="font-medium text-gray-800">{sourceTitle}</span> to one of your
