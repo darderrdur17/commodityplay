@@ -21,11 +21,27 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
-/** Reject absolute URLs and path-traversal attempts. Only allow root-relative paths. */
+/**
+ * Reject anything that could leave this origin. Only root-relative paths are allowed.
+ *
+ * WHY THE BACKSLASH CHECK EXISTS: the previous guard rejected `//host` and any
+ * `://`, but not `\`. Browsers normalise a backslash to a forward slash in the path,
+ * so `/\evil.example` becomes `//evil.example` — a scheme-relative URL that resolves
+ * to another host. Measured before the fix: `/login?callbackUrl=/\example.com` sent a
+ * freshly-signed-in user to `http://example.com/`, which is a phishing primitive
+ * (the victim has just typed real credentials into the real site).
+ *
+ * Control characters and encoded backslashes are rejected for the same reason: the
+ * browser strips tabs/newlines and decodes `%5C`, so neither survives the parse as
+ * the innocent string it looks like.
+ */
 function isSafeCallbackUrl(url: string): boolean {
-  // Must start with / and not contain `//` (which would make it a scheme-relative
-  // or protocol-relative URL like //evil.example).
-  return url.startsWith("/") && !url.startsWith("//") && !url.includes("://");
+  if (!url.startsWith("/") || url.startsWith("//")) return false;
+  if (url.includes("://")) return false;
+  // `\` anywhere, plus its percent-encoded form and any control character.
+  if (/[\\\u0000-\u001f\u007f]/i.test(url)) return false;
+  if (/%5c|%5C/i.test(url)) return false;
+  return true;
 }
 
 export function LoginForm({

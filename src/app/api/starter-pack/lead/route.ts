@@ -3,17 +3,37 @@ import { auth } from "@/lib/auth";
 import { normalizeEmail } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import {
+  RATE_LIMITS,
+  checkRateLimit,
+  getClientIp,
+  rateLimitKey,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 
 const schema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Please enter a valid work email"),
+  firstName: z.string().trim().min(1, "First name is required").max(100, "First name is too long"),
+  lastName: z.string().trim().min(1, "Last name is required").max(100, "Last name is too long"),
+  email: z.string().trim().email("Please enter a valid work email").max(254, "Email is too long"),
   track: z.enum(["CAREER", "SALES"], { message: "Please select a track" }),
 });
 
 export async function POST(req: NextRequest) {
+  // Public and unauthenticated: each accepted POST upserts a subscriber and can
+  // rewrite a user's track.
+  const limit = await checkRateLimit(
+    rateLimitKey("starter-pack-lead", getClientIp(req)),
+    RATE_LIMITS.leadCapture
+  );
+  if (!limit.allowed) return rateLimitResponse(limit);
+
   const session = await auth();
-  const body = await req.json();
+  // Malformed JSON is a client mistake: 400, not the unhandled 500 this used to be.
+  const body = await req.json().catch(() => null);
+  if (body === null) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
   const parsed = schema.safeParse(body);
 
   if (!parsed.success) {

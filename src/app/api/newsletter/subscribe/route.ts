@@ -3,15 +3,36 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { normalizeEmail } from "@/lib/admin-access";
 import { notifyOperatorLead } from "@/lib/email";
+import {
+  RATE_LIMITS,
+  checkRateLimit,
+  getClientIp,
+  rateLimitKey,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 
 const schema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  // 254 is the RFC 5321 maximum for a forward-path; `.email()` alone does not bound
+  // the string, so an arbitrarily long address would otherwise be persisted.
+  email: z.string().trim().email("Please enter a valid email address").max(254, "Email is too long"),
 });
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const parsed = schema.safeParse(body);
+  // Public and unauthenticated, and each new subscriber emails the operator.
+  const limit = await checkRateLimit(
+    rateLimitKey("newsletter", getClientIp(req)),
+    RATE_LIMITS.leadCapture
+  );
+  if (!limit.allowed) return rateLimitResponse(limit);
 
+  // A malformed body used to throw out of the handler entirely (this route had no
+  // try/catch), surfacing as a 500. It is a client mistake, so answer 400.
+  const body = await req.json().catch(() => null);
+  if (body === null) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }

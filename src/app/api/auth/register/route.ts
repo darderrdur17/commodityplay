@@ -8,9 +8,21 @@ import { notifyOperatorLead } from "@/lib/email";
 import { RATE_LIMITS, checkRateLimit, getClientIp, rateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
 
 const schema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(8),
+  name: z.string().trim().min(2, "Please enter your name").max(200, "Name is too long"),
+  email: z.string().trim().email().max(254, "Email is too long"),
+  /**
+   * `.max(72)` is a CORRECTNESS requirement, not a UX preference.
+   *
+   * bcrypt (and bcryptjs) hashes only the first 72 BYTES of the input and silently
+   * discards the rest. Without this cap a member could set a 100-character
+   * passphrase and believe all of it protects the account, when any password sharing
+   * the same 72-byte prefix would also sign in. Rejecting the overlong input is
+   * honest; truncating it is not.
+   */
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(72, "Password must be 72 characters or fewer"),
   plan: z.enum(["starter", "pro", "elite"]).optional().default("starter"),
   track: z.enum(["CAREER", "SALES"]).default("CAREER"),
   /**
@@ -43,10 +55,20 @@ const GENERIC_SIGNUP_FAILURE =
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    // Malformed JSON is a client mistake and must be a 400. `req.json()` used to
+    // throw into the catch-all below, which answered 500 and logged a parse stack.
+    const body = await req.json().catch(() => null);
+    if (body === null) {
+      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    }
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+      // Return the specific field message. The old blanket "Invalid input" was
+      // inherited from the anti-enumeration design, but that rule protects whether an
+      // ADDRESS EXISTS, not why a field is malformed — a member told only "Invalid
+      // input" cannot discover that a 73-character password is over the bcrypt limit.
+      // Every other public route already returns `errors[0].message`.
+      return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
 
     const { name, password, track, country, marketingConsent } = parsed.data;

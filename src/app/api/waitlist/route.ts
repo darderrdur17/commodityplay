@@ -2,10 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import {
+  RATE_LIMITS,
+  checkRateLimit,
+  getClientIp,
+  rateLimitKey,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 
 const schema = z.object({
-  email: z.string().email().optional(),
-  name: z.string().optional(),
+  // Caps matter: `.optional()` alone let an unauthenticated caller persist an
+  // arbitrarily long name or address straight into `JobWaitlistEntry`.
+  email: z.string().trim().email().max(254, "Email is too long").optional(),
+  name: z.string().trim().max(200, "Name is too long").optional(),
   track: z.enum(["CAREER", "SALES"]).optional().default("CAREER"),
   gdprOpt: z.boolean().refine((v) => v, "GDPR consent required"),
 });
@@ -43,8 +52,19 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  // Public and unauthenticated; each accepted POST writes two rows.
+  const limit = await checkRateLimit(
+    rateLimitKey("waitlist", getClientIp(req)),
+    RATE_LIMITS.leadCapture
+  );
+  if (!limit.allowed) return rateLimitResponse(limit);
+
   const session = await auth();
-  const body = await req.json();
+  // Malformed JSON is a client mistake: 400, not the unhandled 500 this used to be.
+  const body = await req.json().catch(() => null);
+  if (body === null) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

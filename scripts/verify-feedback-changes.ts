@@ -4599,7 +4599,60 @@ function verifyAuditFixes() {
     "Audit: a branded 404 exists with a heading and a link home",
     notFoundSrc.includes("<h1") && notFoundSrc.includes('href="/"')
   );
-  ok("Audit: a route-level loading state exists and announces itself", read("src/app/loading.tsx").includes('role="status"'));
+  // --- route-level loading boundaries ---
+  //
+  // These used to be a single `src/app/loading.tsx`. That file wrapped EVERY route in
+  // a Suspense boundary, and because the pages are `force-dynamic` the shell flushed
+  // `200 OK` before the server component finished — so a `notFound()` thrown later
+  // could not set the status line, and `/playbook/zzz` answered 200 while rendering
+  // "We can't find that page." The boundary is now scoped per segment, and the
+  // segments that call `notFound()` deliberately have none.
+  const routeLoadingSrc = read("src/components/route-loading.tsx");
+  const exists = (relativePath: string) =>
+    fs.existsSync(path.join(process.cwd(), relativePath));
+  ok(
+    "Audit: a shared route-loading component exists and announces itself",
+    routeLoadingSrc.includes('role="status"') && routeLoadingSrc.includes("export function RouteLoading")
+  );
+  ok(
+    "Audit: no root loading.tsx, which would turn every notFound() into a soft 404",
+    !exists("src/app/loading.tsx")
+  );
+  const scopedLoadingSegments = [
+    "dashboard",
+    "pricing",
+    "library",
+    "glossary",
+    "account",
+    "mentor-connect",
+    "job-openings",
+    "interview-questions",
+    "career-roadmap",
+    "knowledge-test",
+    "resume-templates",
+    "onboarding",
+    "waitlist",
+    "mentor-apply",
+  ];
+  const missingScopedLoading = scopedLoadingSegments.filter(
+    (seg) => !exists(`src/app/${seg}/loading.tsx`)
+  );
+  ok(
+    "Audit: every heavy segment keeps a scoped loading boundary",
+    missingScopedLoading.length === 0,
+    missingScopedLoading.length ? `missing: ${missingScopedLoading.join(", ")}` : undefined
+  );
+  // The teeth of the fix: a Suspense boundary above these would silently restore the
+  // 200-with-a-404-body behaviour, so assert none was added by accident.
+  const notFoundSegments = ["playbook", "case-studies", "demo", "admin"];
+  const wrappedNotFoundSegments = notFoundSegments.filter((seg) =>
+    exists(`src/app/${seg}/loading.tsx`)
+  );
+  ok(
+    "Audit: no loading boundary wraps a segment that calls notFound()",
+    wrappedNotFoundSegments.length === 0,
+    wrappedNotFoundSegments.length ? `wrapped: ${wrappedNotFoundSegments.join(", ")}` : undefined
+  );
 
   // --- glossary term-count chip ---
   // A chip baked as "197 Terms" used to render verbatim next to the live
