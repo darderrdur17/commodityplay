@@ -18,6 +18,35 @@ function isPlainObject(value: unknown): value is PlainObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Landing payload keys that have been retired from the product.
+ *
+ * `deepMerge` keeps any key that exists only in the stored CMS payload — which is
+ * what protects an admin's edits from repo defaults. The side effect is that a
+ * group REMOVED from the code stays alive in the live page's data forever. The
+ * "client ads & shoutouts" group is retired (8 Nov 2026): its seeded rows were
+ * invented companies, so leaving the key in the payload would keep publishing them
+ * in the page source even though nothing renders them.
+ *
+ * Stripped on the read path (so the served page never carries it) and on the deploy
+ * sync (so the stored payload is cleaned in every environment).
+ *
+ * ⚠️ Keep this list to groups that were genuinely retired. Do NOT make the merge
+ * schema-driven instead: `landingContentSchema` does not describe every landing key
+ * (`careerEdgeNote` / `salesEdgeNote` are absent from it), so a schema-driven strip
+ * would delete live content.
+ */
+const RETIRED_LANDING_KEYS = ["clientAds"] as const;
+
+/** Remove retired groups from a landing payload. Returns the same object. */
+export function stripRetiredLandingKeys<T extends object>(payload: T): T {
+  const record = payload as Record<string, unknown>;
+  for (const key of RETIRED_LANDING_KEYS) {
+    delete record[key];
+  }
+  return payload;
+}
+
 /** CMS values win; defaults fill missing keys. */
 export function deepMerge<T extends PlainObject>(defaults: T, overrides: Partial<T> | PlainObject): T {
   const result = { ...defaults };
@@ -735,6 +764,9 @@ export function mergeLandingContent(
     cms.careerMembersStrip ?? legacyStrip ?? defaults.careerMembersStrip;
   merged.salesMembersStrip =
     cms.salesMembersStrip ?? legacyStrip ?? defaults.salesMembersStrip;
+
+  // A group retired from the product must not reappear from the stored payload.
+  stripRetiredLandingKeys(merged);
 
   return merged;
 }
