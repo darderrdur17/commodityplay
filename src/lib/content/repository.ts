@@ -3,7 +3,7 @@ import type { Tier } from "@prisma/client";
 import { CONTENT_MODULE_META, getModuleMeta, type ContentSlug } from "./modules";
 import { GLOSSARY_TERMS } from "@/data/glossary";
 import { getDefaultPayload, getAllDefaultPayloads } from "./defaults";
-import { deepMerge } from "./merge";
+import { deepMerge, stripRetiredLandingKeys } from "./merge";
 import { resolveAdminModulePayload } from "./admin-payload";
 import { applyCmsSchemaSql, ensureCoreInfrastructure } from "@/lib/setup-database";
 import { mergeSiteFooterContent } from "./footer-schema";
@@ -111,7 +111,17 @@ function mergeModulePayloadOnDeploy(
   // new repo fields without running resolve* helpers — those must not rewrite CMS hero copy
   // back into the database on every build.
   if (slug === "landing") {
-    return deepMerge(defaults as Record<string, unknown>, existing as Record<string, unknown>);
+    const merged = deepMerge(
+      defaults as Record<string, unknown>,
+      existing as Record<string, unknown>
+    );
+    // A retired group is not in the defaults, but `deepMerge` keeps any key that exists
+    // only in the stored payload — so without this the retired "client ads & shoutouts"
+    // group (and the invented companies seeded in it) would survive every deploy and
+    // stay in the live page's data. Stripping it here cleans the stored payload in
+    // every environment, production included, on the next build.
+    stripRetiredLandingKeys(merged);
+    return merged;
   }
 
   if (slug === "site-footer") {
