@@ -173,6 +173,14 @@ import {
 import { normalizeMemberDashboardPayload } from "../src/lib/content/member-dashboard-schema";
 import { DEFAULT_SITE_FOOTER } from "../src/data/footer-content";
 import { mergeSiteFooterContent } from "../src/lib/content/footer-schema";
+import { starterSignupHref } from "../src/lib/signup-routes";
+import {
+  CAREER_PRICING_HREF,
+  CAREER_PRICING_PATH,
+  SALES_PRICING_HREF,
+  SALES_PRICING_PATH,
+} from "../src/lib/pricing-routes";
+import nextConfig from "../next.config";
 import { DEFAULT_LIBRARY_HERO, normalizeLibraryPayload } from "../src/lib/content/library-schema";
 import {
   isDashboardFileReady,
@@ -4590,6 +4598,371 @@ function verifyAuditFixes() {
   );
 }
 
+/**
+ * Guards for the sales-landing ROUTE SHAPE.
+ *
+ * WHY THIS EXISTS: the sales variant of the landing page is NOT a route of its
+ * own — it is `/?track=sales`. `LandingPageClient` switches on the `track`
+ * query param, and there is no `src/app/sales/` directory anywhere in the
+ * repo. So a link or redirect that points at `/sales` resolves to nothing:
+ * a 404, or a soft 404 on the segments that have no `loading.tsx`.
+ *
+ * Two things must hold, and both are checked here:
+ *
+ *  1. NO SOURCE FILE may hardcode a `/sales` path. The one deliberate
+ *     exception is the redirect SOURCE in `next.config.ts` — that string is
+ *     the thing that RESCUES stale inbound links, so it has to be there.
+ *     Everything else must reach the sales variant via `/?track=sales`.
+ *
+ *  2. The canonical sales links must stay EXACTLY `/?track=sales` — not
+ *     `/sales`, not `/?track=sales&...`, not a different query spelling.
+ *
+ * ⚠️ The scanner below is a real tokenizer, not a grep, because the naive
+ * approaches both fail on this repo:
+ *   - a bare regex over the whole repo also matches PROSE — the resume
+ *     template's "vendor/sales achievements" label and the "career/sales
+ *     heroes" comment are not routes;
+ *   - a naive string-literal match also matches those same prose labels.
+ * The tokenizer separates real string literals from comments and prose, so
+ * only a genuine string that could become a URL is reported.
+ */
+async function verifySalesLandingRoute() {
+  const read = (relativePath: string) =>
+    fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
+  /** The route that MUST NOT exist. Assembled from parts so this file does not
+   *  itself contain the literal it is scanning for. */
+  const SALES_PATH = ["/", "sales"].join("");
+
+  /** The canonical sales landing URL. */
+  const SALES_LANDING = "/?track=sales";
+
+  // ── The scanner ──────────────────────────────────────────────────────────
+  // A minimal JS/TS tokenizer: it walks the source once, tracking string
+  // literals (including template literals with interpolations) vs comments,
+  // so a `/sales` occurrence can be classified as "inside a string that could
+  // become a URL" or "prose in a comment".
+
+  const KEYWORDS_BEFORE_STRING = new Set([
+    "case", "return", "typeof", "void", "delete", "in", "of", "do", "else",
+    "yield", "await", "new", "instanceof", "throw",
+  ]);
+
+  function wordBefore(src: string, idx: number): string {
+    let j = idx - 1;
+    while (j >= 0 && /\s/.test(src[j])) j--;
+    const end = j;
+    while (j >= 0 && /[A-Za-z0-9_$]/.test(src[j])) j--;
+    return src.slice(j + 1, end + 1);
+  }
+
+  /** Byte offsets of every string literal in `src`. */
+  function stringLiteralRanges(src: string): Array<[number, number]> {
+    const ranges: Array<[number, number]> = [];
+    const n = src.length;
+    let i = 0;
+    let prev = "";
+    while (i < n) {
+      const c = src[i];
+      const c2 = src[i + 1] ?? "";
+      if (c === "/" && c2 === "/") {
+        while (i < n && src[i] !== "\n") i++;
+        continue;
+      }
+      if (c === "/" && c2 === "*") {
+        i += 2;
+        while (i < n && !(src[i] === "*" && src[i + 1] === "/")) i++;
+        i = Math.min(n, i + 2);
+        continue;
+      }
+      if (c === '"' || c === "'" || c === "`") {
+        // An apostrophe between two word characters is prose ("don't"), not the
+        // start of a string — unless the preceding word is a keyword, in which
+        // case it really is `case 'x':`.
+        if (c === "'" && /[A-Za-z0-9_)\]]/.test(prev)) {
+          if (!KEYWORDS_BEFORE_STRING.has(wordBefore(src, i))) {
+            prev = c;
+            i++;
+            continue;
+          }
+        }
+        const quote = c;
+        const start = i;
+        i++;
+        while (i < n) {
+          if (src[i] === "\\") {
+            i += 2;
+            continue;
+          }
+          if (src[i] === quote) {
+            i++;
+            break;
+          }
+          if (quote === "`" && src[i] === "$" && src[i + 1] === "{") {
+            // Skip an interpolation, including any strings nested inside it.
+            i += 2;
+            let depth = 1;
+            while (i < n && depth > 0) {
+              const t = src[i];
+              if (t === "{") depth++;
+              else if (t === "}") depth--;
+              else if (t === '"' || t === "'" || t === "`") {
+                const q = t;
+                i++;
+                while (i < n && src[i] !== q) {
+                  if (src[i] === "\\") i++;
+                  i++;
+                }
+              }
+              i++;
+            }
+            continue;
+          }
+          i++;
+        }
+        ranges.push([start, i]);
+        prev = quote;
+        continue;
+      }
+      if (!/\s/.test(c)) prev = c;
+      i++;
+    }
+    return ranges;
+  }
+
+  function isWordChar(ch: string | undefined): boolean {
+    return !!ch && /[A-Za-z0-9_-]/.test(ch);
+  }
+
+  /** Every `/sales` occurrence that sits inside a string literal and stands
+   *  alone as a path segment (so `/sales-market-nudges` is not a hit). */
+  function salesPathHits(src: string): Array<{ line: number; text: string }> {
+    const ranges = stringLiteralRanges(src);
+    const hits: Array<{ line: number; text: string }> = [];
+    let from = 0;
+    for (;;) {
+      const at = src.indexOf(SALES_PATH, from);
+      if (at === -1) break;
+      from = at + 1;
+      const before = at > 0 ? src[at - 1] : "";
+      const after = src[at + SALES_PATH.length] ?? "";
+      if (isWordChar(before) || isWordChar(after)) continue;
+      const inString = ranges.some(([s, e]) => at >= s && at < e);
+      if (!inString) continue;
+      hits.push({
+        line: src.slice(0, at).split("\n").length,
+        text: src.slice(at, at + 40).split("\n")[0],
+      });
+    }
+    return hits;
+  }
+
+  // ── Scope: everything that can ship a URL or a redirect ─────────────────
+  const SCAN_ROOTS = ["src", "scripts", "prisma"];
+  const SCAN_FILES = [
+    "next.config.ts",
+    "vercel.json",
+    "package.json",
+    "tsconfig.json",
+    "README.md",
+  ];
+  const SCAN_EXTENSIONS = new Set([
+    ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".html", ".md",
+    ".yml", ".yaml", ".css", ".prisma", ".sql", ".txt",
+  ]);
+  const SKIP_DIRS = new Set(["node_modules", ".next", ".git", "dist", "out", "coverage"]);
+
+  const scanned: string[] = [];
+  const walk = (dir: string) => {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (SKIP_DIRS.has(entry.name)) continue;
+        walk(full);
+      } else if (SCAN_EXTENSIONS.has(path.extname(entry.name))) {
+        scanned.push(full);
+      }
+    }
+  };
+  for (const root of SCAN_ROOTS) {
+    if (fs.existsSync(path.join(process.cwd(), root))) walk(root);
+  }
+  for (const file of SCAN_FILES) {
+    const full = path.join(process.cwd(), file);
+    if (fs.existsSync(full)) scanned.push(full);
+  }
+
+  ok(
+    "Sales route: the scanner actually walked the source tree",
+    scanned.length > 100,
+    `${scanned.length} files scanned`
+  );
+
+  // ── 1. No hardcoded `/sales` path, except the redirect source ───────────
+  // `next.config.ts` is exempt for exactly one string: the redirect SOURCE.
+  // That is the one place `/sales` legitimately appears, because it is what
+  // makes stale inbound links resolve.
+  const REDIRECT_SOURCE_FILE = "next.config.ts";
+  // Exempt files from the path scan:
+  //  - `next.config.ts`: the redirect SOURCE is the one legit `/sales` string.
+  //  - this harness file: it must NAME `/sales` in its own comment and in its
+  //    assertion messages, so banning the word here would be tautological.
+  const EXEMPT_FROM_PATH_SCAN = new Set<string>([
+    REDIRECT_SOURCE_FILE,
+    "scripts/verify-feedback-changes.ts",
+  ]);
+  const offenders: string[] = [];
+  for (const file of scanned) {
+    const rel = path.relative(process.cwd(), file);
+    if (EXEMPT_FROM_PATH_SCAN.has(rel)) continue;
+    const hits = salesPathHits(read(rel));
+    for (const hit of hits) {
+      offenders.push(`${rel}:${hit.line} ${hit.text}`);
+    }
+  }
+  ok(
+    "Sales route: no source file hardcodes a /sales path (the sales variant is /?track=sales)",
+    offenders.length === 0,
+    offenders.length ? offenders.join(" | ") : `${scanned.length} files scanned, 0 offenders`
+  );
+
+  // The redirect source in next.config.ts must be the ONLY `/sales` string in
+  // that file — a second one would be a second, unrouted reference.
+  const configHits = salesPathHits(read(REDIRECT_SOURCE_FILE));
+  ok(
+    "Sales route: next.config.ts contains exactly one /sales string (the redirect source)",
+    configHits.length === 1,
+    configHits.length === 1 ? `next.config.ts:${configHits[0].line}` : `${configHits.length} found`
+  );
+
+  // ── 2. The redirect exists and points at the canonical sales landing ─────
+  // EXECUTED, not grepped: the config is imported and the rule inspected, so
+  // a malformed rule cannot pass this check.
+  const redirects = nextConfig.redirects ? await nextConfig.redirects() : [];
+  const salesRule = redirects.find((r) => r.source === SALES_PATH);
+  ok(
+    "Sales route: next.config.ts redirects /sales to /?track=sales",
+    Boolean(salesRule) && salesRule?.destination === SALES_LANDING,
+    salesRule ? `source=${salesRule.source} destination=${salesRule.destination}` : "no /sales redirect rule"
+  );
+  ok(
+    "Sales route: the /sales redirect is permanent (308) so stale links stop costing a hop",
+    salesRule?.permanent === true,
+    salesRule ? `permanent=${String(salesRule.permanent)}` : "no /sales redirect rule"
+  );
+  ok(
+    "Sales route: /sales redirects to the sales landing and not to the career landing",
+    salesRule?.destination !== "/" && salesRule?.destination !== SALES_LANDING.replace("sales", "career"),
+    salesRule ? `destination=${salesRule.destination}` : "no /sales redirect rule"
+  );
+
+  // The redirect must not swallow a query string the visitor arrived with.
+  // Next merges the inbound query into the destination, so /sales?utm=x
+  // resolves to /?utm=x&track=sales — the campaign parameter survives.
+  ok(
+    "Sales route: the /sales destination keeps the sales track as its own query param",
+    salesRule?.destination === SALES_LANDING && !salesRule.destination.includes("career"),
+    salesRule ? `destination=${salesRule.destination}` : "no /sales redirect rule"
+  );
+
+  // ── 3. The canonical sales links stay EXACTLY /?track=sales ──────────────
+  ok(
+    "Sales route: the nav links to the sales landing as /?track=sales",
+    read("src/components/nav.tsx").includes('href: "/?track=sales"')
+  );
+  ok(
+    "Sales route: the footer links to the sales landing as /?track=sales",
+    DEFAULT_SITE_FOOTER.columns.contents.find((l) => l.label === "Sales Track")?.href === SALES_LANDING
+  );
+  ok(
+    "Sales route: the footer keeps the sales link at /?track=sales after the CMS merge",
+    mergeSiteFooterContent({}).columns.contents.find((l) => l.label === "Sales Track")?.href === SALES_LANDING
+  );
+  ok(
+    "Sales route: the dashboard links to the sales landing as /?track=sales",
+    read("src/app/dashboard/dashboard-client.tsx").includes('href="/?track=sales"')
+  );
+  ok(
+    "Sales route: the starter signup callback returns to the sales landing",
+    starterSignupHref("sales").includes(`callbackUrl=${SALES_LANDING}`),
+    starterSignupHref("sales")
+  );
+  ok(
+    "Sales route: the career signup callback is unchanged (still /?track=career)",
+    starterSignupHref("career").includes("callbackUrl=/?track=career"),
+    starterSignupHref("career")
+  );
+
+  // ── 4. The pricing URLs stay on /pricing, NOT on /sales ─────────────────
+  // `/pricing` is a real, separate route whose client reads `?track=`. It is
+  // centralised in `src/lib/pricing-routes.ts` on purpose, and the sales
+  // pricing link must keep pointing at it.
+  ok(
+    "Sales route: the sales pricing link points at /pricing?track=sales, not /sales",
+    SALES_PRICING_HREF.startsWith("/pricing?track=sales") && !SALES_PRICING_HREF.includes(SALES_PATH),
+    SALES_PRICING_HREF
+  );
+  ok(
+    "Sales route: the sales pricing path points at /pricing?track=sales, not /sales",
+    SALES_PRICING_PATH === "/pricing?track=sales" && !SALES_PRICING_PATH.includes(SALES_PATH),
+    SALES_PRICING_PATH
+  );
+  ok(
+    "Sales route: the career pricing links are unchanged",
+    CAREER_PRICING_HREF.startsWith("/pricing?track=career") &&
+      CAREER_PRICING_PATH === "/pricing?track=career"
+  );
+
+  // ── 5. The landing page still renders the sales variant from ?track ─────
+  // The redirect sends people to `/?track=sales`; that URL must actually
+  // render the sales panel, and the default `/` must stay career.
+  const landingClient = read("src/components/landing/landing-page-client.tsx");
+  ok(
+    "Sales route: the landing client switches on the ?track query param",
+    landingClient.includes('searchParams.get("track")') &&
+      landingClient.includes('track === "sales"') &&
+      landingClient.includes('track === "career"')
+  );
+  ok(
+    "Sales route: the landing client renders the sales panel for the sales track",
+    landingClient.includes("<SalesLandingPanel") &&
+      landingClient.includes('activeTrack === "sales"')
+  );
+  ok(
+    "Sales route: the default landing track is still career",
+    landingClient.includes('useState<Track>("career")')
+  );
+
+  // ── 6. There is still no /sales route directory ─────────────────────────
+  // If someone adds `src/app/sales/page.tsx` to "fix" the routing, the
+  // redirect and this guard would both be wrong: the query-param variant
+  // would become a second document for the same content.
+  ok(
+    "Sales route: there is no src/app/sales route (the sales variant is a view of /)",
+    !fs.existsSync(path.join(process.cwd(), "src/app/sales"))
+  );
+
+  // ── 7. The canonical for both tracks stays `/` ───────────────────────────
+  // The redirect above sends visitors to `/?track=sales`, and the landing
+  // page deliberately canonicalises BOTH tracks to `/`. Giving the sales
+  // variant its own canonical would create two competing URLs for one page.
+  const landingPage = read("src/app/page.tsx");
+  ok(
+    "Sales route: the landing page canonical is still / for both tracks",
+    landingPage.includes('canonicalAlternates("/")') && !landingPage.includes('canonicalAlternates("/sales")')
+  );
+  ok(
+    "Sales route: the landing page still has no page-level title (the layout template applies)",
+    !/export const metadata\s*=\s*\{[^}]*title\s*:/.test(landingPage)
+  );
+}
+
 void verifyPdfStampWrites()
   .then(() => verifyCountryWaitlistCms())
   .then(() => verifySalesNudgesTweaks())
@@ -4604,6 +4977,7 @@ void verifyPdfStampWrites()
   .then(() => {
     verifyAuditFixes();
   })
+  .then(() => verifySalesLandingRoute())
   .then(() => {
     console.log(failed === 0 ? "\n✅ All feedback/CMS checks passed." : `\n❌ ${failed} check(s) failed.`);
     process.exit(failed === 0 ? 0 : 1);
